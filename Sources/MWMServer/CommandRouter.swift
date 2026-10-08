@@ -1,7 +1,7 @@
 import MWMCore
 
-/// Maps a decoded `Request` to a `Response`. `ping` is answered directly; everything that needs
-/// window state is forwarded to the main-actor `WindowManager`.
+/// Maps a decoded `Request` to a `Response`. `ping` is answered directly; everything else is
+/// forwarded to the main-actor `WindowManager`.
 public struct CommandRouter: Sendable {
   private let manager: WindowManager?
 
@@ -12,12 +12,8 @@ public struct CommandRouter: Sendable {
   }
 
   public func handle(_ request: Request) async -> Response {
-    switch request {
-    case .ping:
-      return .pong
-    case .list:
-      guard let manager else { return .error("window management is not available") }
-      return await manager.windows()
-    }
+    guard request != .ping else { return .pong }
+    guard let manager else { return .error("window management is not available") }
+    return await manager.handle(request)
   }
 }

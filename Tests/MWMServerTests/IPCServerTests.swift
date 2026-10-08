@@ -157,6 +157,33 @@ struct IPCServerTests {
     #expect(windows.first?.displayID == 1)
   }
 
+  @Test @MainActor func anActionCommandWorksEndToEndOverTheSocket() async throws {
+    let backend = FakeBackend(windows: [
+      makeWindow(id: 1, frame: CGRect(x: 100, y: 100, width: 300, height: 200)),
+      makeWindow(id: 2, frame: CGRect(x: 500, y: 100, width: 300, height: 200)),
+    ])
+    let manager = WindowManager(
+      backend: backend, displays: FakeDisplays(), gate: FakeGate(isTrusted: true))
+    manager.startIfPermitted()
+    backend.clearRecordedCalls()
+    let router = CommandRouter(manager: manager)
+
+    let path = makeSocketPath()
+    let server = IPCServer(path: path) { [router] request in await router.handle(request) }
+    try server.start()
+    defer { server.stop() }
+
+    let response = await withCheckedContinuation { continuation in
+      Thread {
+        continuation.resume(returning: Result { try IPCClient(path: path).send(.layout(.next)) })
+      }.start()
+    }
+    #expect(try response.get() == .message("layout full"))
+    // The command reached the manager and moved the windows through the backend.
+    #expect(Set(backend.moves.map(\.id.rawValue)) == [1, 2])
+    #expect(backend.moves.allSatisfy { $0.frame == FakeDisplays.main.visibleFrame })
+  }
+
   @Test func stopRemovesTheSocketFile() throws {
     let path = makeSocketPath()
     let server = IPCServer(path: path) { await CommandRouter().handle($0) }

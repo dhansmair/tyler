@@ -56,13 +56,47 @@ Built and tested:
 - [x] 81 tests pass; `swift format lint --strict` and `swiftlint --strict` are clean
 - [x] Verified by hand without permission: `ping` works, `list` and `list --json` exit 1 with the instructions, bad usage exits 2, SIGTERM stops `mwmd` and removes the socket
 
-**Not verified (needs Accessibility permission, which this session doesn't have):**
-- [ ] The whole MWMPlatform layer has never run against real windows. The planned spike (confirm AX events arrive under `NSApplication.run()`, check what `kAXWindowsAttribute` returns) was skipped and the layer was written straight from the AX documentation.
-- [ ] Manual checklist, with Accessibility granted to the terminal that runs `mwmd`: `mwm list` shows your windows; open, close, move, resize, minimize and focus TextEdit/Terminal windows and re-run `list` after each; quit an app with several windows; open a Save panel and check it shows `dialog`; check a fullscreen window shows `full`; check frames are in top-left coordinates and `DISPLAY` is right.
+**Manually verified by the user (2026-10-08):** with Accessibility granted, `mwmd` and `mwm list` work well against real windows. The checklist below records which items were confirmed.
+
+**Not verified by Claude (this session has no Accessibility permission):**
+- [ ] The whole MWMPlatform layer had never run against real windows when it was written (the user has since run it, see above). The planned spike (confirm AX events arrive under `NSApplication.run()`, check what `kAXWindowsAttribute` returns) was skipped and the layer was written straight from the AX documentation.
+- Manual checklist, with Accessibility granted to the terminal that runs `mwmd`. Confirmed by the user so far:
+  - [x] `min` flag shows for a minimized window
+  - [x] `full` flag shows for a fullscreen window
+  - [x] `focused` flag follows focus
+  - [x] closing a window removes it from the list
+
+  Still unconfirmed:
+  - [ ] opening a new window adds it
+  - [ ] moving and resizing a window updates its frame (and the frame is in top-left coordinates)
+  - [ ] quitting an app with several windows removes all of them
+  - [ ] a Save panel shows as `dialog`
+  - [ ] `DISPLAY` is right (only one display exists on this machine, so a second display can't be checked yet)
 - [ ] Confirm `dispatchMain()` was really insufficient and `NSApplication.run()` is needed (not tested, I assumed it).
 
 ### M3. Tiling on one display
-Workspace list operations, `Layout` protocol, `tall` and `full`, focus/swap/layout/ratio/float. The biggest batch of unit tests.
+`mwmd` keeps an ordered list of tiled windows (xmonad style: the first is the main window, everything has a next and a prev), lays it out with `tall` or `full`, and is driven by CLI commands. This is the first milestone where `mwmd` moves your windows.
+
+Decisions: tiling starts when `mwmd` has permission (kill switch: `mwm tiling off`); dragging or resizing a window by hand is left alone until the next re-tile (tiling reacts only to commands and to windows appearing, disappearing, or becoming un/tileable); one workspace on the primary display's visible frame; new windows go after the focused one; windows present at start are ordered left to right.
+
+Built and unit tested:
+- [x] MWMCore: `Layout` protocol, `LayoutParameters` (ratio clamped to 0.1…0.9, outer/inner gap), `TallLayout`, `FullLayout`, `LayoutKind`, `Workspace` (insert/remove/sync, focus and swap with wrap-around, ratio, layout cycle), command types, `slot` and `isFloated` on `WindowInfo`
+- [x] MWMServer: `WindowBackend.setFrame` / `focus`, tiling in `WindowManager` (reconcile on events, skips windows already in place, one failing window never stops the others), router forwards every command
+- [x] MWMClient: `focus`, `swap`, `layout`, `ratio`, `float toggle`, `tiling`, `retile`; `SLOT` column and `floated` flag in `list`
+- [x] MWMPlatform: `AXBridge.setFrame` (size, position, size) and `raise`, `AXBackend.setFrame` / `focus`
+- [x] 195 tests pass; `swift format lint --strict` and `swiftlint --strict` are clean
+- [x] Verified by hand without permission: every new command exits 1 with the permission instructions (`tiling off` works), bad arguments exit 2 with the valid choices, SIGTERM stops `mwmd` and removes the socket
+
+**Not verified (needs Accessibility permission, which Claude's session doesn't have):** the code that actually moves and focuses windows (`AXBridge.setFrame` / `raise`, `AXBackend.setFrame` / `focus`) has never run against a real window. Checklist for the user. Run `mwm tiling off` from a second terminal if anything goes wrong:
+- [ ] Two windows at start tile side by side; a third gives one left and two stacked on the right
+- [ ] `focus next|prev|master` really moves keyboard focus and raises the window (including across apps)
+- [ ] `swap next|prev|master`, `layout tall|full|next`, `ratio +0.05|-0.05`, `float toggle` (twice), `retile`, `tiling off` then `on`
+- [ ] Closing, minimizing and fullscreening a tiled window re-tiles the rest; dragging a window does not snap back until `mwm retile`
+- [ ] The menu bar and the Dock side are respected
+- [ ] A terminal (character-cell snapping) and a window with a minimum size (such as System Settings) end up where expected, and `list` shows their real frames
+- [ ] `list` shows sensible `SLOT` values and `floated`
+- [ ] The size-position-size sequence in `AXBridge.setFrame` is actually needed (it is a common AX technique that I did not verify here)
+- [ ] The frontmost-app plus raise approach in `AXBridge.raise` works for an accessory app like `mwmd` (I chose it because the SDK documents `NSRunningApplication.activate` as cooperative and not guaranteed)
 
 ### M4. Virtual monitors and the animation spike
 DisplayStack, parking, Animator, `monitor` and `move-to-monitor`, restore on exit. Check early whether the slide feels good enough, and decide whether the snapshot-overlay fallback is needed.
@@ -86,7 +120,7 @@ mwm monitor up|down|<n>               mwm move-to-monitor up|down|<n> [--follow]
 mwm display next|prev                 mwm move-to-display next|prev
 mwm service install|uninstall
 ```
-Implemented so far: `ping`, `list [--json]`.
+Implemented so far: `ping`, `list [--json]`, `focus`, `swap`, `layout`, `ratio`, `float toggle`, `tiling`, `retile`. The CLI and wire format say `master` (the xmonad term); in Swift the case is `ListTarget.main`, because SwiftLint's `inclusive_language` rule rejects `master` in identifiers.
 
 ## Open items
 - **Code signing.** No signing identity exists on this machine. macOS ties the Accessibility permission to the binary's code identity. Decided in M2: during development, grant Accessibility to the terminal app that runs `mwmd` (no keychain changes). Revisit in M6, when `mwmd` runs as a LaunchAgent and needs its own stable identity (a self-signed `mwm-dev` certificate, then `make install SIGN_ID=mwm-dev`).
@@ -102,4 +136,5 @@ Implemented so far: `ping`, `list [--json]`.
 
 ## Log
 - 2026-10-08: M1 built.
-- 2026-10-08: M2 built and unit tested; the AX layer is unverified against real windows (see M2).
+- 2026-10-08: M2 built and unit tested. The user then ran it against real windows and reported it works well (see M2 for what was and wasn't confirmed).
+- 2026-10-08: M3 built and unit tested. The code that moves and focuses windows has not been run against real windows (see M3 for the checklist). Not recoverable on exit yet: quitting `mwmd` leaves windows where tiling put them (M4 adds restore).

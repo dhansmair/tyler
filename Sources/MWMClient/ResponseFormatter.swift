@@ -11,6 +11,10 @@ public enum ResponseFormatter {
     switch response {
     case .pong:
       return ("pong", true)
+    case .ok:
+      return ("", true)
+    case .message(let text):
+      return (text, true)
     case .windows(let windows):
       switch format {
       case .text:
@@ -23,12 +27,13 @@ public enum ResponseFormatter {
     }
   }
 
-  /// Columns: id, app, title, frame, display, flags. Empty list prints a single explanatory line.
+  /// Columns: id, slot, app, title, frame, display, flags. An empty list prints one line.
   static func table(of windows: [WindowInfo]) -> String {
     guard !windows.isEmpty else { return "no windows" }
     let rows = windows.map { window in
       [
         String(window.id.rawValue),
+        window.slot.map(String.init) ?? "-",
         window.appName,
         window.title.isEmpty ? "-" : singleLine(window.title),
         frameDescription(window.frame),
@@ -36,7 +41,7 @@ public enum ResponseFormatter {
         flags(of: window),
       ]
     }
-    let header = ["ID", "APP", "TITLE", "FRAME", "DISPLAY", "FLAGS"]
+    let header = ["ID", "SLOT", "APP", "TITLE", "FRAME", "DISPLAY", "FLAGS"]
     let all = [header] + rows
     let widths = header.indices.map { column in
       all.map { $0[column].count }.max() ?? 0
@@ -65,6 +70,7 @@ public enum ResponseFormatter {
     if window.isFocused { result.append("focused") }
     if window.isMinimized { result.append("min") }
     if window.isFullscreen { result.append("full") }
+    if window.isFloated { result.append("floated") }
     switch window.kind {
     case .standard: break
     case .dialog: result.append("dialog")

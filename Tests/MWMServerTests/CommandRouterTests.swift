@@ -29,4 +29,25 @@ struct CommandRouterTests {
     }
     #expect(windows.map(\.title) == ["one"])
   }
+
+  @Test(arguments: [
+    Request.retile, .tiling(.on), .focus(.next), .swap(.next), .layout(.next), .ratio(0.05),
+    .toggleFloat,
+  ])
+  func windowCommandsWithoutAManagerAreAnError(request: Request) async {
+    #expect(await CommandRouter().handle(request) == .error("window management is not available"))
+  }
+
+  @Test @MainActor func tilingCommandsAreForwardedToTheManager() async {
+    let backend = FakeBackend(windows: [makeWindow(id: 1), makeWindow(id: 2)])
+    let manager = WindowManager(
+      backend: backend, displays: FakeDisplays(), gate: FakeGate(isTrusted: true))
+    manager.startIfPermitted()
+    let router = CommandRouter(manager: manager)
+
+    #expect(await router.handle(.tiling(.off)) == .message("tiling off"))
+    #expect(await router.handle(.retile) == .error(WindowManager.tilingOffMessage))
+    #expect(await router.handle(.tiling(.on)) == .message("tiling on"))
+    #expect(await router.handle(.layout(.set(.full))) == .message("layout full"))
+  }
 }

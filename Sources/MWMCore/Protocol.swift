@@ -4,11 +4,24 @@ import Foundation
 public enum Request: Codable, Equatable, Sendable {
   case ping
   case list
+  case retile
+  case tiling(TilingMode)
+  case focus(ListTarget)
+  case swap(ListTarget)
+  case layout(LayoutChoice)
+  /// Changes the master column's share of the width by this amount.
+  case ratio(Double)
+  /// Floats the focused window, or tiles it again if it is floating.
+  case toggleFloat
 }
 
 /// The server's reply to a `Request`.
 public enum Response: Codable, Equatable, Sendable {
   case pong
+  /// The command succeeded and there is nothing to report.
+  case ok
+  /// The command succeeded; the text is for the user.
+  case message(String)
   case windows([WindowInfo])
   case error(String)
 }

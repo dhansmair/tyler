@@ -63,6 +63,11 @@ public struct WindowInfo: Codable, Equatable, Sendable, Identifiable {
   public var isFocused: Bool
   /// Filled in by the server when answering a request; `nil` when no display is known.
   public var displayID: UInt32?
+  /// Also server-filled: the 1-based position in the tiling list (1 is the master), or `nil` if
+  /// the window isn't tiled.
+  public var slot: Int?
+  /// Also server-filled: the user floated this window, so tiling leaves it alone.
+  public var isFloated: Bool
 
   public init(
     id: WindowID,
@@ -75,7 +80,9 @@ public struct WindowInfo: Codable, Equatable, Sendable, Identifiable {
     isMinimized: Bool = false,
     isFullscreen: Bool = false,
     isFocused: Bool = false,
-    displayID: UInt32? = nil
+    displayID: UInt32? = nil,
+    slot: Int? = nil,
+    isFloated: Bool = false
   ) {
     self.id = id
     self.processID = processID
@@ -88,6 +95,8 @@ public struct WindowInfo: Codable, Equatable, Sendable, Identifiable {
     self.isFullscreen = isFullscreen
     self.isFocused = isFocused
     self.displayID = displayID
+    self.slot = slot
+    self.isFloated = isFloated
   }
 
   /// Whether a layout may later place this window: a normal window that is on screen.

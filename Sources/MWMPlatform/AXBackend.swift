@@ -58,6 +58,38 @@ public final class AXBackend: WindowBackend {
     elements.keys.sorted().compactMap { windowInfo(for: $0) }
   }
 
+  public func setFrame(_ frame: CGRect, of windowID: WindowID) throws(BackendError) {
+    guard let element = elements[windowID] else { throw .windowGone(windowID) }
+    try check(AXBridge.setFrame(frame, of: element), for: windowID, action: "move")
+    // The app may have clamped the size; tell the manager what it really is.
+    if let info = windowInfo(for: windowID) {
+      continuation.yield(.updated(info))
+    }
+  }
+
+  public func focus(_ windowID: WindowID) throws(BackendError) {
+    guard let element = elements[windowID], let processID = owners[windowID] else {
+      throw .windowGone(windowID)
+    }
+    try check(AXBridge.raise(window: element, in: processID), for: windowID, action: "focus")
+  }
+
+  private func check(
+    _ status: AXError,
+    for windowID: WindowID,
+    action: String
+  ) throws(BackendError) {
+    switch status {
+    case .success:
+      return
+    case .invalidUIElement:
+      // The window closed under us; the destroy notification will tidy the bookkeeping.
+      throw .windowGone(windowID)
+    default:
+      throw .refused("cannot \(action) window \(windowID): AX error \(status.rawValue)")
+    }
+  }
+
   // MARK: - Apps
 
   private func subscribeToWorkspace() {

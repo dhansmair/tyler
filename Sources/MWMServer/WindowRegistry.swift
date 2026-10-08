@@ -20,6 +20,11 @@ struct WindowRegistry: Sendable {
 
   var count: Int { order.count }
 
+  /// One window as last reported. `isFocused` is not derived here; use `windows` for that.
+  func window(withID windowID: WindowID) -> WindowInfo? {
+    storage[windowID]
+  }
+
   /// Replaces everything with `snapshot`. Focus follows the window flagged `isFocused`.
   mutating func replaceAll(_ snapshot: [WindowInfo]) {
     storage = [:]

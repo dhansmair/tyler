@@ -64,6 +64,43 @@ enum AXBridge {
     return CGRect(origin: origin, size: size)
   }
 
+  // MARK: - Writing
+
+  /// Moves and resizes a window. Size is set, then position, then size again: a window moved to
+  /// a screen edge can be clamped, which changes the size the first call was made for. Returns
+  /// the first error, or `.success`.
+  static func setFrame(_ frame: CGRect, of element: AXUIElement) -> AXError {
+    var origin = frame.origin
+    var size = frame.size
+    guard let axPosition = AXValueCreate(.cgPoint, &origin),
+      let axSize = AXValueCreate(.cgSize, &size)
+    else { return .failure }
+
+    for (attribute, value) in [
+      (kAXSizeAttribute, axSize), (kAXPositionAttribute, axPosition), (kAXSizeAttribute, axSize),
+    ] {
+      let status = AXUIElementSetAttributeValue(element, attribute as CFString, value)
+      if status != .success { return status }
+    }
+    return .success
+  }
+
+  /// Brings a window to the front and gives it keyboard focus: the owning app is made frontmost
+  /// (an accessory app like mwmd can't rely on `NSRunningApplication.activate`, which the SDK
+  /// documents as cooperative and not guaranteed), then the window is raised and marked main.
+  static func raise(window: AXUIElement, in processID: pid_t) -> AXError {
+    let application = applicationElement(processID: processID)
+    var status = AXUIElementSetAttributeValue(
+      application, kAXFrontmostAttribute as CFString, kCFBooleanTrue)
+    if status != .success { return status }
+    status = AXUIElementPerformAction(window, kAXRaiseAction as CFString)
+    if status != .success { return status }
+    // Best effort: some windows refuse these, but the raise above already did the visible part.
+    _ = AXUIElementSetAttributeValue(window, kAXMainAttribute as CFString, kCFBooleanTrue)
+    _ = AXUIElementSetAttributeValue(window, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+    return .success
+  }
+
   // MARK: - Private
 
   private static func value(_ attribute: String, of element: AXUIElement) -> CFTypeRef? {

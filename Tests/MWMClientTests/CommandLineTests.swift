@@ -52,6 +52,64 @@ struct CommandLineTests {
   }
 }
 
+@Suite("CommandLineParser: tiling commands")
+struct TilingCommandLineTests {
+  @Test(arguments: [
+    (["focus", "next"], Request.focus(.next)),
+    (["focus", "prev"], Request.focus(.prev)),
+    (["focus", "master"], Request.focus(.main)),
+    (["swap", "next"], Request.swap(.next)),
+    (["swap", "prev"], Request.swap(.prev)),
+    (["swap", "master"], Request.swap(.main)),
+    (["layout", "tall"], Request.layout(.set(.tall))),
+    (["layout", "full"], Request.layout(.set(.full))),
+    (["layout", "next"], Request.layout(.next)),
+    (["ratio", "+0.05"], Request.ratio(0.05)),
+    (["ratio", "-0.05"], Request.ratio(-0.05)),
+    (["ratio", "+1"], Request.ratio(1)),
+    (["float", "toggle"], Request.toggleFloat),
+    (["tiling", "on"], Request.tiling(.on)),
+    (["tiling", "off"], Request.tiling(.off)),
+    (["tiling", "toggle"], Request.tiling(.toggle)),
+    (["retile"], Request.retile),
+  ])
+  func parsesEveryTilingCommand(arguments: [String], expected: Request) throws {
+    #expect(try CommandLineParser.parse(arguments) == Invocation(request: expected))
+  }
+
+  @Test(arguments: [
+    (["focus"], "focus takes exactly one argument: next|prev|master"),
+    (["focus", "left"], "unknown focus argument 'left' (use next|prev|master)"),
+    (["focus", "next", "prev"], "focus takes exactly one argument: next|prev|master"),
+    (["swap"], "swap takes exactly one argument: next|prev|master"),
+    (["swap", "up"], "unknown swap argument 'up' (use next|prev|master)"),
+    (["layout"], "layout takes exactly one argument: tall|full|next"),
+    (["layout", "wide"], "unknown layout 'wide' (use tall|full|next)"),
+    (["ratio"], "ratio takes exactly one argument, such as +0.05 or -0.05"),
+    (["ratio", "0.05"], "ratio must be a signed number such as +0.05 or -0.05"),
+    (["ratio", "+abc"], "ratio must be a signed number such as +0.05 or -0.05"),
+    (["ratio", "+inf"], "ratio must be a signed number such as +0.05 or -0.05"),
+    (["ratio", "+nan"], "ratio must be a signed number such as +0.05 or -0.05"),
+    (["ratio", "+0.05", "+0.05"], "ratio takes exactly one argument, such as +0.05 or -0.05"),
+    (["float"], "float takes exactly one argument: toggle"),
+    (["float", "on"], "float takes exactly one argument: toggle"),
+    (["tiling"], "tiling takes exactly one argument: on|off|toggle"),
+    (["tiling", "maybe"], "unknown tiling argument 'maybe' (use on|off|toggle)"),
+    (["retile", "now"], "retile takes no arguments"),
+  ])
+  func rejectsBadArgumentsAndNamesTheValidChoices(arguments: [String], message: String) {
+    #expect(throws: CommandLineError.usage(message)) {
+      try CommandLineParser.parse(arguments)
+    }
+  }
+
+  @Test func usageMentionsEveryTilingCommand() {
+    for word in ["focus", "swap", "layout", "ratio", "float", "tiling", "retile"] {
+      #expect(CommandLineParser.usage.contains(word), "usage should mention \(word)")
+    }
+  }
+}
+
 @Suite("ResponseFormatter")
 struct ResponseFormatterTests {
   private func window(
@@ -119,11 +177,13 @@ struct ResponseFormatterTests {
       .windows([window(id: 1), window(id: 123_456, app: "A much longer app name")])
     )
     let lines = result.text.split(separator: "\n").map(String.init)
-    // The widest ID is "123456" (6 characters), then a two-space gap, so APP starts at column 8.
-    let appColumn = 8
+    // The widest ID is "123456" (6 characters), then a two-space gap, then the 4-character SLOT
+    // column and another two-space gap, so APP starts at column 14.
+    let appColumn = 14
     let expected = ["APP", "TextEdit", "A much longer app name"]
     for (line, text) in zip(lines, expected) {
-      #expect(line.dropFirst(appColumn).hasPrefix(text), "\(text) should start at column 8")
+      #expect(
+        line.dropFirst(appColumn).hasPrefix(text), "\(text) should start at column \(appColumn)")
     }
     #expect(lines.allSatisfy { !$0.hasSuffix(" ") }, "no trailing whitespace")
   }
@@ -165,5 +225,39 @@ struct ResponseFormatterTests {
     let result = ResponseFormatter.format(.windows([]), as: .json)
     let data = try #require(result.text.data(using: .utf8))
     #expect(try JSONDecoder().decode([WindowInfo].self, from: data).isEmpty)
+  }
+
+  @Test func okPrintsNothingAndSucceeds() {
+    let result = ResponseFormatter.format(.ok)
+    #expect(result.text.isEmpty)
+    #expect(result.success)
+  }
+
+  @Test func messagesAreSuccessesThatPrintTheirText() {
+    let result = ResponseFormatter.format(.message("tiling on"))
+    #expect(result.text == "tiling on")
+    #expect(result.success)
+  }
+
+  @Test func theTableShowsSlotsAndTheFloatedFlag() {
+    var tiled = window(id: 1)
+    tiled.slot = 1
+    var floating = window(id: 2)
+    floating.isFloated = true
+    let lines = ResponseFormatter.format(.windows([tiled, floating])).text
+      .split(separator: "\n").map(String.init)
+    #expect(lines[0].contains("SLOT"))
+    #expect(lines[1].split(separator: " ").contains("1"))
+    #expect(lines[2].hasSuffix("floated"))
+  }
+
+  @Test func jsonCarriesTheTilingFields() throws {
+    var tiled = window(id: 1)
+    tiled.slot = 3
+    tiled.isFloated = true
+    let text = ResponseFormatter.format(.windows([tiled]), as: .json).text
+    let decoded = try JSONDecoder().decode([WindowInfo].self, from: Data(text.utf8))
+    #expect(decoded.first?.slot == 3)
+    #expect(decoded.first?.isFloated == true)
   }
 }

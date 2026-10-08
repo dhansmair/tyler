@@ -10,14 +10,14 @@ Windows are controlled through the macOS Accessibility API (no SIP changes). Vir
 
 ## Status
 
-M1 (IPC, `mwm ping`, test harness) is done. M2 (`mwm list`, window discovery through the Accessibility API) is built and unit tested, but its AX layer has not yet been verified against real windows: see the checklist in the roadmap. Moving and tiling windows starts in M3. **`docs/ROADMAP.md` is the working document**: read it first, and update it as work progresses (tick off items, log decisions, record open items). `docs/notes.md` holds the original design discussion.
+M1 (IPC, `mwm ping`, test harness) is done. M2 (`mwm list`, window discovery through the Accessibility API) is built and unit tested, and the user has run it against real windows: the `min`, `full` and `focused` flags and removal on close work. The remaining checklist items in the roadmap (new windows, move/resize, app quit, dialogs, second display) are unconfirmed. M3 (tiling on one display: `focus`, `swap`, `layout`, `ratio`, `float toggle`, `tiling`, `retile`) is built and unit tested, but **the code that moves and focuses windows has never run against a real window**: see the checklist in the roadmap. **`docs/ROADMAP.md` is the working document**: read it first, and update it as work progresses (tick off items, log decisions, record open items). `docs/notes.md` holds the original design discussion.
 
 ## Layout
 
 ```
 Sources/
-  MWMCore/     pure logic and POSIX helpers: wire protocol, paths, Unix sockets, window and display types
-  MWMServer/   server logic: CommandRouter, IPCServer, WindowManager, WindowRegistry, backend protocols
+  MWMCore/     pure logic and POSIX helpers: wire protocol, paths, Unix sockets, window and display types, layouts, Workspace (the ordered tiling list)
+  MWMServer/   server logic: CommandRouter, IPCServer, WindowManager (tiling), WindowRegistry, backend protocols
   MWMPlatform/ real macOS code (AX, NSWorkspace, NSScreen); not unit tested, keep it thin
   MWMClient/   argv parsing, response formatting, IPC client
   mwmd/        server executable (thin)
@@ -40,9 +40,11 @@ pre-commit run --all-files   # runs swift format lint, swiftlint and make test
 
 - **Use `make test`.** The Command Line Tools ship Swift Testing, but SwiftPM doesn't find it without extra framework and rpath flags. The Makefile passes them.
 - **Run the pieces by hand:** `.build/debug/mwmd` in one terminal, `.build/debug/mwm ping` or `mwm list` in another. Set `MWM_SOCKET=/tmp/x.sock` to use a different socket (default `~/.mwm/mwm.sock`).
-- **`mwm list` needs Accessibility permission.** Grant it in System Settings > Privacy & Security > Accessibility to the terminal app that runs `mwmd`. Without it, `mwmd` still runs and `list` prints instructions.
+- **`mwm list` and the tiling commands need Accessibility permission.** Grant it in System Settings > Privacy & Security > Accessibility to the terminal app that runs `mwmd`. Without it, `mwmd` still runs and they print instructions.
+- **`mwmd` tiles your windows as soon as it has permission, and quitting it does not put them back** (restore arrives in M4). Run `mwm tiling off` first if you want windows left alone.
+- **Use `main`, not `master`, in Swift identifiers.** SwiftLint's `inclusive_language` rule rejects `master`. The CLI and wire format still say `master` (`ListTarget.main = "master"`).
 - macOS has no `timeout`. To bound a command that might hang, use `perl -e 'alarm N; exec @ARGV' <command>`.
-- **SwiftLint needs `TOOLCHAIN_DIR`.** Without full Xcode, plain `swiftlint` crashes looking for sourcekitd. Setting `TOOLCHAIN_DIR=/Library/Developer/CommandLineTools` fixes it (the pre-commit hook does this). `.swiftlint.yml` aligns SwiftLint with swift-format (trailing commas) and allows `fd` and `id`.
+- **SwiftLint needs `TOOLCHAIN_DIR`.** Without full Xcode, plain `swiftlint` crashes looking for sourcekitd. Setting `TOOLCHAIN_DIR=/Library/Developer/CommandLineTools` fixes it (the pre-commit hook does this). `.swiftlint.yml` aligns SwiftLint with swift-format (trailing commas) and allows the short names `fd`, `id`, `ok` and `on`.
 - **Pre-commit** (`.pre-commit-config.yaml`) is installed in `.git/hooks`. A commit that touches Swift files runs format lint, SwiftLint and the tests, and is blocked if any fail. Don't bypass it with `--no-verify`.
 
 ## Coding guidelines

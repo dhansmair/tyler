@@ -21,9 +21,9 @@ A personal macOS window manager in Swift, replacing AeroSpace/Amethyst for this 
 ## Package layout
 ```
 Sources/
-  MWMCore/     pure value types and POSIX helpers: Protocol, Paths, UnixSocket, (later) Layout, Workspace, DisplayStack, Config, Parking, Animation
-  MWMServer/   server logic behind protocols: CommandRouter, IPCServer, (later) WindowManager, Animator, Backend protocols
-  MWMPlatform/ real macOS implementations: AX, NSWorkspace, NSScreen, display link   (added in M2)
+  MWMCore/     pure value types and POSIX helpers: Protocol, Paths, UnixSocket, Window, Display, (later) Layout, Workspace, DisplayStack, Config, Parking, Animation
+  MWMServer/   server logic behind protocols: CommandRouter, IPCServer, WindowManager, WindowRegistry, Backend protocols, (later) Animator
+  MWMPlatform/ real macOS implementations, not unit tested: AXBridge, AppObserver, AXBackend, system providers, (later) display link
   MWMClient/   argv parsing, response formatting, socket client
   mwmd/        server executable (thin)
   mwm/         CLI executable (thin)
@@ -45,7 +45,21 @@ Tests/         one test target per library
 - [ ] Stable code signing for Accessibility (**deferred to M2**, see open items)
 
 ### M2. AX spike and window discovery
-Add MWMPlatform: permission prompt, window enumeration, live observers (created, destroyed, focused, moved), `mwm list`. FakeBackend tests for registry bookkeeping.
+`mwmd` keeps a live list of the standard windows on the current Space, and `mwm list [--json]` shows it. It does not move, resize, focus or raise anything (that's M3).
+
+Built and tested:
+- [x] MWMCore: `WindowID`, `WindowInfo`, `WindowKind.classify`, `DisplayInfo`, `DisplayGeometry` (AppKit→AX y-flip, window→display by overlap), `Request.list` / `Response.windows`
+- [x] MWMServer: `WindowRegistry` (idempotent events), `WindowManager` (`@MainActor`), `WindowBackend` / `DisplayProvider` / `AccessibilityGate` protocols, async `CommandRouter`, async `IPCServer.Handler` with one blocking-to-async bridge
+- [x] MWMClient: `mwm list [--json]`, text table and JSON output
+- [x] MWMPlatform (new): `AXBridge`, `AppObserver`, `AXBackend`, `SystemAccessibilityGate`, `ScreenDisplayProvider`
+- [x] `mwmd` runs a real `NSApplication` run loop (`.accessory`), polls for the permission and starts tracking once it is granted
+- [x] 81 tests pass; `swift format lint --strict` and `swiftlint --strict` are clean
+- [x] Verified by hand without permission: `ping` works, `list` and `list --json` exit 1 with the instructions, bad usage exits 2, SIGTERM stops `mwmd` and removes the socket
+
+**Not verified (needs Accessibility permission, which this session doesn't have):**
+- [ ] The whole MWMPlatform layer has never run against real windows. The planned spike (confirm AX events arrive under `NSApplication.run()`, check what `kAXWindowsAttribute` returns) was skipped and the layer was written straight from the AX documentation.
+- [ ] Manual checklist, with Accessibility granted to the terminal that runs `mwmd`: `mwm list` shows your windows; open, close, move, resize, minimize and focus TextEdit/Terminal windows and re-run `list` after each; quit an app with several windows; open a Save panel and check it shows `dialog`; check a fullscreen window shows `full`; check frames are in top-left coordinates and `DISPLAY` is right.
+- [ ] Confirm `dispatchMain()` was really insufficient and `NSApplication.run()` is needed (not tested, I assumed it).
 
 ### M3. Tiling on one display
 Workspace list operations, `Layout` protocol, `tall` and `full`, focus/swap/layout/ratio/float. The biggest batch of unit tests.
@@ -72,16 +86,20 @@ mwm monitor up|down|<n>               mwm move-to-monitor up|down|<n> [--follow]
 mwm display next|prev                 mwm move-to-display next|prev
 mwm service install|uninstall
 ```
-Implemented so far: `ping`.
+Implemented so far: `ping`, `list [--json]`.
 
 ## Open items
-- **Code signing.** No signing identity exists on this machine. macOS ties the Accessibility permission to the binary's code identity, so rebuilds with ad-hoc signatures may need the permission granted again. Before M2: create a self-signed code-signing certificate (e.g. `mwm-dev`) in Keychain Access, then `make install SIGN_ID=mwm-dev`. This changes the keychain, so it needs the user's go-ahead.
+- **Code signing.** No signing identity exists on this machine. macOS ties the Accessibility permission to the binary's code identity. Decided in M2: during development, grant Accessibility to the terminal app that runs `mwmd` (no keychain changes). Revisit in M6, when `mwmd` runs as a LaunchAgent and needs its own stable identity (a self-signed `mwm-dev` certificate, then `make install SIGN_ID=mwm-dev`).
 - Native fullscreen windows are left alone. Terminals that snap to character cells won't fill their frame exactly.
 - AX calls cost one round trip per window, so a slide with many windows may be coarse (see M4).
 
 - **Testing pitfalls found in M1.** (1) Tests that block in `read()` must not run on Swift concurrency's cooperative pool: a task-group version of the concurrent-clients test failed ~80% of runs, plain threads pass. The cause is suspected, not verified. (2) A test that writes more than the socket buffer (~8 KB) on the same thread that later reads will deadlock. (3) macOS has no `timeout`; use `perl -e 'alarm N; exec @ARGV' cmd` to bound a run.
 
-- **Guideline conflict: GCD.** `docs/coding-guidelines.md` says not to use new GCD APIs. `IPCServer` uses `Thread`, `DispatchQueue` and `DispatchSemaphore` (accept loop, worker queue), and `mwmd/main.swift` uses `DispatchSource` for signals and `dispatchMain()`. The reason is that the server does blocking POSIX I/O, which doesn't belong on Swift concurrency's cooperative pool (see the testing pitfall above). Decide whether to keep this, or move to `Network.framework` or an actor-based design, before M2 builds on it.
+- **GCD (settled in M2).** Kept at the edges as a documented exception in `docs/coding-guidelines.md`: `IPCServer` (blocking socket I/O) and `mwmd`'s signal sources. Everything else is `@MainActor` / async.
+- **`IPCServer.runBlocking` needs a free main thread.** Each socket worker blocks on a semaphore while the main actor answers. That works under `NSApplication.run()`, but anything that blocks the main thread (a long AX call) also stalls every `mwm` command. AX calls have a 1 s messaging timeout for that reason.
+- **Only standard apps are observed** (`activationPolicy == .regular`), and windows on other Spaces are invisible to AX. Menu-bar-only apps and other Spaces are not tracked.
+- **`AXBackend` retries** attaching to a new app up to 6 times at 500 ms, then gives up (logged through `Logger`, subsystem `mwm`). The numbers are guesses until checked against real apps.
 
 ## Log
-- 2026-10-08: M1 built. MWMPlatform is not created yet (an empty target would be noise); it arrives with M2.
+- 2026-10-08: M1 built.
+- 2026-10-08: M2 built and unit tested; the AX layer is unverified against real windows (see M2).

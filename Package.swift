@@ -11,8 +11,9 @@ let package = Package(
   targets: [
     .target(name: "MWMCore"),
     .target(name: "MWMServer", dependencies: ["MWMCore"]),
+    .target(name: "MWMPlatform", dependencies: ["MWMCore", "MWMServer"]),
     .target(name: "MWMClient", dependencies: ["MWMCore"]),
-    .executableTarget(name: "mwmd", dependencies: ["MWMCore", "MWMServer"]),
+    .executableTarget(name: "mwmd", dependencies: ["MWMCore", "MWMServer", "MWMPlatform"]),
     .executableTarget(name: "mwm", dependencies: ["MWMCore", "MWMClient"]),
 
     .testTarget(name: "MWMCoreTests", dependencies: ["MWMCore"]),

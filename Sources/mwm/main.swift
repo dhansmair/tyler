@@ -7,9 +7,9 @@ func fail(_ message: String, code: Int32) -> Never {
   exit(code)
 }
 
-let request: Request
+let invocation: Invocation
 do {
-  request = try CommandLineParser.parse(Array(CommandLine.arguments.dropFirst()))
+  invocation = try CommandLineParser.parse(Array(CommandLine.arguments.dropFirst()))
 } catch CommandLineError.usage(let message) {
   fail("mwm: \(message)\n\n\(CommandLineParser.usage)", code: 2)
 } catch {
@@ -17,8 +17,8 @@ do {
 }
 
 do {
-  let response = try IPCClient().send(request)
-  let (text, success) = ResponseFormatter.format(response)
+  let response = try IPCClient().send(invocation.request)
+  let (text, success) = ResponseFormatter.format(response, as: invocation.format)
   if success {
     FileHandle.standardOutput.write(Data((text + "\n").utf8))
   } else {

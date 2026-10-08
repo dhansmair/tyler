@@ -40,7 +40,7 @@ private func rawExchange(path: String, send payload: String) throws -> String? {
 struct IPCServerTests {
   @Test func clientAndServerRoundTripPing() throws {
     let path = makeSocketPath()
-    let server = IPCServer(path: path) { CommandRouter().handle($0) }
+    let server = IPCServer(path: path) { await CommandRouter().handle($0) }
     try server.start()
     defer { server.stop() }
 
@@ -50,7 +50,7 @@ struct IPCServerTests {
 
   @Test func malformedRequestGetsAnErrorResponse() throws {
     let path = makeSocketPath()
-    let server = IPCServer(path: path) { CommandRouter().handle($0) }
+    let server = IPCServer(path: path) { await CommandRouter().handle($0) }
     try server.start()
     defer { server.stop() }
 
@@ -61,7 +61,7 @@ struct IPCServerTests {
 
   @Test func serverKeepsServingAfterABadClient() throws {
     let path = makeSocketPath()
-    let server = IPCServer(path: path) { CommandRouter().handle($0) }
+    let server = IPCServer(path: path) { await CommandRouter().handle($0) }
     try server.start()
     defer { server.stop() }
 
@@ -73,7 +73,7 @@ struct IPCServerTests {
 
   @Test func handlesConcurrentClients() throws {
     let path = makeSocketPath()
-    let server = IPCServer(path: path) { CommandRouter().handle($0) }
+    let server = IPCServer(path: path) { await CommandRouter().handle($0) }
     try server.start()
     defer { server.stop() }
 
@@ -99,11 +99,11 @@ struct IPCServerTests {
 
   @Test func secondServerOnTheSamePathIsRefused() throws {
     let path = makeSocketPath()
-    let first = IPCServer(path: path) { CommandRouter().handle($0) }
+    let first = IPCServer(path: path) { await CommandRouter().handle($0) }
     try first.start()
     defer { first.stop() }
 
-    let second = IPCServer(path: path) { CommandRouter().handle($0) }
+    let second = IPCServer(path: path) { await CommandRouter().handle($0) }
     #expect(throws: IPCServer.Failure.alreadyRunning(path)) {
       try second.start()
     }
@@ -118,16 +118,48 @@ struct IPCServerTests {
     close(stale)
     #expect(FileManager.default.fileExists(atPath: path))
 
-    let server = IPCServer(path: path) { CommandRouter().handle($0) }
+    let server = IPCServer(path: path) { await CommandRouter().handle($0) }
     try server.start()
     defer { server.stop() }
 
     #expect(try IPCClient(path: path).send(.ping) == .pong)
   }
 
+  @Test @MainActor func listWorksEndToEndOverTheSocket() async throws {
+    let backend = FakeBackend(windows: [makeWindow(id: 11, title: "hello", isFocused: true)])
+    let manager = WindowManager(
+      backend: backend,
+      displays: FakeDisplays(),
+      gate: FakeGate(isTrusted: true)
+    )
+    manager.startIfPermitted()
+    let router = CommandRouter(manager: manager)
+
+    let path = makeSocketPath()
+    let server = IPCServer(path: path) { [router] request in await router.handle(request) }
+    try server.start()
+    defer { server.stop() }
+
+    // The client blocks in read(), so it runs on a plain thread: the main actor has to stay free
+    // to answer, and this test function is itself running on it.
+    let response = await withCheckedContinuation { continuation in
+      Thread {
+        continuation.resume(returning: Result { try IPCClient(path: path).send(.list) })
+      }.start()
+    }
+    guard case .windows(let windows) = try response.get() else {
+      Issue.record("expected a window list")
+      return
+    }
+    #expect(windows.map(\.id.rawValue) == [11])
+    #expect(windows.first?.title == "hello")
+    #expect(windows.first?.isFocused == true)
+    #expect(windows.first?.displayID == 1)
+  }
+
   @Test func stopRemovesTheSocketFile() throws {
     let path = makeSocketPath()
-    let server = IPCServer(path: path) { CommandRouter().handle($0) }
+    let server = IPCServer(path: path) { await CommandRouter().handle($0) }
     try server.start()
     #expect(FileManager.default.fileExists(atPath: path))
 

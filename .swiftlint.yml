@@ -6,8 +6,10 @@ excluded:
 trailing_comma:
   mandatory_comma: true
 
-# `fd` is the standard name for a file descriptor. docs/coding-guidelines.md allows widely known
-# abbreviations, but SwiftLint's default minimum length of 3 would flag it.
+# `fd` is the standard name for a file descriptor, and `id` is what `Identifiable` requires.
+# docs/coding-guidelines.md allows widely known abbreviations, but SwiftLint's default minimum
+# length of 3 would flag them.
 identifier_name:
   excluded:
     - fd
+    - id

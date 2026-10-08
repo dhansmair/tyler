@@ -3,11 +3,13 @@ import Foundation
 /// A command sent from the `mwm` client to the `mwmd` server.
 public enum Request: Codable, Equatable, Sendable {
   case ping
+  case list
 }
 
 /// The server's reply to a `Request`.
 public enum Response: Codable, Equatable, Sendable {
   case pong
+  case windows([WindowInfo])
   case error(String)
 }
 

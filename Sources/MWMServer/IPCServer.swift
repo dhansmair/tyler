@@ -14,7 +14,7 @@ public final class IPCServer: @unchecked Sendable {
     case alreadyRunning(String)
   }
 
-  public typealias Handler = @Sendable (Request) -> Response
+  public typealias Handler = @Sendable (Request) async -> Response
 
   private let path: String
   private let handler: Handler
@@ -116,12 +116,27 @@ public final class IPCServer: @unchecked Sendable {
     }
   }
 
-  private static func serve(client: Int32, handler: Handler) {
+  /// The one bridge from a blocking GCD worker thread into async code. The worker waits, so the
+  /// task is never detached from its caller's lifetime. This relies on the main thread being free
+  /// to run the main actor while workers wait.
+  private static func runBlocking(_ handler: @escaping Handler, on request: Request) -> Response {
+    let box = ResponseBox()
+    let done = DispatchSemaphore(value: 0)
+    let task = Task {
+      box.set(await handler(request))
+      done.signal()
+    }
+    done.wait()
+    _ = task
+    return box.value
+  }
+
+  private static func serve(client: Int32, handler: @escaping Handler) {
     defer { close(client) }
     let response: Response
     if let line = UnixSocket.readLine(fd: client) {
       do {
-        response = handler(try Wire.decode(Request.self, from: line))
+        response = runBlocking(handler, on: try Wire.decode(Request.self, from: line))
       } catch {
         response = .error("malformed request")
       }
@@ -133,5 +148,26 @@ public final class IPCServer: @unchecked Sendable {
     } catch {
       log.error("failed to send response: \(error.localizedDescription)")
     }
+  }
+}
+
+/// Hands a `Response` from a task back to the thread waiting on it.
+///
+/// `@unchecked Sendable`: `stored` is written once, before the semaphore is signalled, and read
+/// only after the wait returns, and `lock` guards both accesses regardless.
+private final class ResponseBox: @unchecked Sendable {
+  private let lock = NSLock()
+  private var stored: Response = .error("no response")
+
+  func set(_ response: Response) {
+    lock.lock()
+    stored = response
+    lock.unlock()
+  }
+
+  var value: Response {
+    lock.lock()
+    defer { lock.unlock() }
+    return stored
   }
 }

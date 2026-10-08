@@ -40,6 +40,7 @@ Follow these rules for every change in this repository. If a rule conflicts with
 - New types crossing concurrency boundaries must be `Sendable`.
 - `@unchecked Sendable` and `nonisolated(unsafe)` are only allowed with a comment that explains why they're safe.
 - Avoid detached or unstructured `Task {}`. If you must use one, keep a reference to it and handle cancellation.
+- **Deliberate GCD exception (decided in M2).** GCD is allowed in exactly two places: `IPCServer` (an accept thread and a worker queue doing blocking POSIX socket I/O, which doesn't belong on the cooperative pool) and `mwmd/main.swift` (signal sources). `IPCServer` bridges into async code once, in `runBlocking`. All window state lives on the `@MainActor` `WindowManager`. Don't use GCD anywhere else without asking.
 
 ## 6. Memory
 - Use `[weak self]` in escaping closures that self stores. Don't add it to non-escaping closures.

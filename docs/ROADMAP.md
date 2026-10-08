@@ -41,7 +41,7 @@ Tests/         one test target per library
 - [x] Tests for protocol, sockets, router, IPC round trip, CLI parsing and output
 - [x] Makefile (`build`, `test`, `install`). `make test` is needed instead of plain `swift test`: the Command Line Tools ship Swift Testing, but SwiftPM doesn't find it without extra framework/rpath flags, which the Makefile passes.
 - [x] Verified: 28 tests pass (`make test`, about 3 s), and `mwm`/`mwmd` checked by hand (ping, no server, duplicate server, SIGTERM removes the socket)
-- [x] `swift format lint --strict` is clean. `swiftlint` is **not installed**, so that check from `docs/coding-guidelines.md` has not been run (`brew install swiftlint` if wanted).
+- [x] `swift format lint --strict` and `swiftlint --strict` are clean, and a pre-commit hook (`.pre-commit-config.yaml`) runs both plus `make test` on every commit that touches Swift files. SwiftLint needs `TOOLCHAIN_DIR=/Library/Developer/CommandLineTools` when full Xcode isn't installed; `.swiftlint.yml` aligns it with swift-format.
 - [ ] Stable code signing for Accessibility (**deferred to M2**, see open items)
 
 ### M2. AX spike and window discovery

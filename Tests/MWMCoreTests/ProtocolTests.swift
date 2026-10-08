@@ -19,7 +19,7 @@ struct ProtocolTests {
 
   @Test func encodedMessagesAreSingleNewlineTerminatedLines() throws {
     let data = try Wire.encode(Response.error("multi\nline"))
-    let text = String(decoding: data, as: UTF8.self)
+    let text = try #require(String(data: data, encoding: .utf8))
     #expect(text.hasSuffix("\n"))
     // The embedded newline must be escaped, otherwise framing breaks.
     #expect(text.dropLast().contains("\n") == false)

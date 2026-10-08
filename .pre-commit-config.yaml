@@ -1,0 +1,28 @@
+# Mirrors the checks in docs/coding-guidelines.md. Install with `pre-commit install`.
+repos:
+  - repo: local
+    hooks:
+      - id: swift-format
+        name: swift format lint
+        entry: swift format lint --strict
+        language: system
+        types: [swift]
+
+      - id: swiftlint
+        name: swiftlint
+        # Fails (instead of skipping) when swiftlint is missing, so a green run never hides an
+        # unrun check. TOOLCHAIN_DIR points SwiftLint at the Command Line Tools' sourcekitd; without
+        # it SwiftLint crashes on machines that have no full Xcode.
+        entry: >-
+          bash -c 'command -v swiftlint >/dev/null || { echo "swiftlint is not installed (brew install swiftlint)"; exit 1; };
+          TOOLCHAIN_DIR="${TOOLCHAIN_DIR:-/Library/Developer/CommandLineTools}" swiftlint --strict --quiet "$@"' --
+        language: system
+        types: [swift]
+        require_serial: true
+
+      - id: swift-test
+        name: swift test
+        entry: make test
+        language: system
+        types: [swift]
+        pass_filenames: false

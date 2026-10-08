@@ -98,8 +98,8 @@ public enum UnixSocket {
     let fd = socket(AF_UNIX, SOCK_STREAM, 0)
     guard fd >= 0 else { throw Failure.syscall("socket", errno) }
     // A peer that disappears should surface as a write error, not kill the process.
-    var on: Int32 = 1
-    setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &on, socklen_t(MemoryLayout<Int32>.size))
+    var enabled: Int32 = 1
+    setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &enabled, socklen_t(MemoryLayout<Int32>.size))
     return fd
   }
 

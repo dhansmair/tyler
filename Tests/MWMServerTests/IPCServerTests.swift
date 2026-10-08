@@ -33,7 +33,7 @@ private func rawExchange(path: String, send payload: String) throws -> String? {
   defer { close(fd) }
   UnixSocket.setReceiveTimeout(fd: fd, seconds: 5)
   try UnixSocket.writeAll(fd: fd, data: Data(payload.utf8))
-  return UnixSocket.readLine(fd: fd).map { String(decoding: $0, as: UTF8.self) }
+  return UnixSocket.readLine(fd: fd).flatMap { String(data: $0, encoding: .utf8) }
 }
 
 @Suite("IPCServer", .serialized)

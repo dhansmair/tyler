@@ -108,8 +108,8 @@ public final class IPCServer: @unchecked Sendable {
       if client < 0 { continue }
       UnixSocket.setNonBlocking(fd: client, false)
       UnixSocket.setReceiveTimeout(fd: client, seconds: 5)
-      var on: Int32 = 1
-      setsockopt(client, SOL_SOCKET, SO_NOSIGPIPE, &on, socklen_t(MemoryLayout<Int32>.size))
+      var enabled: Int32 = 1
+      setsockopt(client, SOL_SOCKET, SO_NOSIGPIPE, &enabled, socklen_t(MemoryLayout<Int32>.size))
       workers.async { [handler] in
         Self.serve(client: client, handler: handler)
       }

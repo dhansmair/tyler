@@ -88,13 +88,13 @@ Built and unit tested:
 - [x] Verified by hand without permission: every new command exits 1 with the permission instructions (`tiling off` works), bad arguments exit 2 with the valid choices, SIGTERM stops `mwmd` and removes the socket
 
 **Not verified (needs Accessibility permission, which Claude's session doesn't have):** the code that actually moves and focuses windows (`AXBridge.setFrame` / `raise`, `AXBackend.setFrame` / `focus`) has never run against a real window. Checklist for the user. Run `mwm tiling off` from a second terminal if anything goes wrong:
-- [ ] Two windows at start tile side by side; a third gives one left and two stacked on the right
-- [ ] `focus next|prev|master` really moves keyboard focus and raises the window (including across apps)
-- [ ] `swap next|prev|master`, `layout tall|full|next`, `ratio +0.05|-0.05`, `float toggle` (twice), `retile`, `tiling off` then `on`
+- [x] (2026-10-10, run by Claude with Accessibility granted) Windows at start tile: one left, the rest stacked on the right (5 windows seen)
+- [x] `focus next|master` moves focus across apps (Ghostty to Code and back); the `focused` flag follows. `prev` and the actual keyboard/raise were not checked separately
+- [x] `swap next|master`, `layout tall|full`, `ratio +0.05|-0.05`, `float toggle` (twice), `retile`, `tiling off` then `on` all behave. Not run: `swap prev`, `layout next`. Note: toggling float back on re-inserts the window after the focused one, so the old master lost its slot
 - [ ] Closing, minimizing and fullscreening a tiled window re-tiles the rest; dragging a window does not snap back until `mwm retile`
 - [ ] The menu bar and the Dock side are respected
 - [ ] A terminal (character-cell snapping) and a window with a minimum size (such as System Settings) end up where expected, and `list` shows their real frames
-- [ ] `list` shows sensible `SLOT` values and `floated`
+- [x] `list` shows sensible `SLOT` values and `floated`
 - [ ] The size-position-size sequence in `AXBridge.setFrame` is actually needed (it is a common AX technique that I did not verify here)
 - [ ] The frontmost-app plus raise approach in `AXBridge.raise` works for an accessory app like `mwmd` (I chose it because the SDK documents `NSRunningApplication.activate` as cooperative and not guaranteed)
 

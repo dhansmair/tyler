@@ -6,7 +6,7 @@ import TylerCore
 @Suite("Indicator updates")
 @MainActor
 struct IndicatorTests {
-  private let backend = FakeBackend(windows: WorkspaceHarness.spread([1, 2]))
+  private let backend = FakeBackend(windows: spread([1, 2]))
   private let indicator = FakeIndicator()
   private let gate = FakeGate(isTrusted: false)
   private let manager: WindowManager
@@ -44,10 +44,10 @@ struct IndicatorTests {
     manager.startIfPermitted()
     backend.windows.append(makeWindow(id: 9))
     backend.send(.created(makeWindow(id: 9)))
-    for _ in 0..<30 { await Task.yield() }
+    await settle()
     #expect(last?.workspaces.first?.windowCount == 3)
     backend.send(.destroyed(WindowID(1)))
-    for _ in 0..<30 { await Task.yield() }
+    await settle()
     #expect(last?.workspaces.first?.windowCount == 2)
   }
 
@@ -57,7 +57,7 @@ struct IndicatorTests {
     let count = indicator.shown.count
     _ = manager.focus(.next)
     backend.send(.focused(WindowID(2)))
-    for _ in 0..<30 { await Task.yield() }
+    await settle()
     _ = manager.switchWorkspace(.number(1))
     #expect(indicator.shown.count == count)
   }

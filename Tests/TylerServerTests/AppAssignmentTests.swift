@@ -19,14 +19,14 @@ struct AppAssignmentTests {
   }
 
   /// Opens a window the way an app would: it exists, then tylerd hears about it.
-  private func open(_ window: WindowInfo, in harness: WorkspaceHarness) async {
+  private func open(_ window: WindowInfo, in harness: ManagerHarness) async {
     harness.backend.windows.append(window)
     harness.backend.send(.created(window))
     await harness.settle()
   }
 
   @Test func windowsOpenAtStartGoToTheirWorkspace() {
-    let harness = WorkspaceHarness([1, 2], extra: [firefox(id: 9)], config: config)
+    let harness = ManagerHarness([1, 2], extra: [firefox(id: 9)], config: config)
     #expect(harness.workspaces() == [1: 1, 2: 1, 9: 3])
     #expect(harness.isParked(9))
     let halves = TallLayout().frames(count: 2, in: harness.area, parameters: LayoutParameters())
@@ -34,7 +34,7 @@ struct AppAssignmentTests {
   }
 
   @Test func aNewWindowInTheBackgroundIsParkedAndTheViewStays() async {
-    let harness = WorkspaceHarness([1, 2], config: config)
+    let harness = ManagerHarness([1, 2], config: config)
     await open(firefox(id: 9), in: harness)
 
     #expect(harness.workspaces()[9] == 3)
@@ -44,7 +44,7 @@ struct AppAssignmentTests {
   }
 
   @Test func focusingTheNewWindowShowsItsWorkspace() async {
-    let harness = WorkspaceHarness([1, 2], config: config)
+    let harness = ManagerHarness([1, 2], config: config)
     await open(firefox(id: 9), in: harness)
     await harness.osFocus(9)
 
@@ -54,7 +54,7 @@ struct AppAssignmentTests {
   }
 
   @Test func aNewWindowFocusedBeforeTylerdSeesItShowsItsWorkspace() async {
-    let harness = WorkspaceHarness([1, 2], config: config)
+    let harness = ManagerHarness([1, 2], config: config)
     await harness.osFocus(9)
     await open(firefox(id: 9), in: harness)
 
@@ -64,28 +64,28 @@ struct AppAssignmentTests {
   }
 
   @Test func anAssignmentToTheCurrentWorkspaceTilesAsUsual() async {
-    let harness = WorkspaceHarness([1], config: Config(assignments: ["firefox": 1]))
+    let harness = ManagerHarness([1], config: Config(assignments: ["firefox": 1]))
     await open(firefox(id: 9), in: harness)
     #expect(harness.workspaces() == [1: 1, 9: 1])
     #expect(!harness.isParked(9))
   }
 
   @Test func otherAppsJoinTheCurrentWorkspace() async {
-    let harness = WorkspaceHarness([1], config: config)
+    let harness = ManagerHarness([1], config: config)
     await open(
       makeWindow(id: 9, frame: CGRect(x: 700, y: 100, width: 300, height: 200)), in: harness)
     #expect(harness.workspaces() == [1: 1, 9: 1])
   }
 
   @Test func theBundleIDMatchesToo() async {
-    let harness = WorkspaceHarness([1], config: Config(assignments: ["org.mozilla.firefox": 2]))
+    let harness = ManagerHarness([1], config: Config(assignments: ["org.mozilla.firefox": 2]))
     await open(firefox(id: 9), in: harness)
     #expect(harness.workspaces()[9] == 2)
   }
 
   /// Firefox moved by hand to workspace 1 and floated there.
-  private func movedAndFloated() async -> WorkspaceHarness {
-    let harness = WorkspaceHarness([1], extra: [firefox(id: 9)], config: config)
+  private func movedAndFloated() async -> ManagerHarness {
+    let harness = ManagerHarness([1], extra: [firefox(id: 9)], config: config)
     await harness.osFocus(9)
     _ = harness.manager.moveToWorkspace(.number(1), follow: true)
     await harness.settle()
@@ -111,7 +111,7 @@ struct AppAssignmentTests {
       config: config, restoring: saved)
     successor.startIfPermitted()
     backend.send(.focused(WindowID(9)))
-    for _ in 0..<30 { await Task.yield() }
+    await settle()
     _ = successor.toggleFloat()
     guard case .windows(let windows) = successor.windows() else {
       Issue.record("no windows")

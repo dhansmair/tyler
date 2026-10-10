@@ -16,16 +16,10 @@ struct ReloadTests {
     file: FakeConfigFile? = FakeConfigFile(),
     isTrusted: Bool = true
   ) -> (WindowManager, FakeBackend) {
-    let backend = FakeBackend(windows: [
-      makeWindow(id: 1, frame: CGRect(x: 100, y: 100, width: 300, height: 200)),
-      makeWindow(id: 2, frame: CGRect(x: 150, y: 100, width: 300, height: 200)),
-    ])
-    let manager = WindowManager(
-      backend: backend, displays: FakeDisplays(), gate: FakeGate(isTrusted: isTrusted),
-      config: config, configSource: file?.source)
-    manager.startIfPermitted()
-    backend.clearRecordedCalls()
-    return (manager, backend)
+    let harness = ManagerHarness(
+      windows: spread([1, 2]), gate: FakeGate(isTrusted: isTrusted), config: config,
+      configFile: file)
+    return (harness.manager, harness.backend)
   }
 
   /// Where the tall layout puts windows 1 and 2 with these settings.
@@ -38,7 +32,7 @@ struct ReloadTests {
   }
 
   private func frames(_ backend: FakeBackend) -> [CGRect] {
-    [1, 2].compactMap { id in backend.windows.first { $0.id == WindowID(id) }?.frame }
+    [1, 2].compactMap { backend.frame(of: $0) }
   }
 
   @Test func theConfigGivenAtStartIsUsedForTheFirstTiling() {

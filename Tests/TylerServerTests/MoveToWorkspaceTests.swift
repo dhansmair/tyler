@@ -10,7 +10,7 @@ import TylerCore
 @MainActor
 struct MoveToWorkspaceTests {
   @Test func withoutFollowTheWindowParksAndFocusStays() async {
-    let harness = WorkspaceHarness([1, 2])
+    let harness = ManagerHarness([1, 2])
     await harness.osFocus(2)
     #expect(
       harness.manager.moveToWorkspace(.next, follow: false) == .message("moved to workspace 2"))
@@ -21,7 +21,7 @@ struct MoveToWorkspaceTests {
   }
 
   @Test func withFollowTheViewGoesAlong() async {
-    let harness = WorkspaceHarness([1, 2])
+    let harness = ManagerHarness([1, 2])
     await harness.osFocus(2)
     #expect(
       harness.manager.moveToWorkspace(.number(3), follow: true) == .message("moved to workspace 3"))
@@ -32,7 +32,7 @@ struct MoveToWorkspaceTests {
   }
 
   @Test func theMovedWindowIsFocusedWhenYouGetThere() async {
-    let harness = WorkspaceHarness([1, 2, 3])
+    let harness = ManagerHarness([1, 2, 3])
     await harness.osFocus(3)
     _ = harness.manager.moveToWorkspace(.next, follow: false)
     await harness.osFocus(1)
@@ -43,7 +43,7 @@ struct MoveToWorkspaceTests {
   }
 
   @Test func movingTheLastWindowTakesFocusFromItOnceParked() async {
-    let harness = WorkspaceHarness([1])
+    let harness = ManagerHarness([1])
     await harness.osFocus(1)
     _ = harness.manager.moveToWorkspace(.prev, follow: false)
     #expect(harness.workspaces() == [1: 4])
@@ -53,7 +53,7 @@ struct MoveToWorkspaceTests {
   }
 
   @Test func movingToTheSameWorkspaceDoesNothing() async {
-    let harness = WorkspaceHarness([1, 2])
+    let harness = ManagerHarness([1, 2])
     await harness.osFocus(1)
     #expect(
       harness.manager.moveToWorkspace(.number(1), follow: false)
@@ -62,7 +62,7 @@ struct MoveToWorkspaceTests {
   }
 
   @Test func onlyATiledFocusedWindowCanMove() async {
-    let harness = WorkspaceHarness([1], extra: [makeWindow(id: 7, kind: .dialog)])
+    let harness = ManagerHarness([1], extra: [makeWindow(id: 7, kind: .dialog)])
     #expect(
       harness.manager.moveToWorkspace(.next, follow: false)
         == .error("the focused window is not tiled"))
@@ -73,7 +73,7 @@ struct MoveToWorkspaceTests {
   }
 
   @Test func aTargetOutOfRangeIsAnError() async {
-    let harness = WorkspaceHarness([1])
+    let harness = ManagerHarness([1])
     await harness.osFocus(1)
     #expect(
       harness.manager.moveToWorkspace(.number(9), follow: true)
@@ -83,7 +83,7 @@ struct MoveToWorkspaceTests {
   // MARK: Focus-driven switching
 
   @Test func focusingAParkedWindowSwitchesToItsWorkspace() async {
-    let harness = WorkspaceHarness([1, 2])
+    let harness = ManagerHarness([1, 2])
     await harness.osFocus(2)
     _ = harness.manager.moveToWorkspace(.number(3), follow: false)
     await harness.osFocus(1)  // the echo of tylerd focusing window 1
@@ -97,7 +97,7 @@ struct MoveToWorkspaceTests {
   }
 
   @Test func theEchoOfTylerdsOwnFocusDoesNotSwitchBack() async {
-    let harness = WorkspaceHarness([1, 2])
+    let harness = ManagerHarness([1, 2])
     await harness.osFocus(2)
     _ = harness.manager.moveToWorkspace(.next, follow: false)
     await harness.osFocus(1)
@@ -109,7 +109,7 @@ struct MoveToWorkspaceTests {
   }
 
   @Test func focusingAParkedWindowWithTilingOffDoesNotSwitch() async {
-    let harness = WorkspaceHarness([1, 2])
+    let harness = ManagerHarness([1, 2])
     await harness.osFocus(2)
     _ = harness.manager.moveToWorkspace(.next, follow: false)
     await harness.osFocus(1)

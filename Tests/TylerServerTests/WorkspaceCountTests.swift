@@ -12,7 +12,7 @@ struct WorkspaceCountTests {
   }
 
   @Test func theCountComesFromTheConfig() {
-    let harness = WorkspaceHarness([1], config: config(count: 6))
+    let harness = ManagerHarness([1], config: config(count: 6))
     #expect(harness.manager.switchWorkspace(.number(6)) == .message("workspace 6"))
     #expect(
       harness.manager.switchWorkspace(.number(7))
@@ -21,7 +21,7 @@ struct WorkspaceCountTests {
 
   @Test func reloadAddsWorkspaces() {
     let file = FakeConfigFile()
-    let harness = WorkspaceHarness([1], configFile: file)
+    let harness = ManagerHarness([1], configFile: file)
     file.write(.config(config(count: 6)))
 
     #expect(harness.manager.reload() == .message("reloaded \(FakeConfigFile.path)"))
@@ -30,7 +30,7 @@ struct WorkspaceCountTests {
 
   @Test func reloadMergesRemovedWorkspacesIntoTheLastAndBringsThemIntoView() async {
     let file = FakeConfigFile()
-    let harness = WorkspaceHarness([1, 2, 3], configFile: file)
+    let harness = ManagerHarness([1, 2, 3], configFile: file)
     // Window 3 to workspace 4, window 2 to workspace 2; workspace 2 is on screen.
     await harness.osFocus(3)
     _ = harness.manager.moveToWorkspace(.number(4), follow: false)
@@ -50,7 +50,7 @@ struct WorkspaceCountTests {
 
   @Test func reloadRemovingTheCurrentWorkspaceShowsTheNewLastOne() async {
     let file = FakeConfigFile()
-    let harness = WorkspaceHarness([1, 2], configFile: file)
+    let harness = ManagerHarness([1, 2], configFile: file)
     await harness.osFocus(2)
     _ = harness.manager.moveToWorkspace(.number(4), follow: true)
     await harness.settle()
@@ -64,7 +64,7 @@ struct WorkspaceCountTests {
   }
 
   @Test func aRestartWithFewerWorkspacesShowsTheMergedWindows() async {
-    let harness = WorkspaceHarness([1, 2])
+    let harness = ManagerHarness([1, 2])
     await harness.osFocus(2)
     _ = harness.manager.moveToWorkspace(.number(3), follow: false)
     await harness.settle()

@@ -27,44 +27,24 @@ struct MouseResizeTests {
   private static func makeStarted(
     pointer: FakePointer?, clock: TestClock = TestClock(), config: Config = Config()
   ) async -> (WindowManager, FakeBackend) {
-    let windows = (1...3).map { id in
-      makeWindow(id: UInt32(id), frame: CGRect(x: 100 + id * 50, y: 100, width: 300, height: 200))
-    }
-    let backend = FakeBackend(windows: windows)
-    let manager = WindowManager(
-      backend: backend, displays: FakeDisplays(), gate: FakeGate(isTrusted: true),
-      config: config, pointer: pointer, clock: clock)
-    manager.startIfPermitted()
+    let harness = ManagerHarness([1, 2, 3], config: config, pointer: pointer, clock: clock)
     await settle()
-    backend.clearRecordedCalls()
-    return (manager, backend)
-  }
-
-  /// Lets the manager's event-pump tasks run.
-  private static func settle() async {
-    for _ in 0..<30 { await Task.yield() }
+    harness.backend.clearRecordedCalls()
+    return (harness.manager, harness.backend)
   }
 
   /// The user drags window `id` to `frame`: the app moves it and reports the new frame.
   private func drag(_ id: UInt32, to frame: CGRect) async {
-    guard let index = backend.windows.firstIndex(where: { $0.id == WindowID(id) }) else {
-      Issue.record("no window \(id)")
-      return
-    }
-    backend.windows[index].frame = frame
-    backend.send(.updated(backend.windows[index]))
-    await Self.settle()
+    await backend.userMoves(id, to: frame)
   }
 
   /// Lets the drag interval pass, and the step waiting for it run.
   private func waitOutTheInterval() async {
     clock.advance(by: .milliseconds(50))
-    await Self.settle()
+    await settle()
   }
 
-  private func frame(of id: UInt32) -> CGRect? {
-    backend.windows.first { $0.id == WindowID(id) }?.frame
-  }
+  private func frame(of id: UInt32) -> CGRect? { backend.frame(of: id) }
 
   private func moved() -> Set<UInt32> {
     Set(backend.moves.map(\.id.rawValue))
@@ -139,14 +119,14 @@ struct MouseResizeTests {
       let window = makeWindow(id: 1, frame: CGRect(x: 55, y: 38, width: width, height: 1131))
       backend.windows[0] = window
       backend.send(.updated(window))
-      await Self.settle()
+      await settle()
     }
 
     clock.advance(by: .milliseconds(50))
-    await Self.settle()
+    await settle()
     #expect(backend.moves.count == 2, "100 ms haven't passed yet")
     clock.advance(by: .milliseconds(50))
-    await Self.settle()
+    await settle()
     #expect(backend.moves.count == 4)
     #expect(manager.workspaces.current.parameters.mainRatio == 0.4)
   }
@@ -160,7 +140,7 @@ struct MouseResizeTests {
       let window = makeWindow(id: 1, frame: CGRect(x: 55, y: 38, width: width, height: 1131))
       backend.windows[0] = window
       backend.send(.updated(window))
-      await Self.settle()
+      await settle()
     }
 
     #expect(backend.moves.count == 6, "two neighbours, three resizes")
@@ -172,7 +152,7 @@ struct MouseResizeTests {
     await drag(1, to: CGRect(x: 55, y: 38, width: 1047, height: 1131))
     await drag(1, to: CGRect(x: 55, y: 38, width: 1222, height: 1131))
     pointer.release()
-    await Self.settle()
+    await settle()
     #expect(frame(of: 2)?.minX == 1277)
     let moves = backend.moves.count
 
@@ -187,7 +167,7 @@ struct MouseResizeTests {
     await drag(1, to: CGRect(x: 55, y: 100, width: 1047, height: 1069))
     backend.clearRecordedCalls()
     pointer.release()
-    await Self.settle()
+    await settle()
 
     #expect(
       backend.moves == [
@@ -202,7 +182,7 @@ struct MouseResizeTests {
     #expect(backend.moves.isEmpty, "nothing follows a move")
 
     pointer.release()
-    await Self.settle()
+    await settle()
     #expect(backend.moves == [Placement(id: WindowID(2), frame: upper)])
     #expect(frame(of: 1) == main)
     #expect(frame(of: 3) == lower)
@@ -216,7 +196,7 @@ struct MouseResizeTests {
     pointer.isPrimaryButtonDown = false
     await drag(1, to: CGRect(x: 55, y: 38, width: 1222, height: 1131))
     pointer.release()
-    await Self.settle()
+    await settle()
 
     #expect(frame(of: 2)?.minX == 1277)
     #expect(manager.workspaces.current.parameters.mainRatio == 0.7)
@@ -226,7 +206,7 @@ struct MouseResizeTests {
 
     await drag(1, to: CGRect(x: 55, y: 38, width: 1047, height: 1131))
     pointer.release()
-    await Self.settle()
+    await settle()
 
     #expect(backend.moves.isEmpty)
   }
@@ -236,7 +216,7 @@ struct MouseResizeTests {
     let window = makeWindow(id: 1, frame: CGRect(x: 55, y: 38, width: 1047, height: 1131))
     backend.windows[0] = window
     backend.send(.updated(window))
-    await Self.settle()
+    await settle()
 
     #expect(backend.moves.isEmpty)
     #expect(manager.workspaces.current.parameters.mainRatio == 0.5)
@@ -249,21 +229,21 @@ struct MouseResizeTests {
     pointer.isPrimaryButtonDown = true
     await drag(1, to: CGRect(x: 55, y: 38, width: 1047, height: 1131))
     pointer.release()
-    await Self.settle()
+    await settle()
 
     #expect(backend.moves.isEmpty)
   }
 
   @Test func aFloatedWindowIsNotFollowed() async {
     backend.send(.focused(WindowID(3)))
-    await Self.settle()
+    await settle()
     #expect(manager.toggleFloat() == .ok)
     backend.clearRecordedCalls()
 
     pointer.isPrimaryButtonDown = true
     await drag(3, to: CGRect(x: 500, y: 300, width: 900, height: 700))
     pointer.release()
-    await Self.settle()
+    await settle()
 
     #expect(backend.moves.isEmpty)
   }

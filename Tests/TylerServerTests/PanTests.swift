@@ -15,8 +15,8 @@ struct PanTests {
 
   private func makeHarness(
     config: Config = Config(), animator: Animator = .snap, configFile: FakeConfigFile? = nil
-  ) async -> WorkspaceHarness {
-    let harness = WorkspaceHarness(
+  ) async -> ManagerHarness {
+    let harness = ManagerHarness(
       [1, 2, 3], animator: animator, config: config, configFile: configFile, pointer: pointer,
       clock: clock)
     if config.workspaces.count >= 4 {
@@ -31,18 +31,18 @@ struct PanTests {
   }
 
   /// Sends pan updates and lets the manager handle them.
-  private func pan(_ updates: PanUpdate..., in harness: WorkspaceHarness) async {
+  private func pan(_ updates: PanUpdate..., in harness: ManagerHarness) async {
     for update in updates { pointer.pan(update) }
     await harness.settle()
   }
 
   /// Lets the pan's frame pacing move on to the next frame.
-  private func nextFrame(_ harness: WorkspaceHarness) async {
+  private func nextFrame(_ harness: ManagerHarness) async {
     clock.advance(by: Animator.defaultFrameInterval)
     await harness.settle()
   }
 
-  private func lastNudge(of windowID: UInt32, in harness: WorkspaceHarness) -> CGPoint? {
+  private func lastNudge(of windowID: UInt32, in harness: ManagerHarness) -> CGPoint? {
     harness.backend.nudges.last { $0.id == WindowID(windowID) }?.origin
   }
 

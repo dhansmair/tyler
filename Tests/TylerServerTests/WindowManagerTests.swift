@@ -20,11 +20,6 @@ struct WindowManagerTests {
     return windows
   }
 
-  /// Lets the manager's event-pump task run until it has seen what was sent.
-  private func settle() async {
-    for _ in 0..<20 { await Task.yield() }
-  }
-
   @Test func withoutPermissionItWaitsAndExplains() {
     let backend = FakeBackend()
     let manager = makeManager(backend: backend, gate: FakeGate(isTrusted: false))

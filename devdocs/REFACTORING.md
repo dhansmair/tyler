@@ -28,9 +28,10 @@ Sizes: XS < 20 lines, S < 60, M < 200, L larger.
 - [ ] **3. One source of truth for commands.** A command is spelled out by hand in `Request` (`Protocol.swift`), the parse switches in `TylerClient/CommandLine.swift`, its usage text, `docs/manual.md`, and the "CLI target" block in the roadmap. On the server, dispatch goes `CommandRouter.handle` → `WindowManager.handle` → `handleTilingRequest`/`handleWorkspaceRequest`, and both of the last two end in `default:`, so the compiler can't flag an unhandled request. The `.ping`/`.status` arms in `WindowManager.handle` are dead code.
   - Fix: a `CommandSpec` table in TylerClient (name, arguments, one-line help, parse) that builds the usage text and does the dispatch; one exhaustive switch in `WindowManager.handle`; a test that every command has a `###` heading in the manual. Drop the roadmap's copy.
   - M, low risk.
-- [ ] **4. A shared test harness.** `makeStarted`, `spread`, `settle` and `listed` are identical in `TilingTests` and `TilingCommandTests`, with variants in `MouseResizeTests`, `WindowManagerTests`, `ReloadTests` and `DragSwapTests`. `WorkspaceHarness` (in `WorkspaceSwitchTests`) already does all of this, but only the workspace suites use it. `for _ in 0..<30 { await Task.yield() }` appears in 7 files, and `guard case .windows(let w) = manager.windows()` 8 or more times.
+- [x] **4. A shared test harness.** `makeStarted`, `spread`, `settle` and `listed` are identical in `TilingTests` and `TilingCommandTests`, with variants in `MouseResizeTests`, `WindowManagerTests`, `ReloadTests` and `DragSwapTests`. `WorkspaceHarness` (in `WorkspaceSwitchTests`) already does all of this, but only the workspace suites use it. `for _ in 0..<30 { await Task.yield() }` appears in 7 files, and `guard case .windows(let w) = manager.windows()` 8 or more times.
   - Fix: move the harness into `Tests/TylerServerTests/Harness.swift` as `ManagerHarness`, with a `settle(until:)` that waits for a condition in place of a counted yield loop.
   - M, low risk, about −150 lines. Do this early: it makes every later refactoring cheaper to test.
+  - Done: `Tests/TylerServerTests/Harness.swift` holds `ManagerHarness`, `settle()`, `spread`, `FakeBackend.frame(of:)`/`userMoves` and `WindowManager.listed`/`slots`. `settle()` still yields a fixed number of times, but now in one place; a condition-based wait would make every caller name its condition, which wasn't worth it yet.
 - [ ] **5. A `WindowBookkeeping` struct.** `floated`, `seen`, `originalFrames` and `pendingFocus` are reset by hand in four places: when a window is destroyed (`apply`), `tearDown`, `restorePending` and `handOver` (`+Restart`). A new field that one of them forgets leaves stale state.
   - Fix: one struct with `forget(_:)`, `init(saved:known:)` and `saved`.
   - M, low risk.
@@ -126,3 +127,4 @@ So nobody tries them again without a profile that says otherwise:
 ## Log
 
 - 2026-10-11: backlog created.
+- 2026-10-11: item 4 done (shared server test harness).

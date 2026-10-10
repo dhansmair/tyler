@@ -13,7 +13,7 @@ struct RestartTests {
     let manager: WindowManager
     let backend: FakeBackend
 
-    init(after first: WorkspaceHarness, saved: SavedState?, closing closed: [UInt32] = []) {
+    init(after first: ManagerHarness, saved: SavedState?, closing closed: [UInt32] = []) {
       let windows = first.backend.windows.filter { !closed.contains($0.id.rawValue) }
       backend = FakeBackend(windows: windows)
       manager = WindowManager(
@@ -33,8 +33,8 @@ struct RestartTests {
 
   /// Windows 1 and 2 on workspace 1 in the full layout, window 3 parked on workspace 2, and
   /// workspace 1 on screen.
-  private func arranged(animator: Animator = .snap) async -> WorkspaceHarness {
-    let harness = WorkspaceHarness([1, 2, 3], animator: animator)
+  private func arranged(animator: Animator = .snap) async -> ManagerHarness {
+    let harness = ManagerHarness([1, 2, 3], animator: animator)
     await harness.osFocus(3)
     _ = harness.manager.moveToWorkspace(.next, follow: false)
     _ = harness.manager.setLayout(.set(.full))
@@ -71,11 +71,11 @@ struct RestartTests {
     let successor = Successor(after: harness, saved: harness.manager.handOver())
     successor.manager.stop()
     let frames = successor.backend.windows.sorted { $0.id < $1.id }.map(\.frame)
-    #expect(frames == (0..<3).map(WorkspaceHarness.originalFrame(index:)))
+    #expect(frames == (0..<3).map(ManagerHarness.originalFrame(index:)))
   }
 
   @Test func floatedWindowsAndTilingOffSurvive() async {
-    let harness = WorkspaceHarness([1, 2])
+    let harness = ManagerHarness([1, 2])
     await harness.osFocus(2)
     _ = harness.manager.toggleFloat()
     _ = harness.manager.setTiling(.off)

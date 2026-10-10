@@ -65,6 +65,7 @@ GCD is a documented exception, limited to `IPCServer` (blocking socket I/O) and 
 - A test that writes more than the socket buffer (~8 KB) on the same thread that later reads will deadlock.
 - Test socket paths must stay short (macOS limit ~104 bytes), so use `/tmp/tyler-<id>.sock`, not `$TMPDIR`.
 - The AX layer can't be unit tested (it needs a live GUI and permission). Keep it thin and cover it with the manual checklist in the roadmap.
+- **Server tests build their manager with `ManagerHarness`** (`Tests/TylerServerTests/Harness.swift`), which also holds `settle()` and the list and frame helpers. Don't copy setup into a suite. `settle()` must stay `@MainActor`: a nonisolated version yields off the main actor and never lets the manager's event pump run.
 - **Check real windows with the `live-check` skill** (`devtools/live-check`): window stacking, the menu bar item, where macOS really puts a window, and a replay of the slide. Use it after changing anything that moves windows, and before ticking a roadmap checklist item.
 
 ## Working mode

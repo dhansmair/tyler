@@ -25,21 +25,10 @@ struct DragSwapTests {
   private let manager: WindowManager
 
   init() async {
-    let windows = (1...3).map { id in
-      makeWindow(id: UInt32(id), frame: CGRect(x: 100 + id * 50, y: 100, width: 300, height: 200))
-    }
-    backend = FakeBackend(windows: windows)
-    manager = WindowManager(
-      backend: backend, displays: FakeDisplays(), gate: FakeGate(isTrusted: true),
-      config: Config(), pointer: pointer, clock: TestClock())
-    manager.startIfPermitted()
-    await Self.settle()
+    let harness = ManagerHarness([1, 2, 3], pointer: pointer, clock: TestClock())
+    (manager, backend) = (harness.manager, harness.backend)
+    await settle()
     backend.clearRecordedCalls()
-  }
-
-  /// Lets the manager's event-pump tasks run.
-  private static func settle() async {
-    for _ in 0..<30 { await Task.yield() }
   }
 
   /// The user drags window 3 by its title bar: the app moves it, keeping its size, and reports it.
@@ -49,28 +38,20 @@ struct DragSwapTests {
   }
 
   private func moveWindow(_ id: UInt32, to frame: CGRect) async {
-    guard let index = backend.windows.firstIndex(where: { $0.id == WindowID(id) }) else {
-      Issue.record("no window \(id)")
-      return
-    }
-    backend.windows[index].frame = frame
-    backend.send(.updated(backend.windows[index]))
-    await Self.settle()
+    await backend.userMoves(id, to: frame)
   }
 
   private func dragPointer(to location: CGPoint) async {
     pointer.drag(to: location)
-    await Self.settle()
+    await settle()
   }
 
   private func release(at location: CGPoint) async {
     pointer.release(at: location)
-    await Self.settle()
+    await settle()
   }
 
-  private func frame(of id: UInt32) -> CGRect? {
-    backend.windows.first { $0.id == WindowID(id) }?.frame
-  }
+  private func frame(of id: UInt32) -> CGRect? { backend.frame(of: id) }
 
   private var order: [UInt32] {
     manager.workspaces.current.windows.map(\.rawValue)
@@ -158,7 +139,7 @@ struct DragSwapTests {
 
   @Test func theDraggedWindowKeepsFocus() async {
     backend.send(.focused(WindowID(3)))
-    await Self.settle()
+    await settle()
     await pickUpLowerWindow()
     await release(at: overMain)
 
@@ -224,7 +205,7 @@ struct DragSwapTests {
     await dragPointer(to: overMain)
     // Kept in the fake so that a move of it would succeed and show up.
     backend.send(.destroyed(WindowID(1)))
-    await Self.settle()
+    await settle()
     backend.clearRecordedCalls()
     await release(at: outside)
 

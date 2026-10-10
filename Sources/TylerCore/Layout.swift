@@ -72,7 +72,7 @@ public struct LayoutParameters: Equatable, Sendable {
   private static func clamp(_ ratio: Double) -> Double {
     // Rounded to three places so repeated +0.05 / -0.05 steps don't accumulate float noise.
     let rounded = (ratio * 1000).rounded() / 1000
-    return min(max(rounded, ratioRange.lowerBound), ratioRange.upperBound)
+    return rounded.clamped(to: ratioRange)
   }
 
   /// A weight that can't share out space (zero, negative, infinite, NaN) counts as 1.

@@ -59,7 +59,7 @@ public struct Track: Equatable, Sendable {
     let eased = easing(progress)
     let along = (start.x + (end.x - start.x) * eased).rounded()
     return CGPoint(
-      x: min(allowedX.upperBound, max(allowedX.lowerBound, along)),
+      x: CGFloat(along).clamped(to: allowedX),
       y: (start.y + (end.y - start.y) * eased).rounded())
   }
 }
@@ -67,19 +67,19 @@ public struct Track: Equatable, Sendable {
 public enum Easing {
   /// No easing: the progress itself, clamped to 0...1.
   public static func linear(_ progress: Double) -> Double {
-    min(1, max(0, progress))
+    progress.clamped(to: 0...1)
   }
 
   /// Cubic ease-out: starts at full speed and slows to a stop, for finishing a motion that was
   /// already moving (a released swipe).
   public static func easeOut(_ progress: Double) -> Double {
-    let rest = 1 - min(1, max(0, progress))
+    let rest = 1 - progress.clamped(to: 0...1)
     return 1 - rest * rest * rest
   }
 
   /// Cubic ease-in-out: slow at both ends, symmetric around the midpoint.
   public static func easeInOut(_ progress: Double) -> Double {
-    let clamped = min(1, max(0, progress))
+    let clamped = progress.clamped(to: 0...1)
     if clamped < 0.5 { return 4 * clamped * clamped * clamped }
     let rest = -2 * clamped + 2
     return 1 - rest * rest * rest / 2

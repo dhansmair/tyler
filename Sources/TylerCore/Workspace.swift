@@ -42,7 +42,7 @@ public struct Workspace: Equatable, Sendable {
   @discardableResult
   public mutating func insert(_ windowID: WindowID) -> Bool {
     guard !contains(windowID) else { return false }
-    windows.insert(windowID, at: focusedIndex.map { $0 + 1 } ?? windows.count)
+    windows.insert(windowID, at: insertionIndex)
     return true
   }
 
@@ -77,7 +77,7 @@ public struct Workspace: Equatable, Sendable {
       remove(windowID)
       changed = true
     }
-    var insertionPoint = focusedIndex.map { $0 + 1 } ?? windows.count
+    var insertionPoint = insertionIndex
     for windowID in eligible where !contains(windowID) {
       windows.insert(windowID, at: insertionPoint)
       insertionPoint += 1
@@ -107,9 +107,10 @@ public struct Workspace: Equatable, Sendable {
     case .main:
       index = 0
     case .next:
-      index = focusedIndex.map { ($0 + 1) % windows.count } ?? 0
+      index = focusedIndex.map { $0.stepped(by: 1, wrappingAt: windows.count) } ?? 0
     case .prev:
-      index = focusedIndex.map { ($0 - 1 + windows.count) % windows.count } ?? windows.count - 1
+      index =
+        focusedIndex.map { $0.stepped(by: -1, wrappingAt: windows.count) } ?? windows.count - 1
     }
     focused = windows[index]
     return focused
@@ -197,5 +198,10 @@ public struct Workspace: Equatable, Sendable {
 
   private var focusedIndex: Int? {
     focused.flatMap { windows.firstIndex(of: $0) }
+  }
+
+  /// Where a window joining the list goes: right after the focused one, or at the end.
+  private var insertionIndex: Int {
+    focusedIndex.map { $0 + 1 } ?? windows.count
   }
 }

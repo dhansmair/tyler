@@ -6,24 +6,19 @@ public enum Paths {
     environment: [String: String] = ProcessInfo.processInfo.environment,
     home: String = NSHomeDirectory()
   ) -> String {
-    if let override = environment["TYLER_SOCKET"], !override.isEmpty {
-      return override
-    }
-    return home + "/.tyler/tyler.sock"
+    override("TYLER_SOCKET", in: environment) ?? home + "/.tyler/tyler.sock"
   }
 
   /// Where `tyler start` sends the server's output: the socket path with `.log` instead of
   /// `.sock` (`~/.tyler/tyler.log` by default), so separate instances keep separate logs.
   public static func logPath(socketPath: String = socketPath()) -> String {
-    let base = socketPath.hasSuffix(".sock") ? String(socketPath.dropLast(5)) : socketPath
-    return base + ".log"
+    base(of: socketPath) + ".log"
   }
 
   /// Where tylerd leaves its workspaces for the next tylerd when it restarts: the socket path
   /// with `.state.json` instead of `.sock` (`~/.tyler/tyler.state.json` by default).
   public static func statePath(socketPath: String = socketPath()) -> String {
-    let base = socketPath.hasSuffix(".sock") ? String(socketPath.dropLast(5)) : socketPath
-    return base + ".state.json"
+    base(of: socketPath) + ".state.json"
   }
 
   /// `$TYLER_CONFIG` if set and non-empty, otherwise `~/.config/tyler/tyler.toml`.
@@ -31,9 +26,17 @@ public enum Paths {
     environment: [String: String] = ProcessInfo.processInfo.environment,
     home: String = NSHomeDirectory()
   ) -> String {
-    if let override = environment["TYLER_CONFIG"], !override.isEmpty {
-      return override
-    }
-    return home + "/.config/tyler/tyler.toml"
+    override("TYLER_CONFIG", in: environment) ?? home + "/.config/tyler/tyler.toml"
+  }
+
+  /// The variable's value, unless it is unset or empty.
+  private static func override(_ name: String, in environment: [String: String]) -> String? {
+    environment[name].flatMap { $0.isEmpty ? nil : $0 }
+  }
+
+  /// The socket path without its `.sock` extension: the stem the log and state files share.
+  private static func base(of socketPath: String) -> String {
+    let suffix = ".sock"
+    return socketPath.hasSuffix(suffix) ? String(socketPath.dropLast(suffix.count)) : socketPath
   }
 }

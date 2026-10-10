@@ -146,3 +146,4 @@ So nobody tries them again without a profile that says otherwise:
 - 2026-10-11: item 12 done (`Section.read` with one `Setting` per key; every error message unchanged except the gestures table hint, changed in its own commit).
 - 2026-10-11: item 8 done (batched AX reads, position-only moves); checked with live-check. Tier 2 finished.
 - 2026-10-11: item 17 done (`WindowRegistry.count` and `_ = task` gone; `Parking.visibleSliver`, the `Config` ranges and `PanRecognizer`'s tuning properties internal). `SlidePlan.direction` went with item 9. `Track.init`, `outgoingOffset`, `withGaps`, `setMainRatio` and `Snap.resisted` stay public: the two Core test files without `@testable` and future layouts use them.
+- 2026-10-11: item 19, Core part done (`clamped(to:)`, `stepped(by:wrappingAt:)`, `insertionIndex`, `Paths` and `UnixSocket` helpers).

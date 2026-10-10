@@ -1,6 +1,7 @@
 import CoreGraphics
 import Testing
-import TylerCore
+
+@testable import TylerCore
 
 @Suite("SlidePlan")
 struct SlidePlanTests {
@@ -68,5 +69,16 @@ struct DirectionTests {
     let rect = CGRect(x: 10, y: 10, width: 100, height: 100)
     #expect(!rect.hasOtherSize(than: CGRect(x: 500, y: 500, width: 101, height: 100)))
     #expect(rect.hasOtherSize(than: CGRect(x: 10, y: 10, width: 102, height: 100)))
+  }
+
+  @Test func clampingMovesAValueIntoTheRange() {
+    #expect((-0.5).clamped(to: 0...1) == 0)
+    #expect(0.25.clamped(to: 0...1) == 0.25)
+    #expect(7.clamped(to: 1...4) == 4)
+  }
+
+  @Test(arguments: [(0, -1, 2), (2, 1, 0), (1, 1, 2), (0, 4, 1)])
+  func steppingWrapsAroundBothEnds(index: Int, offset: Int, expected: Int) {
+    #expect(index.stepped(by: offset, wrappingAt: 3) == expected)
   }
 }

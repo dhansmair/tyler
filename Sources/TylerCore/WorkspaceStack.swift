@@ -48,8 +48,8 @@ public struct WorkspaceStack: Equatable, Sendable {
   /// `nil` when out of range.
   public func index(of target: WorkspaceTarget) -> Int? {
     switch target {
-    case .prev: (currentIndex - 1 + count) % count
-    case .next: (currentIndex + 1) % count
+    case .prev: currentIndex.stepped(by: -1, wrappingAt: count)
+    case .next: currentIndex.stepped(by: 1, wrappingAt: count)
     case .number(let number): (1...count).contains(number) ? number - 1 : nil
     }
   }

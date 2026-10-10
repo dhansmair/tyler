@@ -13,21 +13,8 @@ public enum UnixSocket {
   public static func openListener(path: String, backlog: Int32 = SOMAXCONN) throws -> Int32 {
     var addr = try address(for: path)
     let fd = try makeSocket()
-    let bound = withUnsafePointer(to: &addr) { pointer in
-      pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-        bind(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
-      }
-    }
-    guard bound == 0 else {
-      let code = errno
-      close(fd)
-      throw Failure.syscall("bind", code)
-    }
-    guard Darwin.listen(fd, backlog) == 0 else {
-      let code = errno
-      close(fd)
-      throw Failure.syscall("listen", code)
-    }
+    try check(withSockaddr(&addr) { bind(fd, $0, $1) }, "bind", closing: fd)
+    try check(Darwin.listen(fd, backlog), "listen", closing: fd)
     return fd
   }
 
@@ -35,16 +22,7 @@ public enum UnixSocket {
   public static func openClient(path: String) throws -> Int32 {
     var addr = try address(for: path)
     let fd = try makeSocket()
-    let connected = withUnsafePointer(to: &addr) { pointer in
-      pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-        Darwin.connect(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
-      }
-    }
-    guard connected == 0 else {
-      let code = errno
-      close(fd)
-      throw Failure.syscall("connect", code)
-    }
+    try check(withSockaddr(&addr) { Darwin.connect(fd, $0, $1) }, "connect", closing: fd)
     return fd
   }
 
@@ -103,6 +81,25 @@ public enum UnixSocket {
     var enabled: Int32 = 1
     setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &enabled, socklen_t(MemoryLayout<Int32>.size))
     return fd
+  }
+
+  /// Calls `body` with `addr` as the generic `sockaddr` that `bind` and `connect` take.
+  private static func withSockaddr(
+    _ addr: inout sockaddr_un, _ body: (UnsafePointer<sockaddr>, socklen_t) -> Int32
+  ) -> Int32 {
+    withUnsafePointer(to: &addr) { pointer in
+      pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+        body($0, socklen_t(MemoryLayout<sockaddr_un>.size))
+      }
+    }
+  }
+
+  /// Throws the failed call's error, after closing `fd`, unless `result` is 0.
+  private static func check(_ result: Int32, _ call: String, closing fd: Int32) throws {
+    guard result != 0 else { return }
+    let code = errno
+    close(fd)
+    throw Failure.syscall(call, code)
   }
 
   private static func address(for path: String) throws -> sockaddr_un {

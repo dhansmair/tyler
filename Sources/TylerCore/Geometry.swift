@@ -14,3 +14,17 @@ extension CGRect {
     abs(width - other.width) > 1 || abs(height - other.height) > 1
   }
 }
+
+extension Comparable {
+  /// This value, moved into `range` if it lies outside.
+  public func clamped(to range: ClosedRange<Self>) -> Self {
+    min(max(self, range.lowerBound), range.upperBound)
+  }
+}
+
+extension Int {
+  /// The index `offset` steps from this one in a ring of `count`, wrapping around both ends.
+  func stepped(by offset: Int, wrappingAt count: Int) -> Int {
+    ((self + offset) % count + count) % count
+  }
+}

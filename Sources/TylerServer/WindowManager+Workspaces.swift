@@ -187,10 +187,11 @@ extension WindowManager {
   /// with a full resize. With a snapping animator (or nothing to slide) the windows go straight
   /// to `finals`. Returns how many windows could not be placed synchronously; failures during
   /// the slide are logged. A slide that takes over from a released swipe runs only part of the
-  /// tracks, `from` one progress `to` another, easing out.
+  /// tracks, `from` one progress `to` another, easing out, taking at least `minimumDuration`.
   @discardableResult
   func animate(
-    start: [Placement], tracks: [Track], finals: [Placement], from: Double = 0, to end: Double = 1
+    start: [Placement], tracks: [Track], finals: [Placement], from: Double = 0, to end: Double = 1,
+    minimumDuration: Duration = .zero
   ) -> Int {
     finishAnimation()
     guard animator.stepCount > 0, !tracks.isEmpty else { return place(finals) }
@@ -205,7 +206,8 @@ extension WindowManager {
       let isComplete =
         from == 0 && end == 1
         ? await animator.run(tracks, move: move)
-        : await animator.run(tracks, from: from, to: end, move: move)
+        : await animator.run(
+          tracks, from: from, to: end, minimumDuration: minimumDuration, move: move)
       if isComplete { self?.completeAnimation(id) }
     }
     animation = RunningAnimation(id: id, task: task, finals: finals)

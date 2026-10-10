@@ -52,15 +52,17 @@ public struct Animator {
 
   /// Like `run(_:move:)`, but along part of the tracks: from progress `start` to `end`, easing
   /// out, so a motion that was already under way (a released swipe) carries on and slows to a
-  /// stop. The time is the duration's share of the distance, so a short way left is quick.
+  /// stop. The time is the duration's share of the distance, so a short way left is quick, but
+  /// never less than `minimumDuration` (when there is a way to go at all).
   public func run(
     _ tracks: [Track],
     from start: Double,
     to end: Double,
+    minimumDuration: Duration = .zero,
     move: (WindowID, CGPoint) -> Void
   ) async -> Bool {
     let clock = clock  // Swift opens the existential from a local, not from the stored property.
-    let share = duration * abs(end - start)
+    let share = start == end ? .zero : max(duration * abs(end - start), minimumDuration)
     guard share > .zero else { return !Task.isCancelled }
     return await run(tracks, over: share, timedBy: clock) { track, fraction in
       let progress = start + (end - start) * Easing.easeOut(fraction)

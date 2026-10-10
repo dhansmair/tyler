@@ -17,12 +17,16 @@ struct AnimatorTests {
 
   /// Runs the animation to the end, advancing the clock a frame at a time, and returns the x of
   /// every step and whether it completed.
-  private func run(from start: Double, to end: Double) async -> (steps: [CGFloat], isDone: Bool) {
+  private func run(
+    from start: Double, to end: Double, minimumDuration: Duration = .zero
+  ) async -> (steps: [CGFloat], isDone: Bool) {
     var steps: [CGFloat] = []
     let animator = animator
     let track = track
     let task = Task { @MainActor in
-      await animator.run([track], from: start, to: end) { _, origin in steps.append(origin.x) }
+      let record: (WindowID, CGPoint) -> Void = { _, origin in steps.append(origin.x) }
+      return await animator.run(
+        [track], from: start, to: end, minimumDuration: minimumDuration, move: record)
     }
     await Task.yield()
     while !clock.hasSleepers { await Task.yield() }
@@ -53,6 +57,14 @@ struct AnimatorTests {
     let first = steps[1] - steps[0]
     let last = steps[steps.count - 1] - steps[steps.count - 2]
     #expect(first > last, "fast first, slow at the end")
+  }
+
+  @Test func aShortWayTakesAtLeastTheMinimum() async {
+    let (quick, _) = await run(from: 0.9, to: 1)
+    #expect(quick.isEmpty, "10 ms: done before the first frame")
+    let (steps, isDone) = await run(from: 0.9, to: 1, minimumDuration: .milliseconds(60))
+    #expect(isDone)
+    #expect(steps.count == 5)
   }
 
   @Test func nothingLeftToGoFinishesAtOnce() async {

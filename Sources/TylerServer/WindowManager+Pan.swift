@@ -40,6 +40,9 @@ extension WindowManager {
   /// The release speed, in display widths per second, from which a pan goes on to the workspace
   /// it was heading for even if it is less than halfway there.
   static let flickVelocity = 1.0
+  /// The least share of a whole slide's duration that going back takes: even from close to the
+  /// start, the windows settle visibly rather than snap.
+  static let returnShare = 0.6
 
   /// Lets a trackpad pan slide between workspaces: the windows follow the fingers, and on release
   /// the row settles on the neighbouring workspace or back on the current one (see `Snap`).
@@ -127,7 +130,9 @@ extension WindowManager {
     let plan = Self.plan(for: side, in: session.target)
     let progress = Self.side(of: session.offset) == side ? abs(session.offset) : 0
     if point == 0 {
-      animate(start: [], tracks: plan.tracks, finals: plan.returns, from: progress, to: 0)
+      animate(
+        start: [], tracks: plan.tracks, finals: plan.returns, from: progress, to: 0,
+        minimumDuration: animator.duration * Self.returnShare)
       return
     }
     workspaces.select(plan.target)

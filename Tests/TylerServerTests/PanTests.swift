@@ -150,6 +150,23 @@ struct PanTests {
     #expect(harness.everyPositionIsAllowed())
   }
 
+  @Test func goingBackFromNearTheStartStillSlides() async {
+    let animator = Animator(
+      duration: .milliseconds(48), frameInterval: .milliseconds(16), clock: clock)
+    let harness = await makeHarness(animator: animator)
+    await pan(.began, .moved(offset: -0.03), .ended(velocity: 0), in: harness)
+    harness.backend.clearRecordedCalls()
+    while clock.hasSleepers {
+      clock.advance(by: .milliseconds(16))
+      await harness.settle()
+    }
+    let steps = harness.backend.nudges.filter { $0.id == WindowID(1) }.map(\.origin.x)
+    #expect(!steps.isEmpty, "a tenth of the way back would otherwise snap in one frame")
+    #expect(steps == steps.sorted(), "it moves back to the right")
+    #expect(harness.frame(of: 1) == harness.area)
+    #expect(harness.isParked(2))
+  }
+
   @Test(arguments: ["swipe off", "one workspace", "tiling off"])
   func panningCanBeOff(reason: String) async {
     var config = Config()

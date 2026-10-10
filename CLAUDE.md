@@ -18,9 +18,9 @@ M1 (IPC, `tyler ping`, test harness) is done. M2 (`tyler list`, window discovery
 
 ```
 Sources/
-  TylerCore/     pure logic and POSIX helpers: wire protocol, paths, Unix sockets, window and display types, layouts, Workspace (the ordered tiling list), WorkspaceStack, Parking, animation tracks, TOML parser and Config
-  TylerServer/   server logic: CommandRouter, IPCServer, WindowManager (tiling; workspaces in WindowManager+Workspaces, config and reload in WindowManager+Config), Animator, WindowRegistry, backend protocols
-  TylerPlatform/ real macOS code (AX, NSWorkspace, NSScreen); not unit tested, keep it thin
+  TylerCore/     pure logic and POSIX helpers: wire protocol, paths, Unix sockets, window and display types, layouts, Workspace (the ordered tiling list), WorkspaceStack, Parking, animation tracks, IndicatorState (menu bar contents), TOML parser and Config
+  TylerServer/   server logic: CommandRouter, IPCServer, WindowManager (tiling; workspaces in WindowManager+Workspaces, config and reload in WindowManager+Config, menu bar updates in WindowManager+Indicator), Animator, WindowRegistry, backend and Indicator protocols
+  TylerPlatform/ real macOS code (AX, NSWorkspace, NSScreen, the NSStatusItem); not unit tested, keep it thin
   TylerClient/   argv parsing, response formatting, IPC client
   tylerd/        server executable (thin)
   tyler/         CLI executable (thin)

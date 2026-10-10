@@ -22,15 +22,21 @@ public final class WindowManager {
     """
   public static let tilingOffMessage = "tiling is off (use `tyler tiling on`)"
 
-  public private(set) var state: State = .waitingForPermission
-  public private(set) var tilingEnabled = true
+  public private(set) var state: State = .waitingForPermission {
+    didSet { updateIndicator() }
+  }
+  public private(set) var tilingEnabled = true {
+    didSet { updateIndicator() }
+  }
   public internal(set) var config: Config
 
   static let log = Logger(subsystem: "tyler", category: "manager")
 
   // Internal rather than private so the `WindowManager+…` extensions can reach them.
   var registry = WindowRegistry()
-  var workspaces: WorkspaceStack
+  var workspaces: WorkspaceStack {
+    didSet { updateIndicator() }
+  }
   var floated: Set<WindowID> = []
   /// Where each window was just before tylerd first moved it. `stop()` puts every window back
   /// there, and `tiling off` does it for parked ones.
@@ -49,6 +55,9 @@ public final class WindowManager {
   /// Where `reload` reads the config from; `nil` when there is nothing to reload.
   let configSource: ConfigSource?
   private var pump: Task<Void, Never>?
+  let indicator: (any Indicator)?
+  /// What the indicator shows now, so it is only redrawn when that changes.
+  var shownIndicatorState: IndicatorState?
 
   public init(
     backend: any WindowBackend,
@@ -57,7 +66,8 @@ public final class WindowManager {
     animator: Animator = Animator(),
     workspaceCount: Int = WorkspaceStack.defaultCount,
     config: Config = Config(),
-    configSource: ConfigSource? = nil
+    configSource: ConfigSource? = nil,
+    indicator: (any Indicator)? = nil
   ) {
     self.backend = backend
     self.displays = displays
@@ -66,8 +76,10 @@ public final class WindowManager {
     self.workspaceCount = workspaceCount
     self.config = config
     self.configSource = configSource
+    self.indicator = indicator
     workspaces = WorkspaceStack(count: workspaceCount)
     applyGaps()
+    updateIndicator()
   }
 
   // MARK: - Lifecycle

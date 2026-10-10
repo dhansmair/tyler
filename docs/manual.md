@@ -48,6 +48,15 @@ The *master ratio* is the master column's share of the width in `tall`. Each wor
 
 *Gaps* are the space between neighbouring windows (inner) and between the windows and the edge of the area (outer). They are the same on every workspace and come from the config file.
 
+### Menu bar item
+
+While `tylerd` runs, it shows the workspaces in the menu bar, for example `◉ ○ ○ ○  ▥`:
+
+- one dot per workspace, top of the stack first: `◉` is the workspace on screen, `○` one with windows, and a faint `○` an empty one
+- the symbol of the current workspace's layout: `▥` for tall, `▢` for full (in full, the other windows are stacked behind the one you see)
+
+Without tiling it says `tyler: tiling off`, and before Accessibility permission is granted `tyler: no access`. Clicking it opens a menu to switch workspaces, cycle the layout and turn tiling on or off; these do the same as the `tyler` commands. On a MacBook with a notch, macOS hides menu bar items that don't fit next to it.
+
 ## Running tylerd
 
 ```bash

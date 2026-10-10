@@ -33,14 +33,29 @@ do {
   warn("\(configSource.path): \(error) (using the defaults)")
 }
 
+// AX observers, NSWorkspace notifications and the menu bar item all go through the main run
+// loop, so the process runs a real (windowless) AppKit application instead of `dispatchMain()`.
+// The application exists before the menu bar item is created.
+let application = NSApplication.shared
+application.setActivationPolicy(.accessory)
+
 let gate = SystemAccessibilityGate()
+// The menu bar item's menu sends requests to the manager, which only exists once the item
+// does; `indicatorTarget` closes that loop.
+var indicatorTarget: WindowManager?
+let indicator = StatusBarIndicator { request in
+  guard let response = indicatorTarget?.handle(request) else { return }
+  if case .error(let message) = response { warn(message) }
+}
 let manager = WindowManager(
   backend: AXBackend(),
   displays: ScreenDisplayProvider(),
   gate: gate,
   config: config,
-  configSource: configSource
+  configSource: configSource,
+  indicator: indicator
 )
+indicatorTarget = manager
 // The binary's modification time at launch lets `tyler status` notice a rebuild since.
 let executablePath =
   Bundle.main.executableURL?.resolvingSymlinksInPath().path ?? CommandLine.arguments[0]
@@ -69,11 +84,6 @@ do {
   die("cannot start: \(error)")
 }
 announce("tylerd: listening on \(socketPath)")
-
-// AX observers and NSWorkspace notifications are delivered through the main run loop, so the
-// process runs a real (windowless) AppKit application instead of `dispatchMain()`.
-let application = NSApplication.shared
-application.setActivationPolicy(.accessory)
 
 // Without permission the server still answers; `list` explains what to do. Poll until it is
 // granted so the user doesn't have to restart tylerd.

@@ -65,6 +65,7 @@ let manager = WindowManager(
   config: config,
   configSource: configSource,
   indicator: indicator,
+  pointer: PointerMonitor(),
   restoring: handedOver
 )
 indicatorTarget = manager

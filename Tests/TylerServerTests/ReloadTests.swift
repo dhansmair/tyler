@@ -31,6 +31,13 @@ struct ReloadTests {
     return TallLayout().frames(count: 2, in: area, parameters: parameters)
   }
 
+  /// Where the tall layout puts a workspace's only window with these settings.
+  private func oneWindowFrame(_ config: Config) -> CGRect? {
+    let parameters = LayoutParameters(
+      outerGap: CGFloat(config.gaps.outer), innerGap: CGFloat(config.gaps.inner))
+    return TallLayout().frames(count: 1, in: area, parameters: parameters).first
+  }
+
   private func frames(_ backend: FakeBackend) -> [CGRect] {
     [1, 2].compactMap { backend.frame(of: $0) }
   }
@@ -59,6 +66,50 @@ struct ReloadTests {
 
     _ = manager.reload()
     #expect(frames(backend) == expectedFrames(gaps, mainRatio: 0.6))
+  }
+
+  @Test func reloadKeepsTheRowHeights() async {
+    let file = FakeConfigFile()
+    let pointer = FakePointer()
+    let harness = ManagerHarness([1, 2, 3], configFile: file, pointer: pointer)
+    await harness.settle()
+    // Drag the divider between the stacked windows down, from 566 points to 700.
+    pointer.isPrimaryButtonDown = true
+    await harness.backend.userMoves(2, to: CGRect(x: 928, y: 38, width: 872, height: 700))
+    pointer.release(at: CGPoint(x: 1000, y: 100))
+    await harness.settle()
+    file.write(.config(gaps))
+
+    _ = harness.manager.reload()
+    let parameters = LayoutParameters(rowWeights: [[], [700, 431]], outerGap: 12, innerGap: 8)
+    let expected = TallLayout().frames(count: 3, in: area, parameters: parameters)
+    #expect([1, 2, 3].map { harness.frame(of: $0) } == expected)
+  }
+
+  @Test func reloadGivesTheGapsToWorkspacesNotOnScreen() async {
+    let file = FakeConfigFile()
+    let harness = ManagerHarness([1, 2], configFile: file)
+    await harness.osFocus(2)
+    _ = harness.manager.moveToWorkspace(.next, follow: false)
+    file.write(.config(gaps))
+
+    _ = harness.manager.reload()
+    _ = harness.manager.switchWorkspace(.next)
+    await harness.settle()
+    #expect(harness.frame(of: 2) == oneWindowFrame(gaps))
+  }
+
+  @Test func workspacesAddedByAReloadGetTheGaps() async {
+    let file = FakeConfigFile()
+    let harness = ManagerHarness([1, 2], configFile: file)
+    file.write(.config(Config(gaps: gaps.gaps, workspaces: Config.Workspaces(count: 6))))
+
+    _ = harness.manager.reload()
+    await harness.osFocus(2)
+    _ = harness.manager.moveToWorkspace(.number(6), follow: true)
+    await harness.settle()
+    #expect(harness.workspaces()[2] == 6)
+    #expect(harness.frame(of: 2) == oneWindowFrame(gaps))
   }
 
   @Test func aBrokenFileChangesNothing() {

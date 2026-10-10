@@ -40,10 +40,8 @@ public final class WindowManager {
   }
   /// Floated windows, original frames and the like (see `WindowBookkeeping`).
   var bookkeeping = WindowBookkeeping()
-  /// The slide in progress, if any.
-  var animation: RunningAnimation?
-  /// The trackpad pan in progress, if any (`WindowManager+Pan`).
-  var pan: PanSession?
+  /// The slide, pan or drag in progress, if any (see `Interaction`).
+  var interaction = Interaction.idle
   var animationCount = 0
   let animator: Animator
   let backend: any WindowBackend
@@ -55,8 +53,6 @@ public final class WindowManager {
   /// The mouse, or `nil` when tylerd doesn't follow it.
   let pointer: (any PointerInput)?
   var pointerPump: Task<Void, Never>?
-  /// The window being dragged with the mouse, if any.
-  var drag: MouseDrag?
   /// Paces drag and pan steps; injected so tests don't sleep.
   let clock: any Clock<Duration>
   let indicator: (any Indicator)?

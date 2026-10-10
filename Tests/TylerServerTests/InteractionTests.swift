@@ -78,4 +78,13 @@ struct InteractionTests {
     #expect(harness.frame(of: 3) == harness.area, "the slide jumped to its end")
     #expect(harness.manager.pan != nil)
   }
+
+  @Test func endingAKindThatIsNotRunningLeavesTheRunningOneAlone() async {
+    let harness = await makeHarness()
+    pointer.pan(.began)
+    await harness.settle()
+    harness.manager.endDrag()
+    harness.manager.animation = nil
+    #expect(harness.manager.pan != nil)
+  }
 }

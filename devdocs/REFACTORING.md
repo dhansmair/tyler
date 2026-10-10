@@ -21,9 +21,9 @@ Sizes: XS < 20 lines, S < 60, M < 200, L larger.
     - Drop the read-back in `setFrame`, or read only the frame (it exists to report clamped sizes).
     - Skip the sync for windows that are sliding or panning.
   - Before: add tests for the fast path, including the display-change case. M, medium risk. `WindowManager.swift`, `WindowManager+Sync.swift`, `TylerPlatform/AXBackend.swift`.
-- [ ] **2. Put slide, pan and drag into one interaction state.** `WindowManager` has 27 stored properties. Six of them (`animation`, `animationCount`, `pan`, `panThrottle`, `drag`, `dragThrottle`) describe things that never happen at the same time, and guards like `animation == nil, pan == nil` repeat throughout `+Mouse`, `+Pan` and `+Workspaces`.
+- [x] **2. Put slide, pan and drag into one interaction state.** `WindowManager` has 27 stored properties. Six of them (`animation`, `animationCount`, `pan`, `panThrottle`, `drag`, `dragThrottle`) describe things that never happen at the same time, and guards like `animation == nil, pan == nil` repeat throughout `+Mouse`, `+Pan` and `+Workspaces`.
   - [x] Step 1 (S, low risk): a `Throttle` type replaces the two identical sleep-then-retry loops (`placePan` in `+Pan`, `followPendingFrame` in `+Mouse`), and each throttle lives inside its session (`PanSession`, `MouseDrag`).
-  - [ ] Step 2 (M, medium risk): `enum Interaction { case idle, sliding(…), panning(PanSession), dragging(MouseDrag) }`. Watch the transitions: a released pan becomes a slide (`endPan` → `animate`), and `endDrag` moves the preview window back.
+  - [x] Step 2 (M, medium risk): `enum Interaction { case idle, sliding(…), panning(PanSession), dragging(MouseDrag) }`. Watch the transitions: a released pan becomes a slide (`endPan` → `animate`), and `endDrag` moves the preview window back.
   - Worth doing before the strip layout adds a second pan target.
 - [ ] **3. One source of truth for commands.** A command is spelled out by hand in `Request` (`Protocol.swift`), the parse switches in `TylerClient/CommandLine.swift`, its usage text, `docs/manual.md`, and the "CLI target" block in the roadmap. On the server, dispatch goes `CommandRouter.handle` → `WindowManager.handle` → `handleTilingRequest`/`handleWorkspaceRequest`, and both of the last two end in `default:`, so the compiler can't flag an unhandled request. The `.ping`/`.status` arms in `WindowManager.handle` are dead code.
   - Fix: a `CommandSpec` table in TylerClient (name, arguments, one-line help, parse) that builds the usage text and does the dispatch; one exhaustive switch in `WindowManager.handle`; a test that every command has a `###` heading in the manual. Drop the roadmap's copy.
@@ -128,5 +128,6 @@ So nobody tries them again without a profile that says otherwise:
 
 - 2026-10-11: backlog created.
 - 2026-10-11: item 4 done (shared server test harness).
-- 2026-10-11: item 2 step 1 done (`Throttle`, held by `PanSession` and `MouseDrag`).
 - 2026-10-11: item 5 done (`WindowBookkeeping`), after regression tests for reused window ids.
+- 2026-10-11: item 2 step 1 done (`Throttle`, held by `PanSession` and `MouseDrag`).
+- 2026-10-11: item 2 step 2 done (`Interaction`), after tests for how slide, pan and drag exclude each other.

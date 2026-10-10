@@ -30,37 +30,64 @@ struct PanRecognizerTests {
       frame(0.04, fingers: 3, x: 0.40),
       frame(0.05, fingers: 2, x: 0.40),
     ])
-    #expect(updates.count == 4)
+    #expect(updates.count == 3)
     #expect(updates[0] == .began)
-    guard case .moved(let first) = updates[1], case .moved(let second) = updates[2],
-      case .ended(let velocity) = updates[3]
-    else {
+    guard case .moved(let offset) = updates[1], case .ended(let velocity) = updates[2] else {
       Issue.record("unexpected updates \(updates)")
       return
     }
-    #expect(abs(first - -0.04) < 1e-9)
-    #expect(abs(second - -0.10) < 1e-9)
-    #expect(abs(velocity - -6) < 1e-6)  // 0.06 widths in 0.01 s
+    // Counted from where the pan began (0.46), smoothed: between nothing and the raw -0.06.
+    #expect(offset < 0 && offset > -0.06)
+    #expect(abs(velocity - -6) < 1e-6, "from the raw positions: 0.06 widths in 0.01 s")
+  }
+
+  @Test func theContentDoesntJumpWhenThePanBegins() {
+    let updates = run([
+      frame(0, fingers: 3, x: 0.5), frame(0.01, fingers: 3, x: 0.45),
+      frame(0.02, fingers: 3, x: 0.45),
+    ])
+    #expect(updates == [.began, .moved(offset: 0)])
   }
 
   @Test func movingRightGivesPositiveOffsets() {
     let updates = run([
       frame(0, fingers: 3, x: 0.2), frame(0.01, fingers: 3, x: 0.3),
+      frame(0.02, fingers: 3, x: 0.4),
     ])
     #expect(updates.first == .began)
     guard case .moved(let offset) = updates.last else {
       Issue.record("expected a move, got \(updates)")
       return
     }
-    #expect(abs(offset - 0.1) < 1e-9)
+    #expect(offset > 0)
   }
 
   @Test func smallMovesDontBeginAPan() {
     let updates = run([
-      frame(0, fingers: 3, x: 0.5), frame(0.01, fingers: 3, x: 0.52),
+      frame(0, fingers: 3, x: 0.5), frame(0.01, fingers: 3, x: 0.51),
       frame(0.02, fingers: 0, x: 0),
     ])
     #expect(updates.isEmpty)
+  }
+
+  @Test func slowJitteryFingersMoveTheContentLessThanTheyTwitch() {
+    // Fingers creeping left at 0.05 widths per second with ±0.002 of sensor noise, 100 frames
+    // a second. Raw, the offset steps back 0.0035 on every other frame (about 20 points with the
+    // default swipe distance); smoothed, under a point.
+    var frames = [frame(0, fingers: 3, x: 0.5), frame(0.01, fingers: 3, x: 0.48)]
+    for step in 1...50 {
+      let noise = step.isMultiple(of: 2) ? 0.002 : -0.002
+      let position = 0.48 - Double(step) * 0.0005 + noise
+      frames.append(frame(0.01 + Double(step) * 0.01, fingers: 3, x: position))
+    }
+    let offsets = run(frames).compactMap { update -> Double? in
+      guard case .moved(let offset) = update else { return nil }
+      return offset
+    }
+    let largestStepBack = zip(offsets, offsets.dropFirst()).map { $1 - $0 }.max() ?? 0
+    #expect(offsets.count == 50)
+    #expect(largestStepBack < 0.0002)
+    #expect(offsets.last ?? 0 < -0.02, "it still follows the fingers")
   }
 
   @Test func aVerticalContactIsIgnoredUntilTheFingersLift() {
@@ -76,8 +103,7 @@ struct PanRecognizerTests {
     ] {
       updates += recognizer.feed(frame)
     }
-    #expect(updates.first == .began)  // only the second contact counts
-    #expect(updates.count == 2)
+    #expect(updates == [.began])  // only the second contact counts
   }
 
   @Test(arguments: [2, 4])

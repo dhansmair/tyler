@@ -73,8 +73,8 @@ extension WindowManager {
     show(index, direction: index > workspaces.currentIndex ? .down : .up, focusing: false)
   }
 
-  /// Makes the workspace at `index` current. The current windows slide out by a display height
-  /// and park; the target's windows are put a display height away and slide into their slots.
+  /// Makes the workspace at `index` current. The current windows slide out sideways by the
+  /// width of the visible frame and park; the target's windows slide in from the other side.
   /// Returns how many windows could not be placed up front.
   @discardableResult
   func show(_ index: Int, direction: ScrollDirection, focusing: Bool) -> Int {
@@ -86,20 +86,23 @@ extension WindowManager {
     workspaces.select(index)
     guard let display = displays.displays.first else { return 0 }
 
-    let offset = direction.outgoingOffset(height: display.frame.height)
     var tracks: [Track] = []
     var start: [Placement] = []
     var finals: [Placement] = []
     for windowID in outgoing {
       guard let frame = registry.window(withID: windowID)?.frame else { continue }
-      tracks.append(
-        Track(id: windowID, start: frame.origin, end: frame.offsetBy(dx: 0, dy: offset).origin))
-      finals.append(Placement(id: windowID, frame: Parking.frame(for: frame.size, on: display)))
+      tracks.append(.leaving(windowID, from: frame, direction: direction, on: display))
+      finals.append(Placement(id: windowID, frame: Parking.frame(for: frame, on: display)))
     }
     for placement in workspaces.current.placements(in: display.visibleFrame) {
-      let from = placement.frame.offsetBy(dx: 0, dy: -offset)
-      start.append(Placement(id: placement.id, frame: from))
-      tracks.append(Track(id: placement.id, start: from.origin, end: placement.frame.origin))
+      let track = Track.entering(
+        placement.id, into: placement.frame, direction: direction, on: display)
+      // Coming in from the right, this is where the window is parked already.
+      start.append(
+        Placement(
+          id: placement.id, frame: CGRect(origin: track.position(at: 0), size: placement.frame.size)
+        ))
+      tracks.append(track)
       finals.append(placement)
     }
     let failures = animate(start: start, tracks: tracks, finals: finals)
@@ -112,13 +115,10 @@ extension WindowManager {
     guard let display = displays.displays.first,
       let frame = registry.window(withID: windowID)?.frame
     else { return 0 }
-    let offset = direction.outgoingOffset(height: display.frame.height)
     return animate(
       start: [],
-      tracks: [
-        Track(id: windowID, start: frame.origin, end: frame.offsetBy(dx: 0, dy: offset).origin)
-      ],
-      finals: [Placement(id: windowID, frame: Parking.frame(for: frame.size, on: display))])
+      tracks: [.leaving(windowID, from: frame, direction: direction, on: display)],
+      finals: [Placement(id: windowID, frame: Parking.frame(for: frame, on: display))])
   }
 
   private func focusCurrentWorkspace() {

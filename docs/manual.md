@@ -17,9 +17,9 @@ A physical screen: the built-in screen of a laptop or an external monitor. tyler
 
 ### Workspace
 
-A set of windows with its own tiling list, layout and master ratio. A display has four workspaces, stacked vertically like pages and numbered 1 to 4 from the top. Exactly one workspace per display is on screen; switching to another one slides its windows into view (`tyler workspace`). Every tiled window belongs to exactly one workspace.
+A set of windows with its own tiling list, layout and master ratio. A display has four workspaces, stacked vertically like pages and numbered 1 to 4 from the top. Exactly one workspace per display is on screen; switching to another one slides its windows into view sideways (`tyler workspace`): going down the stack, the current windows leave to the left and the next ones come in from the right. macOS doesn't let windows leave through the top or bottom of the screen, so the slide can't be vertical. Every tiled window belongs to exactly one workspace.
 
-The windows of the workspaces that aren't on screen are *parked*: moved into the bottom-right corner of the display with only one point visible. They are still open, and Cmd-Tab still lists them. Focusing a parked window, for example with Cmd-Tab, switches to its workspace.
+The windows of the workspaces that aren't on screen are *parked*: moved just past the right edge of the display, at their own height, with only a one-point column visible. They are still open, and Cmd-Tab still lists them. Focusing a parked window, for example with Cmd-Tab, switches to its workspace.
 
 ### Window
 
@@ -65,7 +65,7 @@ You can also run `tylerd` yourself in a terminal, which keeps its output there; 
 
 As soon as it has permission, `tylerd` tiles the windows on the main display, ordered left to right as they were on screen.
 
-**Stopping.** `tyler stop`, Ctrl-C in the terminal running `tylerd`, or SIGTERM (`pkill tylerd`) all stop it cleanly: `tylerd` puts every window it moved back where it was, parked windows included. A crash or `kill -9` skips this step, and windows of other workspaces stay parked in the bottom-right corner.
+**Stopping.** `tyler stop`, Ctrl-C in the terminal running `tylerd`, or SIGTERM (`pkill tylerd`) all stop it cleanly: `tylerd` puts every window it moved back where it was, parked windows included. A crash or `kill -9` skips this step, and windows of other workspaces stay parked at the right edge of the display.
 
 **After a rebuild** the running `tylerd` is still the old version, and a newer `tyler` may send it commands it doesn't know (`unknown request: tylerd is probably older than tyler`). `tyler status` warns when the `tylerd` binary has changed since it started. Run `tyler restart`.
 

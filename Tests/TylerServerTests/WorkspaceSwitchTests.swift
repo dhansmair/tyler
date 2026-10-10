@@ -46,13 +46,21 @@ struct WorkspaceHarness {
     backend.windows.first { $0.id.rawValue == windowID }?.frame
   }
 
-  func parked(_ windowID: UInt32) -> CGRect? {
-    frame(of: windowID).map { Parking.frame(for: $0.size, on: display) }
-  }
-
   func isParked(_ windowID: UInt32) -> Bool {
     guard let frame = frame(of: windowID) else { return false }
-    return frame.origin == Parking.frame(for: frame.size, on: display).origin
+    return frame == Parking.frame(for: frame, on: display)
+  }
+
+  /// Whether macOS would accept every position tylerd asked for without pulling the window
+  /// back on screen (see `Parking`).
+  func everyPositionIsAllowed() -> Bool {
+    let positions =
+      backend.moves.map { ($0.id, $0.frame.origin) } + backend.nudges.map { ($0.id, $0.origin) }
+    return positions.allSatisfy { windowID, origin in
+      guard let width = frame(of: windowID.rawValue)?.width else { return false }
+      return Parking.allowedX(width: width, on: display).contains(origin.x)
+        && origin.y >= display.visibleFrame.minY
+    }
   }
 
   /// Window id → 1-based workspace, for windows on a workspace.
@@ -255,48 +263,87 @@ struct WorkspaceAnimationTests {
   }
 
   @Test func theStepCountFollowsTheDurationAndZeroSnaps() {
-    #expect(Animator().stepCount == 13)
+    #expect(Animator().stepCount == 32)
     #expect(animator.stepCount == 3)
     #expect(Animator.snap.stepCount == 0)
   }
 
-  @Test func outgoingWindowsSlideUpThenPark() async {
+  @Test func outgoingWindowsSlideLeftThenPark() async throws {
     let harness = WorkspaceHarness([1, 2], animator: animator)
-    let start = harness.frame(of: 1)
+    await harness.settle()  // the manager learns the tiled frames
+    let start = try #require(harness.frame(of: 1))
     _ = harness.manager.switchWorkspace(.down)
     #expect(harness.frame(of: 1) == start, "nothing moves before the first frame")
 
     await runAnimations(harness)
     let steps = harness.backend.nudges.filter { $0.id == WindowID(1) }.map(\.origin)
     #expect(steps.count == 2)
-    #expect(steps.allSatisfy { $0.y < (start?.minY ?? 0) }, "scrolling down moves windows up")
+    #expect(steps.allSatisfy { $0.x < start.minX }, "scrolling down moves windows left")
+    #expect(steps.allSatisfy { $0.y == start.minY }, "nothing moves vertically")
     #expect(harness.isParked(1))
     #expect(harness.isParked(2))
   }
 
-  @Test func incomingWindowsStartADisplayHeightBelowAndEndInTheirSlots() async {
+  @Test func incomingWindowsStartWhereTheyAreParkedAndEndInTheirSlots() async {
     let harness = WorkspaceHarness([1, 2], animator: animator)
     await harness.osFocus(2)
     _ = harness.manager.moveToWorkspace(.down, follow: false)
     await runAnimations(harness)
+    let parked = harness.frame(of: 2)
     harness.backend.clearRecordedCalls()
 
     _ = harness.manager.switchWorkspace(.down)
     let first = harness.backend.moves.first { $0.id == WindowID(2) }
-    let height = harness.display.frame.height
-    #expect(first?.frame == harness.area.offsetBy(dx: 0, dy: height))
+    #expect(first?.frame.origin == parked?.origin, "resized to its slot while still parked")
+    #expect(first?.frame.size == harness.area.size)
     await runAnimations(harness)
+    let steps = harness.backend.nudges.filter { $0.id == WindowID(2) }.map(\.origin.x)
+    #expect(steps == steps.sorted(by: >), "it comes in from the right")
     #expect(harness.frame(of: 2) == harness.area)
   }
 
-  @Test func scrollingUpMovesTheOtherWay() async {
+  @Test func scrollingUpMovesTheOtherWay() async throws {
     let harness = WorkspaceHarness([1], animator: animator)
-    let start = harness.frame(of: 1)
+    await harness.settle()  // the manager learns the tiled frames
+    let start = try #require(harness.frame(of: 1))
     _ = harness.manager.switchWorkspace(.up)
     await runAnimations(harness)
     let steps = harness.backend.nudges.map(\.origin)
     #expect(!steps.isEmpty)
-    #expect(steps.allSatisfy { $0.y > (start?.minY ?? 0) })
+    #expect(steps.allSatisfy { $0.x > start.minX })
+  }
+
+  @Test(arguments: [WorkspaceTarget.down, .up])
+  func noWindowIsAskedForAPositionMacOSWouldPullBack(target: WorkspaceTarget) async {
+    // Two workspaces with several windows each, so windows enter and leave together.
+    let harness = WorkspaceHarness([1, 2, 3, 4], animator: animator)
+    await harness.osFocus(4)
+    _ = harness.manager.moveToWorkspace(target, follow: false)
+    await harness.osFocus(3)
+    _ = harness.manager.moveToWorkspace(target, follow: false)
+    await runAnimations(harness)
+    _ = harness.manager.switchWorkspace(target)
+    await runAnimations(harness)
+    _ = harness.manager.switchWorkspace(target == .down ? .up : .down)
+    await runAnimations(harness)
+    #expect(!harness.backend.nudges.isEmpty)
+    #expect(harness.everyPositionIsAllowed())
+  }
+
+  @Test func aLateFrameSkipsAheadInsteadOfStretchingTheSlide() async throws {
+    let harness = WorkspaceHarness([1], animator: animator)
+    await harness.settle()  // the manager learns the tiled frames
+    let start = try #require(harness.frame(of: 1))
+    _ = harness.manager.switchWorkspace(.down)
+    await harness.settle()
+    // Moving the windows took two frames' time: the slide jumps to two thirds.
+    clock.advance(by: .milliseconds(32))
+    await harness.settle()
+    let track = Track.leaving(WindowID(1), from: start, direction: .down, on: harness.display)
+    #expect(harness.backend.nudges.map(\.origin) == [track.position(at: 2.0 / 3)])
+    clock.advance(by: .milliseconds(16))
+    await harness.settle()
+    #expect(harness.isParked(1), "done on time")
   }
 
   @Test func aCommandMidSlideJumpsToTheEndFirst() async {

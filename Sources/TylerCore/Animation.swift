@@ -81,4 +81,9 @@ public enum ScrollDirection: Equatable, Sendable {
   public func outgoingOffset(width: CGFloat) -> CGFloat {
     self == .down ? -width : width
   }
+
+  /// The other way.
+  public var opposite: ScrollDirection {
+    self == .down ? .up : .down
+  }
 }

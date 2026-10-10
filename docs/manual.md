@@ -286,7 +286,7 @@ tyler move-to-workspace 2
 tyler move-to-workspace up --follow
 ```
 
-Sends the focused window to another workspace, where it becomes the focused window. Without `--follow` the window slides away, the remaining windows re-tile, and you stay on the current workspace. With `--follow` you switch to the target workspace along with the window.
+Sends the focused window to another workspace, where it becomes the focused window. Without `--follow` the window slides away towards its new workspace (to the right for `down`, to the left for `up`), the remaining windows re-tile, and you stay on the current workspace. With `--follow` you switch to the target workspace along with the window.
 
 Only tiled windows can be moved.
 

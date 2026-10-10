@@ -53,7 +53,7 @@ extension WindowManager {
     if follow && index != current {
       failures += show(index, direction: direction, focusing: true)
     } else {
-      if source == current { failures += slideOut(windowID, direction: direction) }
+      if source == current { failures += slideOut(windowID, towards: direction) }
       failures += applyLayout()
       if source == current { focusCurrentWorkspace() }
     }
@@ -110,14 +110,16 @@ extension WindowManager {
     return failures
   }
 
-  /// Slides one visible window off the display and parks it.
-  private func slideOut(_ windowID: WindowID, direction: ScrollDirection) -> Int {
+  /// Slides one visible window off the display towards the workspace it was sent to, and parks
+  /// it. The view stays put, so the window moves the opposite way to windows leaving when the
+  /// view scrolls: one sent `down` the stack goes right, where the next workspace comes from.
+  private func slideOut(_ windowID: WindowID, towards direction: ScrollDirection) -> Int {
     guard let display = displays.displays.first,
       let frame = registry.window(withID: windowID)?.frame
     else { return 0 }
     return animate(
       start: [],
-      tracks: [.leaving(windowID, from: frame, direction: direction, on: display)],
+      tracks: [.leaving(windowID, from: frame, direction: direction.opposite, on: display)],
       finals: [Placement(id: windowID, frame: Parking.frame(for: frame, on: display))])
   }
 

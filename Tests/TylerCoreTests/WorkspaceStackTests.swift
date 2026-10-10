@@ -198,5 +198,7 @@ struct ParkingTests {
   @Test func outgoingWindowsLeaveLeftwardsWhenScrollingDown() {
     #expect(ScrollDirection.down.outgoingOffset(width: 1000) == -1000)
     #expect(ScrollDirection.up.outgoingOffset(width: 1000) == 1000)
+    #expect(ScrollDirection.down.opposite == .up)
+    #expect(ScrollDirection.up.opposite == .down)
   }
 }

@@ -66,9 +66,9 @@ Sizes: XS < 20 lines, S < 60, M < 200, L larger.
   - Done: `isTiling`, `primaryDisplay`, `currentPlacements()` and `slot(of:)` in `+Placement`, and `restoreOriginalFrames` goes through `place`. `outcome(failures:success:)` is left for the third bug below, since it changes what commands answer.
 - [ ] **11. Make adding a layout easier.**
   - [x] Step 1 (S): adding a layout touches 4 places (a type, a `LayoutKind` case, the `LayoutKind.layout` switch, the symbol in `IndicatorState.title`), but the comment in `Layout.swift` says 2. Move the symbol onto `LayoutKind`, rename `LayoutKind.layout` (call sites read `layout.layout`), fix the comment. Merge `ColumnLayout.minimumShare` with `LayoutParameters.ratioRange` (both are the 10% rule).
-  - [ ] Step 2 (M, medium risk): `TallLayout` converts the pixel widths from the generic `ColumnLayout.Resize` into `mainRatio` (`widths.count == 2`); the next column layout would have to repeat that. Have `ColumnLayout` take column weights in and give them back.
-  - [ ] Step 3 (L, medium risk): `LayoutParameters` mixes per-workspace state (`mainRatio`, `rowWeights`) with global gaps, which is why `setGaps` is pushed into every workspace. Pass a separate `LayoutGaps` to `frames`.
-- [ ] **12. Table-driven config parsing.** Each section in `Config.swift` (Gaps, Gestures, Mouse, Workspaces) repeats the same steps: check it's a table, a switch over sorted keys, a hand-typed list of unknown keys that can drift from the cases, and range checks formatted one by one.
+  - [ ] Step 2 (M, medium risk), deferred until the strip layout starts (the roadmap's open item says to rework the `Layout` protocol then, not before): `TallLayout` converts the pixel widths from the generic `ColumnLayout.Resize` into `mainRatio` (`widths.count == 2`); the next column layout would have to repeat that. Have `ColumnLayout` take column weights in and give them back.
+  - [ ] Step 3 (L, medium risk), deferred with step 2: `LayoutParameters` mixes per-workspace state (`mainRatio`, `rowWeights`) with global gaps, which is why `setGaps` is pushed into every workspace. Pass a separate `LayoutGaps` to `frames`.
+- [x] **12. Table-driven config parsing.** Each section in `Config.swift` (Gaps, Gestures, Mouse, Workspaces) repeats the same steps: check it's a table, a switch over sorted keys, a hand-typed list of unknown keys that can drift from the cases, and range checks formatted one by one.
   - Fix: a section helper built from a `[key: reader]` dictionary, with typed readers (`int(in:unit:)`, `bool()`, `number(in:)`). About 110 lines become 50, and each new key becomes one line. Keep the error wording (tests check it).
   - M, low to medium risk.
 - [x] **13. [perf] Cache displays and group indicator updates.** Dropped after item 1, see "Considered and not worth it".
@@ -141,3 +141,5 @@ So nobody tries them again without a profile that says otherwise:
 - 2026-10-11: item 13 dropped (not worth it after item 1).
 - 2026-10-11: item 9 done (`WorkspaceSync`, `SlidePlan`, `CGRect.isClose(to:)`/`hasOtherSize(than:)`, `ScrollDirection(revealedBy:)`, `WorkspaceTarget.direction(from:to:)` in TylerCore).
 - 2026-10-11: item 11 step 1 done (`LayoutKind.implementation` and `symbol`).
+- 2026-10-11: item 11 steps 2 and 3 deferred to the strip layout.
+- 2026-10-11: item 12 done (`Section.read` with one `Setting` per key; every error message unchanged except the gestures table hint, changed in its own commit).

@@ -163,118 +163,137 @@ extension Config {
 
 extension Config.Gaps {
   fileprivate init(_ value: TOMLValue) throws(ConfigError) {
-    guard case .table(let table) = value else {
-      throw .invalid("gaps must be a table: write [gaps] and put inner and outer below it")
-    }
-    self.init()
-    for (key, value) in table.sorted(by: { $0.key < $1.key }) {
-      switch key {
-      case "inner": inner = try Self.points(value, for: key)
-      case "outer": outer = try Self.points(value, for: key)
-      default: throw .invalid("unknown setting 'gaps.\(key)' (use inner or outer)")
-      }
-    }
-  }
-
-  private static func points(_ value: TOMLValue, for key: String) throws(ConfigError) -> Int {
-    guard case .integer(let points) = value, points >= 0 else {
-      throw .invalid("gaps.\(key) must be a whole number of points, 0 or more")
-    }
-    return points
+    self = try Section.read(
+      "gaps", value, into: Self(),
+      Setting("inner") { gaps, value, name throws(ConfigError) in
+        gaps.inner = try Section.points(value, name)
+      },
+      Setting("outer") { gaps, value, name throws(ConfigError) in
+        gaps.outer = try Section.points(value, name)
+      })
   }
 }
 
 extension Config.Gestures {
   fileprivate init(_ value: TOMLValue) throws(ConfigError) {
-    guard case .table(let table) = value else {
-      throw .invalid(
-        "gestures must be a table: write [gestures] and put swipe, fingers and swipe-distance below it"
-      )
-    }
-    self.init()
-    for (key, value) in table.sorted(by: { $0.key < $1.key }) {
-      switch key {
-      case "swipe": swipe = try Self.swipe(value)
-      case "fingers": fingers = try Self.fingers(value)
-      case "swipe-distance": swipeDistance = try Self.swipeDistance(value)
-      default:
-        throw .invalid("unknown setting 'gestures.\(key)' (use swipe, fingers or swipe-distance)")
-      }
-    }
-  }
-
-  private static func swipe(_ value: TOMLValue) throws(ConfigError) -> Bool {
-    guard case .boolean(let isOn) = value else {
-      throw .invalid("gestures.swipe must be true or false")
-    }
-    return isOn
-  }
-
-  private static func fingers(_ value: TOMLValue) throws(ConfigError) -> Int {
-    guard case .integer(let count) = value, fingersRange.contains(count) else {
-      throw .invalid(
-        "gestures.fingers must be \(fingersRange.lowerBound) or \(fingersRange.upperBound)")
-    }
-    return count
-  }
-
-  private static func swipeDistance(_ value: TOMLValue) throws(ConfigError) -> Double {
-    let range = swipeDistanceRange
-    let distance: Double? =
-      switch value {
-      case .float(let number): number
-      case .integer(let number): Double(number)
-      default: nil
-      }
-    guard let distance, range.contains(distance) else {
-      throw .invalid(
-        "gestures.swipe-distance must be a number of trackpad widths, "
-          + "\(range.lowerBound) to \(range.upperBound)")
-    }
-    return distance
+    self = try Section.read(
+      "gestures", value, into: Self(),
+      Setting("swipe") { gestures, value, name throws(ConfigError) in
+        gestures.swipe = try Section.boolean(value, name)
+      },
+      Setting("fingers") { gestures, value, name throws(ConfigError) in
+        gestures.fingers = try Section.integer(value, name, in: Self.fingersRange)
+      },
+      Setting("swipe-distance") { gestures, value, name throws(ConfigError) in
+        gestures.swipeDistance = try Section.number(
+          value, name, in: Self.swipeDistanceRange, unit: "trackpad widths")
+      })
   }
 }
 
 extension Config.Mouse {
   fileprivate init(_ value: TOMLValue) throws(ConfigError) {
-    guard case .table(let table) = value else {
-      throw .invalid("mouse must be a table: write [mouse] and put follow-interval below it")
-    }
-    self.init()
-    for (key, value) in table.sorted(by: { $0.key < $1.key }) {
-      switch key {
-      case "follow-interval":
-        let range = Self.followIntervalRange
-        guard case .integer(let milliseconds) = value, range.contains(milliseconds) else {
-          throw .invalid(
-            "mouse.follow-interval must be a whole number of milliseconds, "
-              + "\(range.lowerBound) to \(range.upperBound)")
-        }
-        followInterval = milliseconds
-      default: throw .invalid("unknown setting 'mouse.\(key)' (use follow-interval)")
-      }
-    }
+    self = try Section.read(
+      "mouse", value, into: Self(),
+      Setting("follow-interval") { mouse, value, name throws(ConfigError) in
+        mouse.followInterval = try Section.integer(
+          value, name, in: Self.followIntervalRange, unit: "milliseconds")
+      })
   }
 }
 
 extension Config.Workspaces {
   fileprivate init(_ value: TOMLValue) throws(ConfigError) {
+    self = try Section.read(
+      "workspaces", value, into: Self(),
+      Setting("count") { workspaces, value, name throws(ConfigError) in
+        workspaces.count = try Section.integer(value, name, in: Self.countRange)
+      })
+  }
+}
+
+/// One key of a config section, and how its value goes into the section. `read` also gets the
+/// setting's full name (`gaps.inner`), for its error messages.
+private struct Setting<Value> {
+  typealias Read = (inout Value, TOMLValue, _ name: String) throws(ConfigError) -> Void
+
+  let key: String
+  let read: Read
+
+  init(_ key: String, read: @escaping Read) {
+    self.key = key
+    self.read = read
+  }
+}
+
+/// Reading a `[section]` table and its values. The error messages name the section's keys from
+/// its settings, so they can't drift from what is accepted.
+private enum Section {
+  static func read<Value>(
+    _ name: String, _ value: TOMLValue, into defaults: Value, _ settings: Setting<Value>...
+  ) throws(ConfigError) -> Value {
+    let keys = settings.map(\.key)
     guard case .table(let table) = value else {
-      throw .invalid("workspaces must be a table: write [workspaces] and put count below it")
+      throw .invalid(
+        "\(name) must be a table: write [\(name)] and put \(list(keys, "and")) below it")
     }
-    self.init()
+    var section = defaults
     for (key, value) in table.sorted(by: { $0.key < $1.key }) {
-      switch key {
-      case "count":
-        let range = Self.countRange
-        guard case .integer(let number) = value, range.contains(number) else {
-          throw .invalid(
-            "workspaces.count must be a whole number, \(range.lowerBound) to \(range.upperBound)")
-        }
-        count = number
-      default: throw .invalid("unknown setting 'workspaces.\(key)' (use count)")
+      guard let setting = settings.first(where: { $0.key == key }) else {
+        throw .invalid("unknown setting '\(name).\(key)' (use \(list(keys, "or")))")
       }
+      try setting.read(&section, value, "\(name).\(key)")
     }
+    return section
+  }
+
+  static func boolean(_ value: TOMLValue, _ name: String) throws(ConfigError) -> Bool {
+    guard case .boolean(let isOn) = value else { throw .invalid("\(name) must be true or false") }
+    return isOn
+  }
+
+  static func points(_ value: TOMLValue, _ name: String) throws(ConfigError) -> Int {
+    guard case .integer(let points) = value, points >= 0 else {
+      throw .invalid("\(name) must be a whole number of points, 0 or more")
+    }
+    return points
+  }
+
+  /// A whole number in `range`. A range of two values reads "3 or 4"; others name the unit.
+  static func integer(
+    _ value: TOMLValue, _ name: String, in range: ClosedRange<Int>, unit: String? = nil
+  ) throws(ConfigError) -> Int {
+    guard case .integer(let number) = value, range.contains(number) else {
+      if range.count == 2 {
+        throw .invalid("\(name) must be \(range.lowerBound) or \(range.upperBound)")
+      }
+      let kind = unit.map { "a whole number of \($0)" } ?? "a whole number"
+      throw .invalid("\(name) must be \(kind), \(range.lowerBound) to \(range.upperBound)")
+    }
+    return number
+  }
+
+  /// A number in `range`; whole numbers count too.
+  static func number(
+    _ value: TOMLValue, _ name: String, in range: ClosedRange<Double>, unit: String
+  ) throws(ConfigError) -> Double {
+    let number: Double? =
+      switch value {
+      case .float(let number): number
+      case .integer(let number): Double(number)
+      default: nil
+      }
+    guard let number, range.contains(number) else {
+      throw .invalid(
+        "\(name) must be a number of \(unit), \(range.lowerBound) to \(range.upperBound)")
+    }
+    return number
+  }
+
+  /// "a", "a and b", "a, b and c".
+  private static func list(_ items: [String], _ conjunction: String) -> String {
+    guard let last = items.last, items.count > 1 else { return items.first ?? "" }
+    return items.dropLast().joined(separator: ", ") + " \(conjunction) " + last
   }
 }
 

@@ -107,7 +107,8 @@ extension WindowManager {
     }
     return SlidePlan(
       to: index, direction: direction, leaving: leaving,
-      entering: workspaces[index].placements(in: display.visibleFrame), on: display)
+      entering: workspaces[index].placements(in: display.visibleFrame, gaps: gaps),
+      on: display)
   }
 
   /// Slides one visible window off the display towards the workspace it was sent to, and parks

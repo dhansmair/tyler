@@ -1,7 +1,25 @@
 import CoreGraphics
 
-/// Tunable inputs to every layout. Gaps are in points; the master ratio is clamped to
-/// `ratioRange` so neither column of a tall layout can vanish.
+/// The space around and between tiled windows, in points. The same for every workspace: it
+/// comes from the config, so it is passed to a layout rather than stored in a workspace.
+public struct LayoutGaps: Equatable, Sendable {
+  /// Space between the layout area's edge and the windows.
+  public let outer: CGFloat
+  /// Space between neighbouring windows.
+  public let inner: CGFloat
+
+  public init(inner: CGFloat = 0, outer: CGFloat = 0) {
+    self.inner = max(0, inner)
+    self.outer = max(0, outer)
+  }
+
+  public init(_ gaps: Config.Gaps) {
+    self.init(inner: CGFloat(gaps.inner), outer: CGFloat(gaps.outer))
+  }
+}
+
+/// A workspace's own tunable inputs to its layout. The master ratio is clamped to `ratioRange`
+/// so neither column of a tall layout can vanish.
 public struct LayoutParameters: Equatable, Sendable {
   public static let ratioRange: ClosedRange<Double> = 0.1...0.9
 
@@ -10,27 +28,10 @@ public struct LayoutParameters: Equatable, Sendable {
   /// row `r` of column `c`. Rows without an entry weigh 1, so the default is equal heights.
   /// Weights belong to the slot, not the window: a window moving into a row takes its height.
   public private(set) var rowWeights: [[Double]]
-  /// Space between the layout area's edge and the windows.
-  public let outerGap: CGFloat
-  /// Space between neighbouring windows.
-  public let innerGap: CGFloat
 
-  public init(
-    mainRatio: Double = 0.5,
-    rowWeights: [[Double]] = [],
-    outerGap: CGFloat = 0,
-    innerGap: CGFloat = 0
-  ) {
+  public init(mainRatio: Double = 0.5, rowWeights: [[Double]] = []) {
     self.mainRatio = Self.clamp(mainRatio)
     self.rowWeights = rowWeights.map { column in column.map(Self.sanitize) }
-    self.outerGap = max(0, outerGap)
-    self.innerGap = max(0, innerGap)
-  }
-
-  /// The same parameters with different gaps; the ratio and row weights are kept.
-  public func withGaps(inner: CGFloat, outer: CGFloat) -> LayoutParameters {
-    LayoutParameters(
-      mainRatio: mainRatio, rowWeights: rowWeights, outerGap: outer, innerGap: inner)
   }
 
   /// Moves the ratio by `delta`, staying inside `ratioRange`. Returns whether it changed.
@@ -81,11 +82,23 @@ public struct LayoutParameters: Equatable, Sendable {
   }
 }
 
-/// Turns a window count and an area into one frame per window, in list order. Adding a layout
-/// means one new conforming type and one new `LayoutKind` case; the compiler then asks for the
-/// case's `implementation` and `symbol`.
+/// What a layout knows about the workspace it lays out.
+public struct LayoutInput: Equatable, Sendable {
+  /// How many windows the workspace tiles.
+  public var count: Int
+  public var parameters: LayoutParameters
+
+  public init(count: Int, parameters: LayoutParameters = LayoutParameters()) {
+    self.count = count
+    self.parameters = parameters
+  }
+}
+
+/// Turns a workspace's windows and an area into one frame per window, in list order. Adding a
+/// layout means one new conforming type and one new `LayoutKind` case; the compiler then asks
+/// for the case's `implementation` and `symbol`.
 public protocol Layout: Sendable {
-  func frames(count: Int, in area: CGRect, parameters: LayoutParameters) -> [CGRect]
+  func frames(for input: LayoutInput, in area: CGRect, gaps: LayoutGaps) -> [CGRect]
 
   /// The parameters that put the edges of window `index` where the user dragged them (`frame`),
   /// or `nil` if the layout doesn't follow that change: no edge it can move was moved. The
@@ -94,9 +107,9 @@ public protocol Layout: Sendable {
   func parameters(
     afterResizing index: Int,
     to frame: CGRect,
-    count: Int,
+    input: LayoutInput,
     in area: CGRect,
-    parameters: LayoutParameters
+    gaps: LayoutGaps
   ) -> LayoutParameters?
 }
 
@@ -104,9 +117,9 @@ extension Layout {
   public func parameters(
     afterResizing index: Int,
     to frame: CGRect,
-    count: Int,
+    input: LayoutInput,
     in area: CGRect,
-    parameters: LayoutParameters
+    gaps: LayoutGaps
   ) -> LayoutParameters? {
     nil
   }

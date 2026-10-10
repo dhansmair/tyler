@@ -72,20 +72,6 @@ struct WorkspaceRowTests {
     #expect(row[0].windows == [WindowID(1)])
   }
 
-  @Test func setGapsChangesEveryWorkspaceButKeepsLayoutAndRatio() {
-    var row = WorkspaceRow()
-    row[2].layout = .full
-    row[2].adjustRatio(by: 0.1)
-    row.setGaps(inner: 8, outer: 12)
-    for index in row.indices {
-      #expect(row[index].parameters.innerGap == 8)
-      #expect(row[index].parameters.outerGap == 12)
-    }
-    #expect(row[2].layout == .full)
-    #expect(row[2].parameters.mainRatio == 0.6)
-    #expect(row[0].parameters.mainRatio == 0.5)
-  }
-
   @Test(arguments: [0, 5, -1])
   func numbersOutOfRangeResolveToNothing(number: Int) {
     #expect(WorkspaceRow().index(of: .number(number)) == nil)

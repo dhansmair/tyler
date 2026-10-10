@@ -32,7 +32,6 @@ extension WindowManager {
     backend.stop()
     registry = WindowRegistry()
     workspaces = WorkspaceRow(count: config.workspaces.count)
-    applyGaps()
     bookkeeping = WindowBookkeeping()
     pendingRestore = nil
     state = .waitingForPermission
@@ -47,7 +46,6 @@ extension WindowManager {
     pendingRestore = nil
     let known = Set(registry.windows.map(\.id))
     workspaces = saved.row(count: config.workspaces.count) { known.contains($0) }
-    applyGaps()
     bookkeeping = WindowBookkeeping(restoring: saved, known: known)
     tilingEnabled = saved.tilingEnabled
     return true

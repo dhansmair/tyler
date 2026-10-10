@@ -146,11 +146,13 @@ public struct Workspace: Equatable, Sendable {
   /// The window that `windowID` would swap with if it were dropped at `point`: the one whose
   /// slot is under the point. Nothing while the point is still in `windowID`'s own slot (in
   /// `full`, that is everywhere), in a gap, or outside the tiled area.
-  public func dropTarget(for windowID: WindowID, at point: CGPoint, in area: CGRect) -> WindowID? {
-    Self.dropTarget(for: windowID, at: point, among: placements(in: area))
+  public func dropTarget(
+    for windowID: WindowID, at point: CGPoint, in area: CGRect, gaps: LayoutGaps
+  ) -> WindowID? {
+    Self.dropTarget(for: windowID, at: point, among: placements(in: area, gaps: gaps))
   }
 
-  /// `dropTarget(for:at:in:)` for placements already worked out, so a caller that needs them
+  /// `dropTarget(for:at:in:gaps:)` for placements already worked out, so a caller that needs them
   /// anyway lays the workspace out once.
   public static func dropTarget(
     for windowID: WindowID, at point: CGPoint, among placements: [Placement]
@@ -170,19 +172,16 @@ public struct Workspace: Equatable, Sendable {
   /// Follows the user resizing `windowID` to `frame`: the layout moves the dividers whose edges
   /// were dragged. Returns whether the parameters changed.
   @discardableResult
-  public mutating func resize(_ windowID: WindowID, to frame: CGRect, in area: CGRect) -> Bool {
+  public mutating func resize(
+    _ windowID: WindowID, to frame: CGRect, in area: CGRect, gaps: LayoutGaps
+  ) -> Bool {
     guard let index = windows.firstIndex(of: windowID),
       let updated = layout.implementation.parameters(
-        afterResizing: index, to: frame, count: windows.count, in: area, parameters: parameters),
+        afterResizing: index, to: frame, input: layoutInput, in: area, gaps: gaps),
       updated != parameters
     else { return false }
     parameters = updated
     return true
-  }
-
-  /// Changes the gaps, keeping the layout and the ratio.
-  public mutating func setGaps(inner: CGFloat, outer: CGFloat) {
-    parameters = parameters.withGaps(inner: inner, outer: outer)
   }
 
   public mutating func cycleLayout() {
@@ -190,10 +189,13 @@ public struct Workspace: Equatable, Sendable {
   }
 
   /// One placement per window, in list order.
-  public func placements(in area: CGRect) -> [Placement] {
-    let frames = layout.implementation.frames(
-      count: windows.count, in: area, parameters: parameters)
+  public func placements(in area: CGRect, gaps: LayoutGaps) -> [Placement] {
+    let frames = layout.implementation.frames(for: layoutInput, in: area, gaps: gaps)
     return zip(windows, frames).map { Placement(id: $0, frame: $1) }
+  }
+
+  private var layoutInput: LayoutInput {
+    LayoutInput(count: windows.count, parameters: parameters)
   }
 
   private var focusedIndex: Int? {

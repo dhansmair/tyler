@@ -31,7 +31,7 @@ struct WorkspaceDropTargetTests {
   private static let dropArea = CGRect(x: 0, y: 0, width: 1000, height: 600)
 
   private func makeGappedWorkspace() -> Workspace {
-    var workspace = Workspace(parameters: LayoutParameters().withGaps(inner: 20, outer: 0))
+    var workspace = Workspace()
     for value: UInt32 in [1, 2, 3] { workspace.insert(WindowID(value)) }
     return workspace
   }
@@ -49,7 +49,8 @@ struct WorkspaceDropTargetTests {
   func theDropTargetIsTheSlotUnderThePoint(dragged: UInt32, point: CGPoint, target: UInt32?) {
     let workspace = makeGappedWorkspace()
     #expect(
-      workspace.dropTarget(for: WindowID(dragged), at: point, in: Self.dropArea)
+      workspace.dropTarget(
+        for: WindowID(dragged), at: point, in: Self.dropArea, gaps: LayoutGaps(inner: 20))
         == target.map(WindowID.init))
   }
 
@@ -57,12 +58,16 @@ struct WorkspaceDropTargetTests {
     var workspace = makeWorkspace(1, 2)
     workspace.layout = .full
     #expect(
-      workspace.dropTarget(for: WindowID(2), at: CGPoint(x: 100, y: 100), in: Self.dropArea) == nil)
+      workspace.dropTarget(
+        for: WindowID(2), at: CGPoint(x: 100, y: 100), in: Self.dropArea, gaps: LayoutGaps())
+        == nil)
   }
 
   @Test func aSingleWindowHasNoDropTarget() {
     let workspace = makeWorkspace(1)
     #expect(
-      workspace.dropTarget(for: WindowID(1), at: CGPoint(x: 100, y: 100), in: Self.dropArea) == nil)
+      workspace.dropTarget(
+        for: WindowID(1), at: CGPoint(x: 100, y: 100), in: Self.dropArea, gaps: LayoutGaps())
+        == nil)
   }
 }

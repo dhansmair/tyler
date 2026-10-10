@@ -18,7 +18,6 @@ extension WindowManager {
     }
     config = loaded ?? Config()
     applyWorkspaceCount()
-    applyGaps()
     if state == .running { applyGestures() }
     let summary =
       loaded == nil
@@ -36,10 +35,5 @@ extension WindowManager {
     guard workspaces.count != config.workspaces.count else { return }
     endDrag()
     workspaces.setCount(config.workspaces.count)
-  }
-
-  /// Gives every workspace the configured gaps; each keeps its own layout and ratio.
-  func applyGaps() {
-    workspaces.setGaps(inner: CGFloat(config.gaps.inner), outer: CGFloat(config.gaps.outer))
   }
 }

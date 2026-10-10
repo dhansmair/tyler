@@ -178,7 +178,7 @@ A niri-like layout: a workspace is one long horizontal strip of windows that scr
 Decisions (2026-10-11, with the user): the list stays the only model, and columns are packed from per-window sizes: `full` (1 × 1) and `half` (½ × 1) each make a column, two consecutive `quarter`s (½ × ½) share one. New windows are `half`. Focusing a window out of view scrolls just enough to show its whole column. Off-view windows park at the right edge like inactive workspaces' windows. On a strip workspace the swipe scrolls only the strip, never switches workspaces.
 
 - [x] Tests pinning what the `Layout` protocol rework touches: gaps reach workspaces not on screen, workspaces a reload adds, and handed-over workspaces; a reload keeps row heights
-- [ ] `Layout` protocol rework: `LayoutInput` (sizes, focus, view anchor, parameters) and `LayoutGaps` (REFACTORING 11.3)
+- [x] `Layout` protocol rework: `LayoutInput` (count and parameters; the strip adds sizes and the view) and `LayoutGaps` (REFACTORING 11.3). Gaps are no longer stored in each workspace
 - [ ] TylerCore: `WindowSize`, per-window sizes in `Workspace`, `StripLayout` (packing, fit, end clamp)
 - [ ] TylerCore: the view anchor, `offView(in:)`, off-view windows kept by `WorkspaceSync`, sizes and anchor in `SavedState`
 - [ ] TylerServer: `LayoutKind.strip`, off-view windows parked, focus scrolls (jumps), `tyler size`
@@ -198,7 +198,7 @@ Config file (float rules, gaps, workspace count), `reload`, LaunchAgent through 
 
 Decisions (2026-10-10): the file is `~/.config/tyler/tyler.toml` (`TYLER_CONFIG` overrides it) and is optional. TOML is parsed by a small built-in parser (`TOML.swift`, no dependency) that supports tables, bare/quoted/dotted keys, single-line strings, integers, floats, booleans and comments, and rejects arrays, inline tables, multi-line strings and dates with an error; extend it when float rules need arrays of tables. Unknown keys are errors. Gaps are `[gaps] inner/outer`, whole points ≥ 0, the same on every workspace (`[mouse] follow-interval` joined later, see Mouse resizing); reload keeps each workspace's layout and ratio. A broken file at startup prints the error and starts with the defaults; a broken file on `reload` returns an error (exit 1) and keeps the current settings; a missing file means the defaults. `reload` works with tiling off or before permission (it only stores the config) and re-tiles only the current workspace.
 
-- [x] TylerCore: `TOML`, `Config` (`gaps`), `ConfigError`, `ConfigSource` (file reader, injectable for tests), `Paths.configPath`, `LayoutParameters.withGaps`, `Workspace.setGaps`, `WorkspaceStack.setGaps`, `Request.reload`
+- [x] TylerCore: `TOML`, `Config` (`gaps`), `ConfigError`, `ConfigSource` (file reader, injectable for tests), `Paths.configPath`, `LayoutParameters.withGaps`, `Workspace.setGaps`, `WorkspaceStack.setGaps` (all replaced by `LayoutGaps` in the strip layout's rework), `Request.reload`
 - [x] TylerServer: `WindowManager` takes a `Config` and a `ConfigSource`; `reload` in `WindowManager+Config.swift`
 - [x] tylerd loads the config at startup; TylerClient: `reload`
 - [x] Checked against real windows (2026-10-10, by Claude): gaps at startup (`outer = 12`, `inner = 8` measured in `list`), `reload` after editing the file (`inner = 30` gives a 30-point gap and keeps stack heights), a broken file on reload (exit 1, the error names the key, nothing moves)

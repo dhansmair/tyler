@@ -103,14 +103,15 @@ struct TallResizeTests {
   func theLayoutPutsADraggedDividerWhereItWasDragged(offset: Int) throws {
     // With gaps and an odd area, so rounding has something to get wrong.
     let odd = CGRect(x: 55, y: 38, width: 1745, height: 1131)
-    let parameters = LayoutParameters(outerGap: 8, innerGap: 12)
-    let before = layout.frames(count: 3, in: odd, parameters: parameters)
+    let parameters = LayoutParameters()
+    let gaps = LayoutGaps(inner: 12, outer: 8)
+    let before = layout.frames(count: 3, in: odd, parameters: parameters, gaps: gaps)
     var dragged = before[1]
     dragged.size.height += CGFloat(offset)
     let updated = try #require(
       layout.parameters(
-        afterResizing: 1, to: dragged, count: 3, in: odd, parameters: parameters))
-    let after = layout.frames(count: 3, in: odd, parameters: updated)
+        afterResizing: 1, to: dragged, count: 3, in: odd, parameters: parameters, gaps: gaps))
+    let after = layout.frames(count: 3, in: odd, parameters: updated, gaps: gaps)
     #expect(abs(after[1].maxY - dragged.maxY) <= 1)
     #expect(after[2].minY - after[1].maxY == 12, "the gap stays")
   }
@@ -132,12 +133,12 @@ struct OtherLayoutResizeTests {
     let left = try #require(
       columns.resize(
         index: 1, to: CGRect(x: 250, y: 0, width: 350, height: 300), in: area,
-        parameters: LayoutParameters()))
+        parameters: LayoutParameters(), gaps: LayoutGaps()))
     #expect(left.columnWidths == [250, 350, 300])
     let right = try #require(
       columns.resize(
         index: 1, to: CGRect(x: 300, y: 0, width: 400, height: 300), in: area,
-        parameters: LayoutParameters()))
+        parameters: LayoutParameters(), gaps: LayoutGaps()))
     #expect(right.columnWidths == [300, 400, 200])
   }
 }

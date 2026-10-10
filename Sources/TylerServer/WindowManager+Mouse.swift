@@ -93,7 +93,7 @@ extension WindowManager {
       let slot = placements.first(where: { $0.id == drag.windowID })
     else { return }
     if frame.hasOtherSize(than: slot.frame) {
-      workspaces.current.resize(drag.windowID, to: frame, in: area)
+      workspaces.current.resize(drag.windowID, to: frame, in: area, gaps: gaps)
       return
     }
     guard !drag.isResize,
@@ -165,10 +165,10 @@ extension WindowManager {
   /// window that is now out of its slot.
   private func follow(_ windowID: WindowID, to frame: CGRect) {
     guard let area = primaryDisplay?.visibleFrame,
-      workspaces.current.resize(windowID, to: frame, in: area)
+      workspaces.current.resize(windowID, to: frame, in: area, gaps: gaps)
     else { return }
     place(
-      workspaces.current.placements(in: area).filter { placement in
+      workspaces.current.placements(in: area, gaps: gaps).filter { placement in
         placement.id != windowID && !isInPlace(placement)
       })
   }

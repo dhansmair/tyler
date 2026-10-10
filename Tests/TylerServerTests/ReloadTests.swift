@@ -24,18 +24,14 @@ struct ReloadTests {
 
   /// Where the tall layout puts windows 1 and 2 with these settings.
   private func expectedFrames(_ config: Config, mainRatio: Double = 0.5) -> [CGRect] {
-    let parameters = LayoutParameters(
-      mainRatio: mainRatio,
-      outerGap: CGFloat(config.gaps.outer),
-      innerGap: CGFloat(config.gaps.inner))
-    return TallLayout().frames(count: 2, in: area, parameters: parameters)
+    TallLayout().frames(
+      count: 2, in: area, parameters: LayoutParameters(mainRatio: mainRatio),
+      gaps: LayoutGaps(config.gaps))
   }
 
   /// Where the tall layout puts a workspace's only window with these settings.
   private func oneWindowFrame(_ config: Config) -> CGRect? {
-    let parameters = LayoutParameters(
-      outerGap: CGFloat(config.gaps.outer), innerGap: CGFloat(config.gaps.inner))
-    return TallLayout().frames(count: 1, in: area, parameters: parameters).first
+    TallLayout().frames(count: 1, in: area, gaps: LayoutGaps(config.gaps)).first
   }
 
   private func frames(_ backend: FakeBackend) -> [CGRect] {
@@ -81,8 +77,9 @@ struct ReloadTests {
     file.write(.config(gaps))
 
     _ = harness.manager.reload()
-    let parameters = LayoutParameters(rowWeights: [[], [700, 431]], outerGap: 12, innerGap: 8)
-    let expected = TallLayout().frames(count: 3, in: area, parameters: parameters)
+    let expected = TallLayout().frames(
+      count: 3, in: area, parameters: LayoutParameters(rowWeights: [[], [700, 431]]),
+      gaps: LayoutGaps(inner: 8, outer: 12))
     #expect([1, 2, 3].map { harness.frame(of: $0) } == expected)
   }
 

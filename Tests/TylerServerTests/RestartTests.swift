@@ -58,7 +58,7 @@ struct RestartTests {
     await settle()
     let expected = TallLayout().frames(
       count: 1, in: FakeDisplays.main.visibleFrame,
-      parameters: LayoutParameters(outerGap: 12, innerGap: 8))
+      gaps: LayoutGaps(inner: 8, outer: 12))
     #expect(successor.backend.frame(of: 3) == expected.first)
   }
 

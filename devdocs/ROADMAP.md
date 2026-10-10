@@ -167,6 +167,7 @@ Decisions (2026-10-10, with the user): a **live preview**: while the dragged win
 - [x] TylerServer: `PointerEvent.primaryButtonDragged`, preview and swap in `WindowManager+Mouse.swift`; a command mid-drag puts the preview back
 - [x] TylerPlatform: `PointerMonitor` reports drags (global `leftMouseDragged` monitor)
 - [ ] Checked against real windows: preview, swap on release, snap back in a gap, `full`, resizing still works
+- [x] Tried and dropped (2026-10-10, with the user): the dragged window taking the target slot's size during the preview (a size-only AX write, top-left corner kept). It worked, but the size jumped without animation and felt awkward. Animating it isn't practical: every step makes the app lay out the window again (the reason live following is throttled), and AX-based managers (AeroSpace, Amethyst) don't animate resizes either. The dragged window keeps its size until the release
 
 ### Later: grid layout
 A new layout: the same as `tall` for up to 3 windows; 4 puts one window in each corner; 5 splits the right half in three; 6 splits both halves in three (2 columns × 3 rows). Beyond that more columns appear (for example 3 × 3 at 9; the exact rule is still open). Mouse resizing and swap by drag work here too, through the shared column model.

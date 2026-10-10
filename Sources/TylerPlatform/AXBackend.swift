@@ -19,6 +19,9 @@ public final class AXBackend: WindowBackend {
   private var retries: [pid_t: Task<Void, Never>] = [:]
   private var elements: [WindowID: AXUIElement] = [:]
   private var owners: [WindowID: pid_t] = [:]
+  /// What each window looked like when it was last read in full, so a move can be reported after
+  /// reading back only the frame.
+  private var lastRead: [WindowID: WindowInfo] = [:]
   private var focusedID: WindowID?
   private var workspaceTokens: [any NSObjectProtocol] = []
   private var isStarted = false
@@ -51,6 +54,7 @@ public final class AXBackend: WindowBackend {
     observers = [:]
     elements = [:]
     owners = [:]
+    lastRead = [:]
     focusedID = nil
   }
 
@@ -61,10 +65,14 @@ public final class AXBackend: WindowBackend {
   public func setFrame(_ frame: CGRect, of windowID: WindowID) throws(BackendError) {
     guard let element = elements[windowID] else { throw .windowGone(windowID) }
     try check(AXBridge.setFrame(frame, of: element), for: windowID, action: "move")
-    // The app may have clamped the size; tell the manager what it really is.
-    if let info = windowInfo(for: windowID) {
-      continuation.yield(.updated(info))
-    }
+    // The app may have clamped the size; tell the manager what it really is. Only the frame is
+    // read back: nothing else changes with a move, and each read is a round trip to the app.
+    // The app's own moved and resized notifications follow with a full read.
+    guard var info = lastRead[windowID], let actual = AXBridge.frame(of: element) else { return }
+    info.frame = actual
+    info.isFocused = windowID == focusedID
+    lastRead[windowID] = info
+    continuation.yield(.updated(info))
   }
 
   public func setPosition(_ origin: CGPoint, of windowID: WindowID) throws(BackendError) {
@@ -220,6 +228,7 @@ public final class AXBackend: WindowBackend {
   private func forget(_ windowID: WindowID) {
     guard elements.removeValue(forKey: windowID) != nil else { return }
     owners[windowID] = nil
+    lastRead[windowID] = nil
     if focusedID == windowID { focusedID = nil }
     continuation.yield(.destroyed(windowID))
   }
@@ -259,7 +268,7 @@ public final class AXBackend: WindowBackend {
       let frame = AXBridge.frame(of: element)
     else { return nil }
     let app = NSRunningApplication(processIdentifier: processID)
-    return WindowInfo(
+    let info = WindowInfo(
       id: windowID,
       processID: processID,
       appName: app?.localizedName ?? "pid \(processID)",
@@ -274,5 +283,7 @@ public final class AXBackend: WindowBackend {
       isFullscreen: AXBridge.bool("AXFullScreen", of: element) ?? false,
       isFocused: windowID == focusedID
     )
+    lastRead[windowID] = info
+    return info
   }
 }

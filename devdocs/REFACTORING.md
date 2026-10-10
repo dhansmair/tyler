@@ -14,11 +14,11 @@ Sizes: XS < 20 lines, S < 60, M < 200, L larger.
 
 ## Tier 1: do soon
 
-- [ ] **1. [perf] [live] Stop the event echo storm.** `AXBackend.setFrame` reads the window back (about 7 AX reads plus an `NSRunningApplication` lookup) and yields `.updated`. The app's own moved/resized notification then produces a second `.updated`. Every `.updated` goes through `WindowManager.apply` → `reconcile` → `syncWorkspaces`, a full sync of every workspace, even though a plain move changes nothing in the lists.
+- [x] **1. [perf] [live] Stop the event echo storm.** `AXBackend.setFrame` reads the window back (about 7 AX reads plus an `NSRunningApplication` lookup) and yields `.updated`. The app's own moved/resized notification then produces a second `.updated`. Every `.updated` goes through `WindowManager.apply` → `reconcile` → `syncWorkspaces`, a full sync of every workspace, even though a plain move changes nothing in the lists.
   - Cost: a retile of 8 windows means about 16 syncs and over 100 AX calls. A slide of 6 windows × 30 steps means about 180 syncs and 1,200 reads on the main actor that also runs the animation. This is the likely cause of jumpy slides and swipes with slow apps.
   - Fixes:
     - [x] Give `.updated` a fast path that skips `reconcile` unless something tiling-relevant changed (tileable, minimized, fullscreen, *display*: a window moved to another display must still leave the workspace). Done in `WindowManager.apply`/`mayChangeLists`. One behaviour change: a window left out while no display was connected used to be picked up by its next move; now it waits for the next event of another kind (focus, create, a command).
-    - [ ] Drop the read-back in `setFrame`, or read only the frame (it exists to report clamped sizes). Needs `live-check`: it depends on every app sending its own moved/resized notification for a move made through AX.
+    - [x] Drop the read-back in `setFrame`, or read only the frame (it exists to report clamped sizes). Done the middle way: `setFrame` reads back only the frame (2 AX reads instead of 7) and reuses the rest of the window's last full read. Checked on real windows (macOS 26.7, 2026-10-11): after `retile`, a workspace round trip and `layout full`/`tall`, `tyler list` matched `live-check stacking`, including Ghostty windows that snap to character cells.
     - [x] Skip the sync for windows that are sliding or panning: covered by the fast path, since a slide step doesn't change tileability and changes display at most once.
   - Before: add tests for the fast path, including the display-change case. M, medium risk. `WindowManager.swift`, `WindowManager+Sync.swift`, `TylerPlatform/AXBackend.swift`.
 - [x] **2. Put slide, pan and drag into one interaction state.** `WindowManager` has 27 stored properties. Six of them (`animation`, `animationCount`, `pan`, `panThrottle`, `drag`, `dragThrottle`) describe things that never happen at the same time, and guards like `animation == nil, pan == nil` repeat throughout `+Mouse`, `+Pan` and `+Workspaces`.
@@ -133,3 +133,4 @@ So nobody tries them again without a profile that says otherwise:
 - 2026-10-11: item 2 step 2 done (`Interaction`), after tests for how slide, pan and drag exclude each other.
 - 2026-10-11: item 3 done (`CommandSpec` table, manual check, request switches without `default:`; one switch over every case exceeds SwiftLint's complexity limit, so the split stays).
 - 2026-10-11: item 1, server half done (updates that can't change the lists skip the sync); the AX read-back is left for a live check.
+- 2026-10-11: item 1 done: `setFrame` reads back only the frame; checked with live-check.

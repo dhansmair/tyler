@@ -1,0 +1,11 @@
+#!/bin/bash
+# Runs the live-check tool, compiling devtools/LiveCheck into .build when a source changed.
+# See .claude/skills/live-check/SKILL.md.
+set -euo pipefail
+here="$(cd "$(dirname "$0")" && pwd)"
+bin="$here/../.build/live-check"
+if [[ ! -x "$bin" ]] || [[ -n "$(find "$here/LiveCheck" -name '*.swift' -newer "$bin")" ]]; then
+  mkdir -p "$(dirname "$bin")"
+  swiftc -O -swift-version 6 -o "$bin" "$here"/LiveCheck/*.swift
+fi
+exec "$bin" "$@"

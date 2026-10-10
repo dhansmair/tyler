@@ -40,7 +40,7 @@ public enum UnixSocket {
       }
       if count == 0 { return buffer.isEmpty ? nil : buffer }
       buffer.append(contentsOf: chunk[0..<count])
-      if let newline = buffer.firstIndex(of: 0x0A) {
+      if let newline = buffer.firstIndex(of: Wire.terminator) {
         return Data(buffer[buffer.startIndex..<newline])
       }
       if buffer.count > maxBytes { return nil }

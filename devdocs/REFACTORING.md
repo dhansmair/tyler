@@ -93,7 +93,7 @@ Sizes: XS < 20 lines, S < 60, M < 200, L larger.
 - [ ] **18. LiveCheck reuses the AX code.** `devtools/LiveCheck/main.swift` re-implements `AXBridge` reads, `DisplayGeometry.axRect`, and decoding `tyler list --json` with `JSONSerialization` rather than `WindowInfo`. Its tyler path is hard-coded to `debug`.
   - Fix: make it an SPM target that shares a `package`-visible AX module.
   - M, medium risk (changes how live-check builds).
-- [ ] **19. Small duplicates.** XS each.
+- [x] **19. Small duplicates.** XS each.
   - `Workspace`/`WorkspaceStack`: wrap-around index math (3×) and insert-after-focus (2×).
   - `Animation.swift`: clamping to 0…1 (4×).
   - `Paths`: the `.sock` stripping (`dropLast(5)`) and the env override.
@@ -147,3 +147,4 @@ So nobody tries them again without a profile that says otherwise:
 - 2026-10-11: item 8 done (batched AX reads, position-only moves); checked with live-check. Tier 2 finished.
 - 2026-10-11: item 17 done (`WindowRegistry.count` and `_ = task` gone; `Parking.visibleSliver`, the `Config` ranges and `PanRecognizer`'s tuning properties internal). `SlidePlan.direction` went with item 9. `Track.init`, `outgoingOffset`, `withGaps`, `setMainRatio` and `Snap.resisted` stay public: the two Core test files without `@testable` and future layouts use them.
 - 2026-10-11: item 19, Core part done (`clamped(to:)`, `stepped(by:wrappingAt:)`, `insertionIndex`, `Paths` and `UnixSocket` helpers).
+- 2026-10-11: item 19 done (`DaemonController.runningStatus()`, `SavedWorkspace` conversion, `Wire.terminator`, `FakeBackend.movableIndex`). The 1-point tolerance in `Layouts.swift` stays: it is the layout's own rounding rule, not the window-in-place check.

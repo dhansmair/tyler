@@ -63,10 +63,7 @@ final class FakeBackend: WindowBackend {
   func snapshot() -> [WindowInfo] { windows }
 
   func setFrame(_ frame: CGRect, of windowID: WindowID) throws(BackendError) {
-    if failingMoves.contains(windowID) { throw .refused("fake refusal") }
-    guard let index = windows.firstIndex(where: { $0.id == windowID }) else {
-      throw .windowGone(windowID)
-    }
+    let index = try movableIndex(of: windowID)
     moves.append(Placement(id: windowID, frame: frame))
     windows[index].frame = frame
     continuation.yield(.updated(windows[index]))
@@ -74,12 +71,18 @@ final class FakeBackend: WindowBackend {
 
   /// Moves the window but, like the real backend, reports nothing back.
   func setPosition(_ origin: CGPoint, of windowID: WindowID) throws(BackendError) {
+    let index = try movableIndex(of: windowID)
+    nudges.append((windowID, origin))
+    windows[index].frame.origin = origin
+  }
+
+  /// Where `windowID` is in `windows`, unless moving it fails: it is in `failingMoves` or gone.
+  private func movableIndex(of windowID: WindowID) throws(BackendError) -> Int {
     if failingMoves.contains(windowID) { throw .refused("fake refusal") }
     guard let index = windows.firstIndex(where: { $0.id == windowID }) else {
       throw .windowGone(windowID)
     }
-    nudges.append((windowID, origin))
-    windows[index].frame.origin = origin
+    return index
   }
 
   func focus(_ windowID: WindowID) throws(BackendError) {

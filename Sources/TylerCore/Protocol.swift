@@ -37,11 +37,14 @@ public enum Response: Codable, Equatable, Sendable {
 
 /// Wire format: one JSON document per line, terminated by `\n`.
 public enum Wire {
+  /// The byte that ends every message: `\n`.
+  public static let terminator: UInt8 = 0x0A
+
   public static func encode<T: Encodable>(_ value: T) throws -> Data {
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.sortedKeys]
     var data = try encoder.encode(value)
-    data.append(0x0A)
+    data.append(terminator)
     return data
   }
 

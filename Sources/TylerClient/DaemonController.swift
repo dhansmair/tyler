@@ -161,13 +161,7 @@ public struct DaemonController {
   }
 
   private func statusReport() throws(DaemonError) -> String {
-    let status: ServerStatus
-    switch probe() {
-    case .running(let running): status = running
-    case .notRunning: throw .notRunning
-    case .outdated: throw .outdatedServer
-    case .unresponsive: throw .unresponsive
-    }
+    guard let status = try runningStatus() else { throw .notRunning }
     let uptime = Self.describe(uptime: system.now.timeIntervalSince(status.startedAt))
     let lines = [
       "tylerd is running (pid \(status.pid), up \(uptime))",
@@ -191,13 +185,19 @@ public struct DaemonController {
     }
   }
 
-  private func start() throws(DaemonError) -> StartOutcome {
+  /// The running server's status, `nil` when none is running; a server that answers wrongly or
+  /// not at all is an error.
+  private func runningStatus() throws(DaemonError) -> ServerStatus? {
     switch probe() {
-    case .running(let status): return .alreadyRunning(status)
+    case .running(let status): return status
+    case .notRunning: return nil
     case .outdated: throw .outdatedServer
     case .unresponsive: throw .unresponsive
-    case .notRunning: break
     }
+  }
+
+  private func start() throws(DaemonError) -> StartOutcome {
+    if let status = try runningStatus() { return .alreadyRunning(status) }
     guard system.isExecutable(atPath: serverPath) else { throw .missingServer(serverPath) }
     let pid = try system.spawn(serverPath, logPath: logPath)
     var waited = Duration.zero
@@ -220,13 +220,7 @@ public struct DaemonController {
   /// waits for the process to end. With `keepingWindows`, a tylerd that supports it is asked to
   /// hand over instead (SIGUSR1), leaving its windows where they are.
   private func stop(keepingWindows: Bool = false) throws(DaemonError) -> StopOutcome {
-    let status: ServerStatus
-    switch probe() {
-    case .running(let running): status = running
-    case .notRunning: return .notRunning
-    case .outdated: throw .outdatedServer
-    case .unresponsive: throw .unresponsive
-    }
+    guard let status = try runningStatus() else { return .notRunning }
     let pid = status.pid
     let handsOver = keepingWindows && status.keepsWindowsOnRestart == true
     let signalled = handsOver ? system.requestHandOver(pid) : system.terminate(pid)

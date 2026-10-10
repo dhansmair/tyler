@@ -55,11 +55,7 @@ public struct SavedState: Codable, Equatable, Sendable {
     originalFrames: [WindowID: CGRect], seen: Set<WindowID> = []
   ) {
     version = Self.currentVersion
-    workspaces = stack.workspaces.map { workspace in
-      SavedWorkspace(
-        windows: workspace.windows, focused: workspace.focused, layout: workspace.layout,
-        mainRatio: workspace.parameters.mainRatio, rowWeights: workspace.parameters.rowWeights)
-    }
+    workspaces = stack.workspaces.map(SavedWorkspace.init)
     currentIndex = stack.currentIndex
     self.floated = floated.sorted()
     self.tilingEnabled = tilingEnabled
@@ -82,14 +78,7 @@ public struct SavedState: Codable, Equatable, Sendable {
   public func stack(count: Int, keeping exists: (WindowID) -> Bool) -> WorkspaceStack {
     var stack = WorkspaceStack(count: max(count, workspaces.count))
     for (index, saved) in workspaces.enumerated() where index < stack.count {
-      let parameters = LayoutParameters(
-        mainRatio: saved.mainRatio, rowWeights: saved.rowWeights ?? [])
-      var workspace = Workspace(layout: saved.layout, parameters: parameters)
-      for windowID in saved.windows where exists(windowID) {
-        workspace.insert(windowID)
-      }
-      if let focused = saved.focused { workspace.setFocus(focused) }
-      stack[index] = workspace
+      stack[index] = saved.workspace(keeping: exists)
     }
     stack.select(currentIndex < stack.count ? currentIndex : 0)
     stack.setCount(count)
@@ -142,5 +131,24 @@ public enum SavedStateError: Error, Equatable, Sendable, CustomStringConvertible
       "\(path) has format version \(version), but this tylerd reads version "
         + "\(SavedState.currentVersion)"
     }
+  }
+}
+
+extension SavedState.SavedWorkspace {
+  init(_ workspace: Workspace) {
+    self.init(
+      windows: workspace.windows, focused: workspace.focused, layout: workspace.layout,
+      mainRatio: workspace.parameters.mainRatio, rowWeights: workspace.parameters.rowWeights)
+  }
+
+  /// The workspace as saved, with only the windows that still exist (`exists`).
+  func workspace(keeping exists: (WindowID) -> Bool) -> Workspace {
+    let parameters = LayoutParameters(mainRatio: mainRatio, rowWeights: rowWeights ?? [])
+    var workspace = Workspace(layout: layout, parameters: parameters)
+    for windowID in windows where exists(windowID) {
+      workspace.insert(windowID)
+    }
+    if let focused { workspace.setFocus(focused) }
+    return workspace
   }
 }

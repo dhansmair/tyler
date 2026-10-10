@@ -51,6 +51,39 @@ struct RestoreTests {
     #expect(harness.backend.stopCount == 1)
   }
 
+  @Test func aReusedWindowIDGoesBackToWhereTheNewWindowOpened() async {
+    let harness = ManagerHarness([1, 2])
+    harness.backend.windows.removeAll { $0.id == WindowID(2) }
+    harness.backend.send(.destroyed(WindowID(2)))
+    await harness.settle()
+    // Window ids can be reused; the old window's frame must not come back with the id.
+    let opened = CGRect(x: 700, y: 300, width: 500, height: 400)
+    harness.backend.windows.append(makeWindow(id: 2, frame: opened))
+    harness.backend.send(.created(makeWindow(id: 2, frame: opened)))
+    await harness.settle()
+    #expect(harness.frame(of: 2) != opened)
+    harness.manager.stop()
+    #expect(harness.frame(of: 2) == opened)
+  }
+
+  @Test func aStateHandedOverLeavesOutWindowsThatClosedInBetween() async {
+    let harness = ManagerHarness([1, 2])
+    let saved = harness.manager.handOver()
+    // Window 2 closed, and a new window took its id before the next tylerd started.
+    let opened = CGRect(x: 700, y: 300, width: 500, height: 400)
+    let backend = FakeBackend(windows: [harness.backend.windows[0]])
+    let successor = WindowManager(
+      backend: backend, displays: FakeDisplays(), gate: FakeGate(isTrusted: true),
+      restoring: saved)
+    successor.startIfPermitted()
+    backend.windows.append(makeWindow(id: 2, frame: opened))
+    backend.send(.created(makeWindow(id: 2, frame: opened)))
+    await settle()
+    successor.stop()
+    #expect(backend.frame(of: 2) == opened)
+    #expect(backend.frame(of: 1) == ManagerHarness.originalFrame(index: 0))
+  }
+
   @Test func windowsTylerdNeverMovedAreLeftAlone() {
     let harness = ManagerHarness([1], extra: [makeWindow(id: 7, kind: .dialog)])
     harness.manager.stop()

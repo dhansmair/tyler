@@ -6,9 +6,10 @@ import TylerCore
 /// the main actor, so no locking is needed; requests arriving on socket threads hop here through
 /// `CommandRouter`. Workspace switching and restoring windows live in `WindowManager+Workspaces`.
 ///
-/// Tiling reacts only to commands and to windows appearing, disappearing, or changing whether
-/// they are tileable (minimize, fullscreen). A window merely being moved or resized never
-/// triggers a re-tile: that would fight the user's drags and feed on tylerd's own moves.
+/// Tiling reacts only to commands, to windows appearing, disappearing, or changing whether
+/// they are tileable (minimize, fullscreen), and to the user resizing a tiled window with the
+/// mouse (`WindowManager+Mouse`). Other moves and resizes never trigger a re-tile: that would
+/// fight the user's drags and feed on tylerd's own moves.
 @MainActor
 public final class WindowManager {
   public enum State: Equatable, Sendable {
@@ -55,6 +56,11 @@ public final class WindowManager {
   /// Where `reload` reads the config from; `nil` when there is nothing to reload.
   let configSource: ConfigSource?
   var pump: Task<Void, Never>?
+  /// The mouse, or `nil` when tylerd doesn't follow it.
+  let pointer: (any PointerInput)?
+  var pointerPump: Task<Void, Never>?
+  /// The window being dragged with the mouse, if any.
+  var drag: MouseDrag?
   let indicator: (any Indicator)?
   /// What the indicator shows now, so it is only redrawn when that changes.
   var shownIndicatorState: IndicatorState?
@@ -70,6 +76,7 @@ public final class WindowManager {
     config: Config = Config(),
     configSource: ConfigSource? = nil,
     indicator: (any Indicator)? = nil,
+    pointer: (any PointerInput)? = nil,
     restoring saved: SavedState? = nil
   ) {
     self.backend = backend
@@ -80,6 +87,7 @@ public final class WindowManager {
     self.config = config
     self.configSource = configSource
     self.indicator = indicator
+    self.pointer = pointer
     pendingRestore = saved
     workspaces = WorkspaceStack(count: workspaceCount)
     applyGaps()
@@ -103,6 +111,7 @@ public final class WindowManager {
       }
     }
     backend.start()
+    startPointer()
     registry.replaceAll(backend.snapshot())
     restorePending()
     state = .running
@@ -180,6 +189,7 @@ public final class WindowManager {
   /// whatever is eligible now onto the current workspace, keeping the order it had.
   public func setTiling(_ mode: TilingMode) -> Response {
     finishAnimation()
+    drag = nil
     let wasEnabled = tilingEnabled
     switch mode {
     case .on: tilingEnabled = true
@@ -262,6 +272,7 @@ public final class WindowManager {
     case .focused(let windowID?):
       focusChanged(to: windowID)
     case .destroyed(let windowID):
+      if drag?.windowID == windowID { drag = nil }
       floated.remove(windowID)
       originalFrames[windowID] = nil
       pendingFocus.remove(windowID)
@@ -269,6 +280,7 @@ public final class WindowManager {
       break
     }
     reconcile()
+    if case .updated(let window) = event { followDrag(of: window) }
   }
 }
 
@@ -276,9 +288,10 @@ extension WindowManager {
   // MARK: - Tiling
 
   /// Every command that changes windows starts here: it ends any slide in progress (jumping to
-  /// its final state), then checks that tiling can run.
+  /// its final state) and forgets any mouse drag, then checks that tiling can run.
   func beginCommand() -> Response? {
     finishAnimation()
+    drag = nil
     guard state == .running else { return .error(Self.permissionMessage) }
     guard tilingEnabled else { return .error(Self.tilingOffMessage) }
     return nil

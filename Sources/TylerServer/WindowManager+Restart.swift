@@ -25,6 +25,10 @@ extension WindowManager {
   func tearDown() {
     pump?.cancel()
     pump = nil
+    pointerPump?.cancel()
+    pointerPump = nil
+    pointer?.stop()
+    drag = nil
     backend.stop()
     registry = WindowRegistry()
     workspaces = WorkspaceStack(count: workspaceCount)

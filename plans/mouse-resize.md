@@ -85,7 +85,7 @@ What this changes in the design now (only cheap seams, nothing built for 2–4 y
 ### TylerServer
 - New `PointerInput` protocol (`WindowBackend.swift` or its own file), `@MainActor`:
   `var events: AsyncStream<PointerEvent>`, `var isPrimaryButtonDown: Bool`, `start()`, `stop()`.
-  `PointerEvent` has one case for now: `primaryButtonReleased(at: CGPoint)` (AX coordinates).
+  `PointerEvent` has one case for now: `primaryButtonReleased(location: CGPoint)` (AX coordinates).
   `WindowManager.init` takes an optional `pointer: (any PointerInput)?` (nil = no mouse
   support, so existing tests and callers are unaffected); a second pump task, like `pump`.
 - New `WindowManager+Mouse.swift` holding a `MouseDrag` state (`var drag: MouseDrag?`: the
@@ -109,7 +109,7 @@ What this changes in the design now (only cheap seams, nothing built for 2–4 y
 ### TylerPlatform (thin, not unit tested)
 - New `PointerMonitor: PointerInput`: `isPrimaryButtonDown` = `NSEvent.pressedMouseButtons & 1
   != 0`; `start()` adds `NSEvent.addGlobalMonitorForEvents(matching: .leftMouseUp)` yielding
-  `.primaryButtonReleased(at:)` with `NSEvent.mouseLocation` converted to AX coordinates (flip
+  `.primaryButtonReleased(location:)` with `NSEvent.mouseLocation` converted to AX coordinates (flip
   against the primary screen height, as `SystemProviders` does for displays); `stop()` removes
   it. Main thread; no GCD. `tylerd/main.swift` creates it and passes it in.
 

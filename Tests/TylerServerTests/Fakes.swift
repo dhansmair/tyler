@@ -93,6 +93,29 @@ final class FakeBackend: WindowBackend {
   }
 }
 
+/// A scriptable `PointerInput`: tests hold the button down and release it.
+@MainActor
+final class FakePointer: PointerInput {
+  let events: AsyncStream<PointerEvent>
+  private let continuation: AsyncStream<PointerEvent>.Continuation
+  var isPrimaryButtonDown = false
+  private(set) var startCount = 0
+  private(set) var stopCount = 0
+
+  init() {
+    (events, continuation) = AsyncStream.makeStream(of: PointerEvent.self)
+  }
+
+  func start() { startCount += 1 }
+  func stop() { stopCount += 1 }
+
+  /// Lets go of the button, as the user would at the end of a drag.
+  func release(at location: CGPoint = .zero) {
+    isPrimaryButtonDown = false
+    continuation.yield(.primaryButtonReleased(location: location))
+  }
+}
+
 @MainActor
 final class FakeDisplays: DisplayProvider {
   var displays: [DisplayInfo]

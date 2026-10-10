@@ -1,5 +1,5 @@
 PREFIX ?= $(HOME)/.local/bin
-# Optional code-signing identity, e.g. `make install SIGN_ID=mwm-dev`.
+# Optional code-signing identity, e.g. `make install SIGN_ID=tyler-dev`.
 SIGN_ID ?=
 
 # The Command Line Tools ship Swift Testing, but SwiftPM doesn't search for it there.
@@ -24,9 +24,9 @@ release:
 
 install: release
 	mkdir -p $(PREFIX)
-	cp .build/release/mwm .build/release/mwmd $(PREFIX)/
+	cp .build/release/tyler .build/release/tylerd $(PREFIX)/
 ifneq ($(SIGN_ID),)
-	codesign --force --sign "$(SIGN_ID)" $(PREFIX)/mwm $(PREFIX)/mwmd
+	codesign --force --sign "$(SIGN_ID)" $(PREFIX)/tyler $(PREFIX)/tylerd
 endif
 	@echo "installed to $(PREFIX)"
 

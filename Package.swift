@@ -2,22 +2,23 @@
 import PackageDescription
 
 let package = Package(
-  name: "mwm",
+  name: "tyler",
   platforms: [.macOS(.v14)],
   products: [
-    .executable(name: "mwm", targets: ["mwm"]),
-    .executable(name: "mwmd", targets: ["mwmd"]),
+    .executable(name: "tyler", targets: ["tyler"]),
+    .executable(name: "tylerd", targets: ["tylerd"]),
   ],
   targets: [
-    .target(name: "MWMCore"),
-    .target(name: "MWMServer", dependencies: ["MWMCore"]),
-    .target(name: "MWMPlatform", dependencies: ["MWMCore", "MWMServer"]),
-    .target(name: "MWMClient", dependencies: ["MWMCore"]),
-    .executableTarget(name: "mwmd", dependencies: ["MWMCore", "MWMServer", "MWMPlatform"]),
-    .executableTarget(name: "mwm", dependencies: ["MWMCore", "MWMClient"]),
+    .target(name: "TylerCore"),
+    .target(name: "TylerServer", dependencies: ["TylerCore"]),
+    .target(name: "TylerPlatform", dependencies: ["TylerCore", "TylerServer"]),
+    .target(name: "TylerClient", dependencies: ["TylerCore"]),
+    .executableTarget(name: "tylerd", dependencies: ["TylerCore", "TylerServer", "TylerPlatform"]),
+    .executableTarget(name: "tyler", dependencies: ["TylerCore", "TylerClient"]),
 
-    .testTarget(name: "MWMCoreTests", dependencies: ["MWMCore"]),
-    .testTarget(name: "MWMServerTests", dependencies: ["MWMCore", "MWMServer", "MWMClient"]),
-    .testTarget(name: "MWMClientTests", dependencies: ["MWMCore", "MWMClient"]),
+    .testTarget(name: "TylerCoreTests", dependencies: ["TylerCore"]),
+    .testTarget(
+      name: "TylerServerTests", dependencies: ["TylerCore", "TylerServer", "TylerClient"]),
+    .testTarget(name: "TylerClientTests", dependencies: ["TylerCore", "TylerClient"]),
   ]
 )

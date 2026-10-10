@@ -43,8 +43,8 @@ Yes, I'm here. So far I've only checked the toolchain: Swift 6.3 with Command Li
 Here's what I plan to build, so you can correct it before I start:
 
 Two binaries from one Swift package
-- mwmd, the background server. It tracks windows through the Accessibility API, applies layouts, owns the virtual monitors, and listens on a Unix socket at ~/.mwm/mwm.sock.
-- mwm, the command-line client. It sends one command per call, like mwm focus next, mwm swap prev, mwm layout tall, mwm monitor 2, mwm move-to-monitor down or mwm float toggle, and prints the reply. You bind keys to it with skhd or similar, and you can script it.
+- tylerd, the background server. It tracks windows through the Accessibility API, applies layouts, owns the virtual monitors, and listens on a Unix socket at ~/.tyler/tyler.sock.
+- tyler, the command-line client. It sends one command per call, like tyler focus next, tyler swap prev, tyler layout tall, tyler monitor 2, tyler move-to-monitor down or tyler float toggle, and prints the reply. You bind keys to it with skhd or similar, and you can script it.
 
 Layout (xmonad-style)
 - Each virtual monitor holds an ordered list of windows. That gives you a clear "next" and "prev" for focus and swapping, plus a "master" (the first window).
@@ -58,7 +58,7 @@ Virtual monitors stacked vertically
 - Scrolling between them animates every window vertically, then settles on the nearest monitor (the snapping).
 
 One question: what should trigger the scroll?
-- (a) Only the CLI (mwm monitor down), animated with a slide and snap.
+- (a) Only the CLI (tyler monitor down), animated with a slide and snap.
 - (b) A trackpad or mouse-wheel scroll while you hold a modifier key, where the windows follow your fingers and snap into place when you let go.
 
 Option (b) needs an event tap, and moving lots of windows live through the Accessibility API can get choppy. I'd build (a) first and add (b) on top once it works.
@@ -71,6 +71,6 @@ Should I go ahead on that basis?
 
 I can't tell what took 12 minutes. From my side, all I did was run one quick command to check the Swift version, the Xcode tools path, the macOS version and the empty project folder. Its result came back, and then your interrupt arrived. Nothing visible to me ran in between. The delay was probably on the service side (slow generation or a stalled request), not work I was doing. Nothing was written or changed.
 
-We're where my last message left off. The plan is a mwmd background server plus an mwm command-line tool talking over a Unix socket, xmonad-style window lists with tall and full layouts, and virtual monitors stacked vertically.
+We're where my last message left off. The plan is a tylerd background server plus a tyler command-line tool talking over a Unix socket, xmonad-style window lists with tall and full layouts, and virtual monitors stacked vertically.
 
-The one open question is how scrolling between monitors should work. I'd start with CLI-driven scrolling (mwm monitor down) with a slide-and-snap animation, and add trackpad scrolling with a modifier key later. If that's fine, I'll start building.
+The one open question is how scrolling between monitors should work. I'd start with CLI-driven scrolling (tyler monitor down) with a slide-and-snap animation, and add trackpad scrolling with a modifier key later. If that's fine, I'll start building.

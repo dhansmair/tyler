@@ -158,8 +158,15 @@ Decisions (2026-10-10, with the user): neighbours follow **live** during the dra
 - [x] `restart` keeps the stack heights (2026-10-10: 708/390 before and after)
 - [x] Checked against real windows (2026-10-10, by the user): resizing is smooth and the layout follows; live following keeps up with the 30 ms interval
 
-### Later: swap by drag and drop
-Drag a tiled window by its title bar onto another tiled window and the two swap slots (replaces the snap-back). Works in every layout with slots, `grid` included.
+### Swap by drag and drop (planned 2026-10-10)
+Drag a tiled window by its title bar onto another tiled window and the two swap slots (replaces the snap-back). Works in every layout with slots, `grid` included. Plan: `plans/swap-by-drag.md`.
+
+Decisions (2026-10-10, with the user): a **live preview**: while the dragged window is over another tiled window's slot, that window moves into the dragged window's slot, and moves back when the pointer leaves; the release completes the swap. **The pointer decides** the target (the slot under it); a pointer in a gap, in the dragged window's own slot or outside the tiled area snaps back as before, so `full` never swaps. **Floated windows** take no part. The pointer's position during the drag comes from a new `PointerEvent.primaryButtonDragged` (a global `leftMouseDragged` monitor), not from the dragged window's moved notifications, so the preview doesn't depend on how often an app reports moves.
+
+- [ ] TylerCore: `Workspace.swap(_:with:)`, `Workspace.dropTarget(for:at:in:)`
+- [ ] TylerServer: `PointerEvent.primaryButtonDragged`, preview and swap in `WindowManager+Mouse.swift`; a command mid-drag puts the preview back
+- [ ] TylerPlatform: `PointerMonitor` reports drags
+- [ ] Checked against real windows: preview, swap on release, snap back in a gap, `full`, resizing still works
 
 ### Later: grid layout
 A new layout: the same as `tall` for up to 3 windows; 4 puts one window in each corner; 5 splits the right half in three; 6 splits both halves in three (2 columns × 3 rows). Beyond that more columns appear (for example 3 × 3 at 9; the exact rule is still open). Mouse resizing and swap by drag work here too, through the shared column model.

@@ -60,6 +60,10 @@ public struct ProcessDaemonSystem: DaemonSystem {
     kill(pid, SIGTERM) == 0
   }
 
+  public func requestHandOver(_ pid: Int32) -> Bool {
+    kill(pid, SIGUSR1) == 0
+  }
+
   /// Reaps the child if it has exited; a zombie would otherwise still count as running.
   public func childHasExited(_ pid: Int32) -> Bool {
     var status: Int32 = 0

@@ -18,6 +18,7 @@ func die(_ message: String) -> Never {
 }
 
 let socketPath = Paths.socketPath()
+let statePath = Paths.statePath(socketPath: socketPath)
 let configSource = ConfigSource.file(at: Paths.configPath())
 // A broken config doesn't stop tylerd: it starts with the defaults, and `tyler reload` picks
 // up the file once it is fixed.
@@ -39,6 +40,16 @@ do {
 let application = NSApplication.shared
 application.setActivationPolicy(.accessory)
 
+// A tylerd that restarted left its workspaces here, with the windows where it left them; carry on
+// from them instead of tiling everything onto the first workspace.
+var handedOver: SavedState?
+do {
+  handedOver = try SavedState.read(from: statePath)
+  if handedOver != nil { announce("tylerd: carrying on from \(statePath)") }
+} catch {
+  warn("\(error) (starting afresh)")
+}
+
 let gate = SystemAccessibilityGate()
 // The menu bar item's menu sends requests to the manager, which only exists once the item
 // does; `indicatorTarget` closes that loop.
@@ -53,7 +64,8 @@ let manager = WindowManager(
   gate: gate,
   config: config,
   configSource: configSource,
-  indicator: indicator
+  indicator: indicator,
+  restoring: handedOver
 )
 indicatorTarget = manager
 // The binary's modification time at launch lets `tyler status` notice a rebuild since.
@@ -71,7 +83,8 @@ let status = ServerStatus(
   executablePath: executablePath,
   executableModified: executableModified,
   startedAt: Date(),
-  configPath: configSource.path
+  configPath: configSource.path,
+  keepsWindowsOnRestart: true
 )
 let router = CommandRouter(manager: manager, status: status)
 let server = IPCServer(path: socketPath) { [router] request in await router.handle(request) }
@@ -87,9 +100,21 @@ announce("tylerd: listening on \(socketPath)")
 
 // Without permission the server still answers; `list` explains what to do. Poll until it is
 // granted so the user doesn't have to restart tylerd.
+/// Once windows are tracked, the handed-over state has been used (or the windows it named are
+/// gone), so the file is removed: a later start must not apply it again.
+func forgetHandedOverState() {
+  guard FileManager.default.fileExists(atPath: statePath) else { return }
+  do {
+    try FileManager.default.removeItem(atPath: statePath)
+  } catch {
+    warn("cannot remove \(statePath): \(error.localizedDescription)")
+  }
+}
+
 var permissionPoll: Task<Void, Never>?
 if manager.startIfPermitted() {
   announce("tylerd: tracking windows")
+  forgetHandedOverState()
 } else {
   gate.prompt()
   announce("tylerd: waiting for Accessibility permission (System Settings > Privacy & Security)")
@@ -102,20 +127,34 @@ if manager.startIfPermitted() {
       }
     }
     announce("tylerd: Accessibility permission granted, tracking windows")
+    forgetHandedOverState()
+  }
+}
+
+/// Leaves every window where it is and writes the workspaces down for the next tylerd (`tyler
+/// restart`). If the file can't be written, the next tylerd tiles the windows afresh.
+@MainActor
+func handOver() {
+  guard let saved = manager.handOver() else { return }
+  do {
+    try saved.write(to: statePath)
+  } catch {
+    warn("\(error); the next tylerd will tile the windows afresh")
   }
 }
 
 // Shut down cleanly on SIGINT/SIGTERM: `manager.stop()` puts every window (parked ones included)
-// back where it was before tylerd moved it, and the socket file doesn't linger. A crash or
-// `kill -9` skips this and leaves parked windows in the corner.
+// back where it was before tylerd moved it, and the socket file doesn't linger. SIGUSR1 (sent by
+// `tyler restart`) hands over instead and leaves the windows in place. A crash or `kill -9` skips
+// both and leaves parked windows at the right edge.
 var signalSources: [DispatchSourceSignal] = []
-for signalNumber in [SIGINT, SIGTERM] {
+for signalNumber in [SIGINT, SIGTERM, SIGUSR1] {
   signal(signalNumber, SIG_IGN)
   let source = DispatchSource.makeSignalSource(signal: signalNumber, queue: .main)
   source.setEventHandler {
     MainActor.assumeIsolated {
       permissionPoll?.cancel()
-      manager.stop()
+      if signalNumber == SIGUSR1 { handOver() } else { manager.stop() }
     }
     server.stop()
     exit(0)

@@ -41,6 +41,13 @@ struct ProtocolTests {
     #expect(text.dropLast().contains("\n") == false)
   }
 
+  @Test func aStatusFromBeforeHandOverDecodesAsNotKeepingWindows() throws {
+    let old = Data(
+      #"{"configPath":"/c","executablePath":"/t","pid":7,"startedAt":0,"tiling":"on"}"#.utf8)
+    let status = try JSONDecoder().decode(ServerStatus.self, from: old)
+    #expect(status.keepsWindowsOnRestart == nil)
+  }
+
   @Test func malformedInputThrows() {
     #expect(throws: (any Error).self) {
       try Wire.decode(Request.self, from: Data("not json".utf8))

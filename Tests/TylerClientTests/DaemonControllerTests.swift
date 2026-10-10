@@ -45,16 +45,22 @@ final class FakeDaemonSystem: DaemonSystem {
   private(set) var now = start
   private(set) var spawned: [(executable: String, logPath: String)] = []
   private(set) var terminated: [Int32] = []
+  /// Pids asked to hand over (SIGUSR1).
+  private(set) var handedOver: [Int32] = []
   private(set) var pauses = 0
 
   private var pendingStart: (pid: Int32, readyAt: Int)?
   private var exitedChild: Int32?
   private var stopping: (pid: Int32, goneAt: Int)?
 
-  static func status(pid: Int32, startedAt: Date = start) -> ServerStatus {
+  /// `keepsWindows: nil` is a server from before hand-over existed.
+  static func status(
+    pid: Int32, startedAt: Date = start, keepsWindows: Bool? = true
+  ) -> ServerStatus {
     ServerStatus(
       pid: pid, executablePath: serverPath, executableModified: start, startedAt: startedAt,
-      configPath: "/home/.config/tyler/tyler.toml", tiling: .on)
+      configPath: "/home/.config/tyler/tyler.toml", tiling: .on,
+      keepsWindowsOnRestart: keepsWindows)
   }
 
   func send(_ request: Request) throws -> Response {
@@ -80,8 +86,20 @@ final class FakeDaemonSystem: DaemonSystem {
   }
 
   func terminate(_ pid: Int32) -> Bool {
-    if case .cannotBeSignalled = stopBehaviour { return false }
+    guard quit(pid) else { return false }
     terminated.append(pid)
+    return true
+  }
+
+  func requestHandOver(_ pid: Int32) -> Bool {
+    guard quit(pid) else { return false }
+    handedOver.append(pid)
+    return true
+  }
+
+  /// SIGTERM and SIGUSR1 both end the server, following `stopBehaviour`.
+  private func quit(_ pid: Int32) -> Bool {
+    if case .cannotBeSignalled = stopBehaviour { return false }
     if case .exitsAfter(let count) = stopBehaviour { stopping = (pid, pauses + count) }
     return true
   }
@@ -211,6 +229,7 @@ struct DaemonControllerTests {
 
     #expect(makeController(system).run(.stop) == .message("stopped tylerd (pid 77)"))
     #expect(system.terminated == [77])
+    #expect(system.handedOver.isEmpty, "stop always puts the windows back")
     #expect(system.pauses == 2)
   }
 
@@ -236,7 +255,7 @@ struct DaemonControllerTests {
     let system = FakeDaemonSystem()
     system.server = .running(FakeDaemonSystem.status(pid: 77))
     system.stopBehaviour = .cannotBeSignalled
-    #expect(makeController(system).run(.stop) == .error("cannot send SIGTERM to tylerd (pid 77)"))
+    #expect(makeController(system).run(.stop) == .error("cannot signal tylerd (pid 77)"))
   }
 
   @Test func stopGivesUpOnAServerThatKeepsRunning() {
@@ -249,21 +268,35 @@ struct DaemonControllerTests {
       response
         == .error(
           "tylerd (pid 77) is still running; it may be stuck putting windows back "
-            + "(`kill -9 77` stops it, but leaves parked windows in the corner)"))
+            + "(`kill -9 77` stops it, but leaves parked windows at the right edge)"))
     #expect(system.pauses == 100)
   }
 
   // MARK: - restart
 
-  @Test func restartStopsAndStartsTheServer() {
+  @Test func restartAsksTheServerToHandOverSoTheWindowsStay() {
     let system = FakeDaemonSystem()
     system.server = .running(FakeDaemonSystem.status(pid: 77))
 
     #expect(
       makeController(system).run(.restart)
         == .message("restarted tylerd (pid 77 → 200), output in /home/.tyler/tyler.log"))
-    #expect(system.terminated == [77])
+    #expect(system.handedOver == [77])
+    #expect(system.terminated.isEmpty)
     #expect(system.spawned.count == 1)
+  }
+
+  @Test func restartStopsAServerTooOldToHandOver() {
+    let system = FakeDaemonSystem()
+    system.server = .running(FakeDaemonSystem.status(pid: 77, keepsWindows: nil))
+
+    #expect(
+      makeController(system).run(.restart)
+        == .message(
+          "restarted tylerd (pid 77 → 200), output in /home/.tyler/tyler.log\n"
+            + "(the old tylerd could not hand over, so its windows went back where they were)"))
+    #expect(system.terminated == [77])
+    #expect(system.handedOver.isEmpty)
   }
 
   @Test func restartStartsTheServerWhenNothingRuns() {
@@ -280,7 +313,7 @@ struct DaemonControllerTests {
     system.stopBehaviour = .cannotBeSignalled
 
     #expect(
-      makeController(system).run(.restart) == .error("cannot send SIGTERM to tylerd (pid 77)"))
+      makeController(system).run(.restart) == .error("cannot signal tylerd (pid 77)"))
     #expect(system.spawned.isEmpty)
   }
 

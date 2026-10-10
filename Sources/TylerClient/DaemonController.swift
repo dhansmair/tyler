@@ -12,6 +12,9 @@ public protocol DaemonSystem {
   func spawn(_ executable: String, logPath: String) throws(DaemonError) -> Int32
   /// Asks a process to quit (SIGTERM). Returns whether the signal was sent.
   func terminate(_ pid: Int32) -> Bool
+  /// Asks tylerd to quit and leave its windows where they are, writing its workspaces down for
+  /// the next tylerd (SIGUSR1). Returns whether the signal was sent.
+  func requestHandOver(_ pid: Int32) -> Bool
   /// Whether a process this client spawned has already exited.
   func childHasExited(_ pid: Int32) -> Bool
   /// Whether any process with this pid exists.
@@ -56,10 +59,10 @@ public enum DaemonError: Error, Equatable, Sendable, CustomStringConvertible {
     case .noAnswer(let pid, let logPath):
       "tylerd (pid \(pid)) started but did not answer; see \(logPath)"
     case .cannotSignal(let pid):
-      "cannot send SIGTERM to tylerd (pid \(pid))"
+      "cannot signal tylerd (pid \(pid))"
     case .stillRunning(let pid):
       "tylerd (pid \(pid)) is still running; it may be stuck putting windows back "
-        + "(`kill -9 \(pid)` stops it, but leaves parked windows in the corner)"
+        + "(`kill -9 \(pid)` stops it, but leaves parked windows at the right edge)"
     }
   }
 }
@@ -84,7 +87,8 @@ public struct DaemonController {
 
   private enum StopOutcome {
     case notRunning
-    case stopped(Int32)
+    /// `keptWindows` when tylerd handed its workspaces over instead of putting windows back.
+    case stopped(Int32, keptWindows: Bool)
   }
 
   public let system: any DaemonSystem
@@ -135,19 +139,24 @@ public struct DaemonController {
   private func stopMessage() throws(DaemonError) -> String {
     switch try stop() {
     case .notRunning: "tylerd is not running"
-    case .stopped(let pid): "stopped tylerd (pid \(pid))"
+    case .stopped(let pid, _): "stopped tylerd (pid \(pid))"
     }
   }
 
+  /// Restarts without losing the arrangement: the old tylerd hands its workspaces over and the
+  /// new one carries on. A tylerd too old to hand over is stopped normally instead.
   private func restartMessage() throws(DaemonError) -> String {
-    let stopped = try stop()
+    let stopped = try stop(keepingWindows: true)
     switch (stopped, try start()) {
     case (_, .alreadyRunning(let status)):
       return "tylerd is already running (pid \(status.pid))" + staleWarning(status)
     case (.notRunning, .started(let status)):
       return "tylerd was not running; started it (pid \(status.pid)), output in \(logPath)"
-    case (.stopped(let old), .started(let status)):
-      return "restarted tylerd (pid \(old) → \(status.pid)), output in \(logPath)"
+    case (.stopped(let old, let keptWindows), .started(let status)):
+      let note =
+        keptWindows
+        ? "" : "\n(the old tylerd could not hand over, so its windows went back where they were)"
+      return "restarted tylerd (pid \(old) → \(status.pid)), output in \(logPath)" + note
     }
   }
 
@@ -208,23 +217,27 @@ public struct DaemonController {
   }
 
   /// Sends SIGTERM, which runs tylerd's normal shutdown (windows go back where they were), and
-  /// waits for the process to end.
-  private func stop() throws(DaemonError) -> StopOutcome {
-    let pid: Int32
+  /// waits for the process to end. With `keepingWindows`, a tylerd that supports it is asked to
+  /// hand over instead (SIGUSR1), leaving its windows where they are.
+  private func stop(keepingWindows: Bool = false) throws(DaemonError) -> StopOutcome {
+    let status: ServerStatus
     switch probe() {
-    case .running(let status): pid = status.pid
+    case .running(let running): status = running
     case .notRunning: return .notRunning
     case .outdated: throw .outdatedServer
     case .unresponsive: throw .unresponsive
     }
-    guard system.terminate(pid) else { throw .cannotSignal(pid) }
+    let pid = status.pid
+    let handsOver = keepingWindows && status.keepsWindowsOnRestart == true
+    let signalled = handsOver ? system.requestHandOver(pid) : system.terminate(pid)
+    guard signalled else { throw .cannotSignal(pid) }
     var waited = Duration.zero
     while system.isRunning(pid) {
       guard waited < stopTimeout else { throw .stillRunning(pid) }
       system.pause(pollInterval)
       waited += pollInterval
     }
-    return .stopped(pid)
+    return .stopped(pid, keptWindows: handsOver)
   }
 
   // MARK: - Text

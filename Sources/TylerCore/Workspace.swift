@@ -146,7 +146,14 @@ public struct Workspace: Equatable, Sendable {
   /// slot is under the point. Nothing while the point is still in `windowID`'s own slot (in
   /// `full`, that is everywhere), in a gap, or outside the tiled area.
   public func dropTarget(for windowID: WindowID, at point: CGPoint, in area: CGRect) -> WindowID? {
-    let placements = placements(in: area)
+    Self.dropTarget(for: windowID, at: point, among: placements(in: area))
+  }
+
+  /// `dropTarget(for:at:in:)` for placements already worked out, so a caller that needs them
+  /// anyway lays the workspace out once.
+  public static func dropTarget(
+    for windowID: WindowID, at point: CGPoint, among placements: [Placement]
+  ) -> WindowID? {
     guard let own = placements.first(where: { $0.id == windowID }), !own.frame.contains(point)
     else { return nil }
     return placements.first { $0.id != windowID && $0.frame.contains(point) }?.id

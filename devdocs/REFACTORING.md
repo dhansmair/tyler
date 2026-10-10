@@ -38,9 +38,10 @@ Sizes: XS < 20 lines, S < 60, M < 200, L larger.
 
 ## Tier 2: worth doing
 
-- [ ] **6. [perf] Work out the layout once per drag step.** `followDrag`, `follow` → `Workspace.resize` → `ColumnLayout.resize`, and `previewDrop` → `dropTarget` each call `placements(in:)`/`frames(in:)`, 2 to 4 times per event at mouse rate (60–120 Hz). `followDrag` lays out the whole workspace even for echoes from windows that aren't being dragged.
+- [x] **6. [perf] Work out the layout once per drag step.** `followDrag`, `follow` → `Workspace.resize` → `ColumnLayout.resize`, and `previewDrop` → `dropTarget` each call `placements(in:)`/`frames(in:)`, 2 to 4 times per event at mouse rate (60–120 Hz). `followDrag` lays out the whole workspace even for echoes from windows that aren't being dragged.
   - Fix: pass the placements along (`dropTarget(in placements:)`); return early for windows that aren't being dragged; cache the dragged slot's frame in `MouseDrag` and check it before `dropTarget`.
   - S, low risk.
+  - Done: `Workspace.dropTarget(for:at:among:)` takes placements already worked out, so `previewDrop` and `settle` lay out once. `followDrag` already returned early for other windows during a drag. Not done: caching placements in `MouseDrag` (they go stale if a window joins or leaves mid-drag), and the second layout inside `follow`, where `ColumnLayout.resize` lays out internally (item 11, step 2).
 - [x] **7. [perf] Mutate the current workspace in place.** `WorkspaceStack.current` and its subscript use `get`/`set`, so every `workspaces.current.x(…)` and `workspaces[i].sync(…)` copies the windows array (once per drag step, once per workspace per sync).
   - Fix: `_modify { yield &workspaces[currentIndex] }`.
   - XS, low risk.
@@ -137,3 +138,4 @@ So nobody tries them again without a profile that says otherwise:
 - 2026-10-11: item 1 done: `setFrame` reads back only the frame; checked with live-check.
 - 2026-10-11: item 7 done (`_modify` on `WorkspaceStack.current` and its subscript).
 - 2026-10-11: item 10 done (server helpers).
+- 2026-10-11: item 6 done (one layout per pointer step).

@@ -88,16 +88,16 @@ extension WindowManager {
   /// Updates the workspace for how `drag` ended: a resize moves the dividers, a move onto
   /// another window's slot swaps the two.
   private func settle(_ drag: MouseDrag, droppedAt location: CGPoint) {
-    guard let area = primaryDisplay?.visibleFrame,
+    guard let area = primaryDisplay?.visibleFrame, let placements = currentPlacements(),
       let frame = registry.window(withID: drag.windowID)?.frame,
-      let slot = slot(of: drag.windowID)
+      let slot = placements.first(where: { $0.id == drag.windowID })
     else { return }
     if Self.isResized(frame, from: slot.frame) {
       workspaces.current.resize(drag.windowID, to: frame, in: area)
       return
     }
     guard !drag.isResize,
-      let target = workspaces.current.dropTarget(for: drag.windowID, at: location, in: area)
+      let target = Workspace.dropTarget(for: drag.windowID, at: location, among: placements)
     else { return }
     workspaces.current.swap(drag.windowID, with: target)
   }
@@ -106,14 +106,13 @@ extension WindowManager {
   /// window's slot, that window moves into the dragged window's slot, and back to its own when
   /// the pointer leaves it. Windows move only when the target changes, not with every step of
   /// the pointer. Their moves are reported back as updates, which `followDrag` ignores, since
-  /// only the dragged window counts.
+  /// only the dragged window counts. This runs for every step of the pointer, so the workspace is
+  /// laid out once per step.
   private func previewDrop(at location: CGPoint) {
-    guard let drag, !drag.isResize, canFollow(drag),
-      let area = primaryDisplay?.visibleFrame
+    guard let drag, !drag.isResize, canFollow(drag), let placements = currentPlacements()
     else { return }
-    let target = workspaces.current.dropTarget(for: drag.windowID, at: location, in: area)
+    let target = Workspace.dropTarget(for: drag.windowID, at: location, among: placements)
     guard target != drag.previewTarget else { return }
-    let placements = workspaces.current.placements(in: area)
     var moves = placements.filter { $0.id == drag.previewTarget }
     if let target, let slot = placements.first(where: { $0.id == drag.windowID }) {
       moves.append(Placement(id: target, frame: slot.frame))

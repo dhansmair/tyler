@@ -5,19 +5,19 @@ Update this file as work progresses: tick off items, log decisions, and move ope
 ## Goal
 A personal macOS window manager in Swift, replacing AeroSpace/Amethyst for this workflow:
 - **xmonad-style tiling.** Each workspace is an ordered list of windows with a clear prev/next and a master (the first window). Typical use is two windows side by side, sometimes one on the left and two stacked on the right. Layouts must be extensible.
-- **Workspaces stacked vertically**, like pages. Scroll up and down between them with a snap.
+- **Workspaces side by side in a row**, like pages. Move left and right between them with a snap. (They started as a vertical stack; macOS doesn't let windows leave through the top or bottom of the screen, so the row became horizontal in M4.)
 - **Server plus CLI.** `tylerd` runs in the background, and `tyler` sends it commands.
 
 ## Decisions
 - Scrolling between workspaces is CLI-driven in v1 (animated slide and snap). Trackpad scrolling with a modifier key comes later.
 - New windows tile by default. Dialogs, sheets and apps listed in the config float. `float toggle` switches any window.
-- Multiple physical displays, with **one vertical stack of workspaces per display**. Commands act on the focused display.
+- Multiple physical displays, with **one row of workspaces per display**. Commands act on the focused display.
 - Hotkeys are external (skhd, Karabiner, Raycast). tylerd has no hotkey code.
 - Every component is unit tested with Swift Testing (`import Testing`). It ships with the Command Line Tools, and XCTest isn't available.
 - The executables stay thin. Logic lives in libraries, and everything that touches macOS (AX, NSScreen, timers) sits behind a protocol so tests can use fakes.
 - IPC: one newline-delimited JSON request and one response per connection over a Unix socket (`~/.tyler/tyler.sock`, override with `TYLER_SOCKET`).
 - Workspaces work by parking windows of inactive workspaces just past the right edge of the display's visible frame, at their own height, with 1 point visible (a variant of the AeroSpace trick; see the M4 measurements for why the right edge).
-- **Terminology (decided 2026-10-10, after M4).** *Display* is a physical screen (matches `CGDirectDisplayID` and System Settings). *Workspace* is a page in a display's vertical stack, with its own tiling list, layout and ratio; M4 called it a "virtual monitor", and the code, CLI (`workspace`, `move-to-workspace`), wire format and `list` column (`WORKSPACE`) were renamed. *Monitor* isn't used, and *screen* only describes visibility ("on screen"). Avoid *space* (macOS Spaces). Workspaces are numbered per display (1 to n within each stack), and commands act on the focused display. The per-display stack is `WorkspaceStack`; don't use "stack" for the non-master area of the `tall` layout.
+- **Terminology (decided 2026-10-10, after M4).** *Display* is a physical screen (matches `CGDirectDisplayID` and System Settings). *Workspace* is a page in a display's row of workspaces, with its own tiling list, layout and ratio; M4 called it a "virtual monitor", and the code, CLI (`workspace`, `move-to-workspace`), wire format and `list` column (`WORKSPACE`) were renamed. *Monitor* isn't used, and *screen* only describes visibility ("on screen"). Avoid *space* (macOS Spaces). Workspaces are numbered per display (1 to n within each row, from the left), and commands act on the focused display. The per-display stack is `WorkspaceStack`; don't use "stack" for the non-master area of the `tall` layout.
 
 ## Package layout
 ```

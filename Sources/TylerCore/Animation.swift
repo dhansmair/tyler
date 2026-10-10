@@ -68,9 +68,9 @@ public enum Easing {
   }
 }
 
-/// Which way the view scrolls when changing workspaces. The workspaces are a stack, but the
-/// slide is horizontal because macOS won't let windows leave through the top or bottom of the
-/// display (see `Parking`). Moving to the `next` workspace slides the current windows out to
+/// Which way the view scrolls when changing workspaces. The workspaces sit in a row, side by
+/// side (a horizontal slide, because macOS won't let windows leave through the top or bottom of
+/// the display; see `Parking`). Moving to the `next` workspace slides the current windows out to
 /// the left while the next workspace's windows come in from the right.
 public enum ScrollDirection: Equatable, Sendable {
   case prev

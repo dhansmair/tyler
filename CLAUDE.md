@@ -3,12 +3,12 @@
 A personal window manager for macOS, written in Swift. It replaces AeroSpace and Amethyst for one specific workflow:
 
 - **xmonad-style tiling.** Each workspace is an ordered *list* of windows with a clear prev/next and a master (the first window). Typical use is two windows side by side, or one on the left and two stacked on the right. New layouts must be easy to add.
-- **Workspaces stacked vertically**, like pages. You scroll up and down between them, and the view snaps to one. Each physical display has its own stack.
+- **Workspaces side by side in a row**, like pages. You move left and right between them, and the view snaps to one. Each physical display has its own row.
 - **Server plus CLI.** `tylerd` runs in the background and owns all window state. `tyler` is a small client that sends one command and prints the reply. Hotkeys are not built in: bind keys to `tyler` commands with skhd, Karabiner or Raycast.
 
 Windows are controlled through the macOS Accessibility API (no SIP changes). Workspaces work by parking the windows of inactive workspaces just past the display's right edge, and switching slides horizontally: macOS won't let a window leave through the top or bottom of the screen (measured; see `Parking` and the M4 notes in the roadmap).
 
-**Terms:** a *display* is a physical screen; a *workspace* is one page of a display's vertical stack (it was called a "virtual monitor" until M4). Don't use "monitor" in code or docs. `docs/manual.md` (Concepts) defines the user-facing terms.
+**Terms:** a *display* is a physical screen; a *workspace* is one page of a display's row of workspaces (it was called a "virtual monitor" until M4). Don't use "monitor" in code or docs. `docs/manual.md` (Concepts) defines the user-facing terms.
 
 ## Status
 

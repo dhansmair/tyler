@@ -1,6 +1,6 @@
 import CoreGraphics
 
-/// The workspaces of one display, stacked vertically like pages. Exactly one is current (on
+/// The workspaces of one display, side by side in a row like pages. Exactly one is current (on
 /// screen) and the others are parked. A window belongs to at most one workspace.
 public struct WorkspaceStack: Equatable, Sendable {
   /// How many workspaces a stack has unless the config file says otherwise.

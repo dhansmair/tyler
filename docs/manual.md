@@ -17,7 +17,7 @@ A physical screen: the built-in screen of a laptop or an external monitor. tyler
 
 ### Workspace
 
-A set of windows with its own tiling list, layout and master ratio. A display has four workspaces by default (`workspaces.count` in the [config file](#configuration)), stacked vertically like pages and numbered from 1 at the top. Exactly one workspace per display is on screen; switching to another one slides its windows into view sideways (`tyler workspace`): going to the next workspace, the current windows leave to the left and the next ones come in from the right. macOS doesn't let windows leave through the top or bottom of the screen, so the slide can't be vertical. Every tiled window belongs to exactly one workspace.
+A set of windows with its own tiling list, layout and master ratio. A display has four workspaces by default (`workspaces.count` in the [config file](#configuration)), side by side in a row like pages and numbered from 1 on the left. Exactly one workspace per display is on screen; switching to another one slides its windows into view (`tyler workspace`): going to the next workspace, the current windows leave to the left and the next ones come in from the right. Every tiled window belongs to exactly one workspace.
 
 The windows of the workspaces that aren't on screen are *parked*: moved just past the right edge of the display, at their own height, with only a one-point column visible. They are still open, and Cmd-Tab still lists them. Focusing a parked window, for example with Cmd-Tab, switches to its workspace.
 

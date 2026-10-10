@@ -135,9 +135,9 @@ Built and unit tested:
 - [ ] Closing a window whose app has another window on a parked workspace: macOS may focus that parked window, and tylerd then switches to its workspace (likely unwanted; see open items)
 
 ### Menu bar indicator (added 2026-10-10, between milestones)
-The user asked for a menu bar item after a window seemed lost behind another one on a workspace in the full layout. Decisions (agreed with the user): one dot per workspace (`◉` current, `○` with windows, faint `○` empty) plus the current layout's symbol (`▥` tall, `▢` full); clicking opens a small menu with the workspaces, the layout and tiling. The menu sends ordinary `Request`s through `WindowManager.handle`, so it behaves exactly like the CLI.
+The user asked for a menu bar item after a window seemed lost behind another one on a workspace in the full layout. Decisions (agreed with the user): the workspace numbers with the current one in brackets and empty ones faint, such as `1 [2] 3 4` (changed the same day from one dot per workspace: `◉` current, `○` with windows, faint `○` empty), plus the current layout's symbol (`▥` tall, `▢` full); clicking opens a small menu with the workspaces, the layout and tiling. The menu sends ordinary `Request`s through `WindowManager.handle`, so it behaves exactly like the CLI.
 
-- [x] TylerCore: `IndicatorState` (dots, layout, notice, menu items), unit tested
+- [x] TylerCore: `IndicatorState` (title parts, layout, menu items), unit tested
 - [x] TylerServer: `Indicator` protocol; `WindowManager` pushes the state from `didSet` on `workspaces`, `tilingEnabled` and `state`, and only when it changed (`WindowManager+Indicator.swift`)
 - [x] TylerPlatform: `StatusBarIndicator` (`NSStatusItem`); tylerd creates it before the manager
 - [ ] Checked for real: the item appears, follows switches, layout changes, windows opening and closing, and `tiling off`; the menu works; light and dark menu bar

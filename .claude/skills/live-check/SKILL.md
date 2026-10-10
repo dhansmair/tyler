@@ -12,7 +12,7 @@ Unit tests use a fake backend that obeys every request. macOS doesn't: it clamps
 | Command | What it tells you | Moves windows? |
 |---|---|---|
 | `devtools/live-check stacking` | On-screen windows front to back, each with its tyler workspace and title. Answers "where is my window?": hidden behind another (the `full` layout stacks them), parked (x near the right edge), or on no workspace. | no |
-| `devtools/live-check menubar` | The text of tylerd's menu bar item and where it sits. Only the text: colours (the faint dots) need the user's eyes. | no |
+| `devtools/live-check menubar` | The text of tylerd's menu bar item and where it sits. Only the text: colours (faint numbers for empty workspaces) need the user's eyes. | no |
 | `devtools/live-check positions <id> [x y]` | Asks macOS to put the window at each edge of the display (or at one position) and prints what it got, marking `CLAMPED` requests. Use it before relying on any new position, such as a new parking spot or slide path. | yes, briefly, then puts it back |
 | `devtools/live-check slide <seconds> <rounds> <out-ids> <in-id@x,y>...` | Replays a workspace switch: the `out` windows slide left while the `in` windows come in from the right edge into their slots, then back. Every window ends where it started. For judging a change to the motion by eye before building it into tylerd. | yes, for the whole replay |
 

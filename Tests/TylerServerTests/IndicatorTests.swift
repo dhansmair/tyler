@@ -24,7 +24,7 @@ struct IndicatorTests {
     gate.isTrusted = true
     manager.startIfPermitted()
     #expect(last?.tiling == .on)
-    #expect(last?.dots == [.current, .empty, .empty, .empty])
+    #expect(last?.title.map(\.text).joined() == "[1] 2 3 4  ▥")
     #expect(last?.workspaces.first?.windowCount == 2)
   }
 
@@ -32,11 +32,11 @@ struct IndicatorTests {
     gate.isTrusted = true
     manager.startIfPermitted()
     _ = manager.switchWorkspace(.number(3))
-    #expect(last?.dots == [.occupied, .empty, .current, .empty])
+    #expect(last?.title.map(\.text).joined() == "1 2 [3] 4  ▥")
     _ = manager.setLayout(.next)
     #expect(last?.layout == .full)
     _ = manager.setTiling(.off)
-    #expect(last?.notice == "tiling off")
+    #expect(last?.tiling == .off)
   }
 
   @Test func itCountsWindowsThatOpenAndClose() async {

@@ -13,10 +13,19 @@ struct IndicatorStateTests {
       currentIndex: current, tiling: tiling)
   }
 
-  @Test func dotsMarkTheCurrentOccupiedAndEmptyWorkspaces() {
-    #expect(
-      state(counts: [2, 1, 0, 3], current: 2).dots == [.occupied, .occupied, .current, .occupied])
-    #expect(state(counts: [0, 0, 1, 0], current: 0).dots == [.current, .empty, .occupied, .empty])
+  @Test func theTitleNumbersTheWorkspacesAndBracketsTheCurrentOne() {
+    #expect(text(state(counts: [2, 1, 0, 3], current: 1)) == "1 [2] 3 4  ▥")
+    #expect(text(state(counts: [0, 0, 1, 0], current: 0, layout: .full)) == "[1] 2 3 4  ▢")
+  }
+
+  @Test func emptyWorkspacesAreFaint() {
+    let faint = state(counts: [2, 1, 0, 0], current: 3).title.filter(\.isFaint).map(\.text)
+    #expect(faint == ["3"], "the current workspace is never faint, even when empty")
+  }
+
+  @Test func theTitleKeepsItsWidthWhileSwitching() {
+    let widths = (0..<4).map { text(state(current: $0)).count }
+    #expect(Set(widths).count == 1)
   }
 
   @Test func theLayoutIsTheCurrentWorkspaces() {
@@ -29,10 +38,9 @@ struct IndicatorStateTests {
   @Test(arguments: [
     (ServerStatus.Tiling.off, "tiling off"), (.waitingForPermission, "no access"),
   ])
-  func withoutTilingANoticeReplacesDotsAndLayout(tiling: ServerStatus.Tiling, notice: String) {
+  func withoutTilingANoticeReplacesTheTitle(tiling: ServerStatus.Tiling, notice: String) {
     let off = state(tiling: tiling)
-    #expect(off.notice == notice)
-    #expect(off.dots.isEmpty)
+    #expect(off.title == [IndicatorState.TitlePart("tyler: \(notice)", isFaint: true)])
     #expect(off.layout == nil)
   }
 
@@ -67,6 +75,10 @@ struct IndicatorStateTests {
     #expect(
       state(tiling: .waitingForPermission).menu == [.note("Waiting for Accessibility permission")])
   }
+}
+
+private func text(_ state: IndicatorState) -> String {
+  state.title.map(\.text).joined()
 }
 
 extension IndicatorState {

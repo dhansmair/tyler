@@ -1,5 +1,6 @@
-/// What the menu bar item shows: one dot per workspace, the current workspace's layout, and a
-/// small menu. Built from the manager's state; the platform layer only draws it.
+/// What the menu bar item shows: the workspace numbers with the current one in brackets, the
+/// current workspace's layout, and a small menu, such as `1 [2] 3 4  ▥`. Built from the
+/// manager's state; the platform layer only draws it.
 public struct IndicatorState: Equatable, Sendable {
   /// One workspace as the indicator sees it.
   public struct Workspace: Equatable, Sendable {
@@ -12,11 +13,16 @@ public struct IndicatorState: Equatable, Sendable {
     }
   }
 
-  /// How a workspace's dot is drawn.
-  public enum Dot: Equatable, Sendable {
-    case current
-    case occupied
-    case empty
+  /// One piece of the menu bar title. Faint pieces (empty workspaces, notices) are drawn in a
+  /// dimmer colour.
+  public struct TitlePart: Equatable, Sendable {
+    public var text: String
+    public var isFaint: Bool
+
+    public init(_ text: String, isFaint: Bool = false) {
+      self.text = text
+      self.isFaint = isFaint
+    }
   }
 
   /// One entry of the menu. Choosing it sends `request` to the manager, as `tyler` would.
@@ -44,14 +50,27 @@ public struct IndicatorState: Equatable, Sendable {
       tiling: tiling)
   }
 
-  /// The dots, top of the stack first. Empty when tiling isn't running, because then windows
-  /// don't belong to workspaces.
-  public var dots: [Dot] {
-    guard tiling == .on else { return [] }
-    return workspaces.indices.map { index in
-      if index == currentIndex { return .current }
-      return workspaces[index].windowCount > 0 ? .occupied : .empty
+  /// The menu bar title: every workspace's number, top of the stack first, with the current one
+  /// in brackets and empty ones faint, then the layout's symbol (`▥` tall, `▢` full). Exactly one
+  /// number is bracketed, so the title keeps its width while switching. Without tiling, windows
+  /// don't belong to workspaces, and a faint notice stands in for all of it.
+  public var title: [TitlePart] {
+    if let notice { return [TitlePart("tyler: \(notice)", isFaint: true)] }
+    var parts: [TitlePart] = []
+    for index in workspaces.indices {
+      if index > 0 { parts.append(TitlePart(" ")) }
+      let number = String(index + 1)
+      parts.append(
+        index == currentIndex
+          ? TitlePart("[\(number)]")
+          : TitlePart(number, isFaint: workspaces[index].windowCount == 0))
     }
+    switch layout {
+    case .tall: parts.append(TitlePart("  ▥"))
+    case .full: parts.append(TitlePart("  ▢"))
+    case nil: break
+    }
+    return parts
   }
 
   /// The current workspace's layout, or `nil` when tiling isn't running.
@@ -60,8 +79,8 @@ public struct IndicatorState: Equatable, Sendable {
     return workspaces[currentIndex].layout
   }
 
-  /// Replaces the dots and layout when tiling isn't running.
-  public var notice: String? {
+  /// Replaces the title when tiling isn't running.
+  var notice: String? {
     switch tiling {
     case .on: nil
     case .off: "tiling off"

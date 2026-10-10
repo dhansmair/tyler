@@ -2,9 +2,9 @@ import AppKit
 import TylerCore
 import TylerServer
 
-/// The menu bar item: a dot per workspace (filled for the current one, a ring for one with
-/// windows, a faint ring for an empty one) and the current layout's symbol. Its menu sends
-/// ordinary requests through `perform`, the same ones `tyler` sends.
+/// The menu bar item: the workspace numbers with the current one in brackets and the current
+/// layout's symbol, as `IndicatorState.title` spells them. Its menu sends ordinary requests
+/// through `perform`, the same ones `tyler` sends.
 @MainActor
 public final class StatusBarIndicator: NSObject, Indicator {
   private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -25,26 +25,10 @@ public final class StatusBarIndicator: NSObject, Indicator {
   private static func title(for state: IndicatorState) -> NSAttributedString {
     let font = NSFont.menuBarFont(ofSize: 0)
     let title = NSMutableAttributedString()
-    func append(_ text: String, _ color: NSColor) {
+    for part in state.title {
+      let color: NSColor = part.isFaint ? .tertiaryLabelColor : .labelColor
       title.append(
-        NSAttributedString(string: text, attributes: [.font: font, .foregroundColor: color]))
-    }
-    if let notice = state.notice {
-      append("tyler: \(notice)", .secondaryLabelColor)
-      return title
-    }
-    for (index, dot) in state.dots.enumerated() {
-      if index > 0 { append(" ", .labelColor) }
-      switch dot {
-      case .current: append("◉", .labelColor)
-      case .occupied: append("○", .labelColor)
-      case .empty: append("○", .tertiaryLabelColor)
-      }
-    }
-    switch state.layout {
-    case .tall: append("  ▥", .labelColor)
-    case .full: append("  ▢", .labelColor)
-    case nil: break
+        NSAttributedString(string: part.text, attributes: [.font: font, .foregroundColor: color]))
     }
     return title
   }

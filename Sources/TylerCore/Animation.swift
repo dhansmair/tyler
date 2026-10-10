@@ -50,7 +50,13 @@ public struct Track: Equatable, Sendable {
   /// inside `allowedX`. The easing runs over the whole path, so the windows of a slide move
   /// together like one page and each stops when it reaches the edge.
   public func position(at progress: Double) -> CGPoint {
-    let eased = Easing.easeInOut(progress)
+    position(at: progress, easing: Easing.easeInOut)
+  }
+
+  /// The position at `progress` with another easing; `Easing.linear` keeps the window exactly
+  /// in step with whatever drives the progress, such as fingers on the trackpad.
+  public func position(at progress: Double, easing: (Double) -> Double) -> CGPoint {
+    let eased = easing(progress)
     let along = (start.x + (end.x - start.x) * eased).rounded()
     return CGPoint(
       x: min(allowedX.upperBound, max(allowedX.lowerBound, along)),
@@ -59,6 +65,18 @@ public struct Track: Equatable, Sendable {
 }
 
 public enum Easing {
+  /// No easing: the progress itself, clamped to 0...1.
+  public static func linear(_ progress: Double) -> Double {
+    min(1, max(0, progress))
+  }
+
+  /// Cubic ease-out: starts at full speed and slows to a stop, for finishing a motion that was
+  /// already moving (a released swipe).
+  public static func easeOut(_ progress: Double) -> Double {
+    let rest = 1 - min(1, max(0, progress))
+    return 1 - rest * rest * rest
+  }
+
   /// Cubic ease-in-out: slow at both ends, symmetric around the midpoint.
   public static func easeInOut(_ progress: Double) -> Double {
     let clamped = min(1, max(0, progress))

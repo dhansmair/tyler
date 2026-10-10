@@ -45,13 +45,34 @@ public struct Animator {
     move: (WindowID, CGPoint) -> Void
   ) async -> Bool {
     let clock = clock  // Swift opens the existential from a local, not from the stored property.
-    return await run(tracks, timedBy: clock, move: move)
+    return await run(tracks, over: duration, timedBy: clock) { track, fraction in
+      move(track.id, track.position(at: fraction))
+    }
+  }
+
+  /// Like `run(_:move:)`, but along part of the tracks: from progress `start` to `end`, easing
+  /// out, so a motion that was already under way (a released swipe) carries on and slows to a
+  /// stop. The time is the duration's share of the distance, so a short way left is quick.
+  public func run(
+    _ tracks: [Track],
+    from start: Double,
+    to end: Double,
+    move: (WindowID, CGPoint) -> Void
+  ) async -> Bool {
+    let clock = clock  // Swift opens the existential from a local, not from the stored property.
+    let share = duration * abs(end - start)
+    guard share > .zero else { return !Task.isCancelled }
+    return await run(tracks, over: share, timedBy: clock) { track, fraction in
+      let progress = start + (end - start) * Easing.easeOut(fraction)
+      move(track.id, track.position(at: progress, easing: Easing.linear))
+    }
   }
 
   private func run(
     _ tracks: [Track],
+    over duration: Duration,
     timedBy clock: some Clock<Duration>,
-    move: (WindowID, CGPoint) -> Void
+    step: (Track, Double) -> Void
   ) async -> Bool {
     let start = clock.now
     var deadline = start
@@ -66,10 +87,10 @@ public struct Animator {
         return false  // Cancelled: whoever cancelled has taken over the windows.
       }
       if Task.isCancelled { return false }
-      let progress = start.duration(to: clock.now) / duration
-      guard progress < 1 else { break }
+      let fraction = start.duration(to: clock.now) / duration
+      guard fraction < 1 else { break }
       for track in tracks {
-        move(track.id, track.position(at: progress))
+        step(track, fraction)
       }
     }
     return !Task.isCancelled

@@ -147,10 +147,10 @@ Resizing a tiled window with the mouse moves the layout with it: in `tall`, the 
 
 Decisions (2026-10-10, with the user): neighbours follow **live** during the drag; stack heights are kept **per slot** (a new slot gets weight 1); a window moved by its title bar **snaps back** on release, and so does any edge that isn't a divider. Designed with the long-term items below in mind: frames and resize logic are written once for "columns of rows" (`tall` is columns `[1, n-1]`, `grid` will reuse it), row weights are kept per column, the release carries the pointer location (for swap by drag), and pointer input is its own source (`PointerInput`, which M7's scroll and swipes will also use).
 
-- [ ] TylerCore: `rowWeights`, `ColumnLayout`, `TallLayout` on top of it, `SavedState` keeps the weights
-- [ ] TylerCore: `Layout.parameters(afterResizing:)`, `Workspace.resize`
-- [ ] TylerServer: `PointerInput`, `WindowManager+Mouse.swift`
-- [ ] TylerPlatform: `PointerMonitor` (global `leftMouseUp` monitor, button state)
+- [x] TylerCore: `rowWeights`, `ColumnLayout`, `TallLayout` on top of it, `SavedState` keeps the weights
+- [x] TylerCore: `Layout.parameters(afterResizing:)`, `Workspace.resize`
+- [x] TylerServer: `PointerInput`, `WindowManager+Mouse.swift` (the placing helpers moved to `WindowManager+Placement.swift` to keep `WindowManager.swift` under SwiftLint's 400 lines)
+- [x] TylerPlatform: `PointerMonitor` (global `leftMouseUp` monitor, button state)
 - [ ] Checked against real windows: master divider, stack window's left edge, stack divider, immovable edges snap back, title-bar move snaps back, `restart` keeps the heights; live following keeps up
 
 ### Later: swap by drag and drop
@@ -224,4 +224,5 @@ Implemented so far: `ping`, `list [--json]`, `focus`, `swap`, `layout`, `ratio`,
 - 2026-10-10: `tyler restart` keeps the windows in place (hand-over through a state file), in four commits following `plans/restart-keeps-windows.md`.
 - 2026-10-10: Renamed the project from mwm to tyler: binaries `tyler`/`tylerd`, modules `Tyler*`, socket `~/.tyler/tyler.sock`, `TYLER_SOCKET`, Logger subsystem `tyler`. The repository directory is still `mwm`.
 - 2026-10-10: Renamed "virtual monitor" to "workspace" everywhere (see Decisions) and wrote the Concepts section of `docs/manual.md`.
+- 2026-10-10: Mouse resizing built and unit tested (`plans/mouse-resize.md`); not yet run against real windows.
 - 2026-10-08: M3 built and unit tested. The code that moves and focuses windows has not been run against real windows (see M3 for the checklist). Not recoverable on exit yet: quitting `tylerd` leaves windows where tiling put them (M4 adds restore).

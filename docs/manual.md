@@ -46,6 +46,15 @@ A layout turns the tiling list into window frames, within the display's visible 
 
 The *master ratio* is the master column's share of the width in `tall`. Each workspace has its own layout and master ratio (`tyler layout`, `tyler ratio`).
 
+### Resizing with the mouse
+
+In `tall`, drag the edge between two tiled windows and the layout follows while you drag:
+
+- the edge between the master and the stack sets the master ratio (the same one `tyler ratio` changes)
+- the edge between two stacked windows sets their heights; the other stacked windows keep theirs
+
+When you let go of the mouse button, every window snaps into its slot. Edges that aren't between two windows (the outer edges, the master's top and bottom) snap back, and so does a window you moved by its title bar. A divider stops before either neighbour drops below a tenth of their shared space. Stack heights belong to the slot, not the window: a window that moves into a slot takes its height. Each workspace keeps its own heights, and `tyler restart` keeps them. `full` doesn't follow the mouse; windows snap back.
+
 *Gaps* are the space between neighbouring windows (inner) and between the windows and the edge of the area (outer). They are the same on every workspace and come from the config file.
 
 ### Menu bar item
@@ -266,7 +275,7 @@ tyler tiling toggle
 tyler retile
 ```
 
-Puts every tiled window on the current workspace back into its slot. `tylerd` doesn't undo it when you drag or resize a tiled window by hand; `retile` does.
+Puts every tiled window on the current workspace back into its slot, for example after an app moved or resized one of its windows itself. Windows you drag with the mouse snap back on their own (see Resizing with the mouse).
 
 ### workspace
 

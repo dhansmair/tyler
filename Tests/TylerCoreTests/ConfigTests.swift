@@ -104,7 +104,10 @@ struct ConfigTests {
       "[mouse]\nfollow-interval = 0.05",
       "mouse.follow-interval must be a whole number of milliseconds, 0 to 1000"
     ),
-    ("gestures = 3", "gestures must be a table: write [gestures] and put swipe below it"),
+    (
+      "gestures = 3",
+      "gestures must be a table: write [gestures] and put swipe, fingers and swipe-distance below it"
+    ),
     (
       "[gestures]\nswype = true",
       "unknown setting 'gestures.swype' (use swipe, fingers or swipe-distance)"

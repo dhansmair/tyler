@@ -187,7 +187,9 @@ extension Config.Gaps {
 extension Config.Gestures {
   fileprivate init(_ value: TOMLValue) throws(ConfigError) {
     guard case .table(let table) = value else {
-      throw .invalid("gestures must be a table: write [gestures] and put swipe below it")
+      throw .invalid(
+        "gestures must be a table: write [gestures] and put swipe, fingers and swipe-distance below it"
+      )
     }
     self.init()
     for (key, value) in table.sorted(by: { $0.key < $1.key }) {

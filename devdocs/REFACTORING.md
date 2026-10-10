@@ -71,10 +71,7 @@ Sizes: XS < 20 lines, S < 60, M < 200, L larger.
 - [ ] **12. Table-driven config parsing.** Each section in `Config.swift` (Gaps, Gestures, Mouse, Workspaces) repeats the same steps: check it's a table, a switch over sorted keys, a hand-typed list of unknown keys that can drift from the cases, and range checks formatted one by one.
   - Fix: a section helper built from a `[key: reader]` dictionary, with typed readers (`int(in:unit:)`, `bool()`, `number(in:)`). About 110 lines become 50, and each new key becomes one line. Keep the error wording (tests check it).
   - M, low to medium risk.
-- [ ] **13. [perf] Cache displays and group indicator updates.**
-  - `SystemDisplayProvider.displays` reads and converts `NSScreen.screens` on every call, several times per event. Cache them and refresh on `didChangeScreenParametersNotification`.
-  - `updateIndicator` hangs off `didSet` on `workspaces`, so every in-place mutation (one per workspace per sync) builds an `IndicatorState` to compare. Update once at the end of `apply`/`handle` instead.
-  - S, low risk.
+- [x] **13. [perf] Cache displays and group indicator updates.** Dropped after item 1, see "Considered and not worth it".
 
 ## Tier 3: tidy-ups
 
@@ -122,6 +119,8 @@ Not refactorings, but found in the same review. Fix each with a regression test.
 
 So nobody tries them again without a profile that says otherwise:
 
+- Caching `displays.displays` (was item 13). Item 1 took the sync off most window events, so the display list is now read a few times per command rather than per echo. A cache also risks tiling against an old visible frame: it changes when the Dock resizes or hides, and it isn't clear that `didChangeScreenParametersNotification` reports that every time.
+- Grouping `updateIndicator` calls (was item 13). It compares a small `IndicatorState` and only redraws on change; after item 1 it runs rarely, and calling it by hand at the end of each entry point could miss one.
 - An index for the linear `index(containing:)`, `contains` and `slot(of:)` scans. A workspace holds at most about 30 windows, and keeping an index in step on every change is riskier than the microseconds it would save. One AX call costs milliseconds.
 - Animation tracks: `Track.position` and the `Animator` loop already allocate nothing per frame.
 - Shared `JSONEncoder`/`JSONDecoder` instances and the O(n²) newline search in `UnixSocket.readLine`: both run once per CLI command.
@@ -139,3 +138,4 @@ So nobody tries them again without a profile that says otherwise:
 - 2026-10-11: item 7 done (`_modify` on `WorkspaceStack.current` and its subscript).
 - 2026-10-11: item 10 done (server helpers).
 - 2026-10-11: item 6 done (one layout per pointer step).
+- 2026-10-11: item 13 dropped (not worth it after item 1).

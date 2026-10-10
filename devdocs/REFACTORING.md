@@ -82,7 +82,7 @@ Sizes: XS < 20 lines, S < 60, M < 200, L larger.
   - M, mechanical.
 - [x] **15. Thinner `tylerd/main.swift`** (167 lines). Move into libraries: loading the config with a fallback to defaults, reading the handed-over state, building `ServerStatus` from the binary's modification time, and the permission poll (as `manager.waitForPermission()`, testable with `FakeGate`). The doc comment above `forgetHandedOverState` describes the poll; fix it.
   - M, low risk.
-- [ ] **16. Docs size.**
+- [x] **16. Docs size.**
   - The CLAUDE.md status paragraph is one line of over 2,000 characters that repeats the roadmap. Cut it to 2–3 sentences that point at the roadmap.
   - Move finished milestones out of `ROADMAP.md` (257 lines, about 6,200 words) into `devdocs/roadmap-done.md`.
   - S.
@@ -151,3 +151,4 @@ So nobody tries them again without a profile that says otherwise:
 - 2026-10-11: item 20 done (`make lint` and `make check`, test tidy-up). The pre-commit hook keeps its own per-file entries, which lint only the staged files; `makeSocketPath` and `makeTempSocketPath` stay apart because they live in different test targets.
 - 2026-10-11: item 14 done (`WorkspaceRow`, `row:` labels and row wording; `SystemPointerInput`). "stack" now means only `tall`'s right column (roadmap terminology updated). The manual keeps "an external monitor", where it maps the user's word to *display*; AppKit's event monitor API keeps its name.
 - 2026-10-11: item 15 done (`ConfigSource.load()`/`ConfigLoad` and `WindowManager.startWhenPermitted()`, both tested; doc comment fixed). Building `ServerStatus` stays in `main.swift`: it reads `Bundle.main` and the binary's file attributes, which is glue.
+- 2026-10-11: item 16 done for CLAUDE.md: the status paragraph (which still said M3 and M4 had never run against real windows) is a short summary pointing at the roadmap's open checks. The roadmap stays whole: most finished sections still hold open checks, and splitting them across two files would scatter their checklists.

@@ -64,8 +64,8 @@ extension WindowManager {
 
   private func beginPan() {
     finishAnimation()
-    guard config.gestures.swipe, state == .running, tilingEnabled, interaction.isIdle,
-      workspaces.count > 1, let display = displays.displays.first,
+    guard config.gestures.swipe, isTiling, interaction.isIdle, workspaces.count > 1,
+      let display = primaryDisplay,
       let prev = workspaces.index(of: .prev), let next = workspaces.index(of: .next)
     else { return }
     syncWorkspaces()

@@ -69,7 +69,7 @@ extension WindowManager {
   func focusChanged(to windowID: WindowID) {
     let isEcho = bookkeeping.pendingFocus.remove(windowID) != nil
     workspaces.setFocus(windowID)
-    guard !isEcho, state == .running, tilingEnabled,
+    guard !isEcho, isTiling,
       let index = workspaces.index(containing: windowID), index != workspaces.currentIndex
     else { return }
     show(index, direction: index > workspaces.currentIndex ? .next : .prev, focusing: false)
@@ -85,7 +85,7 @@ extension WindowManager {
     // Sync before switching, never after: the target's windows are parked, and a parked frame
     // can overlap a neighbouring display more than this one, which would drop them.
     syncWorkspaces()
-    guard let display = displays.displays.first else {
+    guard let display = primaryDisplay else {
       workspaces.select(index)
       return 0
     }
@@ -129,7 +129,7 @@ extension WindowManager {
   /// it. The view stays put, so the window moves the opposite way to windows leaving when the
   /// view scrolls: one sent to the `next` workspace goes right, where that workspace comes from.
   private func slideOut(_ windowID: WindowID, towards direction: ScrollDirection) -> Int {
-    guard let display = displays.displays.first,
+    guard let display = primaryDisplay,
       let frame = registry.window(withID: windowID)?.frame
     else { return 0 }
     return animate(
@@ -265,16 +265,9 @@ extension WindowManager {
   /// Failures are logged and don't stop the others.
   @discardableResult
   func restoreOriginalFrames(of windowIDs: [WindowID]) -> Int {
-    var failures = 0
-    for windowID in windowIDs {
-      guard let frame = bookkeeping.originalFrames[windowID] else { continue }
-      do {
-        try backend.setFrame(frame, of: windowID)
-      } catch {
-        failures += 1
-        Self.log.error("cannot restore window \(windowID.rawValue): \(error.description)")
-      }
-    }
-    return failures
+    place(
+      windowIDs.compactMap { windowID in
+        bookkeeping.originalFrames[windowID].map { Placement(id: windowID, frame: $0) }
+      })
   }
 }

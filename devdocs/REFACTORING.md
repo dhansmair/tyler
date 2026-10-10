@@ -56,12 +56,13 @@ Sizes: XS < 20 lines, S < 60, M < 200, L larger.
   - `SlidePlan` and `slidePlan(to:direction:on:)` (`+Workspaces`/`+Pan`) need only frames and a display.
   - `isClose`/`isResized` (CGRect geometry), `side(of:)` in `+Pan`, `direction(of:from:to:)` in `+Workspaces`.
   - Makes item 1 easier to test. M, medium risk (tests exist).
-- [ ] **10. Small server helpers.**
+- [x] **10. Small server helpers.**
   - `primaryDisplay`, `currentPlacements()` and `slot(of:)`: `displays.displays.first` appears 9 times, `placements(in:).first(where:)` 4 times.
   - `isTiling`: `state == .running` (usually with `tilingEnabled`) appears about 15 times, and `canFollow` repeats `followDrag`'s guard.
   - `outcome(failures:success:)`: see the third bug below.
   - `place` (`+Placement`) and `restoreOriginalFrames` (`+Workspaces`) are the same loop; merge them in `+Placement`.
   - S, low risk. These helpers are also where the caches in item 13 go.
+  - Done: `isTiling`, `primaryDisplay`, `currentPlacements()` and `slot(of:)` in `+Placement`, and `restoreOriginalFrames` goes through `place`. `outcome(failures:success:)` is left for the third bug below, since it changes what commands answer.
 - [ ] **11. Make adding a layout easier.**
   - Step 1 (S): adding a layout touches 4 places (a type, a `LayoutKind` case, the `LayoutKind.layout` switch, the symbol in `IndicatorState.title`), but the comment in `Layout.swift` says 2. Move the symbol onto `LayoutKind`, rename `LayoutKind.layout` (call sites read `layout.layout`), fix the comment. Merge `ColumnLayout.minimumShare` with `LayoutParameters.ratioRange` (both are the 10% rule).
   - Step 2 (M, medium risk): `TallLayout` converts the pixel widths from the generic `ColumnLayout.Resize` into `mainRatio` (`widths.count == 2`); the next column layout would have to repeat that. Have `ColumnLayout` take column weights in and give them back.
@@ -135,3 +136,4 @@ So nobody tries them again without a profile that says otherwise:
 - 2026-10-11: item 1, server half done (updates that can't change the lists skip the sync); the AX read-back is left for a live check.
 - 2026-10-11: item 1 done: `setFrame` reads back only the frame; checked with live-check.
 - 2026-10-11: item 7 done (`_modify` on `WorkspaceStack.current` and its subscript).
+- 2026-10-11: item 10 done (server helpers).

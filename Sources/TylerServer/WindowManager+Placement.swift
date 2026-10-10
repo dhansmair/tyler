@@ -4,6 +4,22 @@ import TylerCore
 extension WindowManager {
   // MARK: - Placing windows
 
+  /// Whether tiling runs: permission has been granted and tiling is on.
+  var isTiling: Bool { state == .running && tilingEnabled }
+
+  /// The display tylerd tiles, the primary one; `nil` while none is connected.
+  var primaryDisplay: DisplayInfo? { displays.displays.first }
+
+  /// Where the current workspace's layout puts each of its windows; `nil` without a display.
+  func currentPlacements() -> [Placement]? {
+    primaryDisplay.map { workspaces.current.placements(in: $0.visibleFrame) }
+  }
+
+  /// Where the current workspace's layout puts `windowID`; `nil` if it isn't tiled there.
+  func slot(of windowID: WindowID) -> Placement? {
+    currentPlacements()?.first { $0.id == windowID }
+  }
+
   /// Moves and resizes windows, returning how many could not be placed. One failing window
   /// never stops the others.
   @discardableResult

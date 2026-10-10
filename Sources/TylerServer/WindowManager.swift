@@ -320,7 +320,7 @@ extension WindowManager {
   /// as they are, so they do nothing. A focused window that was just assigned to a parked
   /// workspace brings that workspace into view, so keys don't go to a parked window.
   private func reconcile() {
-    guard state == .running, tilingEnabled else { return }
+    guard isTiling else { return }
     let sync = syncWorkspaces()
     if let index = sync.focusedArrival {
       show(index, direction: index > workspaces.currentIndex ? .next : .prev, focusing: false)
@@ -335,8 +335,7 @@ extension WindowManager {
   /// trip to the app) unless `force` is set.
   @discardableResult
   func applyLayout(force: Bool = false) -> Int {
-    guard let area = displays.displays.first?.visibleFrame else { return 0 }
-    let placements = workspaces.current.placements(in: area)
+    guard let placements = currentPlacements() else { return 0 }
     return place(force ? placements : placements.filter { !isInPlace($0) })
   }
 }

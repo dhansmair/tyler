@@ -24,7 +24,7 @@ extension WindowManager {
       loaded == nil
       ? "no config file at \(configSource.path), using the defaults"
       : "reloaded \(configSource.path)"
-    guard state == .running, tilingEnabled else { return .message(summary) }
+    guard isTiling else { return .message(summary) }
     let failures = applyLayout()
     guard failures > 0 else { return .message(summary) }
     return .message("\(summary); \(failures) window\(failures == 1 ? "" : "s") could not be placed")

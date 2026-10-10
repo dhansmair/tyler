@@ -51,13 +51,11 @@ extension WindowManager {
   ///
   /// A window moved by its title bar can swap with another: see `previewDrop(at:)`.
   func followDrag(of window: WindowInfo) {
-    guard let pointer, pointer.isPrimaryButtonDown, state == .running, tilingEnabled,
+    guard let pointer, pointer.isPrimaryButtonDown, isTiling,
       interaction.allowsDrag, workspaces.current.contains(window.id)
     else { return }
     if let drag, drag.windowID != window.id { return }
-    guard let area = displays.displays.first?.visibleFrame,
-      let slot = workspaces.current.placements(in: area).first(where: { $0.id == window.id })
-    else { return }
+    guard let slot = slot(of: window.id) else { return }
     if drag == nil {
       guard !Self.isClose(window.frame, slot.frame) else { return }
       drag = MouseDrag(windowID: window.id)
@@ -90,9 +88,9 @@ extension WindowManager {
   /// Updates the workspace for how `drag` ended: a resize moves the dividers, a move onto
   /// another window's slot swaps the two.
   private func settle(_ drag: MouseDrag, droppedAt location: CGPoint) {
-    guard let area = displays.displays.first?.visibleFrame,
+    guard let area = primaryDisplay?.visibleFrame,
       let frame = registry.window(withID: drag.windowID)?.frame,
-      let slot = workspaces.current.placements(in: area).first(where: { $0.id == drag.windowID })
+      let slot = slot(of: drag.windowID)
     else { return }
     if Self.isResized(frame, from: slot.frame) {
       workspaces.current.resize(drag.windowID, to: frame, in: area)
@@ -111,7 +109,7 @@ extension WindowManager {
   /// only the dragged window counts.
   private func previewDrop(at location: CGPoint) {
     guard let drag, !drag.isResize, canFollow(drag),
-      let area = displays.displays.first?.visibleFrame
+      let area = primaryDisplay?.visibleFrame
     else { return }
     let target = workspaces.current.dropTarget(for: drag.windowID, at: location, in: area)
     guard target != drag.previewTarget else { return }
@@ -131,10 +129,7 @@ extension WindowManager {
     let previewTarget = drag?.previewTarget
     drag?.throttle.release()
     drag = nil
-    guard let previewTarget, state == .running, tilingEnabled,
-      let area = displays.displays.first?.visibleFrame,
-      let slot = workspaces.current.placements(in: area).first(where: { $0.id == previewTarget }),
-      !isInPlace(slot)
+    guard let previewTarget, isTiling, let slot = slot(of: previewTarget), !isInPlace(slot)
     else { return }
     place([slot])
   }
@@ -147,7 +142,7 @@ extension WindowManager {
   /// Whether the layout can still react to `drag`: tiling runs, no slide, and the dragged window
   /// is still tiled on the workspace on screen.
   private func canFollow(_ drag: MouseDrag) -> Bool {
-    state == .running && tilingEnabled && interaction.allowsDrag
+    isTiling && interaction.allowsDrag
       && workspaces.current.contains(drag.windowID)
   }
 
@@ -170,7 +165,7 @@ extension WindowManager {
   /// Lets the layout follow `windowID` having been resized to `frame`, and moves every other
   /// window that is now out of its slot.
   private func follow(_ windowID: WindowID, to frame: CGRect) {
-    guard let area = displays.displays.first?.visibleFrame,
+    guard let area = primaryDisplay?.visibleFrame,
       workspaces.current.resize(windowID, to: frame, in: area)
     else { return }
     place(

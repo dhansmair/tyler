@@ -92,7 +92,7 @@ Built and unit tested:
 - [x] (2026-10-10, run by Claude with Accessibility granted) Windows at start tile: one left, the rest stacked on the right (5 windows seen)
 - [x] `focus next|master` moves focus across apps (Ghostty to Code and back); the `focused` flag follows. `prev` and the actual keyboard/raise were not checked separately
 - [x] `swap next|master`, `layout tall|full`, `ratio +0.05|-0.05`, `float toggle` (twice), `retile`, `tiling off` then `on` all behave. Not run: `swap prev`, `layout next`. Note: toggling float back on re-inserts the window after the focused one, so the old master lost its slot
-- [ ] Closing, minimizing and fullscreening a tiled window re-tiles the rest; dragging a window does not snap back until `tyler retile`
+- [x] Closing, minimizing and fullscreening a tiled window re-tiles the rest (2026-10-10, by the user: "window lifecycle works"). Dragging is now handled by mouse resizing (title-bar moves snap back)
 - [x] The menu bar and the Dock side are respected (2026-10-10, macOS 26.7, Dock on the left: the visible frame starts at x = 55, y = 39, and tiles sit at 67,51 with `outer = 12`)
 - [ ] A terminal (character-cell snapping) and a window with a minimum size (such as System Settings) end up where expected, and `list` shows their real frames
 - [x] `list` shows sensible `SLOT` values and `floated`
@@ -123,10 +123,10 @@ Built and unit tested:
 **Not verified against real windows** (a user `tylerd` was running, and a second instance would fight it over the same windows). Checklist, with `tyler tiling off` or SIGTERM as the escape hatch:
 - [ ] Windows return to their original frames after SIGTERM, including parked ones
 - [x] `workspace down|up|<n>` slides windows and ends with the right set visible; `workspace down` on the last wraps to the first (2026-10-10, by Claude with `tyler list`: 1→2→3→4→1 and `up` from 1 to 4; how the slide looks was not judged)
-- [ ] New windows open on the current workspace; `list` shows the `WORKSPACE` column
+- [x] New windows open on the current workspace; `list` shows the `WORKSPACE` column (2026-10-10, by the user)
 - [x] Parked windows are really hidden (about 1 point visible) and macOS doesn't pull them back on screen (2026-10-10: parked at x = 1799 on the 1800-point display, still there after many switches)
 - [x] Slide smoothness with 3+ windows: smooth with the horizontal slide (demo script, not yet tylerd itself)
-- [ ] tylerd's horizontal slide on real windows, both directions, and parked windows staying put as a 1-point column at the right edge
+- [x] tylerd's horizontal slide on real windows, both directions, and parked windows staying put as a 1-point column at the right edge (2026-10-10: the user judged `workspace up|down` good)
 - [x] macOS lets the outgoing windows slide up past the menu bar. If it clamps them, they bunch at the top for 200 ms; then slide them down instead, or park first
   - **Measured 2026-10-10 (macOS 26.7): it clamps, in every direction, for every app tried (Ghostty, Firefox, Edge, Code).** A position write with y above the menu bar lands at y = 39; one below the screen lands at maxY − 32; horizontally, a window must overlap the display's *visible frame* (Dock excluded) by at least 1 point: x = visibleMaxX − 1 and x = visibleMinX − width + 1 are accepted, and anything further snaps back to 40 points inside (with the Dock on the left, visibleMinX = 55, so the left limit leaves a 56-point strip beside the Dock). Parking at (maxX − 1, maxY − 1) therefore really ends at (maxX − 1, maxY − 32): a 1 × 32 point sliver. So a window can travel at most (y − 39) up or (maxY − 32 − y) down, and incoming windows placed a display height away start already on screen. That is why the slide is smooth for some windows (bottom row, moving down) and jumps for others. AX calls themselves are fast (1–3 ms per write), so speed is not the cause. The fix can't be AX-only for a vertical slide.
   - **Fixed 2026-10-10: the slide is horizontal.** The user rejected a snapshot overlay (it needs Screen Recording permission) and chose a horizontal slide after a throwaway demo on real windows (Ghostty ×2, Firefox out, Edge and Code in, 250 ms, about 65 frames per second, judged smooth). All windows move by the same page offset, and each window's x is limited to `Parking.allowedX` so macOS never pulls it back. Windows park at the right edge at their own height, so windows coming in from the right start where they wait. With the Dock on the left, windows leaving to the left stop as a 56-point strip beside the Dock before they park.
@@ -142,7 +142,8 @@ The user asked for a menu bar item after a window seemed lost behind another one
 - [x] TylerServer: `Indicator` protocol; `WindowManager` pushes the state from `didSet` on `workspaces`, `tilingEnabled` and `state`, and only when it changed (`WindowManager+Indicator.swift`)
 - [x] TylerPlatform: `StatusBarIndicator` (`NSStatusItem`); tylerd creates it before the manager
 - [x] The item appears and its text follows workspace switches and `layout tall|full` (2026-10-10, `live-check menubar`)
-- [ ] Checked for real: windows opening and closing, `tiling off`, the menu, faint empty workspaces, light and dark menu bar
+- [x] Checked for real (2026-10-10, by the user): the menu bar item and its menu work
+- [ ] Light and dark menu bar, and `tiling off`, not reported separately
 
 ### Mouse resizing (added 2026-10-10, between milestones)
 Resizing a tiled window with the mouse moves the layout with it: in `tall`, the divider between the master and the stack, and the dividers between windows in the stack. Plan: `plans/mouse-resize.md`.
@@ -155,7 +156,7 @@ Decisions (2026-10-10, with the user): neighbours follow **live** during the dra
 - [x] TylerPlatform: `PointerMonitor` (global `leftMouseUp` monitor, button state)
 - [x] Throttled (2026-10-10, after the user saw live following lag, worst with Firefox): the first resize of a drag is followed at once, then at most once per interval, always to the newest frame; the release follows the last one at once. Before, every resize event moved every neighbour, and slow apps let the events pile up. If it still lags, the next lever is `AXBackend.setFrame` re-reading the whole window (title, role, …) after every move. The interval is `mouse.follow-interval` in the config (milliseconds, 0–1000, default 50, 0 follows every resize; decided with the user 2026-10-10), read at every step so `reload` applies it at once
 - [x] `restart` keeps the stack heights (2026-10-10: 708/390 before and after)
-- [ ] Checked against real windows: master divider, stack window's left edge, stack divider, immovable edges snap back, title-bar move snaps back; live following keeps up
+- [x] Checked against real windows (2026-10-10, by the user): resizing is smooth and the layout follows; live following keeps up with the 30 ms interval
 
 ### Later: swap by drag and drop
 Drag a tiled window by its title bar onto another tiled window and the two swap slots (replaces the snap-back). Works in every layout with slots, `grid` included.

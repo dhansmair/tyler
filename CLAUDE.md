@@ -63,3 +63,27 @@ GCD is a documented exception, limited to `IPCServer` (blocking socket I/O) and 
 - Test socket paths must stay short (macOS limit ~104 bytes), so use `/tmp/tyler-<id>.sock`, not `$TMPDIR`.
 - The AX layer can't be unit tested (it needs a live GUI and permission). Keep it thin and cover it with the manual checklist in the roadmap.
 
+## Working mode
+
+- **Work in small increments.** One self-contained change at a time (a fix, one slice of a feature, a doc update), each building, tested and documented on its own.
+- **One commit per increment**, made as soon as it is done and the checks pass, with a message that says what changed and why. Don't bundle unrelated changes. If the working tree already holds other changes (the user's, or an earlier increment's), keep them out of the commit.
+- **Commit directly on `main`** for now; no branches or pull requests.
+- **The pre-commit hook stashes unstaged changes but not untracked files**, so it compiles new files that belong to a later commit. When committing part of the tree, set those aside first with `git stash push -u -- <paths>`.
+
+## Agentic engineering
+
+The tyler development team wants to continuously improve the agentic engineering setup,
+including harness engineering, guardrails, hooks, and automation.
+
+The goal is maintaining code quality and resilience, and streamlining the workflow.
+
+**Proactively offer tips and best practices.** When you notice a moment where a better harness
+would have helped - a hook that would have caught something, a `CLAUDE.md` line that would have
+prevented a wrong turn, a task worth splitting across parallel agents, a skill or subagent worth
+defining, a plan worth writing first - say so briefly, in-line with the work. Don't wait to be
+asked, and don't let it swallow the actual task.
+
+Name the concrete trigger (what went wrong or nearly did) and the specific fix, and offer to
+implement it. Not "use a hook", but "that `backend.` import slipped through; a rule would catch it - want me to add it?"
+
+Harness pieces get added one at a time, when the need is felt - never inherited as a wall of config.

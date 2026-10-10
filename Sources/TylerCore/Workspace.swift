@@ -130,6 +130,19 @@ public struct Workspace: Equatable, Sendable {
     parameters.adjustRatio(by: delta)
   }
 
+  /// Follows the user resizing `windowID` to `frame`: the layout moves the dividers whose edges
+  /// were dragged. Returns whether the parameters changed.
+  @discardableResult
+  public mutating func resize(_ windowID: WindowID, to frame: CGRect, in area: CGRect) -> Bool {
+    guard let index = windows.firstIndex(of: windowID),
+      let updated = layout.layout.parameters(
+        afterResizing: index, to: frame, count: windows.count, in: area, parameters: parameters),
+      updated != parameters
+    else { return false }
+    parameters = updated
+    return true
+  }
+
   /// Changes the gaps, keeping the layout and the ratio.
   public mutating func setGaps(inner: CGFloat, outer: CGFloat) {
     parameters = parameters.withGaps(inner: inner, outer: outer)

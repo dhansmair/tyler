@@ -42,6 +42,27 @@ public struct LayoutParameters: Equatable, Sendable {
     return true
   }
 
+  /// Sets the ratio, staying inside `ratioRange`. Returns whether it changed.
+  @discardableResult
+  public mutating func setMainRatio(_ ratio: Double) -> Bool {
+    adjustRatio(by: ratio - mainRatio)
+  }
+
+  /// Replaces the weights of the first `weights.count` rows of `column`. Weights of rows
+  /// further down are kept, for when those rows fill again.
+  public mutating func setRowWeights(_ weights: [Double], inColumn column: Int) {
+    while rowWeights.count <= column { rowWeights.append([]) }
+    var stored = rowWeights[column]
+    for (row, weight) in weights.enumerated() {
+      if row < stored.count {
+        stored[row] = Self.sanitize(weight)
+      } else {
+        stored.append(Self.sanitize(weight))
+      }
+    }
+    rowWeights[column] = stored
+  }
+
   /// The weights of the first `count` rows of `column`, with 1 for rows that have none.
   public func rowWeights(inColumn column: Int, count: Int) -> [Double] {
     let stored = column < rowWeights.count ? rowWeights[column] : []
@@ -64,6 +85,30 @@ public struct LayoutParameters: Equatable, Sendable {
 /// means one new conforming type and one new `LayoutKind` case.
 public protocol Layout: Sendable {
   func frames(count: Int, in area: CGRect, parameters: LayoutParameters) -> [CGRect]
+
+  /// The parameters that put the edges of window `index` where the user dragged them (`frame`),
+  /// or `nil` if the layout doesn't follow that change: no edge it can move was moved. The
+  /// other edges are left to snap back. Layouts that don't follow the mouse use the default,
+  /// which always returns `nil`.
+  func parameters(
+    afterResizing index: Int,
+    to frame: CGRect,
+    count: Int,
+    in area: CGRect,
+    parameters: LayoutParameters
+  ) -> LayoutParameters?
+}
+
+extension Layout {
+  public func parameters(
+    afterResizing index: Int,
+    to frame: CGRect,
+    count: Int,
+    in area: CGRect,
+    parameters: LayoutParameters
+  ) -> LayoutParameters? {
+    nil
+  }
 }
 
 /// The layouts a workspace can use. `next` cycles through them in declaration order.

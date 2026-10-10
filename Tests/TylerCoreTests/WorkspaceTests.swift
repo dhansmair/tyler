@@ -271,4 +271,37 @@ struct WorkspaceTests {
   @Test func anEmptyWorkspaceHasNoPlacements() {
     #expect(Workspace().placements(in: CGRect(x: 0, y: 0, width: 100, height: 100)).isEmpty)
   }
+
+  // MARK: - Resizing with the mouse
+
+  @Test func resizingAWindowMovesTheDividersOfItsSlot() {
+    var workspace = makeWorkspace(1, 2, 3)
+    let area = CGRect(x: 0, y: 0, width: 1000, height: 600)
+    let changed = workspace.resize(
+      WindowID(2), to: CGRect(x: 300, y: 0, width: 700, height: 300), in: area)
+    #expect(changed)
+    #expect(workspace.parameters.mainRatio == 0.3)
+    #expect(workspace.placements(in: area)[0].frame.width == 300)
+  }
+
+  @Test func resizingAnUnknownWindowOrAnImmovableEdgeChangesNothing() {
+    var workspace = makeWorkspace(1, 2, 3)
+    let area = CGRect(x: 0, y: 0, width: 1000, height: 600)
+    let unknown = workspace.resize(
+      WindowID(9), to: CGRect(x: 300, y: 0, width: 700, height: 300), in: area)
+    let outerEdge = workspace.resize(
+      WindowID(1), to: CGRect(x: 0, y: 40, width: 500, height: 560), in: area)
+    #expect(!unknown)
+    #expect(!outerEdge)
+    #expect(workspace.parameters == LayoutParameters())
+  }
+
+  @Test func resizingInFullChangesNothing() {
+    var workspace = makeWorkspace(1, 2)
+    workspace.layout = .full
+    let area = CGRect(x: 0, y: 0, width: 1000, height: 600)
+    let changed = workspace.resize(
+      WindowID(1), to: CGRect(x: 0, y: 0, width: 600, height: 600), in: area)
+    #expect(!changed)
+  }
 }

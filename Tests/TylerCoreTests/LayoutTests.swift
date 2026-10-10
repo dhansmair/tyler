@@ -307,6 +307,22 @@ struct LayoutKindTests {
     #expect(LayoutParameters(rowWeights: [[weight, 2]]).rowWeights == [[1, 2]])
   }
 
+  @Test func settingTheRatioClamps() {
+    var parameters = LayoutParameters()
+    let didChange = parameters.setMainRatio(0.95)
+    #expect(didChange)
+    #expect(parameters.mainRatio == 0.9)
+    let didChange2 = parameters.setMainRatio(0.9)
+    #expect(!didChange2, "already there")
+  }
+
+  @Test func settingRowWeightsKeepsTheRowsFurtherDown() {
+    var parameters = LayoutParameters(rowWeights: [[], [1, 2, 3]])
+    parameters.setRowWeights([4, 5], inColumn: 1)
+    parameters.setRowWeights([6], inColumn: 3)
+    #expect(parameters.rowWeights == [[], [4, 5, 3], [], [6]])
+  }
+
   @Test func rowWeightsArePaddedWithOnesAndCut() {
     let parameters = LayoutParameters(rowWeights: [[2], [3, 4, 5]])
     #expect(parameters.rowWeights(inColumn: 0, count: 3) == [2, 1, 1])

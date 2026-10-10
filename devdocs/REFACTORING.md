@@ -102,7 +102,7 @@ Sizes: XS < 20 lines, S < 60, M < 200, L larger.
   - `SavedWorkspace` conversion (2×).
   - `FakeBackend`: shared lookup in `setFrame`/`setPosition`.
   - Magic numbers: the 1-point tolerance, `0x0A` in two files, `1 << 20`, `1e-9`.
-- [ ] **20. Build tooling and test files.** XS.
+- [x] **20. Build tooling and test files.** XS.
   - A `make lint` target that pre-commit calls.
   - Move the `ResponseFormatter` tests out of `CommandLineTests`.
   - Parameterize the ping/list/reload parse tests and the "rejects extra arguments" tests.
@@ -148,3 +148,4 @@ So nobody tries them again without a profile that says otherwise:
 - 2026-10-11: item 17 done (`WindowRegistry.count` and `_ = task` gone; `Parking.visibleSliver`, the `Config` ranges and `PanRecognizer`'s tuning properties internal). `SlidePlan.direction` went with item 9. `Track.init`, `outgoingOffset`, `withGaps`, `setMainRatio` and `Snap.resisted` stay public: the two Core test files without `@testable` and future layouts use them.
 - 2026-10-11: item 19, Core part done (`clamped(to:)`, `stepped(by:wrappingAt:)`, `insertionIndex`, `Paths` and `UnixSocket` helpers).
 - 2026-10-11: item 19 done (`DaemonController.runningStatus()`, `SavedWorkspace` conversion, `Wire.terminator`, `FakeBackend.movableIndex`). The 1-point tolerance in `Layouts.swift` stays: it is the layout's own rounding rule, not the window-in-place check.
+- 2026-10-11: item 20 done (`make lint` and `make check`, test tidy-up). The pre-commit hook keeps its own per-file entries, which lint only the staged files; `makeSocketPath` and `makeTempSocketPath` stay apart because they live in different test targets.

@@ -11,13 +11,21 @@ TEST_FLAGS := \
 	-Xlinker -rpath -Xlinker $(CLT_DEV)/Frameworks \
 	-Xlinker -rpath -Xlinker $(CLT_DEV)/usr/lib
 
-.PHONY: build test release install clean
+.PHONY: build test lint check release install clean
 
 build:
 	swift build
 
 test:
 	swift test $(TEST_FLAGS)
+
+# SwiftLint needs the Command Line Tools' sourcekitd when full Xcode isn't installed.
+lint:
+	swift format lint --recursive --strict Sources Tests Package.swift
+	TOOLCHAIN_DIR=$${TOOLCHAIN_DIR:-/Library/Developer/CommandLineTools} swiftlint --strict --quiet
+
+# Everything the pre-commit hook checks, over the whole tree.
+check: lint test
 
 release:
 	swift build -c release

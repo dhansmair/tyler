@@ -38,9 +38,8 @@ Keep the executables thin. Logic goes in the libraries, and anything that touche
 make build     # swift build
 make test      # swift test with the flags below; use this, not plain `swift test`
 make install   # release build, copied to ~/.local/bin (SIGN_ID=<identity> to codesign)
-swift format lint --recursive --strict Sources Tests Package.swift
-TOOLCHAIN_DIR=/Library/Developer/CommandLineTools swiftlint --strict
-pre-commit run --all-files   # runs swift format lint, swiftlint and make test
+make lint      # swift format lint and swiftlint (with TOOLCHAIN_DIR set) over the whole tree
+make check     # lint and test: what the pre-commit hook checks
 ```
 
 - **Use `make test`.** The Command Line Tools ship Swift Testing, but SwiftPM doesn't find it without extra framework and rpath flags. The Makefile passes them.

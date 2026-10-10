@@ -192,4 +192,16 @@ struct ConfigTests {
       try ConfigSource.file(at: path).read()
     }
   }
+
+  @Test func loadingAtStartFallsBackToTheDefaults() {
+    let gaps = Config(gaps: Config.Gaps(inner: 6))
+    #expect(ConfigSource(path: "x") { gaps }.load() == .loaded(gaps))
+    #expect(ConfigSource(path: "x") { nil }.load() == .missing)
+    let broken = ConfigSource(path: "x") { () throws(ConfigError) -> Config? in
+      throw .invalid("unknown setting 'gap'")
+    }
+    #expect(broken.load() == .broken(.invalid("unknown setting 'gap'")))
+    #expect(broken.load().config == Config())
+    #expect(ConfigLoad.missing.config == Config())
+  }
 }

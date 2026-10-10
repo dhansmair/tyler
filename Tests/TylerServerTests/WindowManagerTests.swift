@@ -130,4 +130,33 @@ struct WindowManagerTests {
     await settle()
     #expect(listedWindows(manager)?.count == 1)
   }
+
+  @Test func itStartsOnceThePermissionIsGranted() async {
+    let gate = FakeGate(isTrusted: false)
+    let clock = TestClock()
+    let manager = WindowManager(
+      backend: FakeBackend(windows: spread([1])), displays: FakeDisplays(), gate: gate,
+      clock: clock)
+    let waiting = Task { await manager.startWhenPermitted(checkingEvery: .seconds(1)) }
+    await settle()
+    clock.advance(by: .seconds(1))
+    await settle()
+    #expect(manager.state == .waitingForPermission)
+    gate.isTrusted = true
+    clock.advance(by: .seconds(1))
+    #expect(await waiting.value)
+    #expect(manager.state == .running)
+  }
+
+  @Test func waitingForThePermissionEndsWhenCancelled() async {
+    let clock = TestClock()
+    let manager = WindowManager(
+      backend: FakeBackend(), displays: FakeDisplays(), gate: FakeGate(isTrusted: false),
+      clock: clock)
+    let waiting = Task { await manager.startWhenPermitted() }
+    await settle()
+    waiting.cancel()
+    #expect(await waiting.value == false)
+    #expect(manager.state == .waitingForPermission)
+  }
 }

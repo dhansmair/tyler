@@ -117,6 +117,21 @@ public final class WindowManager {
     return true
   }
 
+  /// Starts as soon as Accessibility permission is granted, checking every `interval`, so the
+  /// user doesn't have to restart tylerd after granting it. Returns whether it started: `false`
+  /// only when the waiting task was cancelled.
+  public func startWhenPermitted(checkingEvery interval: Duration = .seconds(1)) async -> Bool {
+    let clock = clock  // Swift opens the existential from a local, not from the stored property.
+    while !startIfPermitted() {
+      do {
+        try await clock.sleep(for: interval)
+      } catch {
+        return false
+      }
+    }
+    return true
+  }
+
   /// Puts every window back where it was before tylerd first moved it (parked windows included),
   /// then stops observing. A window that can't be restored is logged and doesn't stop the rest.
   public func stop() {

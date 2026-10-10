@@ -20,18 +20,11 @@ func die(_ message: String) -> Never {
 let socketPath = Paths.socketPath()
 let statePath = Paths.statePath(socketPath: socketPath)
 let configSource = ConfigSource.file(at: Paths.configPath())
-// A broken config doesn't stop tylerd: it starts with the defaults, and `tyler reload` picks
-// up the file once it is fixed.
-var config = Config()
-do {
-  if let loaded = try configSource.read() {
-    config = loaded
-    announce("tylerd: config \(configSource.path)")
-  } else {
-    announce("tylerd: no config file at \(configSource.path), using the defaults")
-  }
-} catch {
-  warn("\(configSource.path): \(error) (using the defaults)")
+let configLoad = configSource.load()
+switch configLoad {
+case .loaded: announce("tylerd: config \(configSource.path)")
+case .missing: announce("tylerd: no config file at \(configSource.path), using the defaults")
+case .broken(let error): warn("\(configSource.path): \(error) (using the defaults)")
 }
 
 // AX observers, NSWorkspace notifications and the menu bar item all go through the main run
@@ -62,7 +55,7 @@ let manager = WindowManager(
   backend: AXBackend(),
   displays: ScreenDisplayProvider(),
   gate: gate,
-  config: config,
+  config: configLoad.config,
   configSource: configSource,
   indicator: indicator,
   pointer: SystemPointerInput(),
@@ -99,8 +92,6 @@ do {
 }
 announce("tylerd: listening on \(socketPath)")
 
-// Without permission the server still answers; `list` explains what to do. Poll until it is
-// granted so the user doesn't have to restart tylerd.
 /// Once windows are tracked, the handed-over state has been used (or the windows it named are
 /// gone), so the file is removed: a later start must not apply it again.
 func forgetHandedOverState() {
@@ -112,6 +103,8 @@ func forgetHandedOverState() {
   }
 }
 
+// Without permission the server still answers; `list` explains what to do. The manager starts
+// by itself once permission is granted.
 var permissionPoll: Task<Void, Never>?
 if manager.startIfPermitted() {
   announce("tylerd: tracking windows")
@@ -120,13 +113,7 @@ if manager.startIfPermitted() {
   gate.prompt()
   announce("tylerd: waiting for Accessibility permission (System Settings > Privacy & Security)")
   permissionPoll = Task { @MainActor in
-    while !manager.startIfPermitted() {
-      do {
-        try await Task.sleep(for: .seconds(1))
-      } catch {
-        return  // Cancelled during shutdown.
-      }
-    }
+    guard await manager.startWhenPermitted() else { return }  // Cancelled during shutdown.
     announce("tylerd: Accessibility permission granted, tracking windows")
     forgetHandedOverState()
   }

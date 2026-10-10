@@ -18,11 +18,14 @@ struct WorkspaceHarness {
     _ ids: [UInt32],
     extra: [WindowInfo] = [],
     displays: FakeDisplays = FakeDisplays(),
-    animator: Animator = .snap
+    animator: Animator = .snap,
+    config: Config = Config(),
+    configFile: FakeConfigFile? = nil
   ) {
     backend = FakeBackend(windows: Self.spread(ids) + extra)
     manager = WindowManager(
-      backend: backend, displays: displays, gate: FakeGate(isTrusted: true), animator: animator)
+      backend: backend, displays: displays, gate: FakeGate(isTrusted: true), animator: animator,
+      config: config, configSource: configFile?.source)
     manager.startIfPermitted()
     backend.clearRecordedCalls()
   }

@@ -31,7 +31,7 @@ extension WindowManager {
     endDrag()
     backend.stop()
     registry = WindowRegistry()
-    workspaces = WorkspaceStack(count: workspaceCount)
+    workspaces = WorkspaceStack(count: config.workspaces.count)
     applyGaps()
     floated = []
     originalFrames = [:]
@@ -42,12 +42,13 @@ extension WindowManager {
 
   /// Takes over the workspaces a previous tylerd handed over, keeping only windows that still
   /// exist. Runs once the registry holds the windows and before the first reconcile, which then
-  /// finds the current workspace's windows already in their slots and moves nothing.
-  func restorePending() {
-    guard let saved = pendingRestore else { return }
+  /// finds the current workspace's windows already in their slots and moves nothing. Returns
+  /// whether there was anything to take over.
+  func restorePending() -> Bool {
+    guard let saved = pendingRestore else { return false }
     pendingRestore = nil
     let known = Set(registry.windows.map(\.id))
-    workspaces = saved.stack(count: workspaceCount) { known.contains($0) }
+    workspaces = saved.stack(count: config.workspaces.count) { known.contains($0) }
     applyGaps()
     floated = Set(saved.floated).intersection(known)
     originalFrames = [:]
@@ -55,5 +56,6 @@ extension WindowManager {
       originalFrames[entry.id] = entry.frame
     }
     tilingEnabled = saved.tilingEnabled
+    return true
   }
 }

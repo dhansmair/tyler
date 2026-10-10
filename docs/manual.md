@@ -17,7 +17,7 @@ A physical screen: the built-in screen of a laptop or an external monitor. tyler
 
 ### Workspace
 
-A set of windows with its own tiling list, layout and master ratio. A display has four workspaces, stacked vertically like pages and numbered 1 to 4 from the top. Exactly one workspace per display is on screen; switching to another one slides its windows into view sideways (`tyler workspace`): going to the next workspace, the current windows leave to the left and the next ones come in from the right. macOS doesn't let windows leave through the top or bottom of the screen, so the slide can't be vertical. Every tiled window belongs to exactly one workspace.
+A set of windows with its own tiling list, layout and master ratio. A display has four workspaces by default (`workspaces.count` in the [config file](#configuration)), stacked vertically like pages and numbered from 1 at the top. Exactly one workspace per display is on screen; switching to another one slides its windows into view sideways (`tyler workspace`): going to the next workspace, the current windows leave to the left and the next ones come in from the right. macOS doesn't let windows leave through the top or bottom of the screen, so the slide can't be vertical. Every tiled window belongs to exactly one workspace.
 
 The windows of the workspaces that aren't on screen are *parked*: moved just past the right edge of the display, at their own height, with only a one-point column visible. They are still open, and Cmd-Tab still lists them. Focusing a parked window, for example with Cmd-Tab, switches to its workspace.
 
@@ -104,6 +104,9 @@ outer = 12   # between the windows and the edge of the screen
 
 [mouse]
 follow-interval = 50   # milliseconds between steps of the layout following a drag
+
+[workspaces]
+count = 6    # workspaces per display
 ```
 
 | Setting | Meaning | Default |
@@ -111,8 +114,11 @@ follow-interval = 50   # milliseconds between steps of the layout following a dr
 | `gaps.inner` | Space between neighbouring tiled windows | `0` |
 | `gaps.outer` | Space between the tiled windows and the edge of the display's visible area | `0` |
 | `mouse.follow-interval` | Least time between two steps of the layout following a window you resize with the mouse, in milliseconds (0 to 1000) | `50` |
+| `workspaces.count` | How many workspaces each display has (1 to 10) | `4` |
 
 Gaps are whole numbers in points, the unit macOS uses for window positions (on a Retina display, one point is two pixels).
+
+Changing `workspaces.count` and running `tyler reload` takes effect at once. New workspaces are added at the bottom of the stack. When you remove workspaces, their windows move to the new last workspace, after the windows already there; if the workspace on screen was removed, the new last one comes into view.
 
 Each step of following a drag moves every other window, and slow apps take a while to move. A shorter `mouse.follow-interval` looks smoother but can fall behind the mouse with slow apps; a longer one keeps up but moves in coarser steps. `0` follows every resize the app reports.
 
@@ -196,7 +202,7 @@ Shows every window `tylerd` knows about, one per row:
 | Column | Meaning |
 | --- | --- |
 | `ID` | The system's window number |
-| `WORKSPACE` | The workspace (1 to 4) the window is tiled on, or `-` |
+| `WORKSPACE` | The workspace (from 1) the window is tiled on, or `-` |
 | `SLOT` | The position in that workspace's tiling list (1 is the master), or `-` |
 | `APP` | The application |
 | `TITLE` | The window title |
@@ -288,7 +294,7 @@ Puts every tiled window on the current workspace back into its slot, for example
 ```bash
 tyler workspace next  # the next workspace (after the last comes the first)
 tyler workspace prev  # the previous workspace (before the first comes the last)
-tyler workspace 3     # workspace 3 (workspaces are numbered 1 to 4)
+tyler workspace 3     # workspace 3 (workspaces are numbered from 1)
 ```
 
 Switches to another workspace. The current windows slide out and are parked, the target workspace's windows slide in, and focus goes to the window that last had focus there. On an empty workspace no window has focus (tylerd itself becomes the active app), so what you type doesn't reach a parked window. A floated window stays on screen and keeps the focus.

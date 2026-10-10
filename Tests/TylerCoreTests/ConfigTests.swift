@@ -19,6 +19,15 @@ struct ConfigTests {
     #expect(config.gaps == Config.Gaps(), "the other settings keep their defaults")
   }
 
+  @Test(arguments: [1, 6, 10])
+  func parsesTheWorkspaceCount(count: Int) throws {
+    #expect(try Config.parse("[workspaces]\ncount = \(count)").workspaces.count == count)
+  }
+
+  @Test func fourWorkspacesByDefault() {
+    #expect(Config().workspaces.count == 4)
+  }
+
   @Test func parsesGaps() throws {
     let config = try Config.parse(
       """
@@ -54,6 +63,11 @@ struct ConfigTests {
       "[mouse]\nfollow-interval = 0.05",
       "mouse.follow-interval must be a whole number of milliseconds, 0 to 1000"
     ),
+    ("workspaces = 4", "workspaces must be a table: write [workspaces] and put count below it"),
+    ("[workspaces]\nnumber = 4", "unknown setting 'workspaces.number' (use count)"),
+    ("[workspaces]\ncount = 0", "workspaces.count must be a whole number, 1 to 10"),
+    ("[workspaces]\ncount = 11", "workspaces.count must be a whole number, 1 to 10"),
+    ("[workspaces]\ncount = \"4\"", "workspaces.count must be a whole number, 1 to 10"),
   ])
   func rejectsInvalidSettings(text: String, message: String) {
     #expect(throws: ConfigError.invalid(message)) {

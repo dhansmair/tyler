@@ -66,10 +66,10 @@ public struct SavedState: Codable, Equatable, Sendable {
   }
 
   /// A stack of `count` workspaces holding the saved windows that still exist (`exists`), in
-  /// their saved order, with their focus, layout, ratio and row weights. Workspaces beyond `count` are
-  /// dropped, and a current workspace beyond it falls back to the first.
+  /// their saved order, with their focus, layout, ratio and row weights. Saved workspaces beyond
+  /// `count` are merged into the last one, as `WorkspaceStack.setCount` does.
   public func stack(count: Int, keeping exists: (WindowID) -> Bool) -> WorkspaceStack {
-    var stack = WorkspaceStack(count: count)
+    var stack = WorkspaceStack(count: max(count, workspaces.count))
     for (index, saved) in workspaces.enumerated() where index < stack.count {
       let parameters = LayoutParameters(
         mainRatio: saved.mainRatio, rowWeights: saved.rowWeights ?? [])
@@ -81,6 +81,7 @@ public struct SavedState: Codable, Equatable, Sendable {
       stack[index] = workspace
     }
     stack.select(currentIndex < stack.count ? currentIndex : 0)
+    stack.setCount(count)
     return stack
   }
 

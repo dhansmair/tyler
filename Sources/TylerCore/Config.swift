@@ -31,12 +31,26 @@ public struct Config: Equatable, Sendable {
     }
   }
 
+  /// The workspaces of each display.
+  public struct Workspaces: Equatable, Sendable {
+    public static let countRange = 1...10
+
+    /// How many workspaces a display's stack has.
+    public var count: Int
+
+    public init(count: Int = WorkspaceStack.defaultCount) {
+      self.count = count
+    }
+  }
+
   public var gaps: Gaps
   public var mouse: Mouse
+  public var workspaces: Workspaces
 
-  public init(gaps: Gaps = Gaps(), mouse: Mouse = Mouse()) {
+  public init(gaps: Gaps = Gaps(), mouse: Mouse = Mouse(), workspaces: Workspaces = Workspaces()) {
     self.gaps = gaps
     self.mouse = mouse
+    self.workspaces = workspaces
   }
 }
 
@@ -70,6 +84,7 @@ extension Config {
       switch key {
       case "gaps": config.gaps = try Gaps(value)
       case "mouse": config.mouse = try Mouse(value)
+      case "workspaces": config.workspaces = try Workspaces(value)
       default: throw .invalid("unknown setting '\(key)'")
       }
     }
@@ -117,6 +132,27 @@ extension Config.Mouse {
         }
         followInterval = milliseconds
       default: throw .invalid("unknown setting 'mouse.\(key)' (use follow-interval)")
+      }
+    }
+  }
+}
+
+extension Config.Workspaces {
+  fileprivate init(_ value: TOMLValue) throws(ConfigError) {
+    guard case .table(let table) = value else {
+      throw .invalid("workspaces must be a table: write [workspaces] and put count below it")
+    }
+    self.init()
+    for (key, value) in table.sorted(by: { $0.key < $1.key }) {
+      switch key {
+      case "count":
+        let range = Self.countRange
+        guard case .integer(let number) = value, range.contains(number) else {
+          throw .invalid(
+            "workspaces.count must be a whole number, \(range.lowerBound) to \(range.upperBound)")
+        }
+        count = number
+      default: throw .invalid("unknown setting 'workspaces.\(key)' (use count)")
       }
     }
   }

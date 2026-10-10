@@ -40,11 +40,19 @@ struct SavedStateTests {
     #expect(restored[2].windows == [WindowID(4)])
   }
 
-  @Test func fewerWorkspacesDropTheRestAndFallBackToTheFirst() {
+  @Test func fewerWorkspacesMergeTheRestIntoTheLast() {
     let restored = saved(arrangement()).stack(count: 2) { _ in true }
     #expect(restored.count == 2)
-    #expect(restored.currentIndex == 0)
+    #expect(restored.currentIndex == 1, "the current workspace was merged into the last")
     #expect(restored[0].windows == [WindowID(1), WindowID(2), WindowID(3)])
+    #expect(restored[1].windows == [WindowID(4)])
+  }
+
+  @Test func moreWorkspacesAddEmptyOnes() {
+    let restored = saved(arrangement()).stack(count: 6) { _ in true }
+    #expect(restored.count == 6)
+    #expect(restored.currentIndex == 2)
+    #expect(restored[5].windows.isEmpty)
   }
 
   @Test func theFileRoundTrips() throws {

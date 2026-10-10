@@ -3,7 +3,7 @@ import CoreGraphics
 /// The workspaces of one display, stacked vertically like pages. Exactly one is current (on
 /// screen) and the others are parked. A window belongs to at most one workspace.
 public struct WorkspaceStack: Equatable, Sendable {
-  /// How many workspaces a stack has until the config file makes it configurable (M6).
+  /// How many workspaces a stack has unless the config file says otherwise.
   public static let defaultCount = 4
 
   public private(set) var workspaces: [Workspace]
@@ -70,6 +70,23 @@ public struct WorkspaceStack: Equatable, Sendable {
     workspaces[index].insert(windowID)
     workspaces[index].setFocus(windowID)
     return true
+  }
+
+  /// Gives the stack `count` workspaces (at least one). New workspaces are added empty at the
+  /// bottom. Removed ones hand their windows to the new last workspace, appended in order after
+  /// its own; if the current workspace is removed, the new last one becomes current.
+  public mutating func setCount(_ count: Int) {
+    let count = max(1, count)
+    guard count < workspaces.count else {
+      workspaces += Array(repeating: Workspace(), count: count - workspaces.count)
+      return
+    }
+    let removed = workspaces[count...].flatMap(\.windows)
+    workspaces.removeSubrange(count...)
+    for windowID in removed {
+      workspaces[count - 1].append(windowID)
+    }
+    currentIndex = min(currentIndex, count - 1)
   }
 
   /// Changes the gaps of every workspace, keeping each one's layout and ratio.

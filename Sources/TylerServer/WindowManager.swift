@@ -52,7 +52,6 @@ public final class WindowManager {
   let backend: any WindowBackend
   let displays: any DisplayProvider
   private let gate: any AccessibilityGate
-  let workspaceCount: Int
   /// Where `reload` reads the config from; `nil` when there is nothing to reload.
   let configSource: ConfigSource?
   var pump: Task<Void, Never>?
@@ -77,7 +76,6 @@ public final class WindowManager {
     displays: any DisplayProvider,
     gate: any AccessibilityGate,
     animator: Animator = Animator(),
-    workspaceCount: Int = WorkspaceStack.defaultCount,
     config: Config = Config(),
     configSource: ConfigSource? = nil,
     indicator: (any Indicator)? = nil,
@@ -89,14 +87,13 @@ public final class WindowManager {
     self.displays = displays
     self.gate = gate
     self.animator = animator
-    self.workspaceCount = workspaceCount
     self.config = config
     self.configSource = configSource
     self.indicator = indicator
     self.pointer = pointer
     self.clock = clock
     pendingRestore = saved
-    workspaces = WorkspaceStack(count: workspaceCount)
+    workspaces = WorkspaceStack(count: config.workspaces.count)
     applyGaps()
     updateIndicator()
   }
@@ -120,9 +117,12 @@ public final class WindowManager {
     backend.start()
     startPointer()
     registry.replaceAll(backend.snapshot())
-    restorePending()
+    let restored = restorePending()
     state = .running
     reconcile()
+    // A handed-over workspace beyond the configured count was merged into the last one, whose
+    // windows may still be parked; every other window is in its slot already, so nothing moves.
+    if restored && tilingEnabled { applyLayout() }
     if let focusedID = registry.focusedID { workspaces.setFocus(focusedID) }
     return true
   }

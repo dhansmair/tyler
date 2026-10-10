@@ -185,7 +185,10 @@ Decisions (2026-10-10): the file is `~/.config/tyler/tyler.toml` (`TYLER_CONFIG`
 - [x] Checked for real (2026-10-10, 7 windows on workspaces 1–3, workspace 3 in `full`): a restart keeps every window on its workspace and in its slot, and moves nothing (`tyler list` and the menu bar identical before and after; the state file is removed). The first restart from the older tylerd fell back to SIGTERM and said so. Each workspace's layout after the restart is covered by unit tests only.
 - [x] Checked for real (2026-10-10, by Claude): `status` warns once the binary is newer; `restart` then starts a new tylerd that has Accessibility, and `list` and the menu bar are byte-identical before and after
 - [ ] Checked for real: `tyler start` survives closing the terminal; `stop` restores windows
-- [ ] Float rules, workspace count
+- [x] Workspace count (2026-10-10; plan: `plans/workspace-count-and-app-rules.md`): `[workspaces] count`, 1 to 10, default 4. `reload` applies it at once: new workspaces are added empty at the bottom; removed ones merge their windows into the new last workspace (appended in order), which becomes current if the current one was removed, then the current workspace re-tiles without a slide. A restart with a smaller count merges the handed-over workspaces the same way. Unit tested only
+- [ ] Checked against real windows: growing and shrinking the count with `reload`
+- [ ] App assignments (`[assign]`)
+- [ ] Float rules
 - [ ] LaunchAgent (`service install|uninstall`)
 
 ### M7. (Later) Trackpad scroll and swipes

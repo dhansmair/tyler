@@ -46,6 +46,14 @@ public struct Workspace: Equatable, Sendable {
     return true
   }
 
+  /// Adds a window at the end of the list, whatever has focus.
+  @discardableResult
+  public mutating func append(_ windowID: WindowID) -> Bool {
+    guard !contains(windowID) else { return false }
+    windows.append(windowID)
+    return true
+  }
+
   /// Removes a window. If it had focus, focus moves to the window that took its place (or the
   /// new last window).
   @discardableResult

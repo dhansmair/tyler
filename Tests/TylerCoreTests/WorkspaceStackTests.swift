@@ -35,6 +35,43 @@ struct WorkspaceStackTests {
     #expect(stack.index(of: target) == expected)
   }
 
+  @Test func growingAddsEmptyWorkspacesAndKeepsTheRest() {
+    var stack = makeStack([0: [1], 3: [2]])
+    stack.select(3)
+    stack.setCount(6)
+    #expect(stack.count == 6)
+    #expect(stack.currentIndex == 3)
+    #expect(stack[3].windows == [WindowID(2)])
+    #expect(stack[5].windows.isEmpty)
+  }
+
+  @Test func shrinkingMergesRemovedWorkspacesIntoTheLastInOrder() {
+    var stack = makeStack([1: [1, 2], 2: [3], 3: [4, 5]])
+    stack[1].setFocus(WindowID(1))
+    stack.setCount(2)
+    #expect(stack.count == 2)
+    #expect(stack.currentIndex == 0)
+    #expect(
+      stack[1].windows == [1, 2, 3, 4, 5].map(WindowID.init),
+      "appended after the last's own windows, whatever has focus there")
+    #expect(stack[1].focused == WindowID(1))
+  }
+
+  @Test func shrinkingAwayTheCurrentWorkspaceMakesTheLastOneCurrent() {
+    var stack = makeStack([2: [1], 3: [2]])
+    stack.select(3)
+    stack.setCount(2)
+    #expect(stack.currentIndex == 1)
+    #expect(stack.current.windows == [WindowID(1), WindowID(2)])
+  }
+
+  @Test func neverShrinksBelowOneWorkspace() {
+    var stack = makeStack([1: [1]])
+    stack.setCount(0)
+    #expect(stack.count == 1)
+    #expect(stack[0].windows == [WindowID(1)])
+  }
+
   @Test func setGapsChangesEveryWorkspaceButKeepsLayoutAndRatio() {
     var stack = WorkspaceStack()
     stack[2].layout = .full

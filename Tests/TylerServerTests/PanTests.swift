@@ -14,10 +14,11 @@ struct PanTests {
   private let clock = TestClock()
 
   private func makeHarness(
-    config: Config = Config(), animator: Animator = .snap
+    config: Config = Config(), animator: Animator = .snap, configFile: FakeConfigFile? = nil
   ) async -> WorkspaceHarness {
     let harness = WorkspaceHarness(
-      [1, 2, 3], animator: animator, config: config, pointer: pointer, clock: clock)
+      [1, 2, 3], animator: animator, config: config, configFile: configFile, pointer: pointer,
+      clock: clock)
     if config.workspaces.count >= 4 {
       await harness.osFocus(2)
       _ = harness.manager.moveToWorkspace(.number(2), follow: false)
@@ -161,5 +162,28 @@ struct PanTests {
     #expect(harness.backend.nudges.isEmpty)
     #expect(harness.backend.moves.isEmpty)
     #expect(harness.manager.workspaces.currentIndex == 0)
+  }
+
+  // MARK: - Watching the trackpad
+
+  @Test func thePointerWatchesForTheConfiguredSwipe() async {
+    var config = Config()
+    config.gestures.fingers = 4
+    _ = await makeHarness(config: config)
+    #expect(pointer.swipeFingers == 4)
+  }
+
+  @Test func reloadTurnsTheSwipeOffAndOnAgain() async {
+    let file = FakeConfigFile()
+    let harness = await makeHarness(configFile: file)
+    #expect(pointer.swipeFingers == 3)
+    var config = Config()
+    config.gestures.swipe = false
+    file.write(.config(config))
+    _ = harness.manager.reload()
+    #expect(pointer.swipeFingers == nil)
+    file.write(.missing)
+    _ = harness.manager.reload()
+    #expect(pointer.swipeFingers == 3, "no file means the defaults")
   }
 }

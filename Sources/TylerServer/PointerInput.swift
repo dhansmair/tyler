@@ -24,4 +24,7 @@ public protocol PointerInput: AnyObject {
   var isPrimaryButtonDown: Bool { get }
   func start()
   func stop()
+  /// Reports sideways swipes with `fingers` fingers as `.pan` events from now on; `nil` stops
+  /// watching the trackpad.
+  func watchSwipes(fingers: Int?)
 }

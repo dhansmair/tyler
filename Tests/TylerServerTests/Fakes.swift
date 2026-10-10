@@ -116,8 +116,12 @@ final class FakePointer: PointerInput {
     (events, continuation) = AsyncStream.makeStream(of: PointerEvent.self)
   }
 
+  /// The finger count of the swipes being watched for; `nil` when none are.
+  private(set) var swipeFingers: Int?
+
   func start() { startCount += 1 }
   func stop() { stopCount += 1 }
+  func watchSwipes(fingers: Int?) { swipeFingers = fingers }
 
   /// Lets go of the button, as the user would at the end of a drag.
   func release(at location: CGPoint = .zero) {

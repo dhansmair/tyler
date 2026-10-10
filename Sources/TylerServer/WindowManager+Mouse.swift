@@ -26,6 +26,12 @@ extension WindowManager {
       }
     }
     pointer.start()
+    applyGestures()
+  }
+
+  /// Has the pointer watch for the configured swipe, or stop watching when swipes are off.
+  func applyGestures() {
+    pointer?.watchSwipes(fingers: config.gestures.swipe ? config.gestures.fingers : nil)
   }
 
   /// Follows a window the user is resizing with the mouse: the layout moves the dividers whose

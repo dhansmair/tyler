@@ -19,6 +19,7 @@ extension WindowManager {
     config = loaded ?? Config()
     applyWorkspaceCount()
     applyGaps()
+    if state == .running { applyGestures() }
     let summary =
       loaded == nil
       ? "no config file at \(configSource.path), using the defaults"

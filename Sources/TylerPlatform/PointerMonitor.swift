@@ -5,13 +5,14 @@ import TylerServer
 /// The real `PointerInput`: reads the mouse button state from AppKit and watches the primary
 /// button dragging and going up anywhere on screen through a global event monitor. Global monitors
 /// only see events sent to other apps, which is every click that matters: tylerd has no windows
-/// of its own, only the menu bar item.
+/// of its own, only the menu bar item. Trackpad swipes come from a `SwipeTap`.
 @MainActor
 public final class PointerMonitor: PointerInput {
   public let events: AsyncStream<PointerEvent>
 
   private let continuation: AsyncStream<PointerEvent>.Continuation
   private var monitor: Any?
+  private var swipeTap: SwipeTap?
 
   public init() {
     (events, continuation) = AsyncStream.makeStream(of: PointerEvent.self)
@@ -32,9 +33,20 @@ public final class PointerMonitor: PointerInput {
   }
 
   public func stop() {
+    watchSwipes(fingers: nil)
     guard let monitor else { return }
     NSEvent.removeMonitor(monitor)
     self.monitor = nil
+  }
+
+  public func watchSwipes(fingers: Int?) {
+    guard fingers != swipeTap?.fingers else { return }
+    swipeTap?.invalidate()
+    swipeTap = nil
+    guard let fingers else { return }
+    swipeTap = SwipeTap(fingers: fingers) { [weak self] update in
+      self?.continuation.yield(.pan(update))
+    }
   }
 
   /// Reports a drag step or the release with where the pointer is, in Accessibility coordinates

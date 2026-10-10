@@ -12,9 +12,9 @@ struct ProtocolTests {
   }
 
   @Test(arguments: [
-    Request.reload, .status, .list, .retile, .workspace(.up), .workspace(.down),
+    Request.reload, .status, .list, .retile, .workspace(.prev), .workspace(.next),
     .workspace(.number(3)),
-    .moveToWorkspace(.number(2), follow: true), .moveToWorkspace(.down, follow: false),
+    .moveToWorkspace(.number(2), follow: true), .moveToWorkspace(.next, follow: false),
   ])
   func requestsWithAndWithoutArgumentsRoundTrip(request: Request) throws {
     let data = try Wire.encode(request)

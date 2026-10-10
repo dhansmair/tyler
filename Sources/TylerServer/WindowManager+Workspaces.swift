@@ -70,7 +70,7 @@ extension WindowManager {
     guard !isEcho, state == .running, tilingEnabled,
       let index = workspaces.index(containing: windowID), index != workspaces.currentIndex
     else { return }
-    show(index, direction: index > workspaces.currentIndex ? .down : .up, focusing: false)
+    show(index, direction: index > workspaces.currentIndex ? .next : .prev, focusing: false)
   }
 
   /// Makes the workspace at `index` current. The current windows slide out sideways by the
@@ -113,7 +113,7 @@ extension WindowManager {
 
   /// Slides one visible window off the display towards the workspace it was sent to, and parks
   /// it. The view stays put, so the window moves the opposite way to windows leaving when the
-  /// view scrolls: one sent `down` the stack goes right, where the next workspace comes from.
+  /// view scrolls: one sent to the `next` workspace goes right, where that workspace comes from.
   private func slideOut(_ windowID: WindowID, towards direction: ScrollDirection) -> Int {
     guard let display = displays.displays.first,
       let frame = registry.window(withID: windowID)?.frame
@@ -152,9 +152,9 @@ extension WindowManager {
     of target: WorkspaceTarget, from source: Int, to index: Int
   ) -> ScrollDirection {
     switch target {
-    case .up: .up
-    case .down: .down
-    case .number: index > source ? .down : .up
+    case .prev: .prev
+    case .next: .next
+    case .number: index > source ? .next : .prev
     }
   }
 

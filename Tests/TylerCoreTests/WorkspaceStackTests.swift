@@ -26,7 +26,7 @@ struct WorkspaceStackTests {
   }
 
   @Test(arguments: [
-    (0, WorkspaceTarget.down, 1), (3, .down, 0), (2, .up, 1), (0, .up, 3),
+    (0, WorkspaceTarget.next, 1), (3, .next, 0), (2, .prev, 1), (0, .prev, 3),
     (1, .number(1), 0), (1, .number(4), 3),
   ])
   func resolvesTargetsAndWraps(current: Int, target: WorkspaceTarget, expected: Int) {
@@ -179,26 +179,26 @@ struct ParkingTests {
 
   @Test func leavingWindowsMoveByTheVisibleWidthAndStopAtTheEdge() {
     let frame = CGRect(x: 932, y: 51, width: 856, height: 549)
-    let left = Track.leaving(WindowID(1), from: frame, direction: .down, on: display)
+    let left = Track.leaving(WindowID(1), from: frame, direction: .next, on: display)
     #expect(left.end == CGPoint(x: 932 - 1745, y: 51))
     #expect(left.position(at: 1) == CGPoint(x: -800, y: 51))
-    let right = Track.leaving(WindowID(1), from: frame, direction: .up, on: display)
+    let right = Track.leaving(WindowID(1), from: frame, direction: .prev, on: display)
     #expect(right.position(at: 1) == CGPoint(x: 1799, y: 51))
   }
 
   @Test func enteringWindowsStartAtTheEdgeOnTheOtherSide() {
     let slot = CGRect(x: 67, y: 51, width: 856, height: 1106)
-    let fromRight = Track.entering(WindowID(1), into: slot, direction: .down, on: display)
+    let fromRight = Track.entering(WindowID(1), into: slot, direction: .next, on: display)
     #expect(fromRight.position(at: 0) == CGPoint(x: 1799, y: 51))
     #expect(fromRight.position(at: 1) == slot.origin)
-    let fromLeft = Track.entering(WindowID(1), into: slot, direction: .up, on: display)
+    let fromLeft = Track.entering(WindowID(1), into: slot, direction: .prev, on: display)
     #expect(fromLeft.position(at: 0) == CGPoint(x: -800, y: 51))
   }
 
   @Test func outgoingWindowsLeaveLeftwardsWhenScrollingDown() {
-    #expect(ScrollDirection.down.outgoingOffset(width: 1000) == -1000)
-    #expect(ScrollDirection.up.outgoingOffset(width: 1000) == 1000)
-    #expect(ScrollDirection.down.opposite == .up)
-    #expect(ScrollDirection.up.opposite == .down)
+    #expect(ScrollDirection.next.outgoingOffset(width: 1000) == -1000)
+    #expect(ScrollDirection.prev.outgoingOffset(width: 1000) == 1000)
+    #expect(ScrollDirection.next.opposite == .prev)
+    #expect(ScrollDirection.prev.opposite == .next)
   }
 }

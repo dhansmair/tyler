@@ -36,7 +36,7 @@ struct RestartTests {
   private func arranged(animator: Animator = .snap) async -> WorkspaceHarness {
     let harness = WorkspaceHarness([1, 2, 3], animator: animator)
     await harness.osFocus(3)
-    _ = harness.manager.moveToWorkspace(.down, follow: false)
+    _ = harness.manager.moveToWorkspace(.next, follow: false)
     _ = harness.manager.setLayout(.set(.full))
     await harness.settle()
     harness.backend.clearRecordedCalls()
@@ -94,7 +94,7 @@ struct RestartTests {
     let animator = Animator(
       duration: .milliseconds(48), frameInterval: .milliseconds(16), clock: clock)
     let harness = await arranged(animator: animator)
-    _ = harness.manager.switchWorkspace(.down)
+    _ = harness.manager.switchWorkspace(.next)
     clock.advance(by: .milliseconds(16))
     await harness.settle()
     let saved = harness.manager.handOver()

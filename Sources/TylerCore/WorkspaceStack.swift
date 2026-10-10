@@ -39,12 +39,12 @@ public struct WorkspaceStack: Equatable, Sendable {
     Set(workspaces.flatMap(\.windows))
   }
 
-  /// Resolves a target to an index: `up` and `down` wrap around, numbers are 1-based and `nil`
-  /// when out of range.
+  /// Resolves a target to an index: `prev` and `next` wrap around, numbers are 1-based and
+  /// `nil` when out of range.
   public func index(of target: WorkspaceTarget) -> Int? {
     switch target {
-    case .up: (currentIndex - 1 + count) % count
-    case .down: (currentIndex + 1) % count
+    case .prev: (currentIndex - 1 + count) % count
+    case .next: (currentIndex + 1) % count
     case .number(let number): (1...count).contains(number) ? number - 1 : nil
     }
   }

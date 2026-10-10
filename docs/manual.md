@@ -17,7 +17,7 @@ A physical screen: the built-in screen of a laptop or an external monitor. tyler
 
 ### Workspace
 
-A set of windows with its own tiling list, layout and master ratio. A display has four workspaces, stacked vertically like pages and numbered 1 to 4 from the top. Exactly one workspace per display is on screen; switching to another one slides its windows into view sideways (`tyler workspace`): going down the stack, the current windows leave to the left and the next ones come in from the right. macOS doesn't let windows leave through the top or bottom of the screen, so the slide can't be vertical. Every tiled window belongs to exactly one workspace.
+A set of windows with its own tiling list, layout and master ratio. A display has four workspaces, stacked vertically like pages and numbered 1 to 4 from the top. Exactly one workspace per display is on screen; switching to another one slides its windows into view sideways (`tyler workspace`): going to the next workspace, the current windows leave to the left and the next ones come in from the right. macOS doesn't let windows leave through the top or bottom of the screen, so the slide can't be vertical. Every tiled window belongs to exactly one workspace.
 
 The windows of the workspaces that aren't on screen are *parked*: moved just past the right edge of the display, at their own height, with only a one-point column visible. They are still open, and Cmd-Tab still lists them. Focusing a parked window, for example with Cmd-Tab, switches to its workspace.
 
@@ -140,8 +140,8 @@ tyler <command> [arguments]
 | `float toggle` | Float the focused window, or tile it again |
 | `tiling on\|off\|toggle` | Start or stop tiling |
 | `retile` | Put every tiled window back into its slot |
-| `workspace up\|down\|<n>` | Switch to another workspace |
-| `move-to-workspace up\|down\|<n> [--follow]` | Send the focused window to another workspace |
+| `workspace prev\|next\|<n>` | Switch to another workspace |
+| `move-to-workspace prev\|next\|<n> [--follow]` | Send the focused window to another workspace |
 
 Commands that change windows act on the current workspace. All of them except `start`, `stop`, `restart`, `status`, `ping`, `list`, `reload` and `tiling` need tiling to be on; with tiling off they print ``tiling is off (use `tyler tiling on`)``.
 
@@ -286,8 +286,8 @@ Puts every tiled window on the current workspace back into its slot, for example
 ### workspace
 
 ```bash
-tyler workspace down  # the next workspace (after the last comes the first)
-tyler workspace up    # the previous workspace (before the first comes the last)
+tyler workspace next  # the next workspace (after the last comes the first)
+tyler workspace prev  # the previous workspace (before the first comes the last)
 tyler workspace 3     # workspace 3 (workspaces are numbered 1 to 4)
 ```
 
@@ -298,12 +298,12 @@ Focusing a parked window yourself, for example with Cmd-Tab, also switches to it
 ### move-to-workspace
 
 ```bash
-tyler move-to-workspace down
+tyler move-to-workspace next
 tyler move-to-workspace 2
-tyler move-to-workspace up --follow
+tyler move-to-workspace prev --follow
 ```
 
-Sends the focused window to another workspace, where it becomes the focused window. Without `--follow` the window slides away towards its new workspace (to the right for `down`, to the left for `up`), the remaining windows re-tile, and you stay on the current workspace. With `--follow` you switch to the target workspace along with the window. Sending away the last window of the current workspace leaves no window focused, as on any empty workspace.
+Sends the focused window to another workspace, where it becomes the focused window. Without `--follow` the window slides away towards its new workspace (to the right for `next`, to the left for `prev`), the remaining windows re-tile, and you stay on the current workspace. With `--follow` you switch to the target workspace along with the window. Sending away the last window of the current workspace leaves no window focused, as on any empty workspace.
 
 Only tiled windows can be moved.
 
@@ -335,8 +335,8 @@ alt + shift - j : ~/.local/bin/tyler swap next
 alt - return : ~/.local/bin/tyler swap master
 alt - h : ~/.local/bin/tyler ratio -0.05
 alt - l : ~/.local/bin/tyler ratio +0.05
-alt - s : ~/.local/bin/tyler workspace up
-alt - d : ~/.local/bin/tyler workspace down
-alt + shift - d : ~/.local/bin/tyler move-to-workspace down
-alt + ctrl + shift - d : ~/.local/bin/tyler move-to-workspace down --follow
+alt - s : ~/.local/bin/tyler workspace prev
+alt - d : ~/.local/bin/tyler workspace next
+alt + shift - d : ~/.local/bin/tyler move-to-workspace next
+alt + ctrl + shift - d : ~/.local/bin/tyler move-to-workspace next --follow
 ```

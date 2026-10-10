@@ -70,20 +70,20 @@ public enum Easing {
 
 /// Which way the view scrolls when changing workspaces. The workspaces are a stack, but the
 /// slide is horizontal because macOS won't let windows leave through the top or bottom of the
-/// display (see `Parking`). Moving `down` the stack slides the current windows out to the left
-/// while the next workspace's windows come in from the right.
+/// display (see `Parking`). Moving to the `next` workspace slides the current windows out to
+/// the left while the next workspace's windows come in from the right.
 public enum ScrollDirection: Equatable, Sendable {
-  case up
-  case down
+  case prev
+  case next
 
   /// How far outgoing windows travel horizontally for a visible frame of `width`; incoming
   /// windows start the same distance away on the opposite side.
   public func outgoingOffset(width: CGFloat) -> CGFloat {
-    self == .down ? -width : width
+    self == .next ? -width : width
   }
 
   /// The other way.
   public var opposite: ScrollDirection {
-    self == .down ? .up : .down
+    self == .next ? .prev : .next
   }
 }

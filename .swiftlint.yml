@@ -6,9 +6,8 @@ excluded:
 trailing_comma:
   mandatory_comma: true
 
-# `fd` is the standard name for a file descriptor, `id` is what `Identifiable` requires, and `ok`,
-# `on` and `up` are the natural names for a plain success response, the `tiling on` CLI mode and
-# the `monitor up` direction.
+# `fd` is the standard name for a file descriptor, `id` is what `Identifiable` requires, and `ok`
+# and `on` are the natural names for a plain success response and the `tiling on` CLI mode.
 # devdocs/coding-guidelines.md allows widely known abbreviations, but SwiftLint's default minimum
 # length of 3 would flag them.
 identifier_name:
@@ -17,4 +16,3 @@ identifier_name:
     - id
     - ok
     - on
-    - up

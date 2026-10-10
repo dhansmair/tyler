@@ -99,12 +99,12 @@ struct TilingCommandLineTests {
     (["tiling", "off"], Request.tiling(.off)),
     (["tiling", "toggle"], Request.tiling(.toggle)),
     (["retile"], Request.retile),
-    (["workspace", "up"], Request.workspace(.up)),
-    (["workspace", "down"], Request.workspace(.down)),
+    (["workspace", "prev"], Request.workspace(.prev)),
+    (["workspace", "next"], Request.workspace(.next)),
     (["workspace", "3"], Request.workspace(.number(3))),
-    (["move-to-workspace", "down"], Request.moveToWorkspace(.down, follow: false)),
+    (["move-to-workspace", "next"], Request.moveToWorkspace(.next, follow: false)),
     (["move-to-workspace", "2", "--follow"], Request.moveToWorkspace(.number(2), follow: true)),
-    (["move-to-workspace", "--follow", "up"], Request.moveToWorkspace(.up, follow: true)),
+    (["move-to-workspace", "--follow", "prev"], Request.moveToWorkspace(.prev, follow: true)),
   ])
   func parsesEveryTilingCommand(arguments: [String], expected: Request) throws {
     #expect(try CommandLineParser.parse(arguments) == Invocation(request: expected))
@@ -129,32 +129,38 @@ struct TilingCommandLineTests {
     (["tiling"], "tiling takes exactly one argument: on|off|toggle"),
     (["tiling", "maybe"], "unknown tiling argument 'maybe' (use on|off|toggle)"),
     (["retile", "now"], "retile takes no arguments"),
-    (["workspace"], "workspace takes exactly one argument: up|down|<n>"),
-    (["workspace", "up", "down"], "workspace takes exactly one argument: up|down|<n>"),
-    (["workspace", "0"], "unknown workspace argument '0' (use up|down|<n>, where n starts at 1)"),
+    (["workspace"], "workspace takes exactly one argument: prev|next|<n>"),
+    (["workspace", "prev", "next"], "workspace takes exactly one argument: prev|next|<n>"),
+    (
+      ["workspace", "0"], "unknown workspace argument '0' (use prev|next|<n>, where n starts at 1)"
+    ),
     (
       ["workspace", "left"],
-      "unknown workspace argument 'left' (use up|down|<n>, where n starts at 1)"
+      "unknown workspace argument 'left' (use prev|next|<n>, where n starts at 1)"
+    ),
+    (
+      ["workspace", "down"],
+      "unknown workspace argument 'down' (use prev|next|<n>, where n starts at 1)"
     ),
     (
       ["move-to-workspace"],
-      "move-to-workspace takes one target (up|down|<n>) and optionally --follow"
+      "move-to-workspace takes one target (prev|next|<n>) and optionally --follow"
     ),
     (
       ["move-to-workspace", "--follow"],
-      "move-to-workspace takes one target (up|down|<n>) and optionally --follow"
+      "move-to-workspace takes one target (prev|next|<n>) and optionally --follow"
     ),
     (
       ["move-to-workspace", "1", "2"],
-      "move-to-workspace takes one target (up|down|<n>) and optionally --follow"
+      "move-to-workspace takes one target (prev|next|<n>) and optionally --follow"
     ),
     (
       ["move-to-workspace", "1", "--follow", "--follow"],
-      "move-to-workspace takes one target (up|down|<n>) and optionally --follow"
+      "move-to-workspace takes one target (prev|next|<n>) and optionally --follow"
     ),
     (
       ["move-to-workspace", "-1"],
-      "unknown move-to-workspace argument '-1' (use up|down|<n>, where n starts at 1)"
+      "unknown move-to-workspace argument '-1' (use prev|next|<n>, where n starts at 1)"
     ),
   ])
   func rejectsBadArgumentsAndNamesTheValidChoices(arguments: [String], message: String) {

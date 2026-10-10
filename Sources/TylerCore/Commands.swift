@@ -22,10 +22,10 @@ public enum LayoutChoice: Codable, Equatable, Sendable {
 
 /// Which workspace a `workspace` or `move-to-workspace` command goes to.
 public enum WorkspaceTarget: Codable, Equatable, Sendable {
-  /// The workspace above the current one, wrapping from the first to the last.
-  case up
-  /// The workspace below the current one, wrapping from the last to the first.
-  case down
+  /// The previous workspace (the one above), wrapping from the first to the last.
+  case prev
+  /// The next workspace (the one below), wrapping from the last to the first.
+  case next
   /// A workspace by its 1-based number.
   case number(Int)
 }

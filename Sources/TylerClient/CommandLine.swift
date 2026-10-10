@@ -60,8 +60,8 @@ public enum CommandLineParser {
       float toggle                   float the focused window, or tile it again
       tiling on|off|toggle           start or stop tiling (off unparks hidden windows)
       retile                         put every tiled window back into its slot
-      workspace up|down|<n>          switch to another workspace (up and down wrap)
-      move-to-workspace up|down|<n> [--follow]
+      workspace prev|next|<n>        switch to another workspace (prev and next wrap)
+      move-to-workspace prev|next|<n> [--follow]
                                      send the focused window to another workspace
     """
 
@@ -127,7 +127,7 @@ public enum CommandLineParser {
     switch command {
     case "workspace":
       guard rest.count == 1 else {
-        throw CommandLineError.usage("workspace takes exactly one argument: up|down|<n>")
+        throw CommandLineError.usage("workspace takes exactly one argument: prev|next|<n>")
       }
       return Invocation(request: .workspace(try parseTarget(rest[0], for: command)))
     case "move-to-workspace":
@@ -177,15 +177,15 @@ public enum CommandLineParser {
     return value
   }
 
-  /// `up`, `down`, or a workspace number from 1. The upper bound is the server's to check.
+  /// `prev`, `next`, or a workspace number from 1. The upper bound is the server's to check.
   private static func parseTarget(_ text: String, for command: String) throws -> WorkspaceTarget {
     switch text {
-    case "up": return .up
-    case "down": return .down
+    case "prev": return .prev
+    case "next": return .next
     default:
       guard let number = Int(text), number >= 1 else {
         throw CommandLineError.usage(
-          "unknown \(command) argument '\(text)' (use up|down|<n>, where n starts at 1)")
+          "unknown \(command) argument '\(text)' (use prev|next|<n>, where n starts at 1)")
       }
       return .number(number)
     }
@@ -196,7 +196,7 @@ public enum CommandLineParser {
     let targets = arguments.filter { $0 != "--follow" }
     guard targets.count == 1, arguments.count == targets.count + (follow ? 1 : 0) else {
       throw CommandLineError.usage(
-        "move-to-workspace takes one target (up|down|<n>) and optionally --follow")
+        "move-to-workspace takes one target (prev|next|<n>) and optionally --follow")
     }
     let target = try parseTarget(targets[0], for: "move-to-workspace")
     return Invocation(request: .moveToWorkspace(target, follow: follow))

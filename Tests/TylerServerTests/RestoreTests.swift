@@ -21,7 +21,7 @@ struct RestoreTests {
 
   @Test func parkedWindowsComeBackToo() {
     let harness = WorkspaceHarness([1, 2])
-    _ = harness.manager.switchWorkspace(.down)
+    _ = harness.manager.switchWorkspace(.next)
     harness.manager.stop()
     #expect(harness.frame(of: 1) == WorkspaceHarness.originalFrame(index: 0))
     #expect(harness.frame(of: 2) == WorkspaceHarness.originalFrame(index: 1))
@@ -63,7 +63,7 @@ struct RestoreTests {
       [1, 2],
       animator: Animator(
         duration: .milliseconds(48), frameInterval: .milliseconds(16), clock: clock))
-    _ = harness.manager.switchWorkspace(.down)
+    _ = harness.manager.switchWorkspace(.next)
     clock.advance(by: .milliseconds(16))
     await harness.settle()
     harness.manager.stop()

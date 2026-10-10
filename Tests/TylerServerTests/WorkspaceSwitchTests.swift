@@ -91,7 +91,7 @@ struct WorkspaceSwitchTests {
 
   @Test func switchingParksTheCurrentWindowsAndGivesNoFocusToAnEmptyWorkspace() {
     let harness = WorkspaceHarness([1, 2])
-    #expect(harness.manager.switchWorkspace(.down) == .message("workspace 2"))
+    #expect(harness.manager.switchWorkspace(.next) == .message("workspace 2"))
     #expect(harness.isParked(1))
     #expect(harness.isParked(2))
     #expect(harness.workspaces() == [1: 1, 2: 1], "parked windows keep their workspace")
@@ -102,7 +102,7 @@ struct WorkspaceSwitchTests {
   @Test func switchingToAnEmptyWorkspaceTakesFocusFromTheParkedWindow() async {
     let harness = WorkspaceHarness([1, 2])
     await harness.osFocus(2)
-    _ = harness.manager.switchWorkspace(.down)
+    _ = harness.manager.switchWorkspace(.next)
     #expect(harness.isParked(2))
     #expect(harness.backend.focusCalls.isEmpty)
     #expect(harness.backend.unfocusCount == 1)
@@ -112,7 +112,7 @@ struct WorkspaceSwitchTests {
     let harness = WorkspaceHarness([1])
     await harness.osFocus(1)
     harness.backend.isUnfocusFailing = true
-    #expect(harness.manager.switchWorkspace(.down) == .message("workspace 2"))
+    #expect(harness.manager.switchWorkspace(.next) == .message("workspace 2"))
     #expect(harness.isParked(1))
     #expect(harness.backend.unfocusCount == 1)
   }
@@ -131,14 +131,14 @@ struct WorkspaceSwitchTests {
     let harness = WorkspaceHarness([1, 2])
     let slots = [harness.frame(of: 1), harness.frame(of: 2)]
     await harness.osFocus(2)
-    _ = harness.manager.switchWorkspace(.down)
-    _ = harness.manager.switchWorkspace(.up)
+    _ = harness.manager.switchWorkspace(.next)
+    _ = harness.manager.switchWorkspace(.prev)
     #expect([harness.frame(of: 1), harness.frame(of: 2)] == slots)
     #expect(harness.backend.focusCalls == [WindowID(2)])
   }
 
   @Test(arguments: [
-    (WorkspaceTarget.down, 4, "workspace 1"), (.up, 1, "workspace 4"),
+    (WorkspaceTarget.next, 4, "workspace 1"), (.prev, 1, "workspace 4"),
     (.number(2), 1, "workspace 2"),
   ])
   func upAndDownWrapAtTheEnds(target: WorkspaceTarget, from: Int, expected: String) {
@@ -165,14 +165,14 @@ struct WorkspaceSwitchTests {
   @Test func switchingNeedsTilingAndPermission() {
     let harness = WorkspaceHarness([1])
     _ = harness.manager.setTiling(.off)
-    #expect(harness.manager.switchWorkspace(.down) == .error(WindowManager.tilingOffMessage))
+    #expect(harness.manager.switchWorkspace(.next) == .error(WindowManager.tilingOffMessage))
     #expect(
-      harness.manager.moveToWorkspace(.down, follow: false)
+      harness.manager.moveToWorkspace(.next, follow: false)
         == .error(WindowManager.tilingOffMessage))
 
     let waiting = WindowManager(
       backend: FakeBackend(), displays: FakeDisplays(), gate: FakeGate(isTrusted: false))
-    #expect(waiting.switchWorkspace(.down) == .error(WindowManager.permissionMessage))
+    #expect(waiting.switchWorkspace(.next) == .error(WindowManager.permissionMessage))
   }
 
   @Test func handleRoutesTheWorkspaceRequests() async {
@@ -187,7 +187,7 @@ struct WorkspaceSwitchTests {
 
   @Test func tilingOffBringsParkedWindowsBackAndForgetsTheirWorkspace() {
     let harness = WorkspaceHarness([1, 2, 3])
-    _ = harness.manager.switchWorkspace(.down)
+    _ = harness.manager.switchWorkspace(.next)
     harness.backend.windows.append(makeWindow(id: 9))
     _ = harness.manager.setTiling(.off)
     #expect(harness.frame(of: 1) == WorkspaceHarness.originalFrame(index: 0))
@@ -197,7 +197,7 @@ struct WorkspaceSwitchTests {
 
   @Test func turningTilingBackOnTilesEverythingOntoTheCurrentWorkspace() {
     let harness = WorkspaceHarness([1, 2])
-    _ = harness.manager.switchWorkspace(.down)
+    _ = harness.manager.switchWorkspace(.next)
     _ = harness.manager.setTiling(.off)
     _ = harness.manager.setTiling(.on)
     #expect(harness.workspaces() == [1: 2, 2: 2])
@@ -205,7 +205,7 @@ struct WorkspaceSwitchTests {
 
   @Test func aParkedWindowThatClosesLeavesItsWorkspace() async {
     let harness = WorkspaceHarness([1, 2])
-    _ = harness.manager.switchWorkspace(.down)
+    _ = harness.manager.switchWorkspace(.next)
     harness.backend.send(.destroyed(WindowID(1)))
     await harness.settle()
     #expect(harness.workspaces() == [2: 1])
@@ -214,7 +214,7 @@ struct WorkspaceSwitchTests {
   @Test func aParkedWindowStaysOnItsWorkspaceWhateverItsFrameSays() async {
     let displays = FakeDisplays(displays: [FakeDisplays.main, FakeDisplays.secondary])
     let harness = WorkspaceHarness([1, 2], displays: displays)
-    _ = harness.manager.switchWorkspace(.down)
+    _ = harness.manager.switchWorkspace(.next)
     // macOS (or the user) moves a parked window onto the other display.
     harness.backend.send(
       .updated(makeWindow(id: 1, frame: CGRect(x: 2000, y: 100, width: 300, height: 200))))
@@ -232,16 +232,16 @@ struct WorkspaceSwitchTests {
     let harness = WorkspaceHarness(
       [1, 2], displays: FakeDisplays(displays: [FakeDisplays.main, tall]))
     let slots = [harness.frame(of: 1), harness.frame(of: 2)]
-    _ = harness.manager.switchWorkspace(.down)
+    _ = harness.manager.switchWorkspace(.next)
     await harness.settle()  // the manager learns the parked frames
-    _ = harness.manager.switchWorkspace(.up)
+    _ = harness.manager.switchWorkspace(.prev)
     #expect(harness.workspaces() == [1: 1, 2: 1])
     #expect([harness.frame(of: 1), harness.frame(of: 2)] == slots)
   }
 
   @Test func aParkedWindowThatIsMinimizedComesBackOnTheCurrentWorkspace() async {
     let harness = WorkspaceHarness([1, 2])
-    _ = harness.manager.switchWorkspace(.down)
+    _ = harness.manager.switchWorkspace(.next)
     harness.backend.send(.updated(makeWindow(id: 1, isMinimized: true)))
     await harness.settle()
     #expect(harness.workspaces() == [2: 1])
@@ -255,7 +255,7 @@ struct WorkspaceSwitchTests {
     await harness.osFocus(2)
     _ = harness.manager.toggleFloat()
     let floatedFrame = harness.frame(of: 2)
-    _ = harness.manager.switchWorkspace(.down)
+    _ = harness.manager.switchWorkspace(.next)
     #expect(harness.workspaces() == [1: 1])
     #expect(harness.frame(of: 2) == floatedFrame)
     #expect(harness.backend.unfocusCount == 0, "a floated window stays on screen, with focus")

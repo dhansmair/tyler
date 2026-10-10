@@ -52,7 +52,7 @@ Sizes: XS < 20 lines, S < 60, M < 200, L larger.
     - Cache role/subrole per window and app name/bundle id per process.
   - Batching also shortens stalls on a hung app: `messagingTimeout` is 1 s *per call*, so today one event can block the main actor for about 7 s.
   - M, medium risk.
-- [ ] **9. Move the pure logic into TylerCore.**
+- [x] **9. Move the pure logic into TylerCore.**
   - The decision half of `syncWorkspaces` (`+Sync`, at 48 lines the longest function in the server): which windows each workspace should hold, what's new, and the focused arrival. Extract it as `WorkspaceSync.plan(…)`; the server keeps only the parking.
   - `SlidePlan` and `slidePlan(to:direction:on:)` (`+Workspaces`/`+Pan`) need only frames and a display.
   - `isClose`/`isResized` (CGRect geometry), `side(of:)` in `+Pan`, `direction(of:from:to:)` in `+Workspaces`.
@@ -139,3 +139,4 @@ So nobody tries them again without a profile that says otherwise:
 - 2026-10-11: item 10 done (server helpers).
 - 2026-10-11: item 6 done (one layout per pointer step).
 - 2026-10-11: item 13 dropped (not worth it after item 1).
+- 2026-10-11: item 9 done (`WorkspaceSync`, `SlidePlan`, `CGRect.isClose(to:)`/`hasOtherSize(than:)`, `ScrollDirection(revealedBy:)`, `WorkspaceTarget.direction(from:to:)` in TylerCore).

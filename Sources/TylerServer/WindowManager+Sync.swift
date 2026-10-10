@@ -11,70 +11,32 @@ extension WindowManager {
     var focusedArrival: Int?
   }
 
-  /// Updates every workspace's list. A window stays on its workspace while it is tileable and not
-  /// floated; parked and sliding windows keep their place whatever their frame says. Windows on
-  /// the current workspace leave it when they move to another display. Tileable windows on the
-  /// primary display that belong to no workspace join the current one, unless they have never
-  /// been tiled and the config assigns their app to another workspace: then they are parked
-  /// there.
+  /// Updates every workspace's list (see `WorkspaceSync` for the rules), parks windows that
+  /// arrive on a workspace that isn't on screen, and remembers every window that has been on a
+  /// workspace, so app assignments leave it alone from then on.
   @discardableResult
   func syncWorkspaces() -> SyncOutcome {
     let connected = displays.displays
-    // With no display at all (asleep, reconfiguring) nothing is decided, so parked windows
-    // aren't forgotten while they are still parked.
-    guard let primary = connected.first else { return SyncOutcome() }
-    let isOnPrimary = { (window: WindowInfo) in
-      DisplayGeometry.display(containing: window.frame, in: connected)?.id == primary.id
-    }
-    let isCandidate = { (window: WindowInfo) in
-      window.isTileable && !self.bookkeeping.floated.contains(window.id)
-    }
-    let sliding = animatingWindows
-    let assigned = workspaces.allWindows
-    let newcomers = Dictionary(
-      grouping: registry.windows.filter { window in
-        !assigned.contains(window.id) && isCandidate(window) && isOnPrimary(window)
-      },
-      by: assignedIndex(of:))
+    guard let primary = connected.first,
+      let sync = WorkspaceSync.plan(
+        for: workspaces, windows: registry.windows, displays: connected,
+        marks: WorkspaceSync.Marks(
+          floated: bookkeeping.floated, seen: bookkeeping.seen, sliding: animatingWindows),
+        assignedWorkspace: {
+          self.config.assignedWorkspace(bundleID: $0.bundleID, appName: $0.appName)
+        })
+    else { return SyncOutcome() }
     var outcome = SyncOutcome()
-    var arrivals: [WindowID] = []
     for index in workspaces.indices {
-      let isCurrent = index == workspaces.currentIndex
-      var eligible = workspaces[index].windows.filter { windowID in
-        guard let window = registry.window(withID: windowID), isCandidate(window) else {
-          return false
-        }
-        return !isCurrent || sliding.contains(windowID) || isOnPrimary(window)
-      }
-      var joining = newcomers[index] ?? []
-      if isCurrent {
-        joining += newcomers[nil] ?? []
-        if workspaces[index].count == 0 {
-          // First fill: left to right, then top to bottom, so the layout matches the screen.
-          joining.sort { ($0.frame.minX, $0.frame.minY) < ($1.frame.minX, $1.frame.minY) }
-        }
-      } else {
-        arrivals += joining.map(\.id)
-      }
-      eligible += joining.map(\.id)
-      if workspaces[index].sync(eligible: eligible) && isCurrent { outcome.changedCurrent = true }
+      let changed = workspaces[index].sync(eligible: sync.eligible[index])
+      if changed && index == workspaces.currentIndex { outcome.changedCurrent = true }
     }
     bookkeeping.seen.formUnion(workspaces.allWindows)
-    if let focusedID = registry.focusedID, arrivals.contains(focusedID) {
+    if let focusedID = registry.focusedID, sync.arrivals.contains(focusedID) {
       outcome.focusedArrival = workspaces.index(containing: focusedID)
     }
-    park(arrivals, on: primary)
+    park(sync.arrivals, on: primary)
     return outcome
-  }
-
-  /// The workspace the config assigns a window to, or `nil` for the current one: windows that
-  /// have been tiled before, and apps without an assignment, go to the current workspace.
-  private func assignedIndex(of window: WindowInfo) -> Int? {
-    guard !bookkeeping.seen.contains(window.id),
-      let number = config.assignedWorkspace(bundleID: window.bundleID, appName: window.appName),
-      workspaces.indices.contains(number - 1), number - 1 != workspaces.currentIndex
-    else { return nil }
-    return number - 1
   }
 
   /// Moves windows straight to their parking spot, without a slide.

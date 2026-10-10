@@ -22,7 +22,7 @@ Get window ids and slots from `tyler list` (`.build/debug/tyler list`). Example:
 
 - **Prefer reading to moving.** Start with `stacking`, `menubar` and `tyler list`. Move windows only when the question needs it.
 - **Tell the user before moving their windows**, and for `slide` give the countdown time to watch: they judge smoothness, not you. Ask them what they saw instead of guessing.
-- **Don't run `tyler restart` (or `stop`) without asking.** It puts every window back where it was before tylerd moved it, and the new tylerd puts them all on workspace 1, so the user loses their arrangement.
+- **Don't run `tyler stop` without asking.** It puts every window back where it was before tylerd moved it, so the user loses their arrangement. `tyler restart` keeps the windows in place (the old tylerd hands its workspaces over), so it's safe after a rebuild; still say that you're restarting.
 - **Check that windows went back** afterwards with `tyler list`.
 - **Write findings down.** Measured limits and verified checklist items go into `devtools/ROADMAP.md` with the date and macOS version, the way the M4 notes record the position limits.
 

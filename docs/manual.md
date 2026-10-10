@@ -62,7 +62,7 @@ Without tiling it says `tyler: tiling off`, and before Accessibility permission 
 ```bash
 tyler start      # start tylerd in the background
 tyler status     # is it running, and which build?
-tyler restart    # after rebuilding or installing a new version
+tyler restart    # after rebuilding or installing a new version; windows stay put
 tyler stop
 ```
 
@@ -75,6 +75,8 @@ You can also run `tylerd` yourself in a terminal, which keeps its output there; 
 As soon as it has permission, `tylerd` tiles the windows on the main display, ordered left to right as they were on screen.
 
 **Stopping.** `tyler stop`, Ctrl-C in the terminal running `tylerd`, or SIGTERM (`pkill tylerd`) all stop it cleanly: `tylerd` puts every window it moved back where it was, parked windows included. A crash or `kill -9` skips this step, and windows of other workspaces stay parked at the right edge of the display.
+
+**Restarting** with `tyler restart` is different: the old `tylerd` leaves every window where it is and writes its workspaces (windows, order, focus, layouts, floated windows) to `~/.tyler/tyler.state.json`. The new `tylerd` carries on from that file and deletes it, so nothing moves and every window stays on its workspace. Windows closed in between are left out; windows opened in between join the current workspace.
 
 **After a rebuild** the running `tylerd` is still the old version, and a newer `tyler` may send it commands it doesn't know (`unknown request: tylerd is probably older than tyler`). `tyler status` warns when the `tylerd` binary has changed since it started. Run `tyler restart`.
 
@@ -111,7 +113,7 @@ tyler <command> [arguments]
 | --- | --- |
 | `start` | Start `tylerd` in the background |
 | `stop` | Stop `tylerd`; windows go back where they were |
-| `restart` | Stop `tylerd` and start it again |
+| `restart` | Stop `tylerd` and start it again, keeping the windows in place |
 | `status` | Show whether `tylerd` is running, and which build |
 | `ping` | Check that `tylerd` is running |
 | `list [--json]` | Show the windows `tylerd` is tracking |
@@ -140,7 +142,7 @@ tyler restart
 
 `stop` asks `tylerd` to quit, which puts every window back where it was, and waits until it has. It is not an error if `tylerd` isn't running.
 
-`restart` is `stop` followed by `start`: use it after `make build` or `make install`.
+`restart` stops `tylerd` and starts it again, keeping every window where it is and on its workspace (see [Running tylerd](#running-tylerd)): use it after `make build` or `make install`. A `tylerd` from before restarts kept windows can't hand them over; it is stopped normally, its windows go back where they were, and `restart` says so.
 
 A `tylerd` started before these commands existed can't be stopped this way; `tyler` says so. Stop it once with `pkill tylerd` (or Ctrl-C), then use `tyler start`.
 

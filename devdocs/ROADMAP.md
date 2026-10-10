@@ -166,7 +166,7 @@ Decisions (2026-10-10, with the user): a **live preview**: while the dragged win
 - [x] TylerCore: `Workspace.swap(_:with:)`, `Workspace.dropTarget(for:at:in:)`
 - [x] TylerServer: `PointerEvent.primaryButtonDragged`, preview and swap in `WindowManager+Mouse.swift`; a command mid-drag puts the preview back
 - [x] TylerPlatform: `PointerMonitor` reports drags (global `leftMouseDragged` monitor)
-- [ ] Checked against real windows: preview, swap on release, snap back in a gap, `full`, resizing still works
+- [x] Checked against real windows (2026-10-10, by the user): preview, swap on release, snap back in a gap, `full`, resizing still works
 - [x] Tried and dropped (2026-10-10, with the user): the dragged window taking the target slot's size during the preview (a size-only AX write, top-left corner kept). It worked, but the size jumped without animation and felt awkward. Animating it isn't practical: every step makes the app lay out the window again (the reason live following is throttled), and AX-based managers (AeroSpace, Amethyst) don't animate resizes either. The dragged window keeps its size until the release
 
 ### Later: grid layout

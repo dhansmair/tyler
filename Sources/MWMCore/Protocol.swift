@@ -13,6 +13,10 @@ public enum Request: Codable, Equatable, Sendable {
   case ratio(Double)
   /// Floats the focused window, or tiles it again if it is floating.
   case toggleFloat
+  /// Switches to another virtual monitor.
+  case monitor(MonitorTarget)
+  /// Sends the focused window to another virtual monitor; with `follow`, the view goes along.
+  case moveToMonitor(MonitorTarget, follow: Bool)
 }
 
 /// The server's reply to a `Request`.

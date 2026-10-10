@@ -99,7 +99,36 @@ Built and unit tested:
 - [ ] The frontmost-app plus raise approach in `AXBridge.raise` works for an accessory app like `mwmd` (I chose it because the SDK documents `NSRunningApplication.activate` as cooperative and not guaranteed)
 
 ### M4. Virtual monitors and the animation spike
-DisplayStack, parking, Animator, `monitor` and `move-to-monitor`, restore on exit. Check early whether the slide feels good enough, and decide whether the snapshot-overlay fallback is needed.
+Plan: `plans/m4-virtual-monitors.md`. A fixed stack of 4 virtual monitors on the primary display, `monitor up|down|<n>` with a slide, `move-to-monitor`, focus-driven switching, and restore on exit.
+
+Decisions (agreed in the plan): 4 monitors (configurable in M6), primary display only (per-display stacks are M5); `up`/`down` wrap and `<n>` is 1-based and range-checked; the animation is built in from the start and a snap is an animation with zero steps; on SIGINT/SIGTERM every window goes back to its original frame (crash recovery is out of scope). New windows (and windows that become tileable again, such as un-minimized ones) go to the current monitor. Floated windows and dialogs belong to no monitor and stay visible everywhere. Parked windows sit in the display's bottom-right corner with 1 point visible. A command arriving mid-slide jumps to the slide's end first. `monitor` and `move-to-monitor` need tiling on.
+
+Decisions made while building (flag at review):
+- **"Original frame" means the frame just before mwmd first moves a window**, not the frame when mwmd first saw it. Windows mwmd never moved (dialogs, windows already in their slot that never slid) are left alone on exit. For tiled windows the two are the same in practice.
+- **`tiling off` empties only the other monitors** (their windows go back to their original frames). The current monitor keeps its list, so `tiling on` restores its order as M3 did. The plan said all assignments are cleared; keeping the current one is what the existing M3 test expects.
+- **mwmd ignores the echo of its own focus calls.** Each window mwmd focuses is remembered until its focus event arrives, and that event never switches monitors. Without this, a quick `monitor down` then `monitor up` could switch back down when the first focus event arrives late.
+- **Slide direction:** `monitor down` moves the current windows up and out by one display height while the next monitor's windows rise from one display height below; `up` is the reverse. `<n>` slides down if n is after the current monitor. `move-to-monitor` without `--follow` slides only the moved window out; the rest re-tile at once.
+- **No `Animator` protocol.** `Animator` is a struct with an injected `Clock`; the clock is the test seam (`TestClock` in the server tests). Default: 200 ms at 16 ms per frame (13 frames), each intermediate frame one `setPosition` per window, the last frame a full `setFrame`.
+- Replies: `monitor <n>`, `moved to monitor <n>`, `already on monitor <n>`.
+
+Built and unit tested:
+- [x] Phase 1, restore on exit: `WindowManager.stop()` cancels any slide and puts every window it ever moved back (failures logged, never blocking the rest); the `mwmd` signal handler already called it
+- [x] MWMCore: `MonitorTarget`, `MonitorStack` (wrapping `up`/`down`, range-checked numbers, `move`, per-monitor focus), `Parking`, `Track`/`Easing`/`ScrollDirection`, `WindowInfo.monitor`, `Request.monitor` / `Request.moveToMonitor`
+- [x] MWMServer: `WindowBackend.setPosition`, `Animator`, monitors in `WindowManager` (`WindowManager+Monitors.swift`): per-monitor membership (parked and sliding windows keep their monitor whatever their frame says), switching with a slide, `move-to-monitor [--follow]`, focusing a parked window switches to its monitor, `tiling off` unparks
+- [x] MWMPlatform: `AXBridge.setPosition` (one AX write), `AXBackend.setPosition`
+- [x] MWMClient: `monitor up|down|<n>`, `move-to-monitor up|down|<n> [--follow]`, `MONITOR` column in `list`
+- [x] 255 tests pass; `swift format lint --strict` and `swiftlint --strict` are clean
+
+**Not verified against real windows** (a user `mwmd` was running, and a second instance would fight it over the same windows). Checklist, with `mwm tiling off` or SIGTERM as the escape hatch:
+- [ ] Windows return to their original frames after SIGTERM, including parked ones
+- [ ] `monitor down|up|<n>` slides windows and ends with the right set visible; `monitor down` on the last wraps to the first
+- [ ] New windows open on the current monitor; `list` shows the `MONITOR` column
+- [ ] Parked windows are really hidden (about 1 point visible) and macOS doesn't pull them back on screen
+- [ ] Slide smoothness with 3+ windows (is the snapshot-overlay fallback needed?)
+- [ ] macOS lets the outgoing windows slide up past the menu bar. If it clamps them, they bunch at the top for 200 ms; then slide them down instead, or park first
+- [ ] `move-to-monitor` with and without `--follow`; cmd-tab to a parked window switches monitor
+- [ ] `tiling off` with parked windows leaves a usable screen
+- [ ] Closing a window whose app has another window on a parked monitor: macOS may focus that parked window, and mwmd then switches to its monitor (likely unwanted; see open items)
 
 ### M5. Multi-display
 Per-display stacks keyed by display UUID, reconfiguration handling, `display` and `move-to-display`.
@@ -120,12 +149,17 @@ mwm monitor up|down|<n>               mwm move-to-monitor up|down|<n> [--follow]
 mwm display next|prev                 mwm move-to-display next|prev
 mwm service install|uninstall
 ```
-Implemented so far: `ping`, `list [--json]`, `focus`, `swap`, `layout`, `ratio`, `float toggle`, `tiling`, `retile`. The CLI and wire format say `master` (the xmonad term); in Swift the case is `ListTarget.main`, because SwiftLint's `inclusive_language` rule rejects `master` in identifiers.
+Implemented so far: `ping`, `list [--json]`, `focus`, `swap`, `layout`, `ratio`, `float toggle`, `tiling`, `retile`, `monitor`, `move-to-monitor [--follow]`. The CLI and wire format say `master` (the xmonad term); in Swift the case is `ListTarget.main`, because SwiftLint's `inclusive_language` rule rejects `master` in identifiers.
 
 ## Open items
 - **Code signing.** No signing identity exists on this machine. macOS ties the Accessibility permission to the binary's code identity. Decided in M2: during development, grant Accessibility to the terminal app that runs `mwmd` (no keychain changes). Revisit in M6, when `mwmd` runs as a LaunchAgent and needs its own stable identity (a self-signed `mwm-dev` certificate, then `make install SIGN_ID=mwm-dev`).
 - Native fullscreen windows are left alone. Terminals that snap to character cells won't fill their frame exactly.
-- AX calls cost one round trip per window, so a slide with many windows may be coarse (see M4).
+- AX calls cost one round trip per window, so a slide with many windows may be coarse (see M4). Each slide frame runs on the main thread, and an unresponsive app can block a frame for up to the 1 s AX timeout.
+- **Crash recovery (from M4).** A crash or `kill -9` skips `stop()`, so parked windows stay in the corner. A state file of original frames, read at the next start, would fix it; out of scope for M4.
+- **Parking with several displays (M5).** Windows park in the primary display's bottom-right corner. With a display to the right of or below it, a parked window can show on that display. M5 needs to pick a corner that touches no other display.
+- **Focus after closing a window (from M4).** When a window closes, macOS may focus another window of the same app, even one parked on another monitor, and mwmd then switches there. Unverified; if it happens, ignore focus events for parked windows right after a window of the same app closes.
+- **Focus after switching to an empty monitor** stays on the previous monitor's (now parked) window, so typing goes to a hidden window. Unverified.
+- **Echo tracking can go stale.** If an app accepts a focus call but never sends a focus event, the window stays on mwmd's "own focus" list, and the next real focus of it while parked doesn't switch monitors (once). Unverified whether this happens.
 
 - **Testing pitfalls found in M1.** (1) Tests that block in `read()` must not run on Swift concurrency's cooperative pool: a task-group version of the concurrent-clients test failed ~80% of runs, plain threads pass. The cause is suspected, not verified. (2) A test that writes more than the socket buffer (~8 KB) on the same thread that later reads will deadlock. (3) macOS has no `timeout`; use `perl -e 'alarm N; exec @ARGV' cmd` to bound a run.
 
@@ -137,4 +171,5 @@ Implemented so far: `ping`, `list [--json]`, `focus`, `swap`, `layout`, `ratio`,
 ## Log
 - 2026-10-08: M1 built.
 - 2026-10-08: M2 built and unit tested. The user then ran it against real windows and reported it works well (see M2 for what was and wasn't confirmed).
+- 2026-10-10: M4 built and unit tested (all three phases of the plan). Not yet run against real windows (see M4 for the checklist).
 - 2026-10-08: M3 built and unit tested. The code that moves and focuses windows has not been run against real windows (see M3 for the checklist). Not recoverable on exit yet: quitting `mwmd` leaves windows where tiling put them (M4 adds restore).

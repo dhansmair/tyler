@@ -57,8 +57,9 @@ if manager.startIfPermitted() {
   }
 }
 
-// Shut down cleanly on SIGINT/SIGTERM so the socket file doesn't linger.
-// From M4 on, this is also where parked windows get restored.
+// Shut down cleanly on SIGINT/SIGTERM: `manager.stop()` puts every window (parked ones included)
+// back where it was before mwmd moved it, and the socket file doesn't linger. A crash or
+// `kill -9` skips this and leaves parked windows in the corner.
 var signalSources: [DispatchSourceSignal] = []
 for signalNumber in [SIGINT, SIGTERM] {
   signal(signalNumber, SIG_IGN)

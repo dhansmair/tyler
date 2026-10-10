@@ -72,6 +72,12 @@ struct TilingCommandLineTests {
     (["tiling", "off"], Request.tiling(.off)),
     (["tiling", "toggle"], Request.tiling(.toggle)),
     (["retile"], Request.retile),
+    (["monitor", "up"], Request.monitor(.up)),
+    (["monitor", "down"], Request.monitor(.down)),
+    (["monitor", "3"], Request.monitor(.number(3))),
+    (["move-to-monitor", "down"], Request.moveToMonitor(.down, follow: false)),
+    (["move-to-monitor", "2", "--follow"], Request.moveToMonitor(.number(2), follow: true)),
+    (["move-to-monitor", "--follow", "up"], Request.moveToMonitor(.up, follow: true)),
   ])
   func parsesEveryTilingCommand(arguments: [String], expected: Request) throws {
     #expect(try CommandLineParser.parse(arguments) == Invocation(request: expected))
@@ -96,6 +102,29 @@ struct TilingCommandLineTests {
     (["tiling"], "tiling takes exactly one argument: on|off|toggle"),
     (["tiling", "maybe"], "unknown tiling argument 'maybe' (use on|off|toggle)"),
     (["retile", "now"], "retile takes no arguments"),
+    (["monitor"], "monitor takes exactly one argument: up|down|<n>"),
+    (["monitor", "up", "down"], "monitor takes exactly one argument: up|down|<n>"),
+    (["monitor", "0"], "unknown monitor argument '0' (use up|down|<n>, where n starts at 1)"),
+    (
+      ["monitor", "left"], "unknown monitor argument 'left' (use up|down|<n>, where n starts at 1)"
+    ),
+    (["move-to-monitor"], "move-to-monitor takes one target (up|down|<n>) and optionally --follow"),
+    (
+      ["move-to-monitor", "--follow"],
+      "move-to-monitor takes one target (up|down|<n>) and optionally --follow"
+    ),
+    (
+      ["move-to-monitor", "1", "2"],
+      "move-to-monitor takes one target (up|down|<n>) and optionally --follow"
+    ),
+    (
+      ["move-to-monitor", "1", "--follow", "--follow"],
+      "move-to-monitor takes one target (up|down|<n>) and optionally --follow"
+    ),
+    (
+      ["move-to-monitor", "-1"],
+      "unknown move-to-monitor argument '-1' (use up|down|<n>, where n starts at 1)"
+    ),
   ])
   func rejectsBadArgumentsAndNamesTheValidChoices(arguments: [String], message: String) {
     #expect(throws: CommandLineError.usage(message)) {
@@ -104,7 +133,10 @@ struct TilingCommandLineTests {
   }
 
   @Test func usageMentionsEveryTilingCommand() {
-    for word in ["focus", "swap", "layout", "ratio", "float", "tiling", "retile"] {
+    for word in [
+      "focus", "swap", "layout", "ratio", "float", "tiling", "retile", "monitor", "move-to-monitor",
+      "--follow",
+    ] {
       #expect(CommandLineParser.usage.contains(word), "usage should mention \(word)")
     }
   }
@@ -177,9 +209,9 @@ struct ResponseFormatterTests {
       .windows([window(id: 1), window(id: 123_456, app: "A much longer app name")])
     )
     let lines = result.text.split(separator: "\n").map(String.init)
-    // The widest ID is "123456" (6 characters), then a two-space gap, then the 4-character SLOT
-    // column and another two-space gap, so APP starts at column 14.
-    let appColumn = 14
+    // The widest ID is "123456" (6 characters), then a two-space gap, the 7-character MONITOR
+    // column, the 4-character SLOT column and a two-space gap after each, so APP starts at 23.
+    let appColumn = 23
     let expected = ["APP", "TextEdit", "A much longer app name"]
     for (line, text) in zip(lines, expected) {
       #expect(
@@ -251,13 +283,26 @@ struct ResponseFormatterTests {
     #expect(lines[2].hasSuffix("floated"))
   }
 
+  @Test func theTableShowsTheMonitor() {
+    var tiled = window(id: 1)
+    tiled.monitor = 2
+    tiled.slot = 1
+    let lines = ResponseFormatter.format(.windows([tiled, window(id: 2)])).text
+      .split(separator: "\n").map(String.init)
+    #expect(lines[0].hasPrefix("ID  MONITOR  SLOT"))
+    #expect(lines[1].hasPrefix("1   2        1"))
+    #expect(lines[2].hasPrefix("2   -        -"))
+  }
+
   @Test func jsonCarriesTheTilingFields() throws {
     var tiled = window(id: 1)
     tiled.slot = 3
+    tiled.monitor = 4
     tiled.isFloated = true
     let text = ResponseFormatter.format(.windows([tiled]), as: .json).text
     let decoded = try JSONDecoder().decode([WindowInfo].self, from: Data(text.utf8))
     #expect(decoded.first?.slot == 3)
+    #expect(decoded.first?.monitor == 4)
     #expect(decoded.first?.isFloated == true)
   }
 }

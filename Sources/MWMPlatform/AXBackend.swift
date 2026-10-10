@@ -67,6 +67,11 @@ public final class AXBackend: WindowBackend {
     }
   }
 
+  public func setPosition(_ origin: CGPoint, of windowID: WindowID) throws(BackendError) {
+    guard let element = elements[windowID] else { throw .windowGone(windowID) }
+    try check(AXBridge.setPosition(origin, of: element), for: windowID, action: "move")
+  }
+
   public func focus(_ windowID: WindowID) throws(BackendError) {
     guard let element = elements[windowID], let processID = owners[windowID] else {
       throw .windowGone(windowID)

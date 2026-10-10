@@ -85,6 +85,13 @@ enum AXBridge {
     return .success
   }
 
+  /// Moves a window without resizing it: one position write, cheap enough for animation steps.
+  static func setPosition(_ origin: CGPoint, of element: AXUIElement) -> AXError {
+    var point = origin
+    guard let axPosition = AXValueCreate(.cgPoint, &point) else { return .failure }
+    return AXUIElementSetAttributeValue(element, kAXPositionAttribute as CFString, axPosition)
+  }
+
   /// Brings a window to the front and gives it keyboard focus: the owning app is made frontmost
   /// (an accessory app like mwmd can't rely on `NSRunningApplication.activate`, which the SDK
   /// documents as cooperative and not guaranteed), then the window is raised and marked main.

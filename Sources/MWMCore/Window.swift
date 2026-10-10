@@ -66,6 +66,8 @@ public struct WindowInfo: Codable, Equatable, Sendable, Identifiable {
   /// Also server-filled: the 1-based position in the tiling list (1 is the master), or `nil` if
   /// the window isn't tiled.
   public var slot: Int?
+  /// Also server-filled: the 1-based virtual monitor the window is tiled on, or `nil`.
+  public var monitor: Int?
   /// Also server-filled: the user floated this window, so tiling leaves it alone.
   public var isFloated: Bool
 
@@ -82,6 +84,7 @@ public struct WindowInfo: Codable, Equatable, Sendable, Identifiable {
     isFocused: Bool = false,
     displayID: UInt32? = nil,
     slot: Int? = nil,
+    monitor: Int? = nil,
     isFloated: Bool = false
   ) {
     self.id = id
@@ -96,6 +99,7 @@ public struct WindowInfo: Codable, Equatable, Sendable, Identifiable {
     self.isFocused = isFocused
     self.displayID = displayID
     self.slot = slot
+    self.monitor = monitor
     self.isFloated = isFloated
   }
 

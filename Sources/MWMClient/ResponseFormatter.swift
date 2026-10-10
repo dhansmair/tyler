@@ -27,12 +27,13 @@ public enum ResponseFormatter {
     }
   }
 
-  /// Columns: id, slot, app, title, frame, display, flags. An empty list prints one line.
+  /// Columns: id, monitor, slot, app, title, frame, display, flags. An empty list prints one line.
   static func table(of windows: [WindowInfo]) -> String {
     guard !windows.isEmpty else { return "no windows" }
     let rows = windows.map { window in
       [
         String(window.id.rawValue),
+        window.monitor.map(String.init) ?? "-",
         window.slot.map(String.init) ?? "-",
         window.appName,
         window.title.isEmpty ? "-" : singleLine(window.title),
@@ -41,7 +42,7 @@ public enum ResponseFormatter {
         flags(of: window),
       ]
     }
-    let header = ["ID", "SLOT", "APP", "TITLE", "FRAME", "DISPLAY", "FLAGS"]
+    let header = ["ID", "MONITOR", "SLOT", "APP", "TITLE", "FRAME", "DISPLAY", "FLAGS"]
     let all = [header] + rows
     let widths = header.indices.map { column in
       all.map { $0[column].count }.max() ?? 0

@@ -1,4 +1,5 @@
 import CoreGraphics
+import Foundation
 import MWMCore
 
 @testable import MWMServer
@@ -39,6 +40,8 @@ final class FakeBackend: WindowBackend {
 
   /// Every successful `setFrame`, in order.
   private(set) var moves: [Placement] = []
+  /// Every successful `setPosition` (animation steps), in order.
+  private(set) var nudges: [(id: WindowID, origin: CGPoint)] = []
   /// Every `focus` call, in order, including ones that failed.
   private(set) var focusCalls: [WindowID] = []
   /// Windows whose `setFrame` throws.
@@ -65,6 +68,16 @@ final class FakeBackend: WindowBackend {
     continuation.yield(.updated(windows[index]))
   }
 
+  /// Moves the window but, like the real backend, reports nothing back.
+  func setPosition(_ origin: CGPoint, of windowID: WindowID) throws(BackendError) {
+    if failingMoves.contains(windowID) { throw .refused("fake refusal") }
+    guard let index = windows.firstIndex(where: { $0.id == windowID }) else {
+      throw .windowGone(windowID)
+    }
+    nudges.append((windowID, origin))
+    windows[index].frame.origin = origin
+  }
+
   func focus(_ windowID: WindowID) throws(BackendError) {
     focusCalls.append(windowID)
     if failingFocus.contains(windowID) { throw .refused("fake refusal") }
@@ -75,6 +88,7 @@ final class FakeBackend: WindowBackend {
 
   func clearRecordedCalls() {
     moves = []
+    nudges = []
     focusCalls = []
   }
 }
@@ -111,4 +125,75 @@ final class FakeGate: AccessibilityGate {
   }
 
   func prompt() { promptCount += 1 }
+}
+
+/// A clock that only moves when the test calls `advance(by:)`, so animations can be stepped
+/// (or held mid-way) without sleeping. It is `@unchecked Sendable` because all mutable state is
+/// guarded by `lock`.
+final class TestClock: Clock, @unchecked Sendable {
+  struct Instant: InstantProtocol {
+    var offset: Duration
+
+    func advanced(by duration: Duration) -> Instant { Instant(offset: offset + duration) }
+    func duration(to other: Instant) -> Duration { other.offset - offset }
+    static func < (lhs: Instant, rhs: Instant) -> Bool { lhs.offset < rhs.offset }
+  }
+
+  private struct Sleeper {
+    let id: UUID
+    let deadline: Instant
+    let continuation: CheckedContinuation<Void, any Error>
+  }
+
+  private let lock = NSLock()
+  private var current = Instant(offset: .zero)
+  private var sleepers: [Sleeper] = []
+
+  var now: Instant { lock.withLock { current } }
+  var minimumResolution: Duration { .zero }
+
+  /// Whether something is waiting for the clock to advance.
+  var hasSleepers: Bool { lock.withLock { !sleepers.isEmpty } }
+
+  func sleep(until deadline: Instant, tolerance: Duration?) async throws {
+    let id = UUID()
+    try await withTaskCancellationHandler {
+      try await withCheckedThrowingContinuation { continuation in
+        enqueue(Sleeper(id: id, deadline: deadline, continuation: continuation))
+      }
+    } onCancel: {
+      let sleeper = lock.withLock { () -> Sleeper? in
+        guard let index = sleepers.firstIndex(where: { $0.id == id }) else { return nil }
+        return sleepers.remove(at: index)
+      }
+      sleeper?.continuation.resume(throwing: CancellationError())
+    }
+  }
+
+  /// Parks a sleeper until its deadline, or resumes it at once if it is due or cancelled. The
+  /// cancellation check happens under the lock so it can't race with the cancellation handler.
+  private func enqueue(_ sleeper: Sleeper) {
+    enum Outcome { case due, cancelled, waiting }
+    let outcome = lock.withLock { () -> Outcome in
+      if Task.isCancelled { return .cancelled }
+      if sleeper.deadline <= current { return .due }
+      sleepers.append(sleeper)
+      return .waiting
+    }
+    switch outcome {
+    case .due: sleeper.continuation.resume()
+    case .cancelled: sleeper.continuation.resume(throwing: CancellationError())
+    case .waiting: break
+    }
+  }
+
+  func advance(by duration: Duration) {
+    let due = lock.withLock { () -> [Sleeper] in
+      current = current.advanced(by: duration)
+      let due = sleepers.filter { $0.deadline <= current }
+      sleepers.removeAll { $0.deadline <= current }
+      return due
+    }
+    for sleeper in due { sleeper.continuation.resume() }
+  }
 }

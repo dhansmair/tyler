@@ -11,6 +11,15 @@ struct ProtocolTests {
     #expect(try Wire.decode(Request.self, from: Data(line)) == .ping)
   }
 
+  @Test(arguments: [
+    Request.monitor(.up), .monitor(.down), .monitor(.number(3)),
+    .moveToMonitor(.number(2), follow: true), .moveToMonitor(.down, follow: false),
+  ])
+  func monitorRequestsRoundTrip(request: Request) throws {
+    let data = try Wire.encode(request)
+    #expect(try Wire.decode(Request.self, from: Data(data.dropLast())) == request)
+  }
+
   @Test(arguments: [Response.pong, Response.error("boom")])
   func responseRoundTrips(response: Response) throws {
     let data = try Wire.encode(response)

@@ -36,6 +36,9 @@ public enum CommandLineParser {
       float toggle                   float the focused window, or tile it again
       tiling on|off|toggle           start or stop tiling (windows stay where they are)
       retile                         put every tiled window back into its slot
+      monitor up|down|<n>            switch to another virtual monitor (up and down wrap)
+      move-to-monitor up|down|<n> [--follow]
+                                     send the focused window to another virtual monitor
     """
 
   public static func parse(_ arguments: [String]) throws -> Invocation {
@@ -85,6 +88,20 @@ public enum CommandLineParser {
       let mode = try parseChoice(rest, for: command, choices: TilingMode.allCases)
       return Invocation(request: .tiling(mode))
     default:
+      return try monitorCommand(command, rest)
+    }
+  }
+
+  private static func monitorCommand(_ command: String, _ rest: [String]) throws -> Invocation {
+    switch command {
+    case "monitor":
+      guard rest.count == 1 else {
+        throw CommandLineError.usage("monitor takes exactly one argument: up|down|<n>")
+      }
+      return Invocation(request: .monitor(try parseMonitor(rest[0], for: command)))
+    case "move-to-monitor":
+      return try parseMoveToMonitor(rest)
+    default:
       throw CommandLineError.usage("unknown command '\(command)'")
     }
   }
@@ -127,6 +144,31 @@ public enum CommandLineParser {
       throw CommandLineError.usage("ratio must be a signed number such as +0.05 or -0.05")
     }
     return value
+  }
+
+  /// `up`, `down`, or a monitor number from 1. The upper bound is the server's to check.
+  private static func parseMonitor(_ text: String, for command: String) throws -> MonitorTarget {
+    switch text {
+    case "up": return .up
+    case "down": return .down
+    default:
+      guard let number = Int(text), number >= 1 else {
+        throw CommandLineError.usage(
+          "unknown \(command) argument '\(text)' (use up|down|<n>, where n starts at 1)")
+      }
+      return .number(number)
+    }
+  }
+
+  private static func parseMoveToMonitor(_ arguments: [String]) throws -> Invocation {
+    let follow = arguments.contains("--follow")
+    let targets = arguments.filter { $0 != "--follow" }
+    guard targets.count == 1, arguments.count == targets.count + (follow ? 1 : 0) else {
+      throw CommandLineError.usage(
+        "move-to-monitor takes one target (up|down|<n>) and optionally --follow")
+    }
+    let target = try parseMonitor(targets[0], for: "move-to-monitor")
+    return Invocation(request: .moveToMonitor(target, follow: follow))
   }
 
   private static func parseChoice<Choice: RawRepresentable & Sendable>(

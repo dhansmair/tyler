@@ -71,15 +71,12 @@ struct RestoreTests {
     let saved = harness.manager.handOver()
     // Window 2 closed, and a new window took its id before the next tylerd started.
     let opened = CGRect(x: 700, y: 300, width: 500, height: 400)
-    let backend = FakeBackend(windows: [harness.backend.windows[0]])
-    let successor = WindowManager(
-      backend: backend, displays: FakeDisplays(), gate: FakeGate(isTrusted: true),
-      restoring: saved)
-    successor.startIfPermitted()
+    let successor = harness.successor(saved: saved, closing: [2])
+    let backend = successor.backend
     backend.windows.append(makeWindow(id: 2, frame: opened))
     backend.send(.created(makeWindow(id: 2, frame: opened)))
     await settle()
-    successor.stop()
+    successor.manager.stop()
     #expect(backend.frame(of: 2) == opened)
     #expect(backend.frame(of: 1) == ManagerHarness.originalFrame(index: 0))
   }

@@ -71,11 +71,8 @@ struct WorkspaceCountTests {
     #expect(harness.isParked(2))
     let saved = harness.manager.handOver()
 
-    let backend = FakeBackend(windows: harness.backend.windows)
-    let successor = WindowManager(
-      backend: backend, displays: FakeDisplays(), gate: FakeGate(isTrusted: true),
-      config: config(count: 1), restoring: saved)
-    successor.startIfPermitted()
+    let successor = harness.successor(saved: saved, config: config(count: 1))
+    let backend = successor.backend
     let halves = TallLayout().frames(count: 2, in: harness.area, parameters: LayoutParameters())
     #expect(
       [1, 2].map { id in backend.windows.first { $0.id == WindowID(id) }?.frame } == halves,

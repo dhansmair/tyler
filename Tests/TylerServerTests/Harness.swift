@@ -72,12 +72,13 @@ struct ManagerHarness {
     configFile: FakeConfigFile? = nil,
     pointer: FakePointer? = nil,
     clock: any Clock<Duration> = ContinuousClock(),
+    restoring saved: SavedState? = nil,
     clearRecordedCalls: Bool = true
   ) {
     backend = FakeBackend(windows: windows)
     manager = WindowManager(
       backend: backend, displays: displays, gate: gate, animator: animator, config: config,
-      configSource: configFile?.source, pointer: pointer, clock: clock)
+      configSource: configFile?.source, pointer: pointer, clock: clock, restoring: saved)
     manager.startIfPermitted()
     if clearRecordedCalls { backend.clearRecordedCalls() }
   }
@@ -96,6 +97,17 @@ struct ManagerHarness {
     self.init(
       windows: spread(ids) + extra, displays: displays, animator: animator, config: config,
       configFile: configFile, pointer: pointer, clock: clock)
+  }
+
+  /// The next tylerd after this one handed over `saved`: it finds the windows exactly where this
+  /// one left them, without those in `closed`. Its recorded calls are kept, so a test can check
+  /// that taking over moved nothing.
+  func successor(
+    saved: SavedState?, closing closed: [UInt32] = [], config: Config = Config()
+  ) -> ManagerHarness {
+    ManagerHarness(
+      windows: backend.windows.filter { !closed.contains($0.id.rawValue) }, config: config,
+      restoring: saved, clearRecordedCalls: false)
   }
 
   /// Where `spread` puts the window at `index`, before tylerd moves it.

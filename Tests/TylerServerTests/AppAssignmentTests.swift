@@ -105,15 +105,11 @@ struct AppAssignmentTests {
     let harness = await movedAndFloated()
     let saved = harness.manager.handOver()
 
-    let backend = FakeBackend(windows: harness.backend.windows)
-    let successor = WindowManager(
-      backend: backend, displays: FakeDisplays(), gate: FakeGate(isTrusted: true),
-      config: config, restoring: saved)
-    successor.startIfPermitted()
-    backend.send(.focused(WindowID(9)))
-    await settle()
-    _ = successor.toggleFloat()
-    guard case .windows(let windows) = successor.windows() else {
+    let successor = harness.successor(saved: saved, config: config)
+    successor.backend.send(.focused(WindowID(9)))
+    await successor.settle()
+    _ = successor.manager.toggleFloat()
+    guard case .windows(let windows) = successor.manager.windows() else {
       Issue.record("no windows")
       return
     }

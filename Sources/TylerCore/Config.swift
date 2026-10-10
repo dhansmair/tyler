@@ -18,7 +18,7 @@ public struct Config: Equatable, Sendable {
 
   /// How tiled windows follow the mouse.
   public struct Mouse: Equatable, Sendable {
-    public static let followIntervalRange = 0...1000
+    static let followIntervalRange = 0...1000
 
     /// The least time, in milliseconds, between two steps of the layout following a window
     /// resized with the mouse. Each step moves every other window, one round trip to its app
@@ -33,7 +33,7 @@ public struct Config: Equatable, Sendable {
 
   /// The workspaces of each display.
   public struct Workspaces: Equatable, Sendable {
-    public static let countRange = 1...10
+    static let countRange = 1...10
 
     /// How many workspaces a display's stack has.
     public var count: Int
@@ -45,8 +45,8 @@ public struct Config: Equatable, Sendable {
 
   /// Trackpad gestures.
   public struct Gestures: Equatable, Sendable {
-    public static let fingersRange = 3...4
-    public static let swipeDistanceRange = 0.1...1.0
+    static let fingersRange = 3...4
+    static let swipeDistanceRange = 0.1...1.0
 
     /// Whether a sideways swipe moves between workspaces.
     public var swipe: Bool

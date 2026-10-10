@@ -86,7 +86,7 @@ Sizes: XS < 20 lines, S < 60, M < 200, L larger.
   - The CLAUDE.md status paragraph is one line of over 2,000 characters that repeats the roadmap. Cut it to 2–3 sentences that point at the roadmap.
   - Move finished milestones out of `ROADMAP.md` (257 lines, about 6,200 words) into `devdocs/roadmap-done.md`.
   - S.
-- [ ] **17. Dead code and the public surface.**
+- [x] **17. Dead code and the public surface.**
   - Unused: `SlidePlan.direction`, `WindowRegistry.count` (tests only), and `_ = task` in `IPCServer.runBlocking`.
   - Public without need: `Parking.visibleSliver`, `Track.init`, `ScrollDirection.outgoingOffset`, `Config.*Range`, `LayoutParameters.withGaps`/`setMainRatio`, `Snap.resisted`. Check `PanRecognizer`'s public properties again now that `SwipeTap` uses it.
   - Narrow these to internal; tests use `@testable`. XS.
@@ -145,3 +145,4 @@ So nobody tries them again without a profile that says otherwise:
 - 2026-10-11: item 11 steps 2 and 3 deferred to the strip layout.
 - 2026-10-11: item 12 done (`Section.read` with one `Setting` per key; every error message unchanged except the gestures table hint, changed in its own commit).
 - 2026-10-11: item 8 done (batched AX reads, position-only moves); checked with live-check. Tier 2 finished.
+- 2026-10-11: item 17 done (`WindowRegistry.count` and `_ = task` gone; `Parking.visibleSliver`, the `Config` ranges and `PanRecognizer`'s tuning properties internal). `SlidePlan.direction` went with item 9. `Track.init`, `outgoingOffset`, `withGaps`, `setMainRatio` and `Snap.resisted` stay public: the two Core test files without `@testable` and future layouts use them.

@@ -11,7 +11,7 @@ struct WindowRegistryTests {
 
   @Test func startsEmpty() {
     let registry = WindowRegistry()
-    #expect(registry.count == 0)
+    #expect(registry.windows.count == 0)
     #expect(registry.windows.isEmpty)
     #expect(registry.focusedID == nil)
   }
@@ -28,7 +28,7 @@ struct WindowRegistryTests {
     var registry = WindowRegistry()
     registry.apply(.created(makeWindow(id: 1, title: "old")))
     registry.apply(.created(makeWindow(id: 1, title: "new")))
-    #expect(registry.count == 1)
+    #expect(registry.windows.count == 1)
     #expect(registry.windows.first?.title == "new")
   }
 

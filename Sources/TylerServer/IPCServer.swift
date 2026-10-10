@@ -122,12 +122,11 @@ public final class IPCServer: @unchecked Sendable {
   private static func runBlocking(_ handler: @escaping Handler, on request: Request) -> Response {
     let box = ResponseBox()
     let done = DispatchSemaphore(value: 0)
-    let task = Task {
+    Task {
       box.set(await handler(request))
       done.signal()
     }
     done.wait()
-    _ = task
     return box.value
   }
 

@@ -10,7 +10,7 @@ import CoreGraphics
 /// can almost disappear, and workspaces slide horizontally.
 public enum Parking {
   /// How much of a parked window stays inside the visible frame, in points.
-  public static let visibleSliver: CGFloat = 1
+  static let visibleSliver: CGFloat = 1
 
   /// The parked frame for a window that is at `frame` on `display`. The size and height are
   /// kept, so the window doesn't have to be resized when it comes back and can slide straight

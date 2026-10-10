@@ -54,9 +54,9 @@ public struct PanRecognizer: Equatable, Sendable {
 
   public let fingers: Int
   /// How far, in trackpad widths, the fingers must move before the pan's axis is decided.
-  public let lockDistance: Double
+  let lockDistance: Double
   /// How far back, in seconds, the release velocity looks.
-  public let velocityWindow: TimeInterval
+  let velocityWindow: TimeInterval
   private var state = State.idle
 
   /// Hard smoothing while the fingers move slowly (a 2 Hz cutoff), rising to about 30 Hz at the
@@ -70,7 +70,7 @@ public struct PanRecognizer: Equatable, Sendable {
   }
 
   /// Whether a pan is in progress.
-  public var isPanning: Bool {
+  var isPanning: Bool {
     if case .panning = state { return true }
     return false
   }

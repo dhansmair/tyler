@@ -48,6 +48,7 @@ New file `Sources/TylerCore/Pan.swift`:
   - It starts once the horizontal travel passes a small threshold and dominates the vertical travel. A vertical-first gesture is ignored, which leaves the vertical axis free for later use.
   - A change in finger count ends the pan.
   - There is no clamping or commit logic here.
+  - Built (2026-10-11): `feed` returns `[PanUpdate]`, so a frame can give `.began` and the first `.moved` together. There is no `.cancelled`: the recognizer never cancels, and the server cancels a pan on its own (a command mid-pan).
 - Tests in `Tests/TylerCoreTests`, parameterized: offsets, velocity, a vertical gesture ignored, wrong finger count, a reversal through zero.
 
 ### 2. TylerCore: `Snap` and slides that start part-way

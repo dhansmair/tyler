@@ -6,6 +6,9 @@ public enum PointerEvent: Equatable, Sendable {
   /// The primary (left) button went up, anywhere on screen. `location` is in Accessibility
   /// coordinates.
   case primaryButtonReleased(location: CGPoint)
+  /// The pointer moved with the primary button down, anywhere on screen. `location` is in
+  /// Accessibility coordinates.
+  case primaryButtonDragged(location: CGPoint)
 }
 
 /// The mouse and trackpad. The real implementation watches system-wide events

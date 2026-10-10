@@ -2,8 +2,8 @@ import AppKit
 import TylerCore
 import TylerServer
 
-/// The real `PointerInput`: reads the mouse button state from AppKit and watches for the
-/// primary button going up anywhere on screen through a global event monitor. Global monitors
+/// The real `PointerInput`: reads the mouse button state from AppKit and watches the primary
+/// button dragging and going up anywhere on screen through a global event monitor. Global monitors
 /// only see events sent to other apps, which is every click that matters: tylerd has no windows
 /// of its own, only the menu bar item.
 @MainActor
@@ -24,8 +24,10 @@ public final class PointerMonitor: PointerInput {
   public func start() {
     guard monitor == nil else { return }
     // AppKit calls global monitors on the main thread, which is what makes `assumeIsolated` safe.
-    monitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseUp) { [weak self] _ in
-      MainActor.assumeIsolated { self?.primaryButtonReleased() }
+    let mask: NSEvent.EventTypeMask = [.leftMouseDragged, .leftMouseUp]
+    monitor = NSEvent.addGlobalMonitorForEvents(matching: mask) { [weak self] event in
+      let isRelease = event.type == .leftMouseUp
+      MainActor.assumeIsolated { self?.report(isRelease: isRelease) }
     }
   }
 
@@ -35,14 +37,16 @@ public final class PointerMonitor: PointerInput {
     self.monitor = nil
   }
 
-  /// Reports the release with where the pointer is, in Accessibility coordinates (top-left
-  /// origin on the primary display).
-  private func primaryButtonReleased() {
+  /// Reports a drag step or the release with where the pointer is, in Accessibility coordinates
+  /// (top-left origin on the primary display).
+  private func report(isRelease: Bool) {
     let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
     let location = DisplayGeometry.axRect(
       fromAppKit: CGRect(origin: NSEvent.mouseLocation, size: .zero),
       primaryScreenHeight: primaryHeight
     ).origin
-    continuation.yield(.primaryButtonReleased(location: location))
+    continuation.yield(
+      isRelease
+        ? .primaryButtonReleased(location: location) : .primaryButtonDragged(location: location))
   }
 }

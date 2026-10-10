@@ -7,9 +7,9 @@ import TylerCore
 /// `CommandRouter`. Workspace switching and restoring windows live in `WindowManager+Workspaces`.
 ///
 /// Tiling reacts only to commands, to windows appearing, disappearing, or changing whether
-/// they are tileable (minimize, fullscreen), and to the user resizing a tiled window with the
-/// mouse (`WindowManager+Mouse`). Other moves and resizes never trigger a re-tile: that would
-/// fight the user's drags and feed on tylerd's own moves.
+/// they are tileable (minimize, fullscreen), and to the user resizing or dragging a tiled window
+/// with the mouse (`WindowManager+Mouse`). Other moves and resizes never trigger a re-tile: that
+/// would fight the user's drags and feed on tylerd's own moves.
 @MainActor
 public final class WindowManager {
   public enum State: Equatable, Sendable {
@@ -283,6 +283,7 @@ public final class WindowManager {
       focusChanged(to: windowID)
     case .destroyed(let windowID):
       if drag?.windowID == windowID { endDrag() }
+      forgetPreviewTarget(windowID)
       floated.remove(windowID)
       seen.remove(windowID)
       originalFrames[windowID] = nil

@@ -124,6 +124,12 @@ final class FakePointer: PointerInput {
     isPrimaryButtonDown = false
     continuation.yield(.primaryButtonReleased(location: location))
   }
+
+  /// Moves the pointer with the button down.
+  func drag(to location: CGPoint) {
+    isPrimaryButtonDown = true
+    continuation.yield(.primaryButtonDragged(location: location))
+  }
 }
 
 @MainActor

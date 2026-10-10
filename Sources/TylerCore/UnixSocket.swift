@@ -7,8 +7,10 @@ public enum UnixSocket {
     case syscall(String, Int32)
   }
 
-  /// Binds and listens on `path`. The caller owns the returned descriptor.
-  public static func openListener(path: String, backlog: Int32 = 16) throws -> Int32 {
+  /// Binds and listens on `path`. The caller owns the returned descriptor. On macOS a client
+  /// that connects while the backlog is full is refused at once rather than made to wait, so
+  /// the default is the system maximum: a burst of commands queues instead of failing.
+  public static func openListener(path: String, backlog: Int32 = SOMAXCONN) throws -> Int32 {
     var addr = try address(for: path)
     let fd = try makeSocket()
     let bound = withUnsafePointer(to: &addr) { pointer in

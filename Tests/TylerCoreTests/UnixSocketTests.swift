@@ -23,6 +23,24 @@ struct UnixSocketTests {
     }
   }
 
+  /// macOS refuses a connection at once when the backlog is full, and `tyler` would report that
+  /// as tylerd not running. A burst of commands (a held hotkey, the concurrent-clients test on a
+  /// busy machine) must queue instead, even while nothing is accepted.
+  @Test func queuesABurstOfConnectionsWithoutAccepting() throws {
+    let path = makeTempSocketPath()
+    defer { unlink(path) }
+    let listener = try UnixSocket.openListener(path: path)
+    defer { close(listener) }
+
+    var clients: [Int32] = []
+    defer {
+      for client in clients { close(client) }
+    }
+    for _ in 0..<64 {
+      clients.append(try UnixSocket.openClient(path: path))
+    }
+  }
+
   @Test func sendsALineBetweenListenerAndClient() throws {
     let path = makeTempSocketPath()
     defer { unlink(path) }

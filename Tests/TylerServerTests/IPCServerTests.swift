@@ -107,6 +107,9 @@ struct IPCServerTests {
 
     let all = results.values
     #expect(all.count == 20)
+    for case .failure(let error) in all {
+      Issue.record("a client failed: \(error)")
+    }
     #expect(all.allSatisfy { (try? $0.get()) == .pong })
   }
 

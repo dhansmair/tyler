@@ -63,6 +63,26 @@ struct ConfigTests {
     #expect(try Config.parse("gaps.outer = 4").gaps == Config.Gaps(inner: 0, outer: 4))
   }
 
+  @Test func gesturesDefaultToAThreeFingerSwipe() throws {
+    #expect(
+      try Config.parse("").gestures == Config.Gestures(swipe: true, fingers: 3, swipeDistance: 0.3))
+  }
+
+  @Test func parsesGestures() throws {
+    let config = try Config.parse(
+      """
+      [gestures]
+      swipe = false
+      fingers = 4
+      swipe-distance = 0.5
+      """)
+    #expect(config.gestures == Config.Gestures(swipe: false, fingers: 4, swipeDistance: 0.5))
+  }
+
+  @Test func aWholeSwipeDistanceMayBeWrittenWithoutAPoint() throws {
+    #expect(try Config.parse("gestures.swipe-distance = 1").gestures.swipeDistance == 1)
+  }
+
   @Test(arguments: [
     ("gap = 8", "unknown setting 'gap'"),
     ("[gaps]\ninnr = 8", "unknown setting 'gaps.innr' (use inner or outer)"),
@@ -83,6 +103,22 @@ struct ConfigTests {
     (
       "[mouse]\nfollow-interval = 0.05",
       "mouse.follow-interval must be a whole number of milliseconds, 0 to 1000"
+    ),
+    ("gestures = 3", "gestures must be a table: write [gestures] and put swipe below it"),
+    (
+      "[gestures]\nswype = true",
+      "unknown setting 'gestures.swype' (use swipe, fingers or swipe-distance)"
+    ),
+    ("[gestures]\nswipe = 1", "gestures.swipe must be true or false"),
+    ("[gestures]\nfingers = 2", "gestures.fingers must be 3 or 4"),
+    ("[gestures]\nfingers = 5", "gestures.fingers must be 3 or 4"),
+    (
+      "[gestures]\nswipe-distance = 0.05",
+      "gestures.swipe-distance must be a number of trackpad widths, 0.1 to 1.0"
+    ),
+    (
+      "[gestures]\nswipe-distance = \"0.3\"",
+      "gestures.swipe-distance must be a number of trackpad widths, 0.1 to 1.0"
     ),
     ("workspaces = 4", "workspaces must be a table: write [workspaces] and put count below it"),
     ("[workspaces]\nnumber = 4", "unknown setting 'workspaces.number' (use count)"),

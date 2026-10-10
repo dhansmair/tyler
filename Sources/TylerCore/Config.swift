@@ -43,7 +43,28 @@ public struct Config: Equatable, Sendable {
     }
   }
 
+  /// Trackpad gestures.
+  public struct Gestures: Equatable, Sendable {
+    public static let fingersRange = 3...4
+    public static let swipeDistanceRange = 0.1...1.0
+
+    /// Whether a sideways swipe moves between workspaces.
+    public var swipe: Bool
+    /// How many fingers the swipe takes. macOS has its own swipes with three and four fingers
+    /// (between full-screen apps, between pages); the one tyler uses should be free there.
+    public var fingers: Int
+    /// How far the fingers travel, in trackpad widths, to slide a whole workspace across.
+    public var swipeDistance: Double
+
+    public init(swipe: Bool = true, fingers: Int = 3, swipeDistance: Double = 0.3) {
+      self.swipe = swipe
+      self.fingers = fingers
+      self.swipeDistance = swipeDistance
+    }
+  }
+
   public var gaps: Gaps
+  public var gestures: Gestures
   public var mouse: Mouse
   public var workspaces: Workspaces
   /// The workspace (1-based) new windows of an app open on, keyed by bundle ID or app name in
@@ -51,10 +72,11 @@ public struct Config: Equatable, Sendable {
   public var assignments: [String: Int]
 
   public init(
-    gaps: Gaps = Gaps(), mouse: Mouse = Mouse(), workspaces: Workspaces = Workspaces(),
-    assignments: [String: Int] = [:]
+    gaps: Gaps = Gaps(), gestures: Gestures = Gestures(), mouse: Mouse = Mouse(),
+    workspaces: Workspaces = Workspaces(), assignments: [String: Int] = [:]
   ) {
     self.gaps = gaps
+    self.gestures = gestures
     self.mouse = mouse
     self.workspaces = workspaces
     self.assignments = assignments
@@ -99,6 +121,7 @@ extension Config {
       switch key {
       case "assign": assign = value
       case "gaps": config.gaps = try Gaps(value)
+      case "gestures": config.gestures = try Gestures(value)
       case "mouse": config.mouse = try Mouse(value)
       case "workspaces": config.workspaces = try Workspaces(value)
       default: throw .invalid("unknown setting '\(key)'")
@@ -158,6 +181,55 @@ extension Config.Gaps {
       throw .invalid("gaps.\(key) must be a whole number of points, 0 or more")
     }
     return points
+  }
+}
+
+extension Config.Gestures {
+  fileprivate init(_ value: TOMLValue) throws(ConfigError) {
+    guard case .table(let table) = value else {
+      throw .invalid("gestures must be a table: write [gestures] and put swipe below it")
+    }
+    self.init()
+    for (key, value) in table.sorted(by: { $0.key < $1.key }) {
+      switch key {
+      case "swipe": swipe = try Self.swipe(value)
+      case "fingers": fingers = try Self.fingers(value)
+      case "swipe-distance": swipeDistance = try Self.swipeDistance(value)
+      default:
+        throw .invalid("unknown setting 'gestures.\(key)' (use swipe, fingers or swipe-distance)")
+      }
+    }
+  }
+
+  private static func swipe(_ value: TOMLValue) throws(ConfigError) -> Bool {
+    guard case .boolean(let isOn) = value else {
+      throw .invalid("gestures.swipe must be true or false")
+    }
+    return isOn
+  }
+
+  private static func fingers(_ value: TOMLValue) throws(ConfigError) -> Int {
+    guard case .integer(let count) = value, fingersRange.contains(count) else {
+      throw .invalid(
+        "gestures.fingers must be \(fingersRange.lowerBound) or \(fingersRange.upperBound)")
+    }
+    return count
+  }
+
+  private static func swipeDistance(_ value: TOMLValue) throws(ConfigError) -> Double {
+    let range = swipeDistanceRange
+    let distance: Double? =
+      switch value {
+      case .float(let number): number
+      case .integer(let number): Double(number)
+      default: nil
+      }
+    guard let distance, range.contains(distance) else {
+      throw .invalid(
+        "gestures.swipe-distance must be a number of trackpad widths, "
+          + "\(range.lowerBound) to \(range.upperBound)")
+    }
+    return distance
   }
 }
 

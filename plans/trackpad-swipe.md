@@ -56,6 +56,8 @@ New file `Sources/TylerCore/Pan.swift`:
 - `Track` (`Sources/TylerCore/Animation.swift`): add a linear position, so windows track the fingers 1:1 during the drag, and `Easing.easeOut` for the settle.
 - `Animator.run` (`Sources/TylerServer/Animator.swift`) gets a variant that runs between two offsets with a given easing. The duration scales with the distance left, so a nearly finished swipe settles quickly. Tests use the injected clock.
 
+Built ahead of step 3 (2026-10-11): the `[gestures]` config from step 4 (`swipe`, `fingers`, plus `swipe-distance`), because the server needs the distance.
+
 ### 3. TylerServer: the scrollable and the workspace row (`WindowManager+Pan.swift`)
 - `PointerEvent` (`Sources/TylerServer/PointerInput.swift`) gets `case pan(PanUpdate)`, and `apply(_:)` in `WindowManager+Mouse.swift` routes it on.
 - A small internal `Scrollable` protocol (it will have two implementations, so it's allowed):

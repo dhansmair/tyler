@@ -9,7 +9,7 @@ trailing_comma:
 # `fd` is the standard name for a file descriptor, `id` is what `Identifiable` requires, and `ok`,
 # `on` and `up` are the natural names for a plain success response, the `tiling on` CLI mode and
 # the `monitor up` direction.
-# docs/coding-guidelines.md allows widely known abbreviations, but SwiftLint's default minimum
+# devdocs/coding-guidelines.md allows widely known abbreviations, but SwiftLint's default minimum
 # length of 3 would flag them.
 identifier_name:
   excluded:

@@ -54,7 +54,7 @@ Same rule as before: pure logic in libraries with unit tests, macOS calls behind
 3. MWMServer: backend actions, `WindowManager` tiling logic, router, extended `FakeBackend` (records `setFrame` and `focus` calls), manager tests.
 4. MWMClient: parser and formatter changes, tests. IPC round trip for one action command.
 5. MWMPlatform: `AXBridge.setFrame`/`raise`, `AXBackend` actions.
-6. Docs: `docs/ROADMAP.md` (tick M3, record verified and unverified), `CLAUDE.md`. The uncommitted M2 confirmation edits to both files are committed together with this milestone.
+6. Docs: `devdocs/ROADMAP.md` (tick M3, record verified and unverified), `CLAUDE.md`. The uncommitted M2 confirmation edits to both files are committed together with this milestone.
 7. Commit through the pre-commit hook (format lint, SwiftLint, `make test`).
 
 ## Tests (Swift Testing, hand-written fakes)

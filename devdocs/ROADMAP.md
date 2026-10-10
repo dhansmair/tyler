@@ -33,7 +33,7 @@ Tests/         one test target per library
 ## Milestones
 
 ### M1. Skeleton, IPC and test harness
-- [x] docs/ROADMAP.md
+- [x] devdocs/ROADMAP.md
 - [x] Package with MWMCore, MWMServer, MWMClient, `mwmd`, `mwm`
 - [x] `Request`/`Response` protocol and `Paths`
 - [x] Unix socket helpers and `IPCServer` (stale-socket handling, single-instance check)
@@ -163,7 +163,7 @@ Implemented so far: `ping`, `list [--json]`, `focus`, `swap`, `layout`, `ratio`,
 
 - **Testing pitfalls found in M1.** (1) Tests that block in `read()` must not run on Swift concurrency's cooperative pool: a task-group version of the concurrent-clients test failed ~80% of runs, plain threads pass. The cause is suspected, not verified. (2) A test that writes more than the socket buffer (~8 KB) on the same thread that later reads will deadlock. (3) macOS has no `timeout`; use `perl -e 'alarm N; exec @ARGV' cmd` to bound a run.
 
-- **GCD (settled in M2).** Kept at the edges as a documented exception in `docs/coding-guidelines.md`: `IPCServer` (blocking socket I/O) and `mwmd`'s signal sources. Everything else is `@MainActor` / async.
+- **GCD (settled in M2).** Kept at the edges as a documented exception in `devdocs/coding-guidelines.md`: `IPCServer` (blocking socket I/O) and `mwmd`'s signal sources. Everything else is `@MainActor` / async.
 - **`IPCServer.runBlocking` needs a free main thread.** Each socket worker blocks on a semaphore while the main actor answers. That works under `NSApplication.run()`, but anything that blocks the main thread (a long AX call) also stalls every `mwm` command. AX calls have a 1 s messaging timeout for that reason.
 - **Only standard apps are observed** (`activationPolicy == .regular`), and windows on other Spaces are invisible to AX. Menu-bar-only apps and other Spaces are not tracked.
 - **`AXBackend` retries** attaching to a new app up to 6 times at 500 ms, then gives up (logged through `Logger`, subsystem `mwm`). The numbers are guesses until checked against real apps.

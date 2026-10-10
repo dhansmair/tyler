@@ -34,7 +34,7 @@ public enum CommandLineParser {
       layout tall|full|next          choose the layout
       ratio +0.05|-0.05              widen or narrow the master column
       float toggle                   float the focused window, or tile it again
-      tiling on|off|toggle           start or stop tiling (windows stay where they are)
+      tiling on|off|toggle           start or stop tiling (off unparks hidden windows)
       retile                         put every tiled window back into its slot
       monitor up|down|<n>            switch to another virtual monitor (up and down wrap)
       move-to-monitor up|down|<n> [--follow]

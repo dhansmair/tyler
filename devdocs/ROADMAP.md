@@ -172,8 +172,20 @@ Decisions (2026-10-10, with the user): a **live preview**: while the dragged win
 ### Later: grid layout
 A new layout: the same as `tall` for up to 3 windows; 4 puts one window in each corner; 5 splits the right half in three; 6 splits both halves in three (2 columns × 3 rows). Beyond that more columns appear (for example 3 × 3 at 9; the exact rule is still open). Mouse resizing and swap by drag work here too, through the shared column model.
 
-### Later: strip layout
-A niri-like layout: a workspace is one long horizontal strip of windows that scrolls left and right. Each window has its own size: full width and height, half width, half width and half height, and so on. Needs a rework of the `Layout` protocol (see Open items).
+### Strip layout (in progress on the `strip-layout` branch)
+A niri-like layout: a workspace is one long horizontal strip of windows that scrolls left and right. Each window has its own size. Plan: `plans/strip-layout.md`. Work happens in the `../tyler-strip` worktree on the `strip-layout` branch, rebased onto `main` before each increment.
+
+Decisions (2026-10-11, with the user): the list stays the only model, and columns are packed from per-window sizes: `full` (1 × 1) and `half` (½ × 1) each make a column, two consecutive `quarter`s (½ × ½) share one. New windows are `half`. Focusing a window out of view scrolls just enough to show its whole column. Off-view windows park at the right edge like inactive workspaces' windows. On a strip workspace the swipe scrolls only the strip, never switches workspaces.
+
+- [ ] Tests pinning what the `Layout` protocol rework touches
+- [ ] `Layout` protocol rework: `LayoutInput` (sizes, focus, view anchor, parameters) and `LayoutGaps` (REFACTORING 11.3)
+- [ ] TylerCore: `WindowSize`, per-window sizes in `Workspace`, `StripLayout` (packing, fit, end clamp)
+- [ ] TylerCore: the view anchor, `offView(in:)`, off-view windows kept by `WorkspaceSync`, sizes and anchor in `SavedState`
+- [ ] TylerServer: `LayoutKind.strip`, off-view windows parked, focus scrolls (jumps), `tyler size`
+- [ ] Animated scroll
+- [ ] Swipe scrolls the strip (`PanTarget.strip`)
+- [ ] Manual
+- [ ] Checked against real windows
 
 ### M5. Multi-display
 Per-display stacks keyed by display UUID, reconfiguration handling, `display` and `move-to-display`.
@@ -231,7 +243,7 @@ What is implemented is the command table in `TylerClient/CommandLine.swift` (`ty
 
 ## Open items
 - **Code signing.** No signing identity exists on this machine. macOS ties the Accessibility permission to the binary's code identity. Decided in M2: during development, grant Accessibility to the terminal app that runs `tylerd` (no keychain changes). Revisit in M6, when `tylerd` runs as a LaunchAgent and needs its own stable identity (a self-signed `tyler-dev` certificate, then `make install SIGN_ID=tyler-dev`).
-- **The `Layout` protocol only gets a window count** (and the area and parameters). The strip layout needs per-window sizes and a scroll offset, with frames outside the visible area (and an answer for how that meets parking). Rework the protocol when the strip layout starts, not before.
+- **The `Layout` protocol only gets a window count** (and the area and parameters). Being reworked for the strip layout: `LayoutInput` carries per-window sizes and the view anchor, gaps move to `LayoutGaps`, and off-view frames are parked rather than placed (see Strip layout).
 - Native fullscreen windows are left alone. Terminals that snap to character cells won't fill their frame exactly.
 - AX calls cost one round trip per window, so a slide with many windows may be coarse (see M4). Each slide frame runs on the main thread, and an unresponsive app can block a frame for up to the 1 s AX timeout.
 - **Crash recovery (from M4).** A crash or `kill -9` skips `stop()`, so parked windows stay at the right edge. A state file of original frames, read at the next start, would fix it; out of scope for M4.

@@ -13,12 +13,18 @@ public struct SavedState: Codable, Equatable, Sendable {
     public var focused: WindowID?
     public var layout: LayoutKind
     public var mainRatio: Double
+    /// `LayoutParameters.rowWeights`; missing in files from before mouse resizing.
+    public var rowWeights: [[Double]]?
 
-    public init(windows: [WindowID], focused: WindowID?, layout: LayoutKind, mainRatio: Double) {
+    public init(
+      windows: [WindowID], focused: WindowID?, layout: LayoutKind, mainRatio: Double,
+      rowWeights: [[Double]]? = nil
+    ) {
       self.windows = windows
       self.focused = focused
       self.layout = layout
       self.mainRatio = mainRatio
+      self.rowWeights = rowWeights
     }
   }
 
@@ -49,7 +55,7 @@ public struct SavedState: Codable, Equatable, Sendable {
     workspaces = stack.workspaces.map { workspace in
       SavedWorkspace(
         windows: workspace.windows, focused: workspace.focused, layout: workspace.layout,
-        mainRatio: workspace.parameters.mainRatio)
+        mainRatio: workspace.parameters.mainRatio, rowWeights: workspace.parameters.rowWeights)
     }
     currentIndex = stack.currentIndex
     self.floated = floated.sorted()
@@ -60,13 +66,14 @@ public struct SavedState: Codable, Equatable, Sendable {
   }
 
   /// A stack of `count` workspaces holding the saved windows that still exist (`exists`), in
-  /// their saved order, with their focus, layout and ratio. Workspaces beyond `count` are
+  /// their saved order, with their focus, layout, ratio and row weights. Workspaces beyond `count` are
   /// dropped, and a current workspace beyond it falls back to the first.
   public func stack(count: Int, keeping exists: (WindowID) -> Bool) -> WorkspaceStack {
     var stack = WorkspaceStack(count: count)
     for (index, saved) in workspaces.enumerated() where index < stack.count {
-      var workspace = Workspace(
-        layout: saved.layout, parameters: LayoutParameters(mainRatio: saved.mainRatio))
+      let parameters = LayoutParameters(
+        mainRatio: saved.mainRatio, rowWeights: saved.rowWeights ?? [])
+      var workspace = Workspace(layout: saved.layout, parameters: parameters)
       for windowID in saved.windows where exists(windowID) {
         workspace.insert(windowID)
       }

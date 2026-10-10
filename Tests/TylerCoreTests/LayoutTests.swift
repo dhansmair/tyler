@@ -117,11 +117,120 @@ struct TallLayoutTests {
     }
   }
 
+  @Test func rowWeightsSetTheStackHeights() {
+    let result = frames(
+      3, in: CGRect(x: 0, y: 0, width: 1000, height: 600),
+      parameters: LayoutParameters(rowWeights: [[], [2, 1]]))
+    #expect(result[0] == CGRect(x: 0, y: 0, width: 500, height: 600), "the master is unchanged")
+    #expect(result[1] == CGRect(x: 500, y: 0, width: 500, height: 400))
+    #expect(result[2] == CGRect(x: 500, y: 400, width: 500, height: 200))
+  }
+
+  @Test func rowsWithoutAWeightWeighOne() {
+    // Weights for two rows, three stacked windows: the third weighs 1.
+    let result = frames(
+      4, in: CGRect(x: 0, y: 0, width: 1000, height: 400),
+      parameters: LayoutParameters(rowWeights: [[], [2, 1]]))
+    #expect(result.dropFirst().map(\.height) == [200, 100, 100])
+  }
+
+  @Test func extraRowWeightsAreIgnoredButKept() {
+    let parameters = LayoutParameters(rowWeights: [[], [3, 1, 4]])
+    let result = frames(3, in: CGRect(x: 0, y: 0, width: 1000, height: 400), parameters: parameters)
+    #expect(result.dropFirst().map(\.height) == [300, 100])
+    #expect(parameters.rowWeights == [[], [3, 1, 4]], "for when the window comes back")
+  }
+
+  @Test func rowWeightsKeepTheInnerGap() {
+    let result = frames(
+      3, in: CGRect(x: 0, y: 0, width: 1000, height: 610),
+      parameters: LayoutParameters(rowWeights: [[], [1, 2]], innerGap: 10))
+    #expect(result[1].height == 200)
+    #expect(result[2].minY - result[1].maxY == 10)
+    #expect(result[2].height == 400)
+  }
+
+  @Test(arguments: [[3.0, 1, 1], [1, 7, 2.5], [0.1, 0.1, 5]])
+  func weightedRowsStillCoverTheColumnExactly(weights: [Double]) {
+    let odd = CGRect(x: 55, y: 38, width: 1745, height: 1131)
+    let result = frames(4, in: odd, parameters: LayoutParameters(rowWeights: [[], weights]))
+    #expect(result.dropFirst().map(\.height).reduce(0, +) == odd.height)
+    for (upper, lower) in zip(result.dropFirst(), result.dropFirst(2)) {
+      #expect(upper.maxY == lower.minY)
+    }
+  }
+
   @Test func aTinyAreaDoesNotProduceNegativeSizes() {
     for rect in frames(5, in: CGRect(x: 0, y: 0, width: 10, height: 10)) {
       #expect(rect.width >= 0)
       #expect(rect.height >= 0)
     }
+  }
+}
+
+@Suite("ColumnLayout")
+struct ColumnLayoutTests {
+  @Test func columnsFillLeftToRightAndRowsTopToBottom() {
+    let layout = ColumnLayout(rowCounts: [2, 3], columnWeights: [1, 1])
+    let result = layout.frames(
+      in: CGRect(x: 0, y: 0, width: 1000, height: 600), parameters: LayoutParameters())
+    #expect(
+      result == [
+        CGRect(x: 0, y: 0, width: 500, height: 300),
+        CGRect(x: 0, y: 300, width: 500, height: 300),
+        CGRect(x: 500, y: 0, width: 500, height: 200),
+        CGRect(x: 500, y: 200, width: 500, height: 200),
+        CGRect(x: 500, y: 400, width: 500, height: 200),
+      ])
+  }
+
+  @Test func moreThanTwoColumnsShareTheWidthByWeight() {
+    let layout = ColumnLayout(rowCounts: [1, 1, 1], columnWeights: [1, 2, 1])
+    let result = layout.frames(
+      in: CGRect(x: 0, y: 0, width: 400, height: 100), parameters: LayoutParameters())
+    #expect(result.map(\.minX) == [0, 100, 300])
+    #expect(result.map(\.width) == [100, 200, 100])
+  }
+
+  @Test func eachColumnHasItsOwnRowWeights() {
+    let layout = ColumnLayout(rowCounts: [2, 2], columnWeights: [1, 1])
+    let result = layout.frames(
+      in: CGRect(x: 0, y: 0, width: 200, height: 400),
+      parameters: LayoutParameters(rowWeights: [[1, 3], [1, 1]]))
+    #expect(result.map(\.height) == [100, 300, 200, 200])
+  }
+
+  @Test func noWindowsGiveNoFrames() {
+    let layout = ColumnLayout(rowCounts: [0], columnWeights: [1])
+    #expect(
+      layout.frames(in: CGRect(x: 0, y: 0, width: 10, height: 10), parameters: LayoutParameters())
+        .isEmpty)
+  }
+}
+
+@Suite("IntegerBox.split")
+struct IntegerBoxSplitTests {
+  @Test func equalWeightsGiveTheRemainderToTheEarliestParts() {
+    let parts = IntegerBox.split(origin: 0, length: 100, weights: [1, 1, 1], gap: 0)
+    #expect(parts.map(\.length) == [34, 33, 33])
+  }
+
+  @Test(arguments: [(0.5, 873), (0.7, 1222), (0.3, 524), (0.123, 215), (0.877, 1530)])
+  func twoPartsRoundTheFirstToTheNearestPointHalvesUp(ratio: Double, expected: Int) {
+    // 1745 points: 872.5, 1221.5 and 523.5 are halves; 214.6 and 1530.4 are not.
+    let parts = IntegerBox.split(origin: 0, length: 1745, weights: [ratio, 1 - ratio], gap: 0)
+    #expect(parts[0].length == expected)
+    #expect(parts[1].length == 1745 - expected)
+  }
+
+  @Test func zeroTotalWeightSplitsEvenly() {
+    let parts = IntegerBox.split(origin: 10, length: 90, weights: [0, 0, 0], gap: 0)
+    #expect(parts.map(\.length) == [30, 30, 30])
+    #expect(parts.map(\.origin) == [10, 40, 70])
+  }
+
+  @Test func noWeightsGiveNoParts() {
+    #expect(IntegerBox.split(origin: 0, length: 100, weights: [], gap: 5).isEmpty)
   }
 }
 
@@ -186,6 +295,23 @@ struct LayoutKindTests {
     let parameters = LayoutParameters(mainRatio: 0.6, outerGap: 1, innerGap: 2)
       .withGaps(inner: 8, outer: 12)
     #expect(parameters == LayoutParameters(mainRatio: 0.6, outerGap: 12, innerGap: 8))
+  }
+
+  @Test func changingTheGapsKeepsTheRowWeights() {
+    let parameters = LayoutParameters(rowWeights: [[], [2, 1]]).withGaps(inner: 4, outer: 4)
+    #expect(parameters.rowWeights == [[], [2, 1]])
+  }
+
+  @Test(arguments: [0.0, -1, .infinity, .nan])
+  func weightsThatCannotShareSpaceCountAsOne(weight: Double) {
+    #expect(LayoutParameters(rowWeights: [[weight, 2]]).rowWeights == [[1, 2]])
+  }
+
+  @Test func rowWeightsArePaddedWithOnesAndCut() {
+    let parameters = LayoutParameters(rowWeights: [[2], [3, 4, 5]])
+    #expect(parameters.rowWeights(inColumn: 0, count: 3) == [2, 1, 1])
+    #expect(parameters.rowWeights(inColumn: 1, count: 2) == [3, 4])
+    #expect(parameters.rowWeights(inColumn: 7, count: 2) == [1, 1])
   }
 
   @Test func negativeGapsAreTreatedAsZero() {

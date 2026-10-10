@@ -6,20 +6,31 @@ public struct LayoutParameters: Equatable, Sendable {
   public static let ratioRange: ClosedRange<Double> = 0.1...0.9
 
   public private(set) var mainRatio: Double
+  /// The relative heights of the rows in each column of a column layout: `rowWeights[c][r]` is
+  /// row `r` of column `c`. Rows without an entry weigh 1, so the default is equal heights.
+  /// Weights belong to the slot, not the window: a window moving into a row takes its height.
+  public private(set) var rowWeights: [[Double]]
   /// Space between the layout area's edge and the windows.
   public let outerGap: CGFloat
   /// Space between neighbouring windows.
   public let innerGap: CGFloat
 
-  public init(mainRatio: Double = 0.5, outerGap: CGFloat = 0, innerGap: CGFloat = 0) {
+  public init(
+    mainRatio: Double = 0.5,
+    rowWeights: [[Double]] = [],
+    outerGap: CGFloat = 0,
+    innerGap: CGFloat = 0
+  ) {
     self.mainRatio = Self.clamp(mainRatio)
+    self.rowWeights = rowWeights.map { column in column.map(Self.sanitize) }
     self.outerGap = max(0, outerGap)
     self.innerGap = max(0, innerGap)
   }
 
-  /// The same parameters with different gaps; the ratio is kept.
+  /// The same parameters with different gaps; the ratio and row weights are kept.
   public func withGaps(inner: CGFloat, outer: CGFloat) -> LayoutParameters {
-    LayoutParameters(mainRatio: mainRatio, outerGap: outer, innerGap: inner)
+    LayoutParameters(
+      mainRatio: mainRatio, rowWeights: rowWeights, outerGap: outer, innerGap: inner)
   }
 
   /// Moves the ratio by `delta`, staying inside `ratioRange`. Returns whether it changed.
@@ -31,10 +42,21 @@ public struct LayoutParameters: Equatable, Sendable {
     return true
   }
 
+  /// The weights of the first `count` rows of `column`, with 1 for rows that have none.
+  public func rowWeights(inColumn column: Int, count: Int) -> [Double] {
+    let stored = column < rowWeights.count ? rowWeights[column] : []
+    return (0..<count).map { row in row < stored.count ? stored[row] : 1 }
+  }
+
   private static func clamp(_ ratio: Double) -> Double {
     // Rounded to three places so repeated +0.05 / -0.05 steps don't accumulate float noise.
     let rounded = (ratio * 1000).rounded() / 1000
     return min(max(rounded, ratioRange.lowerBound), ratioRange.upperBound)
+  }
+
+  /// A weight that can't share out space (zero, negative, infinite, NaN) counts as 1.
+  private static func sanitize(_ weight: Double) -> Double {
+    weight.isFinite && weight > 0 ? weight : 1
   }
 }
 
@@ -93,22 +115,41 @@ struct IntegerBox: Equatable {
     CGRect(x: minX, y: minY, width: width, height: height)
   }
 
-  /// Splits a length into `count` parts separated by `gap`. The parts add up exactly to
-  /// `length - gap * (count - 1)`, with any remainder going to the earliest parts.
+  /// Splits a length into one part per weight, in proportion to the weights, separated by
+  /// `gap`. The parts add up exactly to `length - gap * (weights.count - 1)`. Each part gets the
+  /// whole points of its share, and the points left over go to the parts with the largest
+  /// fractions, earliest first on a tie, so equal weights put the remainder in the earliest
+  /// parts, and of two parts the first is rounded to the nearest point, halves up.
   static func split(
     origin: Int,
     length: Int,
-    count: Int,
+    weights: [Double],
     gap: Int
   ) -> [(origin: Int, length: Int)] {
-    guard count > 0 else { return [] }
-    let available = max(0, length - gap * (count - 1))
-    let base = available / count
-    let extra = available % count
+    guard !weights.isEmpty else { return [] }
+    let available = max(0, length - gap * (weights.count - 1))
+    let total = weights.reduce(0, +)
+    let shares = weights.map { weight in
+      total > 0 ? Double(available) * weight / total : Double(available) / Double(weights.count)
+    }
+    var sizes = shares.map { Int($0.rounded(.down)) }
+    let leftover = available - sizes.reduce(0, +)
+    let byFraction = sizes.indices.sorted { first, second in
+      let firstFraction = shares[first] - Double(sizes[first])
+      let secondFraction = shares[second] - Double(sizes[second])
+      // Shares that should tie (1745 × 0.7 and 1745 × 0.3 both end in .5) differ in the last
+      // bits, so fractions this close count as equal.
+      guard abs(firstFraction - secondFraction) < 1e-9 else {
+        return firstFraction > secondFraction
+      }
+      return first < second
+    }
+    for index in byFraction.prefix(leftover) {
+      sizes[index] += 1
+    }
     var parts: [(origin: Int, length: Int)] = []
     var cursor = origin
-    for index in 0..<count {
-      let size = base + (index < extra ? 1 : 0)
+    for size in sizes {
       parts.append((cursor, size))
       cursor += size + gap
     }

@@ -6,11 +6,12 @@ import Testing
 
 @Suite("Saved state")
 struct SavedStateTests {
-  /// Workspace 1: windows 1, 2, 3 (2 focused), tall at 0.6; workspace 3: window 4, full; the
-  /// third workspace is current.
+  /// Workspace 1: windows 1, 2, 3 (2 focused), tall at 0.6 with the stack split 2:1;
+  /// workspace 3: window 4, full; the third workspace is current.
   private func arrangement() -> WorkspaceStack {
     var stack = WorkspaceStack(count: 4)
-    var first = Workspace(layout: .tall, parameters: LayoutParameters(mainRatio: 0.6))
+    var first = Workspace(
+      layout: .tall, parameters: LayoutParameters(mainRatio: 0.6, rowWeights: [[], [2, 1]]))
     for raw in [1, 2, 3] as [UInt32] { first.insert(WindowID(raw)) }
     first.setFocus(WindowID(2))
     stack[0] = first
@@ -52,6 +53,25 @@ struct SavedStateTests {
     let state = saved(arrangement())
     try state.write(to: path)
     #expect(try SavedState.read(from: path) == state)
+  }
+
+  @Test func aFileFromBeforeRowWeightsGivesEqualRows() throws {
+    let path = NSTemporaryDirectory() + "tyler-state-\(UUID().uuidString).json"
+    defer { try? FileManager.default.removeItem(atPath: path) }
+    try saved(arrangement()).write(to: path)
+    // Rewrite the file as an older tylerd would have written it: no `rowWeights` key.
+    let data = try Data(contentsOf: URL(fileURLWithPath: path))
+    var object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+    let workspaces = try #require(object["workspaces"] as? [[String: Any]])
+    object["workspaces"] = workspaces.map { workspace in
+      workspace.filter { $0.key != "rowWeights" }
+    }
+    try JSONSerialization.data(withJSONObject: object).write(to: URL(fileURLWithPath: path))
+
+    let state = try #require(try SavedState.read(from: path))
+    let restored = state.stack(count: 4) { _ in true }
+    #expect(restored[0].parameters.rowWeights.isEmpty)
+    #expect(restored[0].parameters.mainRatio == 0.6)
   }
 
   @Test func noFileIsNoState() throws {

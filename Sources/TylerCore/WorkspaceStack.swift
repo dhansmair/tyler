@@ -18,15 +18,20 @@ public struct WorkspaceStack: Equatable, Sendable {
   public var count: Int { workspaces.count }
   public var indices: Range<Int> { workspaces.indices }
 
+  // `_modify` rather than `set`: a change such as `stack.current.resize(…)` then happens in
+  // place. With `set`, the copy being changed shares its window list with the one still in
+  // `workspaces`, so every change copied the list (once per drag step, once per workspace per
+  // sync).
+
   public subscript(index: Int) -> Workspace {
     get { workspaces[index] }
-    set { workspaces[index] = newValue }
+    _modify { yield &workspaces[index] }
   }
 
   /// The workspace on screen.
   public var current: Workspace {
     get { workspaces[currentIndex] }
-    set { workspaces[currentIndex] = newValue }
+    _modify { yield &workspaces[currentIndex] }
   }
 
   /// The index of the workspace holding `windowID`, if any.

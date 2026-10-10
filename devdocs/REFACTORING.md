@@ -41,7 +41,7 @@ Sizes: XS < 20 lines, S < 60, M < 200, L larger.
 - [ ] **6. [perf] Work out the layout once per drag step.** `followDrag`, `follow` → `Workspace.resize` → `ColumnLayout.resize`, and `previewDrop` → `dropTarget` each call `placements(in:)`/`frames(in:)`, 2 to 4 times per event at mouse rate (60–120 Hz). `followDrag` lays out the whole workspace even for echoes from windows that aren't being dragged.
   - Fix: pass the placements along (`dropTarget(in placements:)`); return early for windows that aren't being dragged; cache the dragged slot's frame in `MouseDrag` and check it before `dropTarget`.
   - S, low risk.
-- [ ] **7. [perf] Mutate the current workspace in place.** `WorkspaceStack.current` and its subscript use `get`/`set`, so every `workspaces.current.x(…)` and `workspaces[i].sync(…)` copies the windows array (once per drag step, once per workspace per sync).
+- [x] **7. [perf] Mutate the current workspace in place.** `WorkspaceStack.current` and its subscript use `get`/`set`, so every `workspaces.current.x(…)` and `workspaces[i].sync(…)` copies the windows array (once per drag step, once per workspace per sync).
   - Fix: `_modify { yield &workspaces[currentIndex] }`.
   - XS, low risk.
 - [ ] **8. [perf] [live] Fewer AX calls per move.** `AXBridge.setFrame` writes size, then position, then size again (on purpose, for apps that clamp), even when the size already matches, which is common for swaps and the end of a slide. `windowInfo` makes 7 separate reads.
@@ -134,3 +134,4 @@ So nobody tries them again without a profile that says otherwise:
 - 2026-10-11: item 3 done (`CommandSpec` table, manual check, request switches without `default:`; one switch over every case exceeds SwiftLint's complexity limit, so the split stays).
 - 2026-10-11: item 1, server half done (updates that can't change the lists skip the sync); the AX read-back is left for a live check.
 - 2026-10-11: item 1 done: `setFrame` reads back only the frame; checked with live-check.
+- 2026-10-11: item 7 done (`_modify` on `WorkspaceStack.current` and its subscript).

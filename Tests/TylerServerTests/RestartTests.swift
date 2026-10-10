@@ -7,33 +7,6 @@ import TylerCore
 @Suite("Restart: handing over the workspaces")
 @MainActor
 struct RestartTests {
-  /// A second tylerd that finds the windows exactly where the first one left them.
-  @MainActor
-  private struct Successor {
-    let manager: WindowManager
-    let backend: FakeBackend
-
-    init(
-      after first: ManagerHarness, saved: SavedState?, closing closed: [UInt32] = [],
-      config: Config = Config()
-    ) {
-      let windows = first.backend.windows.filter { !closed.contains($0.id.rawValue) }
-      backend = FakeBackend(windows: windows)
-      manager = WindowManager(
-        backend: backend, displays: FakeDisplays(), gate: FakeGate(isTrusted: true),
-        animator: .snap, config: config, restoring: saved)
-      manager.startIfPermitted()
-    }
-
-    func workspaces() -> [UInt32: Int] {
-      guard case .windows(let windows) = manager.windows() else { return [:] }
-      return Dictionary(
-        uniqueKeysWithValues: windows.compactMap { window in
-          window.workspace.map { (window.id.rawValue, $0) }
-        })
-    }
-  }
-
   /// Windows 1 and 2 on workspace 1 in the full layout, window 3 parked on workspace 2, and
   /// workspace 1 on screen.
   private func arranged(animator: Animator = .snap) async -> ManagerHarness {
@@ -57,7 +30,7 @@ struct RestartTests {
 
   @Test func theNextTylerdCarriesOnWithoutMovingAnything() async {
     let harness = await arranged()
-    let successor = Successor(after: harness, saved: harness.manager.handOver())
+    let successor = harness.successor(saved: harness.manager.handOver())
     #expect(successor.workspaces() == [1: 1, 2: 1, 3: 2])
     #expect(successor.backend.moves.isEmpty, "every window is already where it belongs")
     #expect(successor.manager.setLayout(.next) == .message("layout tall"), "the layout survived")
@@ -65,13 +38,13 @@ struct RestartTests {
 
   @Test func windowsThatClosedInBetweenAreLeftOut() async {
     let harness = await arranged()
-    let successor = Successor(after: harness, saved: harness.manager.handOver(), closing: [1])
+    let successor = harness.successor(saved: harness.manager.handOver(), closing: [1])
     #expect(successor.workspaces() == [2: 1, 3: 2])
   }
 
   @Test func theOriginalFramesSurviveSoStopStillUndoesEverything() async {
     let harness = await arranged()
-    let successor = Successor(after: harness, saved: harness.manager.handOver())
+    let successor = harness.successor(saved: harness.manager.handOver())
     successor.manager.stop()
     let frames = successor.backend.windows.sorted { $0.id < $1.id }.map(\.frame)
     #expect(frames == (0..<3).map(ManagerHarness.originalFrame(index:)))
@@ -80,7 +53,7 @@ struct RestartTests {
   @Test func theNextTylerdTilesTheHandedOverWorkspacesWithItsGaps() async {
     let harness = await arranged()
     let gaps = Config(gaps: Config.Gaps(inner: 8, outer: 12))
-    let successor = Successor(after: harness, saved: harness.manager.handOver(), config: gaps)
+    let successor = harness.successor(saved: harness.manager.handOver(), config: gaps)
     #expect(successor.manager.switchWorkspace(.next) == .message("workspace 2"))
     await settle()
     let expected = TallLayout().frames(
@@ -94,7 +67,7 @@ struct RestartTests {
     await harness.osFocus(2)
     _ = harness.manager.toggleFloat()
     _ = harness.manager.setTiling(.off)
-    let successor = Successor(after: harness, saved: harness.manager.handOver())
+    let successor = harness.successor(saved: harness.manager.handOver())
     #expect(successor.manager.tilingStatus == .off)
     _ = successor.manager.setTiling(.on)
     guard case .windows(let windows) = successor.manager.windows() else {
@@ -121,9 +94,8 @@ struct RestartTests {
   @Test func beforePermissionTheHandedOverStateIsPassedOn() {
     let saved = SavedState(
       row: WorkspaceRow(), floated: [], tilingEnabled: false, originalFrames: [:])
-    let manager = WindowManager(
-      backend: FakeBackend(), displays: FakeDisplays(), gate: FakeGate(isTrusted: false),
-      restoring: saved)
-    #expect(manager.handOver() == saved)
+    let harness = ManagerHarness(
+      windows: [], gate: FakeGate(isTrusted: false), restoring: saved)
+    #expect(harness.manager.handOver() == saved)
   }
 }

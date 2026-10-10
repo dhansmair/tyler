@@ -60,11 +60,6 @@ extension WindowManager {
   /// Whether a window is already within a point of where `placement` puts it.
   func isInPlace(_ placement: Placement) -> Bool {
     guard let current = registry.window(withID: placement.id)?.frame else { return false }
-    return Self.isClose(current, placement.frame)
-  }
-
-  static func isClose(_ first: CGRect, _ second: CGRect) -> Bool {
-    abs(first.minX - second.minX) <= 1 && abs(first.minY - second.minY) <= 1
-      && abs(first.width - second.width) <= 1 && abs(first.height - second.height) <= 1
+    return current.isClose(to: placement.frame)
   }
 }

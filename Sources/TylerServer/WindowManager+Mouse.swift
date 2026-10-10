@@ -57,10 +57,10 @@ extension WindowManager {
     if let drag, drag.windowID != window.id { return }
     guard let slot = slot(of: window.id) else { return }
     if drag == nil {
-      guard !Self.isClose(window.frame, slot.frame) else { return }
+      guard !window.frame.isClose(to: slot.frame) else { return }
       drag = MouseDrag(windowID: window.id)
     }
-    guard Self.isResized(window.frame, from: slot.frame) else { return }
+    guard window.frame.hasOtherSize(than: slot.frame) else { return }
     drag?.isResize = true
     drag?.pendingFrame = window.frame
     if drag?.throttle.isHolding == false { followPendingFrame() }
@@ -92,7 +92,7 @@ extension WindowManager {
       let frame = registry.window(withID: drag.windowID)?.frame,
       let slot = placements.first(where: { $0.id == drag.windowID })
     else { return }
-    if Self.isResized(frame, from: slot.frame) {
+    if frame.hasOtherSize(than: slot.frame) {
       workspaces.current.resize(drag.windowID, to: frame, in: area)
       return
     }
@@ -171,10 +171,5 @@ extension WindowManager {
       workspaces.current.placements(in: area).filter { placement in
         placement.id != windowID && !isInPlace(placement)
       })
-  }
-
-  /// Whether `frame` has another size than `slot`; one of the same size was moved, not resized.
-  private static func isResized(_ frame: CGRect, from slot: CGRect) -> Bool {
-    abs(frame.width - slot.width) > 1 || abs(frame.height - slot.height) > 1
   }
 }

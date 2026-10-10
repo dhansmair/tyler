@@ -1,21 +1,6 @@
 import CoreGraphics
 import TylerCore
 
-/// How the windows move when another workspace comes into view: worked out up front, so a slide
-/// or a pan can run it forwards, part-way, or back.
-struct SlidePlan {
-  let target: Int
-  let direction: ScrollDirection
-  /// Where the incoming windows wait before they slide in: resized to their slots, off screen.
-  var start: [Placement] = []
-  var tracks: [Track] = []
-  /// Where every window ends up once the target workspace is on screen.
-  var finals: [Placement] = []
-  /// Where every window goes back to if the target doesn't come into view after all: the current
-  /// windows to where they were, the incoming ones to their parked frames.
-  var returns: [Placement] = []
-}
-
 /// What a trackpad pan moves. Only the row of workspaces for now; the strip layout will add a
 /// case for scrolling its columns, sharing the pan, the snapping and the pacing below.
 enum PanTarget {
@@ -92,7 +77,7 @@ extension WindowManager {
       return
     }
     pan?.isPlaced = true
-    let side = Self.side(of: session.offset)
+    let side = ScrollDirection(revealedBy: session.offset)
     show(side, of: session)
     if let side {
       let plan = Self.plan(for: side, in: session.target)
@@ -115,11 +100,11 @@ extension WindowManager {
       offset: session.offset, velocity: velocity / distance, points: [-1, 0, 1],
       flickVelocity: Self.flickVelocity)
     // A flick may head for a side whose windows haven't come out yet.
-    let side = Self.side(of: point) ?? session.shownSide
+    let side = ScrollDirection(revealedBy: point) ?? session.shownSide
     show(side, of: session)
     guard let side else { return }
     let plan = Self.plan(for: side, in: session.target)
-    let progress = Self.side(of: session.offset) == side ? abs(session.offset) : 0
+    let progress = ScrollDirection(revealedBy: session.offset) == side ? abs(session.offset) : 0
     if point == 0 {
       animate(
         start: [], tracks: plan.tracks, finals: plan.returns, from: progress, to: 0,
@@ -157,11 +142,6 @@ extension WindowManager {
   func forgetPan() {
     pan?.throttle.release()
     pan = nil
-  }
-
-  /// Which neighbour an offset brings into view: content moving left (negative) shows the next.
-  private static func side(of offset: Double) -> ScrollDirection? {
-    offset < 0 ? .next : offset > 0 ? .prev : nil
   }
 
   private static func plan(for side: ScrollDirection, in target: PanTarget) -> SlidePlan {

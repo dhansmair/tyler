@@ -108,3 +108,15 @@ public struct WorkspaceStack: Equatable, Sendable {
     return workspaces[index].setFocus(windowID)
   }
 }
+
+extension WorkspaceTarget {
+  /// Which way the row scrolls to go from the workspace at `source` to the one at `index`:
+  /// `prev` and `next` go their way even when they wrap; a number goes along the row.
+  public func direction(from source: Int, to index: Int) -> ScrollDirection {
+    switch self {
+    case .prev: .prev
+    case .next: .next
+    case .number: index > source ? .next : .prev
+    }
+  }
+}

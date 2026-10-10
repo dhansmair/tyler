@@ -31,7 +31,7 @@ extension WindowManager {
     guard let index = workspaces.index(of: target) else { return outOfRange(target) }
     guard index != workspaces.currentIndex else { return .message("workspace \(index + 1)") }
     let failures = show(
-      index, direction: direction(of: target, from: workspaces.currentIndex, to: index),
+      index, direction: target.direction(from: workspaces.currentIndex, to: index),
       focusing: true)
     return failures == 0 ? .message("workspace \(index + 1)") : outcome(failures: failures)
   }
@@ -49,7 +49,7 @@ extension WindowManager {
     guard index != source else { return .message("already on workspace \(index + 1)") }
 
     let current = workspaces.currentIndex
-    let direction = direction(of: target, from: source, to: index)
+    let direction = target.direction(from: source, to: index)
     workspaces.move(windowID, to: index)
     var failures = 0
     if follow && index != current {
@@ -102,27 +102,12 @@ extension WindowManager {
   func slidePlan(
     to index: Int, direction: ScrollDirection, on display: DisplayInfo
   ) -> SlidePlan {
-    var plan = SlidePlan(target: index, direction: direction)
-    for windowID in workspaces.current.windows {
-      guard let frame = registry.window(withID: windowID)?.frame else { continue }
-      plan.tracks.append(.leaving(windowID, from: frame, direction: direction, on: display))
-      plan.finals.append(Placement(id: windowID, frame: Parking.frame(for: frame, on: display)))
-      plan.returns.append(Placement(id: windowID, frame: frame))
+    let leaving = workspaces.current.windows.compactMap { windowID in
+      registry.window(withID: windowID).map { Placement(id: windowID, frame: $0.frame) }
     }
-    for placement in workspaces[index].placements(in: display.visibleFrame) {
-      let track = Track.entering(
-        placement.id, into: placement.frame, direction: direction, on: display)
-      // Coming in from the right, this is where the window is parked already.
-      plan.start.append(
-        Placement(
-          id: placement.id, frame: CGRect(origin: track.position(at: 0), size: placement.frame.size)
-        ))
-      plan.tracks.append(track)
-      plan.finals.append(placement)
-      plan.returns.append(
-        Placement(id: placement.id, frame: Parking.frame(for: placement.frame, on: display)))
-    }
-    return plan
+    return SlidePlan(
+      to: index, direction: direction, leaving: leaving,
+      entering: workspaces[index].placements(in: display.visibleFrame), on: display)
   }
 
   /// Slides one visible window off the display towards the workspace it was sent to, and parks
@@ -159,16 +144,6 @@ extension WindowManager {
       try backend.unfocus()
     } catch {
       Self.log.error("cannot take focus from window \(focusedID.rawValue): \(error.description)")
-    }
-  }
-
-  private func direction(
-    of target: WorkspaceTarget, from source: Int, to index: Int
-  ) -> ScrollDirection {
-    switch target {
-    case .prev: .prev
-    case .next: .next
-    case .number: index > source ? .next : .prev
     }
   }
 

@@ -69,6 +69,33 @@ struct CommandLineTests {
     }
   }
 
+  /// The full usage text, so a change to how it is put together can't change what users see.
+  @Test func usageReadsExactlyLikeThis() {
+    #expect(
+      CommandLineParser.usage == """
+        usage: tyler <command>
+
+        commands:
+          start                          start tylerd in the background
+          stop                           stop tylerd (windows go back where they were)
+          restart                        stop tylerd and start it again, for example after a rebuild
+          status                         show whether tylerd is running, and which build
+          ping                           check that tylerd is running
+          list [--json]                  show the windows tylerd is tracking
+          reload                         read the config file again and apply it
+          focus next|prev|master         move focus within the tiling list
+          swap next|prev|master          swap the focused window with another slot
+          layout tall|full|next          choose the layout
+          ratio +0.05|-0.05              widen or narrow the master column
+          float toggle                   float the focused window, or tile it again
+          tiling on|off|toggle           start or stop tiling (off unparks hidden windows)
+          retile                         put every tiled window back into its slot
+          workspace prev|next|<n>        switch to another workspace (prev and next wrap)
+          move-to-workspace prev|next|<n> [--follow]
+                                         send the focused window to another workspace
+        """)
+  }
+
   @Test func usageMentionsEveryCommand() {
     #expect(CommandLineParser.usage.contains("ping"))
     #expect(CommandLineParser.usage.contains("list"))

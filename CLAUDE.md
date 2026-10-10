@@ -71,6 +71,7 @@ GCD is a documented exception, limited to `IPCServer` (blocking socket I/O) and 
 ## Working mode
 
 - **Work in small increments.** One self-contained change at a time (a fix, one slice of a feature, a doc update), each building, tested and documented on its own.
+- **Refactor behind tests.** Before a refactoring, add tests for any behaviour it touches that the tests don't clearly cover, in a commit of their own, so the refactoring commit changes no test (only setup). Check that each new test can fail: break the guarded code on purpose, see the test fail, and put the code back. `devdocs/REFACTORING.md` is the backlog.
 - **One commit per increment**, made as soon as it is done and the checks pass, with a message that says what changed and why. Don't bundle unrelated changes. If the working tree already holds other changes (the user's, or an earlier increment's), keep them out of the commit.
 - **Commit directly on `main`** for now; no branches or pull requests.
 - **The pre-commit hook stashes unstaged changes but not untracked files**, so it compiles new files that belong to a later commit. When committing part of the tree, set those aside first with `git stash push -u -- <paths>`.

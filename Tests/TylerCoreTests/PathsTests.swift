@@ -18,6 +18,15 @@ struct PathsTests {
     #expect(Paths.socketPath(environment: env, home: "/Users/x") == "/Users/x/.tyler/tyler.sock")
   }
 
+  @Test(arguments: [
+    ("/Users/x/.tyler/tyler.sock", "/Users/x/.tyler/tyler.log"),
+    ("/tmp/other.sock", "/tmp/other.log"),
+    ("/tmp/socket", "/tmp/socket.log"),
+  ])
+  func theLogSitsNextToTheSocket(socketPath: String, expected: String) {
+    #expect(Paths.logPath(socketPath: socketPath) == expected)
+  }
+
   @Test(arguments: [[:], ["TYLER_CONFIG": ""]])
   func configDefaultsToDotConfig(environment: [String: String]) {
     #expect(

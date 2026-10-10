@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 import TylerCore
 
@@ -7,6 +8,31 @@ import TylerCore
 struct CommandRouterTests {
   @Test func pingAnswersPong() async {
     #expect(await CommandRouter().handle(.ping) == .pong)
+  }
+
+  @Test func statusWithoutProcessFactsIsAnError() async {
+    #expect(await CommandRouter().handle(.status) == .error("status is not available"))
+  }
+
+  @Test @MainActor func statusAddsTheTilingStateToTheProcessFacts() async {
+    let base = ServerStatus(
+      pid: 42, executablePath: "/bin/tylerd", executableModified: nil,
+      startedAt: Date(timeIntervalSince1970: 0), configPath: "/c.toml")
+    let manager = WindowManager(
+      backend: FakeBackend(), displays: FakeDisplays(), gate: FakeGate(isTrusted: true))
+    let router = CommandRouter(manager: manager, status: base)
+
+    var expected = base
+    expected.tiling = .waitingForPermission
+    #expect(await router.handle(.status) == .status(expected))
+
+    manager.startIfPermitted()
+    expected.tiling = .on
+    #expect(await router.handle(.status) == .status(expected))
+
+    manager.setTiling(.off)
+    expected.tiling = .off
+    #expect(await router.handle(.status) == .status(expected))
   }
 
   @Test func listWithoutAManagerIsAnError() async {

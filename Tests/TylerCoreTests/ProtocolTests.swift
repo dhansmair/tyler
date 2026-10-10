@@ -12,7 +12,7 @@ struct ProtocolTests {
   }
 
   @Test(arguments: [
-    Request.reload, .list, .retile, .workspace(.up), .workspace(.down),
+    Request.reload, .status, .list, .retile, .workspace(.up), .workspace(.down),
     .workspace(.number(3)),
     .moveToWorkspace(.number(2), follow: true), .moveToWorkspace(.down, follow: false),
   ])
@@ -21,7 +21,13 @@ struct ProtocolTests {
     #expect(try Wire.decode(Request.self, from: Data(data.dropLast())) == request)
   }
 
-  @Test(arguments: [Response.pong, Response.error("boom")])
+  @Test(arguments: [
+    Response.pong, .error("boom"),
+    .status(
+      ServerStatus(
+        pid: 42, executablePath: "/bin/tylerd", executableModified: Date(timeIntervalSince1970: 1),
+        startedAt: Date(timeIntervalSince1970: 2), configPath: "/c.toml", tiling: .off)),
+  ])
   func responseRoundTrips(response: Response) throws {
     let data = try Wire.encode(response)
     #expect(try Wire.decode(Response.self, from: Data(data.dropLast())) == response)

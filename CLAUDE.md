@@ -41,7 +41,7 @@ pre-commit run --all-files   # runs swift format lint, swiftlint and make test
 ```
 
 - **Use `make test`.** The Command Line Tools ship Swift Testing, but SwiftPM doesn't find it without extra framework and rpath flags. The Makefile passes them.
-- **Run the pieces by hand:** `.build/debug/tylerd` in one terminal, `.build/debug/tyler ping` or `tyler list` in another. Set `TYLER_SOCKET=/tmp/x.sock` to use a different socket (default `~/.tyler/tyler.sock`).
+- **Run the pieces by hand:** `.build/debug/tyler start` (background, log in `~/.tyler/tyler.log`) or `.build/debug/tylerd` in a terminal, then `.build/debug/tyler ping` or `tyler list`. After `make build`, run `tyler restart`: a running `tylerd` keeps the old code, and `tyler status` warns about it. Set `TYLER_SOCKET=/tmp/x.sock` to use a different socket (default `~/.tyler/tyler.sock`).
 - **`tyler list` and the tiling commands need Accessibility permission.** Grant it in System Settings > Privacy & Security > Accessibility to the terminal app that runs `tylerd`. Without it, `tylerd` still runs and they print instructions.
 - **`tylerd` tiles your windows as soon as it has permission.** Quitting it with SIGINT/SIGTERM (Ctrl-C) puts every window it moved back where it was, parked ones included. A crash or `kill -9` does not, and leaves windows of other workspaces parked in the bottom-right corner. Run `tyler tiling off` first if you want windows left alone.
 - **Use `main`, not `master`, in Swift identifiers.** SwiftLint's `inclusive_language` rule rejects `master`. The CLI and wire format still say `master` (`ListTarget.main = "master"`).

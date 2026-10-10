@@ -51,14 +51,23 @@ The *master ratio* is the master column's share of the width in `tall`. Each wor
 ## Running tylerd
 
 ```bash
-tylerd
+tyler start      # start tylerd in the background
+tyler status     # is it running, and which build?
+tyler restart    # after rebuilding or installing a new version
+tyler stop
 ```
 
-`tylerd` needs Accessibility permission. Grant it in System Settings > Privacy & Security > Accessibility to the app that starts `tylerd` (for example your terminal). Without it, `tylerd` still runs and answers `tyler ping`, and the other commands print what to do. Once you grant the permission, `tylerd` picks it up within a second; you don't have to restart it.
+`tyler start` runs the `tylerd` that sits in the same folder as `tyler` (after following symlinks), detached from the terminal: closing the terminal doesn't stop it. Its output goes to `~/.tyler/tyler.log`, which starts empty on every start. `tyler start` waits until `tylerd` answers, at most 10 seconds, and shows the end of the log if `tylerd` exits right away.
+
+You can also run `tylerd` yourself in a terminal, which keeps its output there; that's handy for debugging.
+
+`tylerd` needs Accessibility permission. macOS grants it to the app that starts `tylerd`, so grant it in System Settings > Privacy & Security > Accessibility to the terminal you run `tyler start` (or `tylerd`) in. Without it, `tylerd` still runs and answers `tyler ping`, and the other commands print what to do. Once you grant the permission, `tylerd` picks it up within a second; you don't have to restart it.
 
 As soon as it has permission, `tylerd` tiles the windows on the main display, ordered left to right as they were on screen.
 
-**Stopping.** Press Ctrl-C, or send SIGTERM (`pkill tylerd`). `tylerd` then puts every window it moved back where it was, parked windows included. A crash or `kill -9` skips this step, and windows of other workspaces stay parked in the bottom-right corner.
+**Stopping.** `tyler stop`, Ctrl-C in the terminal running `tylerd`, or SIGTERM (`pkill tylerd`) all stop it cleanly: `tylerd` puts every window it moved back where it was, parked windows included. A crash or `kill -9` skips this step, and windows of other workspaces stay parked in the bottom-right corner.
+
+**After a rebuild** the running `tylerd` is still the old version, and a newer `tyler` may send it commands it doesn't know (`unknown request: tylerd is probably older than tyler`). `tyler status` warns when the `tylerd` binary has changed since it started. Run `tyler restart`.
 
 Only one `tylerd` can run per socket. Starting a second one fails with `already running`.
 
@@ -91,6 +100,10 @@ tyler <command> [arguments]
 
 | Command | What it does |
 | --- | --- |
+| `start` | Start `tylerd` in the background |
+| `stop` | Stop `tylerd`; windows go back where they were |
+| `restart` | Stop `tylerd` and start it again |
+| `status` | Show whether `tylerd` is running, and which build |
 | `ping` | Check that `tylerd` is running |
 | `list [--json]` | Show the windows `tylerd` is tracking |
 | `reload` | Read the config file again and apply it |
@@ -104,7 +117,38 @@ tyler <command> [arguments]
 | `workspace up\|down\|<n>` | Switch to another workspace |
 | `move-to-workspace up\|down\|<n> [--follow]` | Send the focused window to another workspace |
 
-Commands that change windows act on the current workspace. All of them except `ping`, `list`, `reload` and `tiling` need tiling to be on; with tiling off they print ``tiling is off (use `tyler tiling on`)``.
+Commands that change windows act on the current workspace. All of them except `start`, `stop`, `restart`, `status`, `ping`, `list`, `reload` and `tiling` need tiling to be on; with tiling off they print ``tiling is off (use `tyler tiling on`)``.
+
+### start, stop, restart
+
+```bash
+tyler start
+tyler stop
+tyler restart
+```
+
+`start` starts `tylerd` in the background (see [Running tylerd](#running-tylerd)) and prints its pid. If `tylerd` is already running, it says so and does nothing.
+
+`stop` asks `tylerd` to quit, which puts every window back where it was, and waits until it has. It is not an error if `tylerd` isn't running.
+
+`restart` is `stop` followed by `start`: use it after `make build` or `make install`.
+
+A `tylerd` started before these commands existed can't be stopped this way; `tyler` says so. Stop it once with `pkill tylerd` (or Ctrl-C), then use `tyler start`.
+
+### status
+
+```bash
+tyler status
+```
+
+```
+tylerd is running (pid 4711, up 2h 5m)
+  binary  /Users/you/.local/bin/tylerd
+  config  /Users/you/.config/tyler/tyler.toml
+  tiling  on
+```
+
+`tiling` is `on`, `off` or `waiting for Accessibility permission`. If the `tylerd` binary has changed since it started, a warning suggests `tyler restart`. Exits with status 1 if `tylerd` isn't running.
 
 ### ping
 
@@ -252,7 +296,7 @@ If some windows couldn't be moved (an app refused, or a window closed meanwhile)
 | Variable | Meaning |
 | --- | --- |
 | `TYLER_CONFIG` | Path of the config file. Default: `~/.config/tyler/tyler.toml`. |
-| `TYLER_SOCKET` | Path of the socket `tyler` and `tylerd` talk over. Default: `~/.tyler/tyler.sock`. Set the same value for both to run a separate instance. |
+| `TYLER_SOCKET` | Path of the socket `tyler` and `tylerd` talk over. Default: `~/.tyler/tyler.sock`. Set the same value for both to run a separate instance. `tyler start` writes the log next to it, with `.log` instead of `.sock`. |
 
 ## Example skhd bindings
 

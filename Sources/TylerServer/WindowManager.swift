@@ -111,11 +111,19 @@ public final class WindowManager {
     state = .waitingForPermission
   }
 
+  /// Whether tiling is running, for `tyler status`.
+  public var tilingStatus: ServerStatus.Tiling {
+    guard state == .running else { return .waitingForPermission }
+    return tilingEnabled ? .on : .off
+  }
+
   // MARK: - Requests
 
   public func handle(_ request: Request) -> Response {
     switch request {
     case .ping: .pong
+    // The process facts in a status live in `CommandRouter`, which answers it.
+    case .status: .error("status is answered by the router")
     case .list: windows()
     case .reload: reload()
     case .tiling(let mode): setTiling(mode)

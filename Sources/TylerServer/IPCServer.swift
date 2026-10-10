@@ -138,7 +138,7 @@ public final class IPCServer: @unchecked Sendable {
       do {
         response = runBlocking(handler, on: try Wire.decode(Request.self, from: line))
       } catch {
-        response = .error("malformed request")
+        response = .error(describeUndecodable(line))
       }
     } else {
       response = .error("no request received")
@@ -149,6 +149,17 @@ public final class IPCServer: @unchecked Sendable {
       log.error("failed to send response: \(error.localizedDescription)")
     }
   }
+}
+
+/// Valid JSON that isn't a known request most likely comes from a newer `tyler` talking to a
+/// `tylerd` that was started before a rebuild.
+private func describeUndecodable(_ line: Data) -> String {
+  do {
+    _ = try JSONSerialization.jsonObject(with: line)
+  } catch {
+    return "malformed request"
+  }
+  return "unknown request: tylerd is probably older than tyler (run `tyler restart`)"
 }
 
 /// Hands a `Response` from a task back to the thread waiting on it.

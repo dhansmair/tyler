@@ -3,6 +3,8 @@ import Foundation
 /// A command sent from the `tyler` client to the `tylerd` server.
 public enum Request: Codable, Equatable, Sendable {
   case ping
+  /// Asks the server about itself: pid, binary, config, tiling.
+  case status
   case list
   /// Reads the config file again and applies it.
   case reload
@@ -29,6 +31,7 @@ public enum Response: Codable, Equatable, Sendable {
   /// The command succeeded; the text is for the user.
   case message(String)
   case windows([WindowInfo])
+  case status(ServerStatus)
   case error(String)
 }
 

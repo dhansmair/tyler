@@ -22,6 +22,9 @@ public enum ResponseFormatter {
       case .json:
         return (json(of: windows), true)
       }
+    case .status(let status):
+      // `tyler status` builds its full report in `DaemonController`; this is the short form.
+      return ("tylerd is running (pid \(status.pid))", true)
     case .error(let message):
       return (message, false)
     }

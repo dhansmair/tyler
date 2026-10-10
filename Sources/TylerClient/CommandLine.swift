@@ -10,13 +10,32 @@ public enum OutputFormat: Equatable, Sendable {
   case json
 }
 
-/// A parsed command line: what to ask the server, and how to show the answer.
+/// Commands that manage the `tylerd` process instead of asking it to do something.
+public enum DaemonCommand: String, CaseIterable, Sendable {
+  case start
+  case stop
+  case restart
+  case status
+}
+
+/// A parsed command line: what to do, and how to show the answer.
 public struct Invocation: Equatable, Sendable {
-  public var request: Request
+  public enum Action: Equatable, Sendable {
+    /// Send one request to the running server.
+    case send(Request)
+    /// Start, stop or inspect the server process.
+    case daemon(DaemonCommand)
+  }
+
+  public var action: Action
   public var format: OutputFormat
 
   public init(request: Request, format: OutputFormat = .text) {
-    self.request = request
+    self.init(action: .send(request), format: format)
+  }
+
+  public init(action: Action, format: OutputFormat = .text) {
+    self.action = action
     self.format = format
   }
 }
@@ -27,6 +46,10 @@ public enum CommandLineParser {
     usage: tyler <command>
 
     commands:
+      start                          start tylerd in the background
+      stop                           stop tylerd (windows go back where they were)
+      restart                        stop tylerd and start it again, for example after a rebuild
+      status                         show whether tylerd is running, and which build
       ping                           check that tylerd is running
       list [--json]                  show the windows tylerd is tracking
       reload                         read the config file again and apply it
@@ -47,6 +70,10 @@ public enum CommandLineParser {
       throw CommandLineError.usage("missing command")
     }
     let rest = Array(arguments.dropFirst())
+    if let daemonCommand = DaemonCommand(rawValue: command) {
+      try requireNoArguments(rest, for: command)
+      return Invocation(action: .daemon(daemonCommand))
+    }
     switch command {
     case "ping":
       guard rest.isEmpty else {

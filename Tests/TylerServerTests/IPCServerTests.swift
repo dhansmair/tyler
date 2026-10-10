@@ -59,6 +59,19 @@ struct IPCServerTests {
     #expect(response == .error("malformed request"))
   }
 
+  @Test func anUnknownRequestSuggestsARestart() throws {
+    let path = makeSocketPath()
+    let server = IPCServer(path: path) { await CommandRouter().handle($0) }
+    try server.start()
+    defer { server.stop() }
+
+    let reply = try rawExchange(path: path, send: "{\"fromTheFuture\":{}}\n")
+    let response = try Wire.decode(Response.self, from: Data(try #require(reply).utf8))
+    #expect(
+      response
+        == .error("unknown request: tylerd is probably older than tyler (run `tyler restart`)"))
+  }
+
   @Test func serverKeepsServingAfterABadClient() throws {
     let path = makeSocketPath()
     let server = IPCServer(path: path) { await CommandRouter().handle($0) }

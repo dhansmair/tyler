@@ -41,7 +41,24 @@ let manager = WindowManager(
   config: config,
   configSource: configSource
 )
-let router = CommandRouter(manager: manager)
+// The binary's modification time at launch lets `tyler status` notice a rebuild since.
+let executablePath =
+  Bundle.main.executableURL?.resolvingSymlinksInPath().path ?? CommandLine.arguments[0]
+var executableModified: Date?
+do {
+  executableModified =
+    try FileManager.default.attributesOfItem(atPath: executablePath)[.modificationDate] as? Date
+} catch {
+  warn("cannot read the modification time of \(executablePath): \(error.localizedDescription)")
+}
+let status = ServerStatus(
+  pid: getpid(),
+  executablePath: executablePath,
+  executableModified: executableModified,
+  startedAt: Date(),
+  configPath: configSource.path
+)
+let router = CommandRouter(manager: manager, status: status)
 let server = IPCServer(path: socketPath) { [router] request in await router.handle(request) }
 
 do {

@@ -16,16 +16,32 @@ do {
   fail("tyler: \(error)", code: 2)
 }
 
-do {
-  let response = try IPCClient().send(invocation.request)
+func show(_ response: Response) {
   let (text, success) = ResponseFormatter.format(response, as: invocation.format)
   if success {
     FileHandle.standardOutput.write(Data((text + "\n").utf8))
   } else {
     fail("tyler: \(text)", code: 1)
   }
-} catch IPCClientError.serverNotRunning(let path) {
-  fail("tyler: tylerd is not running (no server at \(path))", code: 1)
-} catch {
-  fail("tyler: \(error)", code: 1)
+}
+
+switch invocation.action {
+case .send(let request):
+  do {
+    show(try IPCClient().send(request))
+  } catch IPCClientError.serverNotRunning(let path) {
+    fail(
+      "tyler: tylerd is not running (no server at \(path)); start it with `tyler start`", code: 1)
+  } catch {
+    fail("tyler: \(error)", code: 1)
+  }
+case .daemon(let command):
+  guard let client = Bundle.main.executableURL else {
+    fail("tyler: cannot find its own executable, so it doesn't know where tylerd is", code: 1)
+  }
+  let controller = DaemonController(
+    system: ProcessDaemonSystem(),
+    serverPath: DaemonController.serverPath(nextTo: client),
+    logPath: Paths.logPath())
+  show(controller.run(command))
 }

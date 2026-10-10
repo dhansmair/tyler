@@ -46,6 +46,19 @@ struct CommandLineTests {
     }
   }
 
+  @Test(arguments: DaemonCommand.allCases)
+  func parsesDaemonCommands(command: DaemonCommand) throws {
+    #expect(
+      try CommandLineParser.parse([command.rawValue]) == Invocation(action: .daemon(command)))
+  }
+
+  @Test(arguments: DaemonCommand.allCases)
+  func daemonCommandsRejectArguments(command: DaemonCommand) {
+    #expect(throws: CommandLineError.usage("\(command.rawValue) takes no arguments")) {
+      try CommandLineParser.parse([command.rawValue, "now"])
+    }
+  }
+
   @Test func parsesReload() throws {
     #expect(try CommandLineParser.parse(["reload"]) == Invocation(request: .reload))
   }
@@ -60,6 +73,9 @@ struct CommandLineTests {
     #expect(CommandLineParser.usage.contains("ping"))
     #expect(CommandLineParser.usage.contains("list"))
     #expect(CommandLineParser.usage.contains("reload"))
+    for command in DaemonCommand.allCases {
+      #expect(CommandLineParser.usage.contains("\n  \(command.rawValue) "))
+    }
   }
 }
 

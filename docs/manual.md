@@ -31,7 +31,7 @@ tyler sorts every window into one of three kinds:
 
 Floated and never-tiled windows belong to no workspace, so they stay visible whichever workspace is on screen. Minimized windows and windows in native fullscreen leave the tiling list. When they come back, they are tiled on the current workspace.
 
-New windows are tiled on the current workspace, right after the focused window.
+New windows are tiled on the current workspace, right after the focused window, unless the [config file](#configuration) assigns their app to another workspace (`[assign]`).
 
 ### Tiling list
 
@@ -85,7 +85,7 @@ As soon as it has permission, `tylerd` tiles the windows on the main display, or
 
 **Stopping.** `tyler stop`, Ctrl-C in the terminal running `tylerd`, or SIGTERM (`pkill tylerd`) all stop it cleanly: `tylerd` puts every window it moved back where it was, parked windows included. A crash or `kill -9` skips this step, and windows of other workspaces stay parked at the right edge of the display.
 
-**Restarting** with `tyler restart` is different: the old `tylerd` leaves every window where it is and writes its workspaces (windows, order, focus, layouts, floated windows) to `~/.tyler/tyler.state.json`. The new `tylerd` carries on from that file and deletes it, so nothing moves and every window stays on its workspace. Windows closed in between are left out; windows opened in between join the current workspace.
+**Restarting** with `tyler restart` is different: the old `tylerd` leaves every window where it is and writes its workspaces (windows, order, focus, layouts, floated windows) to `~/.tyler/tyler.state.json`. The new `tylerd` carries on from that file and deletes it, so nothing moves and every window stays on its workspace. Windows closed in between are left out; windows opened in between join the current workspace, or their app's assigned workspace.
 
 **After a rebuild** the running `tylerd` is still the old version, and a newer `tyler` may send it commands it doesn't know (`unknown request: tylerd is probably older than tyler`). `tyler status` warns when the `tylerd` binary has changed since it started. Run `tyler restart`.
 
@@ -107,6 +107,10 @@ follow-interval = 50   # milliseconds between steps of the layout following a dr
 
 [workspaces]
 count = 6    # workspaces per display
+
+[assign]
+Firefox = 3                  # new Firefox windows open on workspace 3
+"com.mitchellh.ghostty" = 2  # an app can also be named by its bundle ID
 ```
 
 | Setting | Meaning | Default |
@@ -115,10 +119,15 @@ count = 6    # workspaces per display
 | `gaps.outer` | Space between the tiled windows and the edge of the display's visible area | `0` |
 | `mouse.follow-interval` | Least time between two steps of the layout following a window you resize with the mouse, in milliseconds (0 to 1000) | `50` |
 | `workspaces.count` | How many workspaces each display has (1 to 10) | `4` |
+| `assign.<app>` | The workspace that new windows of `<app>` open on | none |
 
 Gaps are whole numbers in points, the unit macOS uses for window positions (on a Retina display, one point is two pixels).
 
 Changing `workspaces.count` and running `tyler reload` takes effect at once. New workspaces are added at the bottom of the stack. When you remove workspaces, their windows move to the new last workspace, after the windows already there; if the workspace on screen was removed, the new last one comes into view.
+
+In `[assign]`, each line sends an app's new windows to a workspace. Name the app as the `APP` column of `tyler list` shows it, or by its bundle ID (`osascript -e 'id of app "Firefox"'` prints it); both ignore case. Quote names with spaces or dots: `"Google Chrome" = 2`. The workspace number must be within `workspaces.count`.
+
+An assignment applies once, when a window is tiled for the first time: when it opens, or when `tylerd` starts and finds it open. If the workspace isn't on screen, the window is parked there. Apps usually focus a window they open, and focusing a parked window switches to its workspace, so you follow the window there; a window that opens in the background just waits on its workspace. After that, the window behaves like any other: `move-to-workspace` moves it, and it stays where you put it when you float it, minimize it or take it out of fullscreen. Changing `[assign]` and running `tyler reload` affects windows opened afterwards, not the ones already open.
 
 Each step of following a drag moves every other window, and slow apps take a while to move. A shorter `mouse.follow-interval` looks smoother but can fall behind the mouse with slow apps; a longer one keeps up but moves in coarser steps. `0` follows every resize the app reports.
 
@@ -279,7 +288,7 @@ tyler tiling toggle
 
 `tiling off` stops `tylerd` from moving windows. Windows on the current workspace stay where they are, and windows parked on other workspaces come back to where they were before `tylerd` moved them. Use it when something goes wrong, or before arranging windows by hand.
 
-`tiling on` tiles every eligible window onto the current workspace, keeping the order the list had before.
+`tiling on` tiles every eligible window onto the current workspace, keeping the order the list had before. Windows opened while tiling was off go to their app's assigned workspace, if it has one.
 
 ### retile
 

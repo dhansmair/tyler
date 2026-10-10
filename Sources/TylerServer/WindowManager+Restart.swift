@@ -16,7 +16,7 @@ extension WindowManager {
     finishAnimation()
     let saved = SavedState(
       stack: workspaces, floated: floated, tilingEnabled: tilingEnabled,
-      originalFrames: originalFrames)
+      originalFrames: originalFrames, seen: seen)
     tearDown()
     return saved
   }
@@ -34,6 +34,7 @@ extension WindowManager {
     workspaces = WorkspaceStack(count: config.workspaces.count)
     applyGaps()
     floated = []
+    seen = []
     originalFrames = [:]
     pendingFocus = []
     pendingRestore = nil
@@ -51,6 +52,7 @@ extension WindowManager {
     workspaces = saved.stack(count: config.workspaces.count) { known.contains($0) }
     applyGaps()
     floated = Set(saved.floated).intersection(known)
+    seen = saved.seenWindows.intersection(known)
     originalFrames = [:]
     for entry in saved.originalFrames where known.contains(entry.id) {
       originalFrames[entry.id] = entry.frame

@@ -46,10 +46,13 @@ public struct SavedState: Codable, Equatable, Sendable {
   public var floated: [WindowID]
   public var tilingEnabled: Bool
   public var originalFrames: [OriginalFrame]
+  /// Windows that have been tiled, so app assignments leave them alone; missing in files from
+  /// before app assignments.
+  public var seen: [WindowID]?
 
   public init(
     stack: WorkspaceStack, floated: Set<WindowID>, tilingEnabled: Bool,
-    originalFrames: [WindowID: CGRect]
+    originalFrames: [WindowID: CGRect], seen: Set<WindowID> = []
   ) {
     version = Self.currentVersion
     workspaces = stack.workspaces.map { workspace in
@@ -63,6 +66,14 @@ public struct SavedState: Codable, Equatable, Sendable {
     self.originalFrames = originalFrames.keys.sorted().compactMap { windowID in
       originalFrames[windowID].map { OriginalFrame(id: windowID, frame: $0) }
     }
+    self.seen = seen.sorted()
+  }
+
+  /// The windows the previous tylerd had tiled. A file from before app assignments doesn't
+  /// list them, so every window it mentions counts.
+  public var seenWindows: Set<WindowID> {
+    if let seen { return Set(seen) }
+    return Set(workspaces.flatMap(\.windows) + floated)
   }
 
   /// A stack of `count` workspaces holding the saved windows that still exist (`exists`), in

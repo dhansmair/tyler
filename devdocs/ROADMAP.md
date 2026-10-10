@@ -187,7 +187,8 @@ Decisions (2026-10-10): the file is `~/.config/tyler/tyler.toml` (`TYLER_CONFIG`
 - [ ] Checked for real: `tyler start` survives closing the terminal; `stop` restores windows
 - [x] Workspace count (2026-10-10; plan: `plans/workspace-count-and-app-rules.md`): `[workspaces] count`, 1 to 10, default 4. `reload` applies it at once: new workspaces are added empty at the bottom; removed ones merge their windows into the new last workspace (appended in order), which becomes current if the current one was removed, then the current workspace re-tiles without a slide. A restart with a smaller count merges the handed-over workspaces the same way. Unit tested only
 - [ ] Checked against real windows: growing and shrinking the count with `reload`
-- [ ] App assignments (`[assign]`)
+- [x] App assignments (2026-10-10, same plan): `[assign]` maps an app name or bundle ID (case-insensitive; the bundle ID wins) to a workspace number within `workspaces.count`. The rule applies once, to a window that has never been tiled (`WindowManager.seen`, carried in `SavedState.seen`; older state files count every window they list): at startup, when it opens, or when it first becomes tileable. A window assigned to a parked workspace is parked there directly, no slide. If it has focus (the usual case for a new window, whichever of `created` and `focused` arrives first), its workspace comes into view, so keys never go to a parked window. `reload` applies new rules to new windows only. Unit tested only
+- [ ] Checked against real windows: a new Firefox window (app already running, and a cold launch) lands on its workspace and the view follows; a window opened in the background (e.g. `open -g`) stays parked; startup with Firefox frontmost
 - [ ] Float rules
 - [ ] LaunchAgent (`service install|uninstall`)
 

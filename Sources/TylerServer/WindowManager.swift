@@ -39,6 +39,9 @@ public final class WindowManager {
     didSet { updateIndicator() }
   }
   var floated: Set<WindowID> = []
+  /// Windows that have been on a workspace. App assignments only place windows not in here, so a
+  /// window you moved, floated or minimized doesn't jump back to its app's workspace.
+  var seen: Set<WindowID> = []
   /// Where each window was just before tylerd first moved it. `stop()` puts every window back
   /// there, and `tiling off` does it for parked ones.
   var originalFrames: [WindowID: CGRect] = [:]
@@ -281,6 +284,7 @@ public final class WindowManager {
     case .destroyed(let windowID):
       if drag?.windowID == windowID { endDrag() }
       floated.remove(windowID)
+      seen.remove(windowID)
       originalFrames[windowID] = nil
       pendingFocus.remove(windowID)
     default:
@@ -306,56 +310,17 @@ extension WindowManager {
 
   /// Brings the workspaces' lists in line with the windows that exist, and re-lays out the
   /// current workspace only if its membership actually changed. Moves and resizes leave the lists
-  /// as they are, so they do nothing.
+  /// as they are, so they do nothing. A focused window that was just assigned to a parked
+  /// workspace brings that workspace into view, so keys don't go to a parked window.
   private func reconcile() {
     guard state == .running, tilingEnabled else { return }
-    if syncWorkspaces() {
+    let sync = syncWorkspaces()
+    if let index = sync.focusedArrival {
+      show(index, direction: index > workspaces.currentIndex ? .next : .prev, focusing: false)
+    } else if sync.changedCurrent {
       finishAnimation()
       applyLayout()
     }
-  }
-
-  /// Updates every workspace's list. A window stays on its workspace while it is tileable and not
-  /// floated; parked and sliding windows keep their place whatever their frame says. Windows on
-  /// the current workspace leave it when they move to another display. Tileable windows on the
-  /// primary display that belong to no workspace join the current one. Returns whether the
-  /// current workspace's list changed.
-  @discardableResult
-  func syncWorkspaces() -> Bool {
-    let connected = displays.displays
-    // With no display at all (asleep, reconfiguring) nothing is decided, so parked windows
-    // aren't forgotten while they are still parked.
-    guard let primary = connected.first else { return false }
-    let isOnPrimary = { (window: WindowInfo) in
-      DisplayGeometry.display(containing: window.frame, in: connected)?.id == primary.id
-    }
-    let isCandidate = { (window: WindowInfo) in
-      window.isTileable && !self.floated.contains(window.id)
-    }
-    let sliding = animatingWindows
-    let assigned = workspaces.allWindows
-    var changedCurrent = false
-    for index in workspaces.indices {
-      let isCurrent = index == workspaces.currentIndex
-      var eligible = workspaces[index].windows.filter { windowID in
-        guard let window = registry.window(withID: windowID), isCandidate(window) else {
-          return false
-        }
-        return !isCurrent || sliding.contains(windowID) || isOnPrimary(window)
-      }
-      if isCurrent {
-        var newcomers = registry.windows.filter { window in
-          !assigned.contains(window.id) && isCandidate(window) && isOnPrimary(window)
-        }
-        if workspaces[index].count == 0 {
-          // First fill: left to right, then top to bottom, so the layout matches the screen.
-          newcomers.sort { ($0.frame.minX, $0.frame.minY) < ($1.frame.minX, $1.frame.minY) }
-        }
-        eligible += newcomers.map(\.id)
-      }
-      if workspaces[index].sync(eligible: eligible) && isCurrent { changedCurrent = true }
-    }
-    return changedCurrent
   }
 
   /// Moves every window of the current workspace to its slot, returning how many could not be

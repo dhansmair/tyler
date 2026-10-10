@@ -46,11 +46,25 @@ public struct Config: Equatable, Sendable {
   public var gaps: Gaps
   public var mouse: Mouse
   public var workspaces: Workspaces
+  /// The workspace (1-based) new windows of an app open on, keyed by bundle ID or app name in
+  /// lower case.
+  public var assignments: [String: Int]
 
-  public init(gaps: Gaps = Gaps(), mouse: Mouse = Mouse(), workspaces: Workspaces = Workspaces()) {
+  public init(
+    gaps: Gaps = Gaps(), mouse: Mouse = Mouse(), workspaces: Workspaces = Workspaces(),
+    assignments: [String: Int] = [:]
+  ) {
     self.gaps = gaps
     self.mouse = mouse
     self.workspaces = workspaces
+    self.assignments = assignments
+  }
+
+  /// The 1-based workspace that new windows of this app are assigned to, if any. A rule for the
+  /// bundle ID wins over one for the app name; both match regardless of case.
+  public func assignedWorkspace(bundleID: String?, appName: String) -> Int? {
+    if let bundleID, let number = assignments[bundleID.lowercased()] { return number }
+    return assignments[appName.lowercased()]
   }
 }
 
@@ -80,15 +94,47 @@ extension Config {
       throw .syntax(error)
     }
     var config = Config()
+    var assign: TOMLValue?
     for (key, value) in document.sorted(by: { $0.key < $1.key }) {
       switch key {
+      case "assign": assign = value
       case "gaps": config.gaps = try Gaps(value)
       case "mouse": config.mouse = try Mouse(value)
       case "workspaces": config.workspaces = try Workspaces(value)
       default: throw .invalid("unknown setting '\(key)'")
       }
     }
+    // Read last: the numbers are checked against the workspace count.
+    if let assign {
+      config.assignments = try Self.assignments(assign, count: config.workspaces.count)
+    }
     return config
+  }
+
+  /// `[assign]`: app (bundle ID or name) = workspace number.
+  private static func assignments(
+    _ value: TOMLValue, count: Int
+  ) throws(ConfigError) -> [String: Int] {
+    guard case .table(let table) = value else {
+      throw .invalid("assign must be a table: write [assign] and put app = workspace below it")
+    }
+    var assignments: [String: Int] = [:]
+    for (app, value) in table.sorted(by: { $0.key < $1.key }) {
+      if case .table = value {
+        throw .invalid("assign.\(app) is a table: quote app names and bundle IDs that contain dots")
+      }
+      guard case .integer(let number) = value, number >= 1 else {
+        throw .invalid("assign.\(app) must be a workspace number, 1 or more")
+      }
+      guard number <= count else {
+        throw .invalid(
+          "assign.\(app) = \(number), but there are only \(count) workspaces (workspaces.count)")
+      }
+      guard assignments.updateValue(number, forKey: app.lowercased()) == nil else {
+        throw .invalid("assign.\(app) is set twice (app names and bundle IDs ignore case)")
+      }
+    }
+    return assignments
   }
 }
 

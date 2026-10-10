@@ -28,6 +28,27 @@ struct ConfigTests {
     #expect(Config().workspaces.count == 4)
   }
 
+  @Test func parsesAppAssignmentsByNameOrBundleID() throws {
+    let config = try Config.parse(
+      """
+      [workspaces]
+      count = 5
+
+      [assign]
+      Firefox = 3
+      "com.mitchellh.ghostty" = 5
+      """)
+    #expect(config.assignments == ["firefox": 3, "com.mitchellh.ghostty": 5])
+    #expect(config.assignedWorkspace(bundleID: "org.mozilla.firefox", appName: "Firefox") == 3)
+    #expect(config.assignedWorkspace(bundleID: "COM.mitchellh.Ghostty", appName: "Ghostty") == 5)
+    #expect(config.assignedWorkspace(bundleID: nil, appName: "Safari") == nil)
+  }
+
+  @Test func theBundleIDWinsOverTheAppName() {
+    let config = Config(assignments: ["firefox": 2, "org.mozilla.firefox": 3])
+    #expect(config.assignedWorkspace(bundleID: "org.mozilla.firefox", appName: "Firefox") == 3)
+  }
+
   @Test func parsesGaps() throws {
     let config = try Config.parse(
       """
@@ -68,6 +89,25 @@ struct ConfigTests {
     ("[workspaces]\ncount = 0", "workspaces.count must be a whole number, 1 to 10"),
     ("[workspaces]\ncount = 11", "workspaces.count must be a whole number, 1 to 10"),
     ("[workspaces]\ncount = \"4\"", "workspaces.count must be a whole number, 1 to 10"),
+    ("assign = 3", "assign must be a table: write [assign] and put app = workspace below it"),
+    ("[assign]\nFirefox = 0", "assign.Firefox must be a workspace number, 1 or more"),
+    ("[assign]\nFirefox = \"3\"", "assign.Firefox must be a workspace number, 1 or more"),
+    (
+      "[assign]\nFirefox = 5",
+      "assign.Firefox = 5, but there are only 4 workspaces (workspaces.count)"
+    ),
+    (
+      "[assign]\nFirefox = 3\n[workspaces]\ncount = 2",
+      "assign.Firefox = 3, but there are only 2 workspaces (workspaces.count)"
+    ),
+    (
+      "[assign]\norg.mozilla.firefox = 3",
+      "assign.org is a table: quote app names and bundle IDs that contain dots"
+    ),
+    (
+      "[assign]\nFirefox = 3\nfirefox = 2",
+      "assign.firefox is set twice (app names and bundle IDs ignore case)"
+    ),
   ])
   func rejectsInvalidSettings(text: String, message: String) {
     #expect(throws: ConfigError.invalid(message)) {

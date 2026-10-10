@@ -17,9 +17,9 @@ Sizes: XS < 20 lines, S < 60, M < 200, L larger.
 - [ ] **1. [perf] [live] Stop the event echo storm.** `AXBackend.setFrame` reads the window back (about 7 AX reads plus an `NSRunningApplication` lookup) and yields `.updated`. The app's own moved/resized notification then produces a second `.updated`. Every `.updated` goes through `WindowManager.apply` → `reconcile` → `syncWorkspaces`, a full sync of every workspace, even though a plain move changes nothing in the lists.
   - Cost: a retile of 8 windows means about 16 syncs and over 100 AX calls. A slide of 6 windows × 30 steps means about 180 syncs and 1,200 reads on the main actor that also runs the animation. This is the likely cause of jumpy slides and swipes with slow apps.
   - Fixes:
-    - Give `.updated` a fast path that skips `reconcile` unless something tiling-relevant changed (tileable, minimized, fullscreen, *display*: a window moved to another display must still leave the workspace).
-    - Drop the read-back in `setFrame`, or read only the frame (it exists to report clamped sizes).
-    - Skip the sync for windows that are sliding or panning.
+    - [x] Give `.updated` a fast path that skips `reconcile` unless something tiling-relevant changed (tileable, minimized, fullscreen, *display*: a window moved to another display must still leave the workspace). Done in `WindowManager.apply`/`mayChangeLists`. One behaviour change: a window left out while no display was connected used to be picked up by its next move; now it waits for the next event of another kind (focus, create, a command).
+    - [ ] Drop the read-back in `setFrame`, or read only the frame (it exists to report clamped sizes). Needs `live-check`: it depends on every app sending its own moved/resized notification for a move made through AX.
+    - [x] Skip the sync for windows that are sliding or panning: covered by the fast path, since a slide step doesn't change tileability and changes display at most once.
   - Before: add tests for the fast path, including the display-change case. M, medium risk. `WindowManager.swift`, `WindowManager+Sync.swift`, `TylerPlatform/AXBackend.swift`.
 - [x] **2. Put slide, pan and drag into one interaction state.** `WindowManager` has 27 stored properties. Six of them (`animation`, `animationCount`, `pan`, `panThrottle`, `drag`, `dragThrottle`) describe things that never happen at the same time, and guards like `animation == nil, pan == nil` repeat throughout `+Mouse`, `+Pan` and `+Workspaces`.
   - [x] Step 1 (S, low risk): a `Throttle` type replaces the two identical sleep-then-retry loops (`placePan` in `+Pan`, `followPendingFrame` in `+Mouse`), and each throttle lives inside its session (`PanSession`, `MouseDrag`).
@@ -132,3 +132,4 @@ So nobody tries them again without a profile that says otherwise:
 - 2026-10-11: item 2 step 1 done (`Throttle`, held by `PanSession` and `MouseDrag`).
 - 2026-10-11: item 2 step 2 done (`Interaction`), after tests for how slide, pan and drag exclude each other.
 - 2026-10-11: item 3 done (`CommandSpec` table, manual check, request switches without `default:`; one switch over every case exceeds SwiftLint's complexity limit, so the split stays).
+- 2026-10-11: item 1, server half done (updates that can't change the lists skip the sync); the AX read-back is left for a live check.

@@ -268,6 +268,14 @@ public final class WindowManager {
   // MARK: - Events
 
   func apply(_ event: WindowEvent) {
+    if case .updated(let window) = event, let known = registry.window(withID: window.id) {
+      registry.apply(event)
+      // Most updates are moves and resizes, many of them echoes of tylerd's own moves (several
+      // per window placed, and one per window per slide step). Only these can change the lists.
+      if mayChangeLists(from: known, to: window) { reconcile() }
+      followDrag(of: window)
+      return
+    }
     registry.apply(event)
     switch event {
     case .focused(let windowID?):
@@ -281,6 +289,16 @@ public final class WindowManager {
     }
     reconcile()
     if case .updated(let window) = event { followDrag(of: window) }
+  }
+
+  /// Whether an update to a known window can change any workspace's list: the window became
+  /// tileable or stopped being so, or moved onto another display (see `syncWorkspaces`).
+  private func mayChangeLists(from old: WindowInfo, to new: WindowInfo) -> Bool {
+    guard old.isTileable == new.isTileable else { return true }
+    guard old.frame != new.frame else { return false }
+    let connected = displays.displays
+    return DisplayGeometry.display(containing: old.frame, in: connected)?.id
+      != DisplayGeometry.display(containing: new.frame, in: connected)?.id
   }
 }
 

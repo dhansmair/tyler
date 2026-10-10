@@ -22,10 +22,10 @@ public final class WindowManager {
     """
   public static let tilingOffMessage = "tiling is off (use `tyler tiling on`)"
 
-  public private(set) var state: State = .waitingForPermission {
+  public internal(set) var state: State = .waitingForPermission {
     didSet { updateIndicator() }
   }
-  public private(set) var tilingEnabled = true {
+  public internal(set) var tilingEnabled = true {
     didSet { updateIndicator() }
   }
   public internal(set) var config: Config
@@ -51,13 +51,15 @@ public final class WindowManager {
   let backend: any WindowBackend
   let displays: any DisplayProvider
   private let gate: any AccessibilityGate
-  private let workspaceCount: Int
+  let workspaceCount: Int
   /// Where `reload` reads the config from; `nil` when there is nothing to reload.
   let configSource: ConfigSource?
-  private var pump: Task<Void, Never>?
+  var pump: Task<Void, Never>?
   let indicator: (any Indicator)?
   /// What the indicator shows now, so it is only redrawn when that changes.
   var shownIndicatorState: IndicatorState?
+  /// The workspaces a previous tylerd handed over, applied once windows are tracked.
+  var pendingRestore: SavedState?
 
   public init(
     backend: any WindowBackend,
@@ -67,7 +69,8 @@ public final class WindowManager {
     workspaceCount: Int = WorkspaceStack.defaultCount,
     config: Config = Config(),
     configSource: ConfigSource? = nil,
-    indicator: (any Indicator)? = nil
+    indicator: (any Indicator)? = nil,
+    restoring saved: SavedState? = nil
   ) {
     self.backend = backend
     self.displays = displays
@@ -77,6 +80,7 @@ public final class WindowManager {
     self.config = config
     self.configSource = configSource
     self.indicator = indicator
+    pendingRestore = saved
     workspaces = WorkspaceStack(count: workspaceCount)
     applyGaps()
     updateIndicator()
@@ -100,6 +104,7 @@ public final class WindowManager {
     }
     backend.start()
     registry.replaceAll(backend.snapshot())
+    restorePending()
     state = .running
     reconcile()
     if let focusedID = registry.focusedID { workspaces.setFocus(focusedID) }
@@ -111,16 +116,7 @@ public final class WindowManager {
   public func stop() {
     cancelAnimation()
     if state == .running { restoreOriginalFrames(of: registry.windows.map(\.id)) }
-    pump?.cancel()
-    pump = nil
-    backend.stop()
-    registry = WindowRegistry()
-    workspaces = WorkspaceStack(count: workspaceCount)
-    applyGaps()
-    floated = []
-    originalFrames = [:]
-    pendingFocus = []
-    state = .waitingForPermission
+    tearDown()
   }
 
   /// Whether tiling is running, for `tyler status`.

@@ -10,6 +10,8 @@ struct MouseDrag: Equatable {
   var isResize = false
   /// The window shown in the dragged window's slot, the one a release would swap with.
   var previewTarget: WindowID?
+  /// Follows resizes at most once per `mouse.follow-interval`.
+  var throttle = Throttle()
 }
 
 extension WindowManager {
@@ -63,7 +65,7 @@ extension WindowManager {
     guard Self.isResized(window.frame, from: slot.frame) else { return }
     drag?.isResize = true
     drag?.pendingFrame = window.frame
-    if dragThrottle == nil { followPendingFrame() }
+    if drag?.throttle.isHolding == false { followPendingFrame() }
   }
 
   func apply(_ event: PointerEvent) {
@@ -127,9 +129,8 @@ extension WindowManager {
   /// of a drag never leaves two windows in each other's slots.
   func endDrag() {
     let previewTarget = drag?.previewTarget
+    drag?.throttle.release()
     drag = nil
-    dragThrottle?.cancel()
-    dragThrottle = nil
     guard let previewTarget, state == .running, tilingEnabled,
       let area = displays.displays.first?.visibleFrame,
       let slot = workspaces.current.placements(in: area).first(where: { $0.id == previewTarget }),
@@ -155,20 +156,13 @@ extension WindowManager {
   /// same way; with none, the next resize is followed at once again.
   private func followPendingFrame() {
     guard let windowID = drag?.windowID, let frame = drag?.pendingFrame else {
-      dragThrottle = nil
+      drag?.throttle.release()
       return
     }
     drag?.pendingFrame = nil
     follow(windowID, to: frame)
-    let interval = Duration.milliseconds(config.mouse.followInterval)
-    guard interval > .zero else { return }
-    let clock = clock  // Swift opens the existential from a local, not from the stored property.
-    dragThrottle = Task { [weak self] in
-      do {
-        try await clock.sleep(for: interval)
-      } catch {
-        return  // Cancelled: the drag ended.
-      }
+    drag?.throttle.hold(for: .milliseconds(config.mouse.followInterval), on: clock) {
+      [weak self] in
       self?.followPendingFrame()
     }
   }

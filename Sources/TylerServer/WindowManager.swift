@@ -44,9 +44,6 @@ public final class WindowManager {
   var animation: RunningAnimation?
   /// The trackpad pan in progress, if any (`WindowManager+Pan`).
   var pan: PanSession?
-  /// While a pan is followed, the wait before its next step; `nil` when the next offset may be
-  /// placed at once.
-  var panThrottle: Task<Void, Never>?
   var animationCount = 0
   let animator: Animator
   let backend: any WindowBackend
@@ -60,10 +57,7 @@ public final class WindowManager {
   var pointerPump: Task<Void, Never>?
   /// The window being dragged with the mouse, if any.
   var drag: MouseDrag?
-  /// While a drag is followed, the wait before the next step; `nil` when the next resize may be
-  /// followed at once.
-  var dragThrottle: Task<Void, Never>?
-  /// Times the drag steps; injected so tests don't sleep.
+  /// Paces drag and pan steps; injected so tests don't sleep.
   let clock: any Clock<Duration>
   let indicator: (any Indicator)?
   /// What the indicator shows now, so it is only redrawn when that changes.

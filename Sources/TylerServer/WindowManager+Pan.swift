@@ -34,6 +34,8 @@ struct PanSession {
   var shownSide: ScrollDirection?
   /// Whether `offset` has been applied to the windows yet.
   var isPlaced = true
+  /// Places the windows at most once a frame.
+  var throttle = Throttle()
 }
 
 extension WindowManager {
@@ -80,13 +82,13 @@ extension WindowManager {
     guard pan != nil else { return }
     pan?.offset = min(1, max(-1, travel / config.gestures.swipeDistance))
     pan?.isPlaced = false
-    if panThrottle == nil { placePan() }
+    if pan?.throttle.isHolding == false { placePan() }
   }
 
   /// Places the windows for the newest offset, then holds further steps back for a frame.
   private func placePan() {
     guard let session = pan, !session.isPlaced else {
-      panThrottle = nil
+      pan?.throttle.release()
       return
     }
     pan?.isPlaced = true
@@ -99,18 +101,7 @@ extension WindowManager {
         nudge(track.id, to: track.position(at: progress, easing: Easing.linear))
       }
     }
-    let interval = animator.frameInterval
-    guard interval > .zero else {
-      panThrottle = nil
-      return
-    }
-    let clock = clock  // Swift opens the existential from a local, not from the stored property.
-    panThrottle = Task { [weak self] in
-      do {
-        try await clock.sleep(for: interval)
-      } catch {
-        return  // Cancelled: the pan ended.
-      }
+    pan?.throttle.hold(for: animator.frameInterval, on: clock) { [weak self] in
       self?.placePan()
     }
   }
@@ -164,9 +155,8 @@ extension WindowManager {
 
   /// Forgets the pan, and any step of it still waiting, leaving the windows where they are.
   func forgetPan() {
+    pan?.throttle.release()
     pan = nil
-    panThrottle?.cancel()
-    panThrottle = nil
   }
 
   /// Which neighbour an offset brings into view: content moving left (negative) shows the next.

@@ -46,9 +46,20 @@ struct CommandLineTests {
     }
   }
 
+  @Test func parsesReload() throws {
+    #expect(try CommandLineParser.parse(["reload"]) == Invocation(request: .reload))
+  }
+
+  @Test func reloadRejectsExtraArguments() {
+    #expect(throws: CommandLineError.usage("reload takes no arguments")) {
+      try CommandLineParser.parse(["reload", "now"])
+    }
+  }
+
   @Test func usageMentionsEveryCommand() {
     #expect(CommandLineParser.usage.contains("ping"))
     #expect(CommandLineParser.usage.contains("list"))
+    #expect(CommandLineParser.usage.contains("reload"))
   }
 }
 

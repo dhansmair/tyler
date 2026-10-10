@@ -35,6 +35,20 @@ struct WorkspaceStackTests {
     #expect(stack.index(of: target) == expected)
   }
 
+  @Test func setGapsChangesEveryWorkspaceButKeepsLayoutAndRatio() {
+    var stack = WorkspaceStack()
+    stack[2].layout = .full
+    stack[2].adjustRatio(by: 0.1)
+    stack.setGaps(inner: 8, outer: 12)
+    for index in stack.indices {
+      #expect(stack[index].parameters.innerGap == 8)
+      #expect(stack[index].parameters.outerGap == 12)
+    }
+    #expect(stack[2].layout == .full)
+    #expect(stack[2].parameters.mainRatio == 0.6)
+    #expect(stack[0].parameters.mainRatio == 0.5)
+  }
+
   @Test(arguments: [0, 5, -1])
   func numbersOutOfRangeResolveToNothing(number: Int) {
     #expect(WorkspaceStack().index(of: .number(number)) == nil)

@@ -130,6 +130,11 @@ public struct Workspace: Equatable, Sendable {
     parameters.adjustRatio(by: delta)
   }
 
+  /// Changes the gaps, keeping the layout and the ratio.
+  public mutating func setGaps(inner: CGFloat, outer: CGFloat) {
+    parameters = parameters.withGaps(inner: inner, outer: outer)
+  }
+
   public mutating func cycleLayout() {
     layout = layout.next
   }

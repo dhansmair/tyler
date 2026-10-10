@@ -182,6 +182,12 @@ struct LayoutKindTests {
     #expect(parameters.mainRatio == 0.5)
   }
 
+  @Test func changingTheGapsKeepsTheRatio() {
+    let parameters = LayoutParameters(mainRatio: 0.6, outerGap: 1, innerGap: 2)
+      .withGaps(inner: 8, outer: 12)
+    #expect(parameters == LayoutParameters(mainRatio: 0.6, outerGap: 12, innerGap: 8))
+  }
+
   @Test func negativeGapsAreTreatedAsZero() {
     let parameters = LayoutParameters(outerGap: -4, innerGap: -2)
     #expect(parameters.outerGap == 0)

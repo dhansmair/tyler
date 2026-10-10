@@ -1,3 +1,5 @@
+import CoreGraphics
+
 /// The workspaces of one display, stacked vertically like pages. Exactly one is current (on
 /// screen) and the others are parked. A window belongs to at most one workspace.
 public struct WorkspaceStack: Equatable, Sendable {
@@ -68,6 +70,13 @@ public struct WorkspaceStack: Equatable, Sendable {
     workspaces[index].insert(windowID)
     workspaces[index].setFocus(windowID)
     return true
+  }
+
+  /// Changes the gaps of every workspace, keeping each one's layout and ratio.
+  public mutating func setGaps(inner: CGFloat, outer: CGFloat) {
+    for index in workspaces.indices {
+      workspaces[index].setGaps(inner: inner, outer: outer)
+    }
   }
 
   /// Records that `windowID` got focus, on whichever workspace holds it.

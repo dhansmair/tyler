@@ -46,6 +46,8 @@ A layout turns the tiling list into window frames, within the display's visible 
 
 The *master ratio* is the master column's share of the width in `tall`. Each workspace has its own layout and master ratio (`tyler layout`, `tyler ratio`).
 
+*Gaps* are the space between neighbouring windows (inner) and between the windows and the edge of the area (outer). They are the same on every workspace and come from the config file.
+
 ## Running tylerd
 
 ```bash
@@ -60,6 +62,27 @@ As soon as it has permission, `tylerd` tiles the windows on the main display, or
 
 Only one `tylerd` can run per socket. Starting a second one fails with `already running`.
 
+## Configuration
+
+`tylerd` reads its settings from `~/.config/tyler/tyler.toml` when it starts. Set `TYLER_CONFIG` to use another file. The file is optional: every setting has a default, so list only what you want to change. After editing it, run `tyler reload` to apply it without restarting `tylerd`.
+
+```toml
+# ~/.config/tyler/tyler.toml
+
+[gaps]
+inner = 8    # between neighbouring windows
+outer = 12   # between the windows and the edge of the screen
+```
+
+| Setting | Meaning | Default |
+| --- | --- | --- |
+| `gaps.inner` | Space between neighbouring tiled windows | `0` |
+| `gaps.outer` | Space between the tiled windows and the edge of the display's visible area | `0` |
+
+Gaps are whole numbers in points, the unit macOS uses for window positions (on a Retina display, one point is two pixels).
+
+The file is [TOML](https://toml.io). tyler reads the parts of TOML its settings need: tables, keys, numbers, strings, booleans and comments. Unknown settings are errors, so a typo doesn't go unnoticed. If the file has an error when `tylerd` starts, it prints the error and starts with the defaults; fix the file and run `tyler reload`.
+
 ## Command reference
 
 ```
@@ -70,6 +93,7 @@ tyler <command> [arguments]
 | --- | --- |
 | `ping` | Check that `tylerd` is running |
 | `list [--json]` | Show the windows `tylerd` is tracking |
+| `reload` | Read the config file again and apply it |
 | `focus next\|prev\|master` | Move focus within the tiling list |
 | `swap next\|prev\|master` | Swap the focused window with another one |
 | `layout tall\|full\|next` | Choose the layout |
@@ -80,7 +104,7 @@ tyler <command> [arguments]
 | `workspace up\|down\|<n>` | Switch to another workspace |
 | `move-to-workspace up\|down\|<n> [--follow]` | Send the focused window to another workspace |
 
-Commands that change windows act on the current workspace. All of them except `ping`, `list` and `tiling` need tiling to be on; with tiling off they print ``tiling is off (use `tyler tiling on`)``.
+Commands that change windows act on the current workspace. All of them except `ping`, `list`, `reload` and `tiling` need tiling to be on; with tiling off they print ``tiling is off (use `tyler tiling on`)``.
 
 ### ping
 
@@ -111,6 +135,16 @@ Shows every window `tylerd` knows about, one per row:
 | `FLAGS` | Any of `focused`, `min` (minimized), `full` (native fullscreen), `floated` (floated with `float toggle`), `dialog`, `float` (a floating panel), `other` (a window that is never tiled) |
 
 `--json` prints the same information as a JSON array, for scripts.
+
+### reload
+
+```bash
+tyler reload
+```
+
+Reads the config file again and applies it. Windows on the current workspace move to their new frames at once; the other workspaces use the new settings when you switch to them. With tiling off, nothing moves until you turn it back on.
+
+Prints `reloaded <path>`. If the file has an error, `tyler reload` prints it with its line number, exits with status 1, and the current settings stay. If there is no file, the defaults apply.
 
 ### focus
 
@@ -217,6 +251,7 @@ If some windows couldn't be moved (an app refused, or a window closed meanwhile)
 
 | Variable | Meaning |
 | --- | --- |
+| `TYLER_CONFIG` | Path of the config file. Default: `~/.config/tyler/tyler.toml`. |
 | `TYLER_SOCKET` | Path of the socket `tyler` and `tylerd` talk over. Default: `~/.tyler/tyler.sock`. Set the same value for both to run a separate instance. |
 
 ## Example skhd bindings

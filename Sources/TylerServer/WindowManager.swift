@@ -24,10 +24,11 @@ public final class WindowManager {
 
   public private(set) var state: State = .waitingForPermission
   public private(set) var tilingEnabled = true
+  public internal(set) var config: Config
 
   static let log = Logger(subsystem: "tyler", category: "manager")
 
-  // Internal rather than private so `WindowManager+Workspaces` can reach them.
+  // Internal rather than private so the `WindowManager+…` extensions can reach them.
   var registry = WindowRegistry()
   var workspaces: WorkspaceStack
   var floated: Set<WindowID> = []
@@ -45,6 +46,8 @@ public final class WindowManager {
   let displays: any DisplayProvider
   private let gate: any AccessibilityGate
   private let workspaceCount: Int
+  /// Where `reload` reads the config from; `nil` when there is nothing to reload.
+  let configSource: ConfigSource?
   private var pump: Task<Void, Never>?
 
   public init(
@@ -52,14 +55,19 @@ public final class WindowManager {
     displays: any DisplayProvider,
     gate: any AccessibilityGate,
     animator: Animator = Animator(),
-    workspaceCount: Int = WorkspaceStack.defaultCount
+    workspaceCount: Int = WorkspaceStack.defaultCount,
+    config: Config = Config(),
+    configSource: ConfigSource? = nil
   ) {
     self.backend = backend
     self.displays = displays
     self.gate = gate
     self.animator = animator
     self.workspaceCount = workspaceCount
+    self.config = config
+    self.configSource = configSource
     workspaces = WorkspaceStack(count: workspaceCount)
+    applyGaps()
   }
 
   // MARK: - Lifecycle
@@ -96,6 +104,7 @@ public final class WindowManager {
     backend.stop()
     registry = WindowRegistry()
     workspaces = WorkspaceStack(count: workspaceCount)
+    applyGaps()
     floated = []
     originalFrames = [:]
     pendingFocus = []
@@ -108,14 +117,22 @@ public final class WindowManager {
     switch request {
     case .ping: .pong
     case .list: windows()
-    case .retile: retile()
+    case .reload: reload()
     case .tiling(let mode): setTiling(mode)
+    case .retile, .focus, .swap, .layout, .ratio, .toggleFloat: handleTilingRequest(request)
+    case .workspace, .moveToWorkspace: handleWorkspaceRequest(request)
+    }
+  }
+
+  private func handleTilingRequest(_ request: Request) -> Response {
+    switch request {
+    case .retile: retile()
     case .focus(let target): focus(target)
     case .swap(let target): swap(target)
     case .layout(let choice): setLayout(choice)
     case .ratio(let delta): adjustRatio(by: delta)
     case .toggleFloat: toggleFloat()
-    case .workspace, .moveToWorkspace: handleWorkspaceRequest(request)
+    default: .error("not a tiling request")
     }
   }
 

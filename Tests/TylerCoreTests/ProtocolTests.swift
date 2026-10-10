@@ -12,10 +12,11 @@ struct ProtocolTests {
   }
 
   @Test(arguments: [
-    Request.workspace(.up), .workspace(.down), .workspace(.number(3)),
+    Request.reload, .list, .retile, .workspace(.up), .workspace(.down),
+    .workspace(.number(3)),
     .moveToWorkspace(.number(2), follow: true), .moveToWorkspace(.down, follow: false),
   ])
-  func workspaceRequestsRoundTrip(request: Request) throws {
+  func requestsWithAndWithoutArgumentsRoundTrip(request: Request) throws {
     let data = try Wire.encode(request)
     #expect(try Wire.decode(Request.self, from: Data(data.dropLast())) == request)
   }

@@ -137,6 +137,15 @@ Per-display stacks keyed by display UUID, reconfiguration handling, `display` an
 ### M6. Config and service
 Config file (float rules, gaps, workspace count), `reload`, LaunchAgent through `service install`.
 
+Decisions (2026-10-10): the file is `~/.config/tyler/tyler.toml` (`TYLER_CONFIG` overrides it) and is optional. TOML is parsed by a small built-in parser (`TOML.swift`, no dependency) that supports tables, bare/quoted/dotted keys, single-line strings, integers, floats, booleans and comments, and rejects arrays, inline tables, multi-line strings and dates with an error; extend it when float rules need arrays of tables. Unknown keys are errors. Gaps are `[gaps] inner/outer`, whole points ≥ 0, the same on every workspace; reload keeps each workspace's layout and ratio. A broken file at startup prints the error and starts with the defaults; a broken file on `reload` returns an error (exit 1) and keeps the current settings; a missing file means the defaults. `reload` works with tiling off or before permission (it only stores the config) and re-tiles only the current workspace.
+
+- [x] TylerCore: `TOML`, `Config` (`gaps`), `ConfigError`, `ConfigSource` (file reader, injectable for tests), `Paths.configPath`, `LayoutParameters.withGaps`, `Workspace.setGaps`, `WorkspaceStack.setGaps`, `Request.reload`
+- [x] TylerServer: `WindowManager` takes a `Config` and a `ConfigSource`; `reload` in `WindowManager+Config.swift`
+- [x] tylerd loads the config at startup; TylerClient: `reload`
+- [ ] Checked against real windows: gaps at startup, `reload` after editing the file, a broken file at startup and on reload
+- [ ] Float rules, workspace count
+- [ ] LaunchAgent (`service install|uninstall`)
+
 ### M7. (Later) Trackpad scroll
 Scroll with a modifier through a CGEventTap feeding the Animator.
 
@@ -150,7 +159,7 @@ tyler workspace up|down|<n>             tyler move-to-workspace up|down|<n> [--f
 tyler display next|prev                 tyler move-to-display next|prev
 tyler service install|uninstall
 ```
-Implemented so far: `ping`, `list [--json]`, `focus`, `swap`, `layout`, `ratio`, `float toggle`, `tiling`, `retile`, `workspace`, `move-to-workspace [--follow]`. The CLI and wire format say `master` (the xmonad term); in Swift the case is `ListTarget.main`, because SwiftLint's `inclusive_language` rule rejects `master` in identifiers.
+Implemented so far: `ping`, `list [--json]`, `focus`, `swap`, `layout`, `ratio`, `float toggle`, `tiling`, `retile`, `workspace`, `move-to-workspace [--follow]`, `reload`. The CLI and wire format say `master` (the xmonad term); in Swift the case is `ListTarget.main`, because SwiftLint's `inclusive_language` rule rejects `master` in identifiers.
 
 ## Open items
 - **Code signing.** No signing identity exists on this machine. macOS ties the Accessibility permission to the binary's code identity. Decided in M2: during development, grant Accessibility to the terminal app that runs `tylerd` (no keychain changes). Revisit in M6, when `tylerd` runs as a LaunchAgent and needs its own stable identity (a self-signed `tyler-dev` certificate, then `make install SIGN_ID=tyler-dev`).
@@ -173,6 +182,7 @@ Implemented so far: `ping`, `list [--json]`, `focus`, `swap`, `layout`, `ratio`,
 - 2026-10-08: M1 built.
 - 2026-10-08: M2 built and unit tested. The user then ran it against real windows and reported it works well (see M2 for what was and wasn't confirmed).
 - 2026-10-10: M4 built and unit tested (all three phases of the plan). Not yet run against real windows (see M4 for the checklist).
+- 2026-10-10: M6 started: config file (`tyler.toml`) with gaps, and `tyler reload`. Unit tested, not yet run against real windows.
 - 2026-10-10: Renamed the project from mwm to tyler: binaries `tyler`/`tylerd`, modules `Tyler*`, socket `~/.tyler/tyler.sock`, `TYLER_SOCKET`, Logger subsystem `tyler`. The repository directory is still `mwm`.
 - 2026-10-10: Renamed "virtual monitor" to "workspace" everywhere (see Decisions) and wrote the Concepts section of `docs/manual.md`.
 - 2026-10-08: M3 built and unit tested. The code that moves and focuses windows has not been run against real windows (see M3 for the checklist). Not recoverable on exit yet: quitting `tylerd` leaves windows where tiling put them (M4 adds restore).

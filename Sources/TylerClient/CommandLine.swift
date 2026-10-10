@@ -29,6 +29,7 @@ public enum CommandLineParser {
     commands:
       ping                           check that tylerd is running
       list [--json]                  show the windows tylerd is tracking
+      reload                         read the config file again and apply it
       focus next|prev|master         move focus within the tiling list
       swap next|prev|master          swap the focused window with another slot
       layout tall|full|next          choose the layout
@@ -61,6 +62,9 @@ public enum CommandLineParser {
       default:
         throw CommandLineError.usage("list only accepts --json")
       }
+    case "reload":
+      try requireNoArguments(rest, for: command)
+      return Invocation(request: .reload)
     default:
       return try parseTilingCommand(command, rest)
     }

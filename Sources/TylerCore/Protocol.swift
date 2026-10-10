@@ -4,6 +4,8 @@ import Foundation
 public enum Request: Codable, Equatable, Sendable {
   case ping
   case list
+  /// Reads the config file again and applies it.
+  case reload
   case retile
   case tiling(TilingMode)
   case focus(ListTarget)

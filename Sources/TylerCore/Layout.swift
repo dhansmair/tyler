@@ -17,6 +17,11 @@ public struct LayoutParameters: Equatable, Sendable {
     self.innerGap = max(0, innerGap)
   }
 
+  /// The same parameters with different gaps; the ratio is kept.
+  public func withGaps(inner: CGFloat, outer: CGFloat) -> LayoutParameters {
+    LayoutParameters(mainRatio: mainRatio, outerGap: outer, innerGap: inner)
+  }
+
   /// Moves the ratio by `delta`, staying inside `ratioRange`. Returns whether it changed.
   @discardableResult
   public mutating func adjustRatio(by delta: Double) -> Bool {

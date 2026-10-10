@@ -8,17 +8,38 @@ func announce(_ message: String) {
   FileHandle.standardOutput.write(Data((message + "\n").utf8))
 }
 
-func die(_ message: String) -> Never {
+func warn(_ message: String) {
   FileHandle.standardError.write(Data(("tylerd: " + message + "\n").utf8))
+}
+
+func die(_ message: String) -> Never {
+  warn(message)
   exit(1)
 }
 
 let socketPath = Paths.socketPath()
+let configSource = ConfigSource.file(at: Paths.configPath())
+// A broken config doesn't stop tylerd: it starts with the defaults, and `tyler reload` picks
+// up the file once it is fixed.
+var config = Config()
+do {
+  if let loaded = try configSource.read() {
+    config = loaded
+    announce("tylerd: config \(configSource.path)")
+  } else {
+    announce("tylerd: no config file at \(configSource.path), using the defaults")
+  }
+} catch {
+  warn("\(configSource.path): \(error) (using the defaults)")
+}
+
 let gate = SystemAccessibilityGate()
 let manager = WindowManager(
   backend: AXBackend(),
   displays: ScreenDisplayProvider(),
-  gate: gate
+  gate: gate,
+  config: config,
+  configSource: configSource
 )
 let router = CommandRouter(manager: manager)
 let server = IPCServer(path: socketPath) { [router] request in await router.handle(request) }

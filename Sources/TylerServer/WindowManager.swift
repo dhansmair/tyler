@@ -133,6 +133,9 @@ public final class WindowManager {
 
   // MARK: - Requests
 
+  /// Every switch over requests lists every case, with no `default:`, so the compiler points at
+  /// each one a new request must be added to. (It is split in three to stay within SwiftLint's
+  /// complexity limit.)
   public func handle(_ request: Request) -> Response {
     switch request {
     case .ping: .pong
@@ -154,7 +157,8 @@ public final class WindowManager {
     case .layout(let choice): setLayout(choice)
     case .ratio(let delta): adjustRatio(by: delta)
     case .toggleFloat: toggleFloat()
-    default: .error("not a tiling request")
+    case .ping, .status, .list, .reload, .tiling, .workspace, .moveToWorkspace:
+      .error("not a tiling request")
     }
   }
 

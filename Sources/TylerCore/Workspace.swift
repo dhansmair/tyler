@@ -131,6 +131,27 @@ public struct Workspace: Equatable, Sendable {
     return true
   }
 
+  /// Swaps two windows' slots, whatever has focus; focus stays on the window it was on. Returns
+  /// false if either window isn't in the list or they are the same window.
+  @discardableResult
+  public mutating func swap(_ first: WindowID, with second: WindowID) -> Bool {
+    guard first != second, let firstIndex = windows.firstIndex(of: first),
+      let secondIndex = windows.firstIndex(of: second)
+    else { return false }
+    windows.swapAt(firstIndex, secondIndex)
+    return true
+  }
+
+  /// The window that `windowID` would swap with if it were dropped at `point`: the one whose
+  /// slot is under the point. Nothing while the point is still in `windowID`'s own slot (in
+  /// `full`, that is everywhere), in a gap, or outside the tiled area.
+  public func dropTarget(for windowID: WindowID, at point: CGPoint, in area: CGRect) -> WindowID? {
+    let placements = placements(in: area)
+    guard let own = placements.first(where: { $0.id == windowID }), !own.frame.contains(point)
+    else { return nil }
+    return placements.first { $0.id != windowID && $0.frame.contains(point) }?.id
+  }
+
   // MARK: - Layout
 
   @discardableResult

@@ -19,6 +19,13 @@ public enum Paths {
     return base + ".log"
   }
 
+  /// Where tylerd leaves its workspaces for the next tylerd when it restarts: the socket path
+  /// with `.state.json` instead of `.sock` (`~/.tyler/tyler.state.json` by default).
+  public static func statePath(socketPath: String = socketPath()) -> String {
+    let base = socketPath.hasSuffix(".sock") ? String(socketPath.dropLast(5)) : socketPath
+    return base + ".state.json"
+  }
+
   /// `$TYLER_CONFIG` if set and non-empty, otherwise `~/.config/tyler/tyler.toml`.
   public static func configPath(
     environment: [String: String] = ProcessInfo.processInfo.environment,

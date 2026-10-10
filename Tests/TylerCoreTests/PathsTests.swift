@@ -27,6 +27,14 @@ struct PathsTests {
     #expect(Paths.logPath(socketPath: socketPath) == expected)
   }
 
+  @Test(arguments: [
+    ("/Users/x/.tyler/tyler.sock", "/Users/x/.tyler/tyler.state.json"),
+    ("/tmp/odd", "/tmp/odd.state.json"),
+  ])
+  func theStateFileSitsNextToTheSocket(socketPath: String, expected: String) {
+    #expect(Paths.statePath(socketPath: socketPath) == expected)
+  }
+
   @Test(arguments: [[:], ["TYLER_CONFIG": ""]])
   func configDefaultsToDotConfig(environment: [String: String]) {
     #expect(

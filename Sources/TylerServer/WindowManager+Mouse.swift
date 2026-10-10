@@ -44,7 +44,7 @@ extension WindowManager {
   /// A window moved by its title bar can swap with another: see `previewDrop(at:)`.
   func followDrag(of window: WindowInfo) {
     guard let pointer, pointer.isPrimaryButtonDown, state == .running, tilingEnabled,
-      animation == nil, workspaces.current.contains(window.id)
+      animation == nil, pan == nil, workspaces.current.contains(window.id)
     else { return }
     if let drag, drag.windowID != window.id { return }
     guard let area = displays.displays.first?.visibleFrame,
@@ -64,6 +64,7 @@ extension WindowManager {
     switch event {
     case .primaryButtonDragged(let location): previewDrop(at: location)
     case .primaryButtonReleased(let location): drop(at: location)
+    case .pan(let update): apply(update)
     }
   }
 
@@ -139,7 +140,7 @@ extension WindowManager {
   /// Whether the layout can still react to `drag`: tiling runs, no slide, and the dragged window
   /// is still tiled on the workspace on screen.
   private func canFollow(_ drag: MouseDrag) -> Bool {
-    state == .running && tilingEnabled && animation == nil
+    state == .running && tilingEnabled && animation == nil && pan == nil
       && workspaces.current.contains(drag.windowID)
   }
 

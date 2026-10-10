@@ -130,6 +130,11 @@ final class FakePointer: PointerInput {
     isPrimaryButtonDown = true
     continuation.yield(.primaryButtonDragged(location: location))
   }
+
+  /// A step of a swipe on the trackpad.
+  func pan(_ update: PanUpdate) {
+    continuation.yield(.pan(update))
+  }
 }
 
 @MainActor

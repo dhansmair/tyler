@@ -81,6 +81,8 @@ Built ahead of step 3 (2026-10-11): the `[gestures]` config from step 4 (`swipe`
   - a command mid-pan
   - a pan while tiling is off is ignored
 
+Built (2026-10-11), with one deviation: the pan's target is an enum, `PanTarget` with the single case `workspaceRow(prev:next:)`, instead of a `Scrollable` protocol. The guidelines allow a protocol only for two real implementations or a test seam, and the strip will be the second case. Both neighbours' slide plans are worked out when the pan begins, because frames read later would be mid-slide.
+
 ### 4. TylerPlatform and config
 - `PointerMonitor` (`Sources/TylerPlatform/PointerMonitor.swift`) adds the gesture source chosen in the spike, on the main thread with `MainActor.assumeIsolated` like the existing monitor. It converts touches to `TouchFrame`, runs `PanRecognizer` and yields `.pan(...)`. Keep it thin.
 - Config `[gestures]`: `swipe = true` and `fingers = 3` (3 or 4). Parse it in `Sources/TylerCore/Config.swift` and apply it on `reload` (`WindowManager+Config.swift`). Include config tests for bad values.

@@ -83,32 +83,44 @@ extension WindowManager {
     // Sync before switching, never after: the target's windows are parked, and a parked frame
     // can overlap a neighbouring display more than this one, which would drop them.
     syncWorkspaces()
-    let outgoing = workspaces.current.windows
-    workspaces.select(index)
-    guard let display = displays.displays.first else { return 0 }
-
-    var tracks: [Track] = []
-    var start: [Placement] = []
-    var finals: [Placement] = []
-    for windowID in outgoing {
-      guard let frame = registry.window(withID: windowID)?.frame else { continue }
-      tracks.append(.leaving(windowID, from: frame, direction: direction, on: display))
-      finals.append(Placement(id: windowID, frame: Parking.frame(for: frame, on: display)))
+    guard let display = displays.displays.first else {
+      workspaces.select(index)
+      return 0
     }
-    for placement in workspaces.current.placements(in: display.visibleFrame) {
+    let plan = slidePlan(to: index, direction: direction, on: display)
+    workspaces.select(index)
+    let failures = animate(start: plan.start, tracks: plan.tracks, finals: plan.finals)
+    if focusing { focusCurrentWorkspace() }
+    return failures
+  }
+
+  /// How the windows move when the workspace at `index` comes into view from `direction`: the
+  /// current workspace's windows leave, the target's come in. Reads the current frames, so it
+  /// must be worked out before any of these windows moves.
+  func slidePlan(
+    to index: Int, direction: ScrollDirection, on display: DisplayInfo
+  ) -> SlidePlan {
+    var plan = SlidePlan(target: index, direction: direction)
+    for windowID in workspaces.current.windows {
+      guard let frame = registry.window(withID: windowID)?.frame else { continue }
+      plan.tracks.append(.leaving(windowID, from: frame, direction: direction, on: display))
+      plan.finals.append(Placement(id: windowID, frame: Parking.frame(for: frame, on: display)))
+      plan.returns.append(Placement(id: windowID, frame: frame))
+    }
+    for placement in workspaces[index].placements(in: display.visibleFrame) {
       let track = Track.entering(
         placement.id, into: placement.frame, direction: direction, on: display)
       // Coming in from the right, this is where the window is parked already.
-      start.append(
+      plan.start.append(
         Placement(
           id: placement.id, frame: CGRect(origin: track.position(at: 0), size: placement.frame.size)
         ))
-      tracks.append(track)
-      finals.append(placement)
+      plan.tracks.append(track)
+      plan.finals.append(placement)
+      plan.returns.append(
+        Placement(id: placement.id, frame: Parking.frame(for: placement.frame, on: display)))
     }
-    let failures = animate(start: start, tracks: tracks, finals: finals)
-    if focusing { focusCurrentWorkspace() }
-    return failures
+    return plan
   }
 
   /// Slides one visible window off the display towards the workspace it was sent to, and parks
@@ -124,7 +136,7 @@ extension WindowManager {
       finals: [Placement(id: windowID, frame: Parking.frame(for: frame, on: display))])
   }
 
-  private func focusCurrentWorkspace() {
+  func focusCurrentWorkspace() {
     guard let target = workspaces.current.focused ?? workspaces.current.windows.first else {
       unfocusParkedWindow()
       return
@@ -165,16 +177,21 @@ extension WindowManager {
 
   // MARK: - Animation
 
-  /// Windows that are sliding right now (or about to be placed at the end of a slide).
+  /// Windows that are sliding right now (or about to be placed at the end of a slide), or that
+  /// a trackpad pan may move.
   var animatingWindows: Set<WindowID> {
-    Set(animation?.finals.map(\.id) ?? [])
+    Set(animation?.finals.map(\.id) ?? []).union(panningWindows)
   }
 
   /// Puts windows at `start`, slides them along `tracks`, and finally places them at `finals`
   /// with a full resize. With a snapping animator (or nothing to slide) the windows go straight
   /// to `finals`. Returns how many windows could not be placed synchronously; failures during
-  /// the slide are logged.
-  private func animate(start: [Placement], tracks: [Track], finals: [Placement]) -> Int {
+  /// the slide are logged. A slide that takes over from a released swipe runs only part of the
+  /// tracks, `from` one progress `to` another, easing out.
+  @discardableResult
+  func animate(
+    start: [Placement], tracks: [Track], finals: [Placement], from: Double = 0, to end: Double = 1
+  ) -> Int {
     finishAnimation()
     guard animator.stepCount > 0, !tracks.isEmpty else { return place(finals) }
     let failures = place(start)
@@ -182,25 +199,32 @@ extension WindowManager {
     let id = animationCount
     let animator = animator
     let task = Task { [weak self] in
-      let isComplete = await animator.run(tracks) { windowID, origin in
+      let move: (WindowID, CGPoint) -> Void = { windowID, origin in
         self?.nudge(windowID, to: origin)
       }
+      let isComplete =
+        from == 0 && end == 1
+        ? await animator.run(tracks, move: move)
+        : await animator.run(tracks, from: from, to: end, move: move)
       if isComplete { self?.completeAnimation(id) }
     }
     animation = RunningAnimation(id: id, task: task, finals: finals)
     return failures
   }
 
-  /// Ends a slide early: the windows jump to where the slide would have left them.
+  /// Ends a slide early: the windows jump to where the slide would have left them. A trackpad
+  /// pan in progress is abandoned, its windows back where they started.
   func finishAnimation() {
+    abandonPan()
     guard let running = animation else { return }
     animation = nil
     running.task.cancel()
     place(running.finals)
   }
 
-  /// Stops a slide and leaves the windows wherever they are.
+  /// Stops a slide (or a pan) and leaves the windows wherever they are.
   func cancelAnimation() {
+    forgetPan()
     animation?.task.cancel()
     animation = nil
   }
@@ -211,7 +235,7 @@ extension WindowManager {
     place(running.finals)
   }
 
-  private func nudge(_ windowID: WindowID, to origin: CGPoint) {
+  func nudge(_ windowID: WindowID, to origin: CGPoint) {
     rememberOriginalFrame(of: windowID)
     do {
       try backend.setPosition(origin, of: windowID)

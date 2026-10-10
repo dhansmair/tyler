@@ -50,6 +50,11 @@ public final class WindowManager {
   var pendingFocus: Set<WindowID> = []
   /// The slide in progress, if any.
   var animation: RunningAnimation?
+  /// The trackpad pan in progress, if any (`WindowManager+Pan`).
+  var pan: PanSession?
+  /// While a pan is followed, the wait before its next step; `nil` when the next offset may be
+  /// placed at once.
+  var panThrottle: Task<Void, Never>?
   var animationCount = 0
   let animator: Animator
   let backend: any WindowBackend

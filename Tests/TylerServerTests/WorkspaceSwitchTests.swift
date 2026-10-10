@@ -20,12 +20,14 @@ struct WorkspaceHarness {
     displays: FakeDisplays = FakeDisplays(),
     animator: Animator = .snap,
     config: Config = Config(),
-    configFile: FakeConfigFile? = nil
+    configFile: FakeConfigFile? = nil,
+    pointer: FakePointer? = nil,
+    clock: any Clock<Duration> = ContinuousClock()
   ) {
     backend = FakeBackend(windows: Self.spread(ids) + extra)
     manager = WindowManager(
       backend: backend, displays: displays, gate: FakeGate(isTrusted: true), animator: animator,
-      config: config, configSource: configFile?.source)
+      config: config, configSource: configFile?.source, pointer: pointer, clock: clock)
     manager.startIfPermitted()
     backend.clearRecordedCalls()
   }

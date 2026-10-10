@@ -79,7 +79,7 @@ extension WindowManager {
   @discardableResult
   func show(_ index: Int, direction: ScrollDirection, focusing: Bool) -> Int {
     finishAnimation()
-    drag = nil
+    endDrag()
     // Sync before switching, never after: the target's windows are parked, and a parked frame
     // can overlap a neighbouring display more than this one, which would drop them.
     syncWorkspaces()

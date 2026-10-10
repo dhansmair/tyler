@@ -28,7 +28,7 @@ extension WindowManager {
     pointerPump?.cancel()
     pointerPump = nil
     pointer?.stop()
-    drag = nil
+    endDrag()
     backend.stop()
     registry = WindowRegistry()
     workspaces = WorkspaceStack(count: workspaceCount)

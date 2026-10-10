@@ -151,6 +151,7 @@ Decisions (2026-10-10, with the user): neighbours follow **live** during the dra
 - [x] TylerCore: `Layout.parameters(afterResizing:)`, `Workspace.resize`
 - [x] TylerServer: `PointerInput`, `WindowManager+Mouse.swift` (the placing helpers moved to `WindowManager+Placement.swift` to keep `WindowManager.swift` under SwiftLint's 400 lines)
 - [x] TylerPlatform: `PointerMonitor` (global `leftMouseUp` monitor, button state)
+- [x] Throttled (2026-10-10, after the user saw live following lag, worst with Firefox): the first resize of a drag is followed at once, then at most once per 50 ms (`WindowManager.defaultDragInterval`), always to the newest frame; the release follows the last one at once. Before, every resize event moved every neighbour, and slow apps let the events pile up. If it still lags, the next lever is `AXBackend.setFrame` re-reading the whole window (title, role, …) after every move
 - [ ] Checked against real windows: master divider, stack window's left edge, stack divider, immovable edges snap back, title-bar move snaps back, `restart` keeps the heights; live following keeps up
 
 ### Later: swap by drag and drop

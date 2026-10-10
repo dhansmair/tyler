@@ -61,6 +61,13 @@ public final class WindowManager {
   var pointerPump: Task<Void, Never>?
   /// The window being dragged with the mouse, if any.
   var drag: MouseDrag?
+  /// While a drag is followed, the wait before the next step; `nil` when the next resize may be
+  /// followed at once.
+  var dragThrottle: Task<Void, Never>?
+  /// The least time between two steps of following a drag (see `WindowManager+Mouse`).
+  let dragInterval: Duration
+  /// Times the drag steps; injected so tests don't sleep.
+  let clock: any Clock<Duration>
   let indicator: (any Indicator)?
   /// What the indicator shows now, so it is only redrawn when that changes.
   var shownIndicatorState: IndicatorState?
@@ -77,6 +84,8 @@ public final class WindowManager {
     configSource: ConfigSource? = nil,
     indicator: (any Indicator)? = nil,
     pointer: (any PointerInput)? = nil,
+    dragInterval: Duration = WindowManager.defaultDragInterval,
+    clock: any Clock<Duration> = ContinuousClock(),
     restoring saved: SavedState? = nil
   ) {
     self.backend = backend
@@ -88,6 +97,8 @@ public final class WindowManager {
     self.configSource = configSource
     self.indicator = indicator
     self.pointer = pointer
+    self.dragInterval = dragInterval
+    self.clock = clock
     pendingRestore = saved
     workspaces = WorkspaceStack(count: workspaceCount)
     applyGaps()
@@ -189,7 +200,7 @@ public final class WindowManager {
   /// whatever is eligible now onto the current workspace, keeping the order it had.
   public func setTiling(_ mode: TilingMode) -> Response {
     finishAnimation()
-    drag = nil
+    endDrag()
     let wasEnabled = tilingEnabled
     switch mode {
     case .on: tilingEnabled = true
@@ -272,7 +283,7 @@ public final class WindowManager {
     case .focused(let windowID?):
       focusChanged(to: windowID)
     case .destroyed(let windowID):
-      if drag?.windowID == windowID { drag = nil }
+      if drag?.windowID == windowID { endDrag() }
       floated.remove(windowID)
       originalFrames[windowID] = nil
       pendingFocus.remove(windowID)
@@ -291,7 +302,7 @@ extension WindowManager {
   /// its final state) and forgets any mouse drag, then checks that tiling can run.
   func beginCommand() -> Response? {
     finishAnimation()
-    drag = nil
+    endDrag()
     guard state == .running else { return .error(Self.permissionMessage) }
     guard tilingEnabled else { return .error(Self.tilingOffMessage) }
     return nil

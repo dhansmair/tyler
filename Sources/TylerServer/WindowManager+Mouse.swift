@@ -4,9 +4,16 @@ import TylerCore
 /// A tiled window the user is dragging with the primary button down.
 struct MouseDrag: Equatable {
   let windowID: WindowID
+  /// The newest frame of a resize that the layout hasn't followed yet.
+  var pendingFrame: CGRect?
 }
 
 extension WindowManager {
+  /// Following a drag moves every other window, one round trip to its app each, and apps like
+  /// Firefox take long enough that the resize events of a drag pile up faster than they can be
+  /// followed. So the layout follows at most once per interval, always to the newest frame.
+  public static let defaultDragInterval = Duration.milliseconds(50)
+
   // MARK: - Mouse
 
   /// Starts listening to the pointer, if there is one. Subscribes before starting it, like the
@@ -23,11 +30,14 @@ extension WindowManager {
   }
 
   /// Follows a window the user is resizing with the mouse: the layout moves the dividers whose
-  /// edges are being dragged, and the other windows follow at once. Only one window counts per
-  /// drag, the first that leaves its slot while the button is down, so the updates that tylerd's
-  /// own moves of the other windows cause are ignored. The dragged window itself is never moved
-  /// mid-drag (that would fight the user); it snaps into its slot on release. A window that was
-  /// only moved, not resized, changes nothing until then.
+  /// edges are being dragged, and the other windows follow. Only one window counts per drag, the
+  /// first that leaves its slot while the button is down, so the updates that tylerd's own moves
+  /// of the other windows cause are ignored. The dragged window itself is never moved mid-drag
+  /// (that would fight the user); it snaps into its slot on release. A window that was only
+  /// moved, not resized, changes nothing until then.
+  ///
+  /// The first resize is followed at once, later ones at most once per `dragInterval`: frames
+  /// arriving in between replace each other, and only the newest is followed.
   func followDrag(of window: WindowInfo) {
     guard let pointer, pointer.isPrimaryButtonDown, state == .running, tilingEnabled,
       animation == nil, workspaces.current.contains(window.id)
@@ -40,11 +50,9 @@ extension WindowManager {
       guard !Self.isClose(window.frame, slot.frame) else { return }
       drag = MouseDrag(windowID: window.id)
     }
-    guard follow(window.id, to: window.frame, slot: slot.frame, in: area) else { return }
-    place(
-      workspaces.current.placements(in: area).filter { placement in
-        placement.id != window.id && !isInPlace(placement)
-      })
+    guard Self.isResized(window.frame, from: slot.frame) else { return }
+    drag?.pendingFrame = window.frame
+    if dragThrottle == nil { followPendingFrame() }
   }
 
   /// Ends a drag: the last size the dragged window had counts, then every window, the dragged
@@ -53,26 +61,63 @@ extension WindowManager {
     switch event {
     case .primaryButtonReleased:
       guard let drag else { return }
-      self.drag = nil
+      endDrag()
       guard state == .running, tilingEnabled, animation == nil,
         workspaces.current.contains(drag.windowID),
         let area = displays.displays.first?.visibleFrame,
         let frame = registry.window(withID: drag.windowID)?.frame,
         let slot = workspaces.current.placements(in: area).first(where: { $0.id == drag.windowID })
       else { return }
-      follow(drag.windowID, to: frame, slot: slot.frame, in: area)
+      if Self.isResized(frame, from: slot.frame) {
+        workspaces.current.resize(drag.windowID, to: frame, in: area)
+      }
       applyLayout()
     }
   }
 
-  /// Lets the layout follow `windowID` having been resized to `frame` from `slot`. A frame of
-  /// the slot's size was moved, not resized, and changes nothing. Returns whether the layout
-  /// changed.
-  @discardableResult
-  private func follow(
-    _ windowID: WindowID, to frame: CGRect, slot: CGRect, in area: CGRect
-  ) -> Bool {
-    let isResized = abs(frame.width - slot.width) > 1 || abs(frame.height - slot.height) > 1
-    return isResized && workspaces.current.resize(windowID, to: frame, in: area)
+  /// Forgets the drag, and any step of it still waiting.
+  func endDrag() {
+    drag = nil
+    dragThrottle?.cancel()
+    dragThrottle = nil
+  }
+
+  /// Follows the newest frame of the drag, if there is one, then holds further steps back for
+  /// `dragInterval`. When the interval is up, a frame that arrived meanwhile is followed the
+  /// same way; with none, the next resize is followed at once again.
+  private func followPendingFrame() {
+    guard let windowID = drag?.windowID, let frame = drag?.pendingFrame else {
+      dragThrottle = nil
+      return
+    }
+    drag?.pendingFrame = nil
+    follow(windowID, to: frame)
+    let clock = clock  // Swift opens the existential from a local, not from the stored property.
+    let interval = dragInterval
+    dragThrottle = Task { [weak self] in
+      do {
+        try await clock.sleep(for: interval)
+      } catch {
+        return  // Cancelled: the drag ended.
+      }
+      self?.followPendingFrame()
+    }
+  }
+
+  /// Lets the layout follow `windowID` having been resized to `frame`, and moves every other
+  /// window that is now out of its slot.
+  private func follow(_ windowID: WindowID, to frame: CGRect) {
+    guard let area = displays.displays.first?.visibleFrame,
+      workspaces.current.resize(windowID, to: frame, in: area)
+    else { return }
+    place(
+      workspaces.current.placements(in: area).filter { placement in
+        placement.id != windowID && !isInPlace(placement)
+      })
+  }
+
+  /// Whether `frame` has another size than `slot`; one of the same size was moved, not resized.
+  private static func isResized(_ frame: CGRect, from slot: CGRect) -> Bool {
+    abs(frame.width - slot.width) > 1 || abs(frame.height - slot.height) > 1
   }
 }

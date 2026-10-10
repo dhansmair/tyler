@@ -15,22 +15,25 @@ struct MouseResizeTests {
   private let lower = CGRect(x: 928, y: 604, width: 872, height: 565)
 
   private let pointer = FakePointer()
+  private let clock = TestClock()
   private let backend: FakeBackend
   // Held here because the manager's event pumps only keep it weakly.
   private let manager: WindowManager
 
   init() async {
-    (manager, backend) = await Self.makeStarted(pointer: pointer)
+    (manager, backend) = await Self.makeStarted(pointer: pointer, clock: clock)
   }
 
-  private static func makeStarted(pointer: FakePointer?) async -> (WindowManager, FakeBackend) {
+  private static func makeStarted(
+    pointer: FakePointer?, clock: TestClock = TestClock()
+  ) async -> (WindowManager, FakeBackend) {
     let windows = (1...3).map { id in
       makeWindow(id: UInt32(id), frame: CGRect(x: 100 + id * 50, y: 100, width: 300, height: 200))
     }
     let backend = FakeBackend(windows: windows)
     let manager = WindowManager(
       backend: backend, displays: FakeDisplays(), gate: FakeGate(isTrusted: true),
-      pointer: pointer)
+      pointer: pointer, dragInterval: .milliseconds(50), clock: clock)
     manager.startIfPermitted()
     await settle()
     backend.clearRecordedCalls()
@@ -50,6 +53,12 @@ struct MouseResizeTests {
     }
     backend.windows[index].frame = frame
     backend.send(.updated(backend.windows[index]))
+    await Self.settle()
+  }
+
+  /// Lets the drag interval pass, and the step waiting for it run.
+  private func waitOutTheInterval() async {
+    clock.advance(by: .milliseconds(50))
     await Self.settle()
   }
 
@@ -85,12 +94,52 @@ struct MouseResizeTests {
 
     pointer.isPrimaryButtonDown = true
     await drag(1, to: CGRect(x: 55, y: 38, width: 1047, height: 1131))
+    await waitOutTheInterval()
     await drag(1, to: CGRect(x: 55, y: 38, width: 698, height: 1131))
 
     #expect(frame(of: 2)?.minX == 753)
     #expect(frame(of: 3)?.minX == 753)
     // Two steps, two windows each; the updates tylerd's own moves caused changed nothing.
     #expect(backend.moves.count == 4)
+  }
+
+  @Test func resizesWithinTheIntervalAreFollowedOnceToTheNewestFrame() async {
+    pointer.isPrimaryButtonDown = true
+    await drag(1, to: CGRect(x: 55, y: 38, width: 1047, height: 1131))
+    await drag(1, to: CGRect(x: 55, y: 38, width: 900, height: 1131))
+    await drag(1, to: CGRect(x: 55, y: 38, width: 698, height: 1131))
+    #expect(backend.moves.count == 2, "only the first resize so far")
+    #expect(frame(of: 2)?.minX == 1102)
+
+    await waitOutTheInterval()
+    #expect(backend.moves.count == 4, "900 was skipped")
+    #expect(frame(of: 2)?.minX == 753)
+    #expect(frame(of: 3)?.minX == 753)
+  }
+
+  @Test func afterAQuietIntervalTheNextResizeIsFollowedAtOnce() async {
+    pointer.isPrimaryButtonDown = true
+    await drag(1, to: CGRect(x: 55, y: 38, width: 1047, height: 1131))
+    await waitOutTheInterval()
+    await waitOutTheInterval()
+    backend.clearRecordedCalls()
+
+    await drag(1, to: CGRect(x: 55, y: 38, width: 698, height: 1131))
+    #expect(moved() == [2, 3])
+    #expect(frame(of: 2)?.minX == 753)
+  }
+
+  @Test func theReleaseFollowsAResizeStillWaitingForTheInterval() async {
+    pointer.isPrimaryButtonDown = true
+    await drag(1, to: CGRect(x: 55, y: 38, width: 1047, height: 1131))
+    await drag(1, to: CGRect(x: 55, y: 38, width: 1222, height: 1131))
+    pointer.release()
+    await Self.settle()
+    #expect(frame(of: 2)?.minX == 1277)
+    let moves = backend.moves.count
+
+    await waitOutTheInterval()
+    #expect(backend.moves.count == moves, "nothing is left waiting once the drag is over")
   }
 
   @Test func theDraggedWindowSnapsIntoItsSlotOnRelease() async {

@@ -64,8 +64,6 @@ public final class WindowManager {
   /// While a drag is followed, the wait before the next step; `nil` when the next resize may be
   /// followed at once.
   var dragThrottle: Task<Void, Never>?
-  /// The least time between two steps of following a drag (see `WindowManager+Mouse`).
-  let dragInterval: Duration
   /// Times the drag steps; injected so tests don't sleep.
   let clock: any Clock<Duration>
   let indicator: (any Indicator)?
@@ -84,7 +82,6 @@ public final class WindowManager {
     configSource: ConfigSource? = nil,
     indicator: (any Indicator)? = nil,
     pointer: (any PointerInput)? = nil,
-    dragInterval: Duration = WindowManager.defaultDragInterval,
     clock: any Clock<Duration> = ContinuousClock(),
     restoring saved: SavedState? = nil
   ) {
@@ -97,7 +94,6 @@ public final class WindowManager {
     self.configSource = configSource
     self.indicator = indicator
     self.pointer = pointer
-    self.dragInterval = dragInterval
     self.clock = clock
     pendingRestore = saved
     workspaces = WorkspaceStack(count: workspaceCount)

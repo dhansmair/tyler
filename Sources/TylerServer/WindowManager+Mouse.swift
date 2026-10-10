@@ -9,11 +9,6 @@ struct MouseDrag: Equatable {
 }
 
 extension WindowManager {
-  /// Following a drag moves every other window, one round trip to its app each, and apps like
-  /// Firefox take long enough that the resize events of a drag pile up faster than they can be
-  /// followed. So the layout follows at most once per interval, always to the newest frame.
-  public static let defaultDragInterval = Duration.milliseconds(50)
-
   // MARK: - Mouse
 
   /// Starts listening to the pointer, if there is one. Subscribes before starting it, like the
@@ -36,8 +31,11 @@ extension WindowManager {
   /// (that would fight the user); it snaps into its slot on release. A window that was only
   /// moved, not resized, changes nothing until then.
   ///
-  /// The first resize is followed at once, later ones at most once per `dragInterval`: frames
-  /// arriving in between replace each other, and only the newest is followed.
+  /// Following a drag moves every other window, one round trip to its app each, and apps like
+  /// Firefox take long enough that the resize events of a drag pile up faster than they can be
+  /// followed. So the first resize is followed at once, later ones at most once per
+  /// `mouse.follow-interval` from the config: frames arriving in between replace each other, and
+  /// only the newest is followed.
   func followDrag(of window: WindowInfo) {
     guard let pointer, pointer.isPrimaryButtonDown, state == .running, tilingEnabled,
       animation == nil, workspaces.current.contains(window.id)
@@ -83,7 +81,7 @@ extension WindowManager {
   }
 
   /// Follows the newest frame of the drag, if there is one, then holds further steps back for
-  /// `dragInterval`. When the interval is up, a frame that arrived meanwhile is followed the
+  /// the follow interval. When the interval is up, a frame that arrived meanwhile is followed the
   /// same way; with none, the next resize is followed at once again.
   private func followPendingFrame() {
     guard let windowID = drag?.windowID, let frame = drag?.pendingFrame else {
@@ -92,8 +90,9 @@ extension WindowManager {
     }
     drag?.pendingFrame = nil
     follow(windowID, to: frame)
+    let interval = Duration.milliseconds(config.mouse.followInterval)
+    guard interval > .zero else { return }
     let clock = clock  // Swift opens the existential from a local, not from the stored property.
-    let interval = dragInterval
     dragThrottle = Task { [weak self] in
       do {
         try await clock.sleep(for: interval)

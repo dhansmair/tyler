@@ -48,7 +48,7 @@ The *master ratio* is the master column's share of the width in `tall`. Each wor
 
 ### Resizing with the mouse
 
-In `tall`, drag the edge between two tiled windows and the layout follows while you drag:
+In `tall`, drag the edge between two tiled windows and the layout follows while you drag (in steps at most `mouse.follow-interval` apart, see Configuration):
 
 - the edge between the master and the stack sets the master ratio (the same one `tyler ratio` changes)
 - the edge between two stacked windows sets their heights; the other stacked windows keep theirs
@@ -101,14 +101,20 @@ Only one `tylerd` can run per socket. Starting a second one fails with `already 
 [gaps]
 inner = 8    # between neighbouring windows
 outer = 12   # between the windows and the edge of the screen
+
+[mouse]
+follow-interval = 50   # milliseconds between steps of the layout following a drag
 ```
 
 | Setting | Meaning | Default |
 | --- | --- | --- |
 | `gaps.inner` | Space between neighbouring tiled windows | `0` |
 | `gaps.outer` | Space between the tiled windows and the edge of the display's visible area | `0` |
+| `mouse.follow-interval` | Least time between two steps of the layout following a window you resize with the mouse, in milliseconds (0 to 1000) | `50` |
 
 Gaps are whole numbers in points, the unit macOS uses for window positions (on a Retina display, one point is two pixels).
+
+Each step of following a drag moves every other window, and slow apps take a while to move. A shorter `mouse.follow-interval` looks smoother but can fall behind the mouse with slow apps; a longer one keeps up but moves in coarser steps. `0` follows every resize the app reports.
 
 The file is [TOML](https://toml.io). tyler reads the parts of TOML its settings need: tables, keys, numbers, strings, booleans and comments. Unknown settings are errors, so a typo doesn't go unnoticed. If the file has an error when `tylerd` starts, it prints the error and starts with the defaults; fix the file and run `tyler reload`.
 

@@ -25,7 +25,7 @@ struct MouseResizeTests {
   }
 
   private static func makeStarted(
-    pointer: FakePointer?, clock: TestClock = TestClock()
+    pointer: FakePointer?, clock: TestClock = TestClock(), config: Config = Config()
   ) async -> (WindowManager, FakeBackend) {
     let windows = (1...3).map { id in
       makeWindow(id: UInt32(id), frame: CGRect(x: 100 + id * 50, y: 100, width: 300, height: 200))
@@ -33,7 +33,7 @@ struct MouseResizeTests {
     let backend = FakeBackend(windows: windows)
     let manager = WindowManager(
       backend: backend, displays: FakeDisplays(), gate: FakeGate(isTrusted: true),
-      pointer: pointer, dragInterval: .milliseconds(50), clock: clock)
+      config: config, pointer: pointer, clock: clock)
     manager.startIfPermitted()
     await settle()
     backend.clearRecordedCalls()
@@ -127,6 +127,44 @@ struct MouseResizeTests {
     await drag(1, to: CGRect(x: 55, y: 38, width: 698, height: 1131))
     #expect(moved() == [2, 3])
     #expect(frame(of: 2)?.minX == 753)
+  }
+
+  @Test func theIntervalComesFromTheConfig() async {
+    let pointer = FakePointer()
+    let clock = TestClock()
+    let (manager, backend) = await Self.makeStarted(
+      pointer: pointer, clock: clock, config: Config(mouse: Config.Mouse(followInterval: 100)))
+    pointer.isPrimaryButtonDown = true
+    for width in [1047, 698] {
+      let window = makeWindow(id: 1, frame: CGRect(x: 55, y: 38, width: width, height: 1131))
+      backend.windows[0] = window
+      backend.send(.updated(window))
+      await Self.settle()
+    }
+
+    clock.advance(by: .milliseconds(50))
+    await Self.settle()
+    #expect(backend.moves.count == 2, "100 ms haven't passed yet")
+    clock.advance(by: .milliseconds(50))
+    await Self.settle()
+    #expect(backend.moves.count == 4)
+    #expect(manager.workspaces.current.parameters.mainRatio == 0.4)
+  }
+
+  @Test func anIntervalOfZeroFollowsEveryResize() async {
+    let pointer = FakePointer()
+    let (manager, backend) = await Self.makeStarted(
+      pointer: pointer, config: Config(mouse: Config.Mouse(followInterval: 0)))
+    pointer.isPrimaryButtonDown = true
+    for width in [1047, 900, 698] {
+      let window = makeWindow(id: 1, frame: CGRect(x: 55, y: 38, width: width, height: 1131))
+      backend.windows[0] = window
+      backend.send(.updated(window))
+      await Self.settle()
+    }
+
+    #expect(backend.moves.count == 6, "two neighbours, three resizes")
+    #expect(manager.workspaces.current.parameters.mainRatio == 0.4)
   }
 
   @Test func theReleaseFollowsAResizeStillWaitingForTheInterval() async {

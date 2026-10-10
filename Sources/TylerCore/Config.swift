@@ -16,10 +16,27 @@ public struct Config: Equatable, Sendable {
     }
   }
 
-  public var gaps: Gaps
+  /// How tiled windows follow the mouse.
+  public struct Mouse: Equatable, Sendable {
+    public static let followIntervalRange = 0...1000
 
-  public init(gaps: Gaps = Gaps()) {
+    /// The least time, in milliseconds, between two steps of the layout following a window
+    /// resized with the mouse. Each step moves every other window, one round trip to its app
+    /// each, so with slow apps a shorter interval lets the steps fall behind the mouse. 0
+    /// follows every resize the app reports.
+    public var followInterval: Int
+
+    public init(followInterval: Int = 50) {
+      self.followInterval = followInterval
+    }
+  }
+
+  public var gaps: Gaps
+  public var mouse: Mouse
+
+  public init(gaps: Gaps = Gaps(), mouse: Mouse = Mouse()) {
     self.gaps = gaps
+    self.mouse = mouse
   }
 }
 
@@ -52,6 +69,7 @@ extension Config {
     for (key, value) in document.sorted(by: { $0.key < $1.key }) {
       switch key {
       case "gaps": config.gaps = try Gaps(value)
+      case "mouse": config.mouse = try Mouse(value)
       default: throw .invalid("unknown setting '\(key)'")
       }
     }
@@ -79,6 +97,28 @@ extension Config.Gaps {
       throw .invalid("gaps.\(key) must be a whole number of points, 0 or more")
     }
     return points
+  }
+}
+
+extension Config.Mouse {
+  fileprivate init(_ value: TOMLValue) throws(ConfigError) {
+    guard case .table(let table) = value else {
+      throw .invalid("mouse must be a table: write [mouse] and put follow-interval below it")
+    }
+    self.init()
+    for (key, value) in table.sorted(by: { $0.key < $1.key }) {
+      switch key {
+      case "follow-interval":
+        let range = Self.followIntervalRange
+        guard case .integer(let milliseconds) = value, range.contains(milliseconds) else {
+          throw .invalid(
+            "mouse.follow-interval must be a whole number of milliseconds, "
+              + "\(range.lowerBound) to \(range.upperBound)")
+        }
+        followInterval = milliseconds
+      default: throw .invalid("unknown setting 'mouse.\(key)' (use follow-interval)")
+      }
+    }
   }
 }
 

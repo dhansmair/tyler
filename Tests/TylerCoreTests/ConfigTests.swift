@@ -9,6 +9,14 @@ struct ConfigTests {
   func missingSettingsUseTheDefaults(text: String) throws {
     #expect(try Config.parse(text) == Config())
     #expect(Config().gaps == Config.Gaps(inner: 0, outer: 0))
+    #expect(Config().mouse == Config.Mouse(followInterval: 50))
+  }
+
+  @Test(arguments: [0, 33, 1000])
+  func parsesTheMouseFollowInterval(milliseconds: Int) throws {
+    let config = try Config.parse("[mouse]\nfollow-interval = \(milliseconds)")
+    #expect(config.mouse == Config.Mouse(followInterval: milliseconds))
+    #expect(config.gaps == Config.Gaps(), "the other settings keep their defaults")
   }
 
   @Test func parsesGaps() throws {
@@ -32,6 +40,20 @@ struct ConfigTests {
     ("[gaps]\ninner = -1", "gaps.inner must be a whole number of points, 0 or more"),
     ("[gaps]\nouter = 2.5", "gaps.outer must be a whole number of points, 0 or more"),
     ("[gaps]\ninner = \"8\"", "gaps.inner must be a whole number of points, 0 or more"),
+    ("mouse = 50", "mouse must be a table: write [mouse] and put follow-interval below it"),
+    ("[mouse]\ninterval = 50", "unknown setting 'mouse.interval' (use follow-interval)"),
+    (
+      "[mouse]\nfollow-interval = -1",
+      "mouse.follow-interval must be a whole number of milliseconds, 0 to 1000"
+    ),
+    (
+      "[mouse]\nfollow-interval = 1001",
+      "mouse.follow-interval must be a whole number of milliseconds, 0 to 1000"
+    ),
+    (
+      "[mouse]\nfollow-interval = 0.05",
+      "mouse.follow-interval must be a whole number of milliseconds, 0 to 1000"
+    ),
   ])
   func rejectsInvalidSettings(text: String, message: String) {
     #expect(throws: ConfigError.invalid(message)) {

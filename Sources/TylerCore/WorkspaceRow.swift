@@ -94,13 +94,6 @@ public struct WorkspaceRow: Equatable, Sendable {
     currentIndex = min(currentIndex, count - 1)
   }
 
-  /// Changes the gaps of every workspace, keeping each one's layout and ratio.
-  public mutating func setGaps(inner: CGFloat, outer: CGFloat) {
-    for index in workspaces.indices {
-      workspaces[index].setGaps(inner: inner, outer: outer)
-    }
-  }
-
   /// Records that `windowID` got focus, on whichever workspace holds it.
   @discardableResult
   public mutating func setFocus(_ windowID: WindowID) -> Bool {

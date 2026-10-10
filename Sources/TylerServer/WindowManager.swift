@@ -84,7 +84,6 @@ public final class WindowManager {
     self.clock = clock
     pendingRestore = saved
     workspaces = WorkspaceRow(count: config.workspaces.count)
-    applyGaps()
     updateIndicator()
   }
 

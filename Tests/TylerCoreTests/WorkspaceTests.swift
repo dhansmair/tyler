@@ -229,7 +229,8 @@ struct WorkspaceTests {
 
   @Test func placementsFollowListOrder() {
     let workspace = makeWorkspace(5, 6, 7)
-    let placements = workspace.placements(in: CGRect(x: 0, y: 0, width: 1000, height: 600))
+    let placements = workspace.placements(
+      in: CGRect(x: 0, y: 0, width: 1000, height: 600), gaps: LayoutGaps())
     #expect(placements.map(\.id) == ids(5, 6, 7))
     #expect(placements[0].frame == CGRect(x: 0, y: 0, width: 500, height: 600))
     #expect(placements[1].frame == CGRect(x: 500, y: 0, width: 500, height: 300))
@@ -238,7 +239,8 @@ struct WorkspaceTests {
   @Test func swappingChangesWhichWindowGetsTheMainFrame() {
     var workspace = makeWorkspace(5, 6, focus: 6)
     workspace.swap(.main)
-    let placements = workspace.placements(in: CGRect(x: 0, y: 0, width: 1000, height: 600))
+    let placements = workspace.placements(
+      in: CGRect(x: 0, y: 0, width: 1000, height: 600), gaps: LayoutGaps())
     #expect(placements[0].id == WindowID(6))
     #expect(placements[0].frame.minX == 0)
   }
@@ -247,7 +249,8 @@ struct WorkspaceTests {
     var workspace = makeWorkspace(5, 6)
     workspace.cycleLayout()
     #expect(workspace.layout == .full)
-    let placements = workspace.placements(in: CGRect(x: 0, y: 0, width: 1000, height: 600))
+    let placements = workspace.placements(
+      in: CGRect(x: 0, y: 0, width: 1000, height: 600), gaps: LayoutGaps())
     #expect(placements[0].frame == placements[1].frame)
   }
 
@@ -255,12 +258,15 @@ struct WorkspaceTests {
     var workspace = makeWorkspace(5, 6)
     let didChange = workspace.adjustRatio(by: 0.1)
     #expect(didChange)
-    let placements = workspace.placements(in: CGRect(x: 0, y: 0, width: 1000, height: 600))
+    let placements = workspace.placements(
+      in: CGRect(x: 0, y: 0, width: 1000, height: 600), gaps: LayoutGaps())
     #expect(placements[0].frame.width == 600)
   }
 
   @Test func anEmptyWorkspaceHasNoPlacements() {
-    #expect(Workspace().placements(in: CGRect(x: 0, y: 0, width: 100, height: 100)).isEmpty)
+    #expect(
+      Workspace().placements(in: CGRect(x: 0, y: 0, width: 100, height: 100), gaps: LayoutGaps())
+        .isEmpty)
   }
 
   // MARK: - Resizing with the mouse
@@ -269,19 +275,19 @@ struct WorkspaceTests {
     var workspace = makeWorkspace(1, 2, 3)
     let area = CGRect(x: 0, y: 0, width: 1000, height: 600)
     let changed = workspace.resize(
-      WindowID(2), to: CGRect(x: 300, y: 0, width: 700, height: 300), in: area)
+      WindowID(2), to: CGRect(x: 300, y: 0, width: 700, height: 300), in: area, gaps: LayoutGaps())
     #expect(changed)
     #expect(workspace.parameters.mainRatio == 0.3)
-    #expect(workspace.placements(in: area)[0].frame.width == 300)
+    #expect(workspace.placements(in: area, gaps: LayoutGaps())[0].frame.width == 300)
   }
 
   @Test func resizingAnUnknownWindowOrAnImmovableEdgeChangesNothing() {
     var workspace = makeWorkspace(1, 2, 3)
     let area = CGRect(x: 0, y: 0, width: 1000, height: 600)
     let unknown = workspace.resize(
-      WindowID(9), to: CGRect(x: 300, y: 0, width: 700, height: 300), in: area)
+      WindowID(9), to: CGRect(x: 300, y: 0, width: 700, height: 300), in: area, gaps: LayoutGaps())
     let outerEdge = workspace.resize(
-      WindowID(1), to: CGRect(x: 0, y: 40, width: 500, height: 560), in: area)
+      WindowID(1), to: CGRect(x: 0, y: 40, width: 500, height: 560), in: area, gaps: LayoutGaps())
     #expect(!unknown)
     #expect(!outerEdge)
     #expect(workspace.parameters == LayoutParameters())
@@ -292,7 +298,7 @@ struct WorkspaceTests {
     workspace.layout = .full
     let area = CGRect(x: 0, y: 0, width: 1000, height: 600)
     let changed = workspace.resize(
-      WindowID(1), to: CGRect(x: 0, y: 0, width: 600, height: 600), in: area)
+      WindowID(1), to: CGRect(x: 0, y: 0, width: 600, height: 600), in: area, gaps: LayoutGaps())
     #expect(!changed)
   }
 }

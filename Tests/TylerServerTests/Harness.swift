@@ -4,6 +4,16 @@ import TylerCore
 
 @testable import TylerServer
 
+extension Layout {
+  /// The frames for `count` windows, as most tests ask for them.
+  func frames(
+    count: Int, in area: CGRect, parameters: LayoutParameters = LayoutParameters(),
+    gaps: LayoutGaps = LayoutGaps()
+  ) -> [CGRect] {
+    frames(for: LayoutInput(count: count, parameters: parameters), in: area, gaps: gaps)
+  }
+}
+
 /// Lets the manager's event pumps, and any animation or throttle task, run. Main-actor isolated
 /// so the yields happen where those tasks run.
 @MainActor

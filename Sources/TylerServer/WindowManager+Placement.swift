@@ -10,9 +10,12 @@ extension WindowManager {
   /// The display tylerd tiles, the primary one; `nil` while none is connected.
   var primaryDisplay: DisplayInfo? { displays.displays.first }
 
+  /// The configured space around and between tiled windows, the same on every workspace.
+  var gaps: LayoutGaps { LayoutGaps(config.gaps) }
+
   /// Where the current workspace's layout puts each of its windows; `nil` without a display.
   func currentPlacements() -> [Placement]? {
-    primaryDisplay.map { workspaces.current.placements(in: $0.visibleFrame) }
+    primaryDisplay.map { workspaces.current.placements(in: $0.visibleFrame, gaps: gaps) }
   }
 
   /// Where the current workspace's layout puts `windowID`; `nil` if it isn't tiled there.

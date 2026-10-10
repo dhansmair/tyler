@@ -11,9 +11,10 @@ struct TallLayoutTests {
   private func frames(
     _ count: Int,
     in area: CGRect? = nil,
-    parameters: LayoutParameters = LayoutParameters()
+    parameters: LayoutParameters = LayoutParameters(),
+    gaps: LayoutGaps = LayoutGaps()
   ) -> [CGRect] {
-    layout.frames(count: count, in: area ?? self.area, parameters: parameters)
+    layout.frames(count: count, in: area ?? self.area, parameters: parameters, gaps: gaps)
   }
 
   @Test func noWindowsGiveNoFrames() {
@@ -86,7 +87,7 @@ struct TallLayoutTests {
   @Test func outerGapInsetsEveryWindowFromTheEdges() {
     let result = frames(
       2, in: CGRect(x: 0, y: 0, width: 1000, height: 600),
-      parameters: LayoutParameters(outerGap: 10))
+      gaps: LayoutGaps(outer: 10))
     #expect(result.map(\.minX).min() == 10)
     #expect(result.map(\.maxX).max() == 990)
     #expect(result.map(\.minY).min() == 10)
@@ -96,7 +97,7 @@ struct TallLayoutTests {
   @Test func innerGapSeparatesNeighbours() {
     let result = frames(
       3, in: CGRect(x: 0, y: 0, width: 1000, height: 600),
-      parameters: LayoutParameters(innerGap: 10))
+      gaps: LayoutGaps(inner: 10))
     // Master and stack are 10pt apart, and so are the two stacked windows.
     #expect(result[1].minX - result[0].maxX == 10)
     #expect(result[2].minY - result[1].maxY == 10)
@@ -109,7 +110,7 @@ struct TallLayoutTests {
   @Test func gapsNeverOverlapEvenWhenLarge() {
     let result = frames(
       4, in: CGRect(x: 0, y: 0, width: 300, height: 200),
-      parameters: LayoutParameters(outerGap: 40, innerGap: 40))
+      gaps: LayoutGaps(inner: 40, outer: 40))
     for (index, first) in result.enumerated() {
       for second in result[(index + 1)...] {
         #expect(!first.intersects(second))
@@ -144,7 +145,7 @@ struct TallLayoutTests {
   @Test func rowWeightsKeepTheInnerGap() {
     let result = frames(
       3, in: CGRect(x: 0, y: 0, width: 1000, height: 610),
-      parameters: LayoutParameters(rowWeights: [[], [1, 2]], innerGap: 10))
+      parameters: LayoutParameters(rowWeights: [[], [1, 2]]), gaps: LayoutGaps(inner: 10))
     #expect(result[1].height == 200)
     #expect(result[2].minY - result[1].maxY == 10)
     #expect(result[2].height == 400)
@@ -173,7 +174,8 @@ struct ColumnLayoutTests {
   @Test func columnsFillLeftToRightAndRowsTopToBottom() {
     let layout = ColumnLayout(rowCounts: [2, 3], columnWeights: [1, 1])
     let result = layout.frames(
-      in: CGRect(x: 0, y: 0, width: 1000, height: 600), parameters: LayoutParameters())
+      in: CGRect(x: 0, y: 0, width: 1000, height: 600), parameters: LayoutParameters(),
+      gaps: LayoutGaps())
     #expect(
       result == [
         CGRect(x: 0, y: 0, width: 500, height: 300),
@@ -187,7 +189,8 @@ struct ColumnLayoutTests {
   @Test func moreThanTwoColumnsShareTheWidthByWeight() {
     let layout = ColumnLayout(rowCounts: [1, 1, 1], columnWeights: [1, 2, 1])
     let result = layout.frames(
-      in: CGRect(x: 0, y: 0, width: 400, height: 100), parameters: LayoutParameters())
+      in: CGRect(x: 0, y: 0, width: 400, height: 100), parameters: LayoutParameters(),
+      gaps: LayoutGaps())
     #expect(result.map(\.minX) == [0, 100, 300])
     #expect(result.map(\.width) == [100, 200, 100])
   }
@@ -196,15 +199,18 @@ struct ColumnLayoutTests {
     let layout = ColumnLayout(rowCounts: [2, 2], columnWeights: [1, 1])
     let result = layout.frames(
       in: CGRect(x: 0, y: 0, width: 200, height: 400),
-      parameters: LayoutParameters(rowWeights: [[1, 3], [1, 1]]))
+      parameters: LayoutParameters(rowWeights: [[1, 3], [1, 1]]), gaps: LayoutGaps())
     #expect(result.map(\.height) == [100, 300, 200, 200])
   }
 
   @Test func noWindowsGiveNoFrames() {
     let layout = ColumnLayout(rowCounts: [0], columnWeights: [1])
     #expect(
-      layout.frames(in: CGRect(x: 0, y: 0, width: 10, height: 10), parameters: LayoutParameters())
-        .isEmpty)
+      layout.frames(
+        in: CGRect(x: 0, y: 0, width: 10, height: 10), parameters: LayoutParameters(),
+        gaps: LayoutGaps()
+      )
+      .isEmpty)
   }
 }
 
@@ -250,7 +256,7 @@ struct FullLayoutTests {
   @Test func outerGapApplies() {
     let result = FullLayout().frames(
       count: 1, in: CGRect(x: 0, y: 0, width: 100, height: 100),
-      parameters: LayoutParameters(outerGap: 5))
+      gaps: LayoutGaps(outer: 5))
     #expect(result == [CGRect(x: 5, y: 5, width: 90, height: 90)])
   }
 }
@@ -291,17 +297,6 @@ struct LayoutKindTests {
     #expect(parameters.mainRatio == 0.5)
   }
 
-  @Test func changingTheGapsKeepsTheRatio() {
-    let parameters = LayoutParameters(mainRatio: 0.6, outerGap: 1, innerGap: 2)
-      .withGaps(inner: 8, outer: 12)
-    #expect(parameters == LayoutParameters(mainRatio: 0.6, outerGap: 12, innerGap: 8))
-  }
-
-  @Test func changingTheGapsKeepsTheRowWeights() {
-    let parameters = LayoutParameters(rowWeights: [[], [2, 1]]).withGaps(inner: 4, outer: 4)
-    #expect(parameters.rowWeights == [[], [2, 1]])
-  }
-
   @Test(arguments: [0.0, -1, .infinity, .nan])
   func weightsThatCannotShareSpaceCountAsOne(weight: Double) {
     #expect(LayoutParameters(rowWeights: [[weight, 2]]).rowWeights == [[1, 2]])
@@ -331,8 +326,8 @@ struct LayoutKindTests {
   }
 
   @Test func negativeGapsAreTreatedAsZero() {
-    let parameters = LayoutParameters(outerGap: -4, innerGap: -2)
-    #expect(parameters.outerGap == 0)
-    #expect(parameters.innerGap == 0)
+    let gaps = LayoutGaps(inner: -2, outer: -4)
+    #expect(gaps.outer == 0)
+    #expect(gaps.inner == 0)
   }
 }

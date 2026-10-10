@@ -6,8 +6,8 @@ import CoreGraphics
 public struct TallLayout: Layout {
   public init() {}
 
-  public func frames(count: Int, in area: CGRect, parameters: LayoutParameters) -> [CGRect] {
-    Self.columns(count: count, parameters: parameters).frames(in: area, parameters: parameters)
+  public func frames(for input: LayoutInput, in area: CGRect, gaps: LayoutGaps) -> [CGRect] {
+    Self.columns(for: input).frames(in: area, parameters: input.parameters, gaps: gaps)
   }
 
   /// Follows the divider between the master and the stack, and the dividers between stacked
@@ -15,13 +15,14 @@ public struct TallLayout: Layout {
   public func parameters(
     afterResizing index: Int,
     to frame: CGRect,
-    count: Int,
+    input: LayoutInput,
     in area: CGRect,
-    parameters: LayoutParameters
+    gaps: LayoutGaps
   ) -> LayoutParameters? {
-    let columns = Self.columns(count: count, parameters: parameters)
+    let parameters = input.parameters
     guard
-      let resize = columns.resize(index: index, to: frame, in: area, parameters: parameters)
+      let resize = Self.columns(for: input).resize(
+        index: index, to: frame, in: area, parameters: parameters, gaps: gaps)
     else { return nil }
     var updated = resize.parameters
     if let widths = resize.columnWidths, widths.count == 2, widths[0] + widths[1] > 0 {
@@ -31,11 +32,11 @@ public struct TallLayout: Layout {
   }
 
   /// One column for the master and one for the rest, split by the master ratio.
-  static func columns(count: Int, parameters: LayoutParameters) -> ColumnLayout {
+  static func columns(for input: LayoutInput) -> ColumnLayout {
+    let count = input.count
     guard count > 1 else { return ColumnLayout(rowCounts: [count], columnWeights: [1]) }
-    return ColumnLayout(
-      rowCounts: [1, count - 1],
-      columnWeights: [parameters.mainRatio, 1 - parameters.mainRatio])
+    let ratio = input.parameters.mainRatio
+    return ColumnLayout(rowCounts: [1, count - 1], columnWeights: [ratio, 1 - ratio])
   }
 }
 
@@ -44,10 +45,10 @@ public struct TallLayout: Layout {
 public struct FullLayout: Layout {
   public init() {}
 
-  public func frames(count: Int, in area: CGRect, parameters: LayoutParameters) -> [CGRect] {
-    guard count > 0 else { return [] }
-    let box = IntegerBox(area, inset: parameters.outerGap)
-    return Array(repeating: box.rect, count: count)
+  public func frames(for input: LayoutInput, in area: CGRect, gaps: LayoutGaps) -> [CGRect] {
+    guard input.count > 0 else { return [] }
+    let box = IntegerBox(area, inset: gaps.outer)
+    return Array(repeating: box.rect, count: input.count)
   }
 }
 
@@ -74,10 +75,10 @@ struct ColumnLayout: Equatable {
   }
 
   /// One frame per window, in list order, in whole points.
-  func frames(in area: CGRect, parameters: LayoutParameters) -> [CGRect] {
+  func frames(in area: CGRect, parameters: LayoutParameters, gaps: LayoutGaps) -> [CGRect] {
     guard rowCounts.contains(where: { $0 > 0 }) else { return [] }
-    let box = IntegerBox(area, inset: parameters.outerGap)
-    let gap = Int(parameters.innerGap.rounded())
+    let box = IntegerBox(area, inset: gaps.outer)
+    let gap = Int(gaps.inner.rounded())
     let columns = IntegerBox.split(
       origin: box.minX, length: box.width, weights: columnWeights, gap: gap)
     var frames: [CGRect] = []
@@ -101,9 +102,10 @@ struct ColumnLayout: Equatable {
     index: Int,
     to frame: CGRect,
     in area: CGRect,
-    parameters: LayoutParameters
+    parameters: LayoutParameters,
+    gaps: LayoutGaps
   ) -> Resize? {
-    let current = frames(in: area, parameters: parameters)
+    let current = frames(in: area, parameters: parameters, gaps: gaps)
     guard current.indices.contains(index), let (column, row) = position(of: index) else {
       return nil
     }

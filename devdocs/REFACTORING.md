@@ -90,7 +90,7 @@ Sizes: XS < 20 lines, S < 60, M < 200, L larger.
   - Unused: `SlidePlan.direction`, `WindowRegistry.count` (tests only), and `_ = task` in `IPCServer.runBlocking`.
   - Public without need: `Parking.visibleSliver`, `Track.init`, `ScrollDirection.outgoingOffset`, `Config.*Range`, `LayoutParameters.withGaps`/`setMainRatio`, `Snap.resisted`. Check `PanRecognizer`'s public properties again now that `SwipeTap` uses it.
   - Narrow these to internal; tests use `@testable`. XS.
-- [ ] **18. LiveCheck reuses the AX code.** `devtools/LiveCheck/main.swift` re-implements `AXBridge` reads, `DisplayGeometry.axRect`, and decoding `tyler list --json` with `JSONSerialization` rather than `WindowInfo`. Its tyler path is hard-coded to `debug`.
+- [x] **18. LiveCheck reuses the AX code.** Dropped, see "Considered and not worth it". `devtools/LiveCheck/main.swift` re-implements `AXBridge` reads, `DisplayGeometry.axRect`, and decoding `tyler list --json` with `JSONSerialization` rather than `WindowInfo`. Its tyler path is hard-coded to `debug`.
   - Fix: make it an SPM target that shares a `package`-visible AX module.
   - M, medium risk (changes how live-check builds).
 - [x] **19. Small duplicates.** XS each.
@@ -120,6 +120,7 @@ Not refactorings, but found in the same review. Fix each with a regression test.
 
 So nobody tries them again without a profile that says otherwise:
 
+- Building `devtools/LiveCheck` from the package (was item 18). The tool is standalone on purpose (see the live-check skill): it compiles on its own and can't break the package. Sharing `AXBridge` would add a third executable to every build and pre-commit run, to save about 70 lines of stable AX reads.
 - Caching `displays.displays` (was item 13). Item 1 took the sync off most window events, so the display list is now read a few times per command rather than per echo. A cache also risks tiling against an old visible frame: it changes when the Dock resizes or hides, and it isn't clear that `didChangeScreenParametersNotification` reports that every time.
 - Grouping `updateIndicator` calls (was item 13). It compares a small `IndicatorState` and only redraws on change; after item 1 it runs rarely, and calling it by hand at the end of each entry point could miss one.
 - An index for the linear `index(containing:)`, `contains` and `slot(of:)` scans. A workspace holds at most about 30 windows, and keeping an index in step on every change is riskier than the microseconds it would save. One AX call costs milliseconds.
@@ -152,3 +153,4 @@ So nobody tries them again without a profile that says otherwise:
 - 2026-10-11: item 14 done (`WorkspaceRow`, `row:` labels and row wording; `SystemPointerInput`). "stack" now means only `tall`'s right column (roadmap terminology updated). The manual keeps "an external monitor", where it maps the user's word to *display*; AppKit's event monitor API keeps its name.
 - 2026-10-11: item 15 done (`ConfigSource.load()`/`ConfigLoad` and `WindowManager.startWhenPermitted()`, both tested; doc comment fixed). Building `ServerStatus` stays in `main.swift`: it reads `Bundle.main` and the binary's file attributes, which is glue.
 - 2026-10-11: item 16 done for CLAUDE.md: the status paragraph (which still said M3 and M4 had never run against real windows) is a short summary pointing at the roadmap's open checks. The roadmap stays whole: most finished sections still hold open checks, and splitting them across two files would scatter their checklists.
+- 2026-10-11: item 18 dropped. Tier 3 finished; the three bugs found in the review are still open.

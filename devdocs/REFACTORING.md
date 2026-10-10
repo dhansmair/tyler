@@ -45,13 +45,14 @@ Sizes: XS < 20 lines, S < 60, M < 200, L larger.
 - [x] **7. [perf] Mutate the current workspace in place.** `WorkspaceStack.current` and its subscript use `get`/`set`, so every `workspaces.current.x(…)` and `workspaces[i].sync(…)` copies the windows array (once per drag step, once per workspace per sync).
   - Fix: `_modify { yield &workspaces[currentIndex] }`.
   - XS, low risk.
-- [ ] **8. [perf] [live] Fewer AX calls per move.** `AXBridge.setFrame` writes size, then position, then size again (on purpose, for apps that clamp), even when the size already matches, which is common for swaps and the end of a slide. `windowInfo` makes 7 separate reads.
+- [x] **8. [perf] [live] Fewer AX calls per move.** `AXBridge.setFrame` writes size, then position, then size again (on purpose, for apps that clamp), even when the size already matches, which is common for swaps and the end of a slide. `windowInfo` makes 7 separate reads.
   - Fixes:
     - Use `setPosition` when only the origin changes.
     - Batch the reads with `AXUIElementCopyMultipleAttributeValues`.
     - Cache role/subrole per window and app name/bundle id per process.
   - Batching also shortens stalls on a hung app: `messagingTimeout` is 1 s *per call*, so today one event can block the main actor for about 7 s.
   - M, medium risk.
+  - Done: a window that already has the size gets one position write (with the full move as a fallback if the read-back shows another size), and `AXBridge.windowAttributes` reads the frame, title, role, subrole, minimized and full screen in one `AXUIElementCopyMultipleAttributeValues` call; `frame(of:)` is one call too. Not done: caching role and app per window, which batching made pointless. Checked on real windows (macOS 26.7, 2026-10-11) with the same retile, workspace round trip and layout cycle as item 1.
 - [x] **9. Move the pure logic into TylerCore.**
   - The decision half of `syncWorkspaces` (`+Sync`, at 48 lines the longest function in the server): which windows each workspace should hold, what's new, and the focused arrival. Extract it as `WorkspaceSync.plan(…)`; the server keeps only the parking.
   - `SlidePlan` and `slidePlan(to:direction:on:)` (`+Workspaces`/`+Pan`) need only frames and a display.
@@ -143,3 +144,4 @@ So nobody tries them again without a profile that says otherwise:
 - 2026-10-11: item 11 step 1 done (`LayoutKind.implementation` and `symbol`).
 - 2026-10-11: item 11 steps 2 and 3 deferred to the strip layout.
 - 2026-10-11: item 12 done (`Section.read` with one `Setting` per key; every error message unchanged except the gestures table hint, changed in its own commit).
+- 2026-10-11: item 8 done (batched AX reads, position-only moves); checked with live-check. Tier 2 finished.

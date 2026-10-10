@@ -64,11 +64,22 @@ public final class AXBackend: WindowBackend {
 
   public func setFrame(_ frame: CGRect, of windowID: WindowID) throws(BackendError) {
     guard let element = elements[windowID] else { throw .windowGone(windowID) }
-    try check(AXBridge.setFrame(frame, of: element), for: windowID, action: "move")
+    // A window that already has the size only needs moving: one write instead of three. Should
+    // the size turn out to differ after all (the last read is out of date), the full move
+    // follows.
+    var actual: CGRect?
+    if lastRead[windowID]?.frame.size == frame.size {
+      try check(AXBridge.setPosition(frame.origin, of: element), for: windowID, action: "move")
+      actual = AXBridge.frame(of: element)
+    }
+    if actual?.size != frame.size {
+      try check(AXBridge.setFrame(frame, of: element), for: windowID, action: "move")
+      actual = AXBridge.frame(of: element)
+    }
     // The app may have clamped the size; tell the manager what it really is. Only the frame is
     // read back: nothing else changes with a move, and each read is a round trip to the app.
     // The app's own moved and resized notifications follow with a full read.
-    guard var info = lastRead[windowID], let actual = AXBridge.frame(of: element) else { return }
+    guard var info = lastRead[windowID], let actual else { return }
     info.frame = actual
     info.isFocused = windowID == focusedID
     lastRead[windowID] = info
@@ -265,7 +276,7 @@ public final class AXBackend: WindowBackend {
 
   private func windowInfo(for windowID: WindowID) -> WindowInfo? {
     guard let element = elements[windowID], let processID = owners[windowID],
-      let frame = AXBridge.frame(of: element)
+      let attributes = AXBridge.windowAttributes(of: element)
     else { return nil }
     let app = NSRunningApplication(processIdentifier: processID)
     let info = WindowInfo(
@@ -273,14 +284,11 @@ public final class AXBackend: WindowBackend {
       processID: processID,
       appName: app?.localizedName ?? "pid \(processID)",
       bundleID: app?.bundleIdentifier,
-      title: AXBridge.string(kAXTitleAttribute, of: element) ?? "",
-      frame: frame,
-      kind: WindowKind.classify(
-        role: AXBridge.string(kAXRoleAttribute, of: element),
-        subrole: AXBridge.string(kAXSubroleAttribute, of: element)
-      ),
-      isMinimized: AXBridge.bool(kAXMinimizedAttribute, of: element) ?? false,
-      isFullscreen: AXBridge.bool("AXFullScreen", of: element) ?? false,
+      title: attributes.title ?? "",
+      frame: attributes.frame,
+      kind: WindowKind.classify(role: attributes.role, subrole: attributes.subrole),
+      isMinimized: attributes.isMinimized ?? false,
+      isFullscreen: attributes.isFullscreen ?? false,
       isFocused: windowID == focusedID
     )
     lastRead[windowID] = info

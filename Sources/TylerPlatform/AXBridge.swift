@@ -36,14 +36,6 @@ enum AXBridge {
     element(kAXFocusedWindowAttribute, of: application)
   }
 
-  static func string(_ attribute: String, of element: AXUIElement) -> String? {
-    value(attribute, of: element) as? String
-  }
-
-  static func bool(_ attribute: String, of element: AXUIElement) -> Bool? {
-    value(attribute, of: element) as? Bool
-  }
-
   static func element(_ attribute: String, of element: AXUIElement) -> AXUIElement? {
     guard let raw = value(attribute, of: element),
       CFGetTypeID(raw) == AXUIElementGetTypeID()
@@ -52,16 +44,35 @@ enum AXBridge {
   }
 
   /// The window's frame in Accessibility coordinates, or `nil` if either part can't be read.
+  /// One round trip to the app.
   static func frame(of element: AXUIElement) -> CGRect? {
-    guard let axPosition = axValue(kAXPositionAttribute, of: element),
-      let axSize = axValue(kAXSizeAttribute, of: element)
-    else { return nil }
-    var origin = CGPoint.zero
-    var size = CGSize.zero
-    guard AXValueGetValue(axPosition, .cgPoint, &origin),
-      AXValueGetValue(axSize, .cgSize, &size)
-    else { return nil }
-    return CGRect(origin: origin, size: size)
+    let values = values([kAXPositionAttribute, kAXSizeAttribute], of: element)
+    return frame(position: values[0], size: values[1])
+  }
+
+  /// What tylerd needs to know about a window, read in one round trip to the app: each
+  /// attribute read on its own would wait for the app again (up to `messagingTimeout` each when
+  /// it hangs). `nil` if the frame can't be read.
+  struct WindowAttributes {
+    var frame: CGRect
+    var title: String?
+    var role: String?
+    var subrole: String?
+    var isMinimized: Bool?
+    var isFullscreen: Bool?
+  }
+
+  static func windowAttributes(of element: AXUIElement) -> WindowAttributes? {
+    let values = values(
+      [
+        kAXPositionAttribute, kAXSizeAttribute, kAXTitleAttribute, kAXRoleAttribute,
+        kAXSubroleAttribute, kAXMinimizedAttribute, "AXFullScreen",
+      ], of: element)
+    guard let frame = frame(position: values[0], size: values[1]) else { return nil }
+    return WindowAttributes(
+      frame: frame, title: values[2] as? String, role: values[3] as? String,
+      subrole: values[4] as? String, isMinimized: values[5] as? Bool,
+      isFullscreen: values[6] as? Bool)
   }
 
   // MARK: - Writing
@@ -121,9 +132,32 @@ enum AXBridge {
     return result
   }
 
-  private static func axValue(_ attribute: String, of element: AXUIElement) -> AXValue? {
-    guard let raw = value(attribute, of: element), CFGetTypeID(raw) == AXValueGetTypeID()
+  /// Reads several attributes in one call. Each entry is `nil` where that attribute couldn't be
+  /// read; every entry is `nil` if the call itself failed.
+  private static func values(_ attributes: [String], of element: AXUIElement) -> [CFTypeRef?] {
+    var result: CFArray?
+    let status = AXUIElementCopyMultipleAttributeValues(
+      element, attributes as CFArray, AXCopyMultipleAttributeOptions(rawValue: 0), &result)
+    guard status == .success, let array = result as [AnyObject]?, array.count == attributes.count
+    else { return Array(repeating: nil, count: attributes.count) }
+    // An attribute that couldn't be read comes back as an AXValue holding its error.
+    return array.map { value in isError(value) ? nil : value }
+  }
+
+  private static func isError(_ value: CFTypeRef) -> Bool {
+    CFGetTypeID(value) == AXValueGetTypeID()
+      && AXValueGetType(unsafeDowncast(value, to: AXValue.self)) == .axError
+  }
+
+  private static func frame(position: CFTypeRef?, size: CFTypeRef?) -> CGRect? {
+    guard let position, let size, CFGetTypeID(position) == AXValueGetTypeID(),
+      CFGetTypeID(size) == AXValueGetTypeID()
     else { return nil }
-    return unsafeDowncast(raw, to: AXValue.self)
+    var origin = CGPoint.zero
+    var extent = CGSize.zero
+    guard AXValueGetValue(unsafeDowncast(position, to: AXValue.self), .cgPoint, &origin),
+      AXValueGetValue(unsafeDowncast(size, to: AXValue.self), .cgSize, &extent)
+    else { return nil }
+    return CGRect(origin: origin, size: extent)
   }
 }

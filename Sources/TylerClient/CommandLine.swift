@@ -40,102 +40,129 @@ public struct Invocation: Equatable, Sendable {
   }
 }
 
-/// Parses `tyler` argv (without the program name) into an `Invocation`.
+/// One `tyler` command: how it reads in the usage text, and how its arguments are parsed.
+struct CommandSpec: Sendable {
+  let name: String
+  /// The arguments as the usage text shows them, such as `next|prev|master`.
+  let arguments: String
+  let summary: String
+  let parse: @Sendable (_ arguments: [String]) throws -> Invocation
+}
+
+/// Parses `tyler` argv (without the program name) into an `Invocation`. Every command is one
+/// entry in `commands`, which also builds the usage text; `docs/manual.md` has a section for each
+/// (a test checks).
 public enum CommandLineParser {
+  static let commands: [CommandSpec] = [
+    daemon(.start, "start tylerd in the background"),
+    daemon(.stop, "stop tylerd (windows go back where they were)"),
+    daemon(.restart, "stop tylerd and start it again, for example after a rebuild"),
+    daemon(.status, "show whether tylerd is running, and which build"),
+    simple("ping", .ping, "check that tylerd is running"),
+    CommandSpec(
+      name: "list", arguments: "[--json]", summary: "show the windows tylerd is tracking"
+    ) { arguments in
+      switch arguments {
+      case []: Invocation(request: .list)
+      case ["--json"]: Invocation(request: .list, format: .json)
+      default: throw CommandLineError.usage("list only accepts --json")
+      }
+    },
+    simple("reload", .reload, "read the config file again and apply it"),
+    CommandSpec(
+      name: "focus", arguments: choices(ListTarget.allCases),
+      summary: "move focus within the tiling list"
+    ) { Invocation(request: .focus(try parseChoice($0, for: "focus"))) },
+    CommandSpec(
+      name: "swap", arguments: choices(ListTarget.allCases),
+      summary: "swap the focused window with another slot"
+    ) { Invocation(request: .swap(try parseChoice($0, for: "swap"))) },
+    CommandSpec(name: "layout", arguments: layoutNames, summary: "choose the layout") {
+      Invocation(request: .layout(try parseLayout($0)))
+    },
+    CommandSpec(
+      name: "ratio", arguments: "+0.05|-0.05", summary: "widen or narrow the master column"
+    ) { Invocation(request: .ratio(try parseRatio($0))) },
+    CommandSpec(
+      name: "float", arguments: "toggle", summary: "float the focused window, or tile it again"
+    ) { arguments in
+      guard arguments == ["toggle"] else {
+        throw CommandLineError.usage("float takes exactly one argument: toggle")
+      }
+      return Invocation(request: .toggleFloat)
+    },
+    CommandSpec(
+      name: "tiling", arguments: choices(TilingMode.allCases),
+      summary: "start or stop tiling (off unparks hidden windows)"
+    ) { Invocation(request: .tiling(try parseChoice($0, for: "tiling"))) },
+    simple("retile", .retile, "put every tiled window back into its slot"),
+    CommandSpec(
+      name: "workspace", arguments: workspaceTargets,
+      summary: "switch to another workspace (prev and next wrap)"
+    ) { arguments in
+      guard arguments.count == 1 else {
+        throw CommandLineError.usage("workspace takes exactly one argument: \(workspaceTargets)")
+      }
+      return Invocation(request: .workspace(try parseTarget(arguments[0], for: "workspace")))
+    },
+    CommandSpec(
+      name: "move-to-workspace", arguments: "\(workspaceTargets) [--follow]",
+      summary: "send the focused window to another workspace", parse: parseMoveToWorkspace),
+  ]
+
   public static let usage = """
     usage: tyler <command>
 
     commands:
-      start                          start tylerd in the background
-      stop                           stop tylerd (windows go back where they were)
-      restart                        stop tylerd and start it again, for example after a rebuild
-      status                         show whether tylerd is running, and which build
-      ping                           check that tylerd is running
-      list [--json]                  show the windows tylerd is tracking
-      reload                         read the config file again and apply it
-      focus next|prev|master         move focus within the tiling list
-      swap next|prev|master          swap the focused window with another slot
-      layout tall|full|next          choose the layout
-      ratio +0.05|-0.05              widen or narrow the master column
-      float toggle                   float the focused window, or tile it again
-      tiling on|off|toggle           start or stop tiling (off unparks hidden windows)
-      retile                         put every tiled window back into its slot
-      workspace prev|next|<n>        switch to another workspace (prev and next wrap)
-      move-to-workspace prev|next|<n> [--follow]
-                                     send the focused window to another workspace
+    \(commands.map(usageLine).joined(separator: "\n"))
     """
 
   public static func parse(_ arguments: [String]) throws -> Invocation {
-    guard let command = arguments.first else {
+    guard let name = arguments.first else {
       throw CommandLineError.usage("missing command")
     }
-    let rest = Array(arguments.dropFirst())
-    if let daemonCommand = DaemonCommand(rawValue: command) {
-      try requireNoArguments(rest, for: command)
-      return Invocation(action: .daemon(daemonCommand))
+    guard let command = commands.first(where: { $0.name == name }) else {
+      throw CommandLineError.usage("unknown command '\(name)'")
     }
-    switch command {
-    case "ping":
-      guard rest.isEmpty else {
-        throw CommandLineError.usage("ping takes no arguments")
-      }
-      return Invocation(request: .ping)
-    case "list":
-      switch rest {
-      case []:
-        return Invocation(request: .list)
-      case ["--json"]:
-        return Invocation(request: .list, format: .json)
-      default:
-        throw CommandLineError.usage("list only accepts --json")
-      }
-    case "reload":
-      try requireNoArguments(rest, for: command)
-      return Invocation(request: .reload)
-    default:
-      return try parseTilingCommand(command, rest)
+    return try command.parse(Array(arguments.dropFirst()))
+  }
+
+  // MARK: - Commands
+
+  /// Where a command's summary starts in the usage text; a longer command line puts its summary
+  /// on the next line.
+  private static let summaryColumn = 33
+
+  private static func usageLine(_ command: CommandSpec) -> String {
+    let line =
+      "  " + ([command.name, command.arguments].filter { !$0.isEmpty }.joined(separator: " "))
+    guard line.count < summaryColumn else {
+      return line + "\n" + String(repeating: " ", count: summaryColumn) + command.summary
+    }
+    return line + String(repeating: " ", count: summaryColumn - line.count) + command.summary
+  }
+
+  private static func daemon(_ command: DaemonCommand, _ summary: String) -> CommandSpec {
+    CommandSpec(name: command.rawValue, arguments: "", summary: summary) { arguments in
+      try requireNoArguments(arguments, for: command.rawValue)
+      return Invocation(action: .daemon(command))
     }
   }
 
-  private static func parseTilingCommand(_ command: String, _ rest: [String]) throws -> Invocation {
-    switch command {
-    case "retile":
-      try requireNoArguments(rest, for: command)
-      return Invocation(request: .retile)
-    case "focus":
-      return Invocation(request: .focus(try parseTarget(rest, for: command)))
-    case "swap":
-      return Invocation(request: .swap(try parseTarget(rest, for: command)))
-    case "layout":
-      return Invocation(request: .layout(try parseLayout(rest)))
-    case "ratio":
-      return Invocation(request: .ratio(try parseRatio(rest)))
-    case "float":
-      guard rest == ["toggle"] else {
-        throw CommandLineError.usage("float takes exactly one argument: toggle")
-      }
-      return Invocation(request: .toggleFloat)
-    case "tiling":
-      let mode = try parseChoice(rest, for: command, choices: TilingMode.allCases)
-      return Invocation(request: .tiling(mode))
-    default:
-      return try workspaceCommand(command, rest)
+  /// A command that takes no arguments and sends `request`.
+  private static func simple(_ name: String, _ request: Request, _ summary: String) -> CommandSpec {
+    CommandSpec(name: name, arguments: "", summary: summary) { arguments in
+      try requireNoArguments(arguments, for: name)
+      return Invocation(request: request)
     }
   }
 
-  private static func workspaceCommand(_ command: String, _ rest: [String]) throws -> Invocation {
-    switch command {
-    case "workspace":
-      guard rest.count == 1 else {
-        throw CommandLineError.usage("workspace takes exactly one argument: prev|next|<n>")
-      }
-      return Invocation(request: .workspace(try parseTarget(rest[0], for: command)))
-    case "move-to-workspace":
-      return try parseMoveToWorkspace(rest)
-    default:
-      throw CommandLineError.usage("unknown command '\(command)'")
-    }
+  private static func choices<Choice: RawRepresentable>(_ cases: [Choice]) -> String
+  where Choice.RawValue == String {
+    cases.map(\.rawValue).joined(separator: "|")
   }
+
+  private static let workspaceTargets = "prev|next|<n>"
 
   // MARK: - Arguments
 
@@ -143,10 +170,6 @@ public enum CommandLineParser {
     guard arguments.isEmpty else {
       throw CommandLineError.usage("\(command) takes no arguments")
     }
-  }
-
-  private static func parseTarget(_ arguments: [String], for command: String) throws -> ListTarget {
-    try parseChoice(arguments, for: command, choices: ListTarget.allCases)
   }
 
   private static func parseLayout(_ arguments: [String]) throws -> LayoutChoice {
@@ -185,7 +208,7 @@ public enum CommandLineParser {
     default:
       guard let number = Int(text), number >= 1 else {
         throw CommandLineError.usage(
-          "unknown \(command) argument '\(text)' (use prev|next|<n>, where n starts at 1)")
+          "unknown \(command) argument '\(text)' (use \(workspaceTargets), where n starts at 1)")
       }
       return .number(number)
     }
@@ -196,18 +219,17 @@ public enum CommandLineParser {
     let targets = arguments.filter { $0 != "--follow" }
     guard targets.count == 1, arguments.count == targets.count + (follow ? 1 : 0) else {
       throw CommandLineError.usage(
-        "move-to-workspace takes one target (prev|next|<n>) and optionally --follow")
+        "move-to-workspace takes one target (\(workspaceTargets)) and optionally --follow")
     }
     let target = try parseTarget(targets[0], for: "move-to-workspace")
     return Invocation(request: .moveToWorkspace(target, follow: follow))
   }
 
-  private static func parseChoice<Choice: RawRepresentable & Sendable>(
-    _ arguments: [String],
-    for command: String,
-    choices: [Choice]
+  private static func parseChoice<Choice: CaseIterable & RawRepresentable>(
+    _ arguments: [String], for command: String
   ) throws -> Choice where Choice.RawValue == String {
-    let names = choices.map(\.rawValue).joined(separator: "|")
+    let choices = Array(Choice.allCases)
+    let names = Self.choices(choices)
     guard arguments.count == 1, let name = arguments.first else {
       throw CommandLineError.usage("\(command) takes exactly one argument: \(names)")
     }

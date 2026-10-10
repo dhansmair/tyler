@@ -227,7 +227,7 @@ tyler workspace prev|next|<n>           tyler move-to-workspace prev|next|<n> [-
 tyler display next|prev                 tyler move-to-display next|prev
 tyler service install|uninstall
 ```
-Implemented so far: `ping`, `list [--json]`, `focus`, `swap`, `layout`, `ratio`, `float toggle`, `tiling`, `retile`, `workspace`, `move-to-workspace [--follow]`, `reload`, `start`, `stop`, `restart`, `status`. The CLI and wire format say `master` (the xmonad term); in Swift the case is `ListTarget.main`, because SwiftLint's `inclusive_language` rule rejects `master` in identifiers.
+What is implemented is the command table in `TylerClient/CommandLine.swift` (`tyler` without arguments prints it); `docs/manual.md` describes each command, and a test keeps the two in step. The CLI and wire format say `master` (the xmonad term); in Swift the case is `ListTarget.main`, because SwiftLint's `inclusive_language` rule rejects `master` in identifiers.
 
 ## Open items
 - **Code signing.** No signing identity exists on this machine. macOS ties the Accessibility permission to the binary's code identity. Decided in M2: during development, grant Accessibility to the terminal app that runs `tylerd` (no keychain changes). Revisit in M6, when `tylerd` runs as a LaunchAgent and needs its own stable identity (a self-signed `tyler-dev` certificate, then `make install SIGN_ID=tyler-dev`).

@@ -96,14 +96,26 @@ struct CommandLineTests {
         """)
   }
 
-  @Test func usageMentionsEveryCommand() {
-    #expect(CommandLineParser.usage.contains("ping"))
-    #expect(CommandLineParser.usage.contains("list"))
-    #expect(CommandLineParser.usage.contains("reload"))
-    for command in DaemonCommand.allCases {
-      #expect(CommandLineParser.usage.contains("\n  \(command.rawValue) "))
+  /// Every command has a section in the manual's command reference, and every section there is
+  /// a command. A heading may name several commands (`### start, stop, restart`) or carry the
+  /// only argument (`### float toggle`).
+  @Test func theManualDescribesEveryCommand() throws {
+    let manual = URL(fileURLWithPath: #filePath)
+      .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+      .appendingPathComponent("docs/manual.md")
+    let text = try String(contentsOf: manual, encoding: .utf8)
+    let reference = try #require(text.components(separatedBy: "\n## Command reference\n").last)
+    let section = reference.components(separatedBy: "\n## ").first ?? ""
+    var documented: [String] = []
+    for line in section.split(separator: "\n") where line.hasPrefix("### ") {
+      for name in line.dropFirst(4).split(separator: ",") {
+        documented += name.split(separator: " ").prefix(1).map(String.init)
+      }
     }
+    #expect(Set(documented) == Set(CommandLineParser.commands.map(\.name)))
+    #expect(documented.count == CommandLineParser.commands.count, "no command is described twice")
   }
+
 }
 
 @Suite("CommandLineParser: tiling commands")
@@ -196,15 +208,6 @@ struct TilingCommandLineTests {
     }
   }
 
-  @Test func usageMentionsEveryTilingCommand() {
-    for word in [
-      "focus", "swap", "layout", "ratio", "float", "tiling", "retile", "workspace",
-      "move-to-workspace",
-      "--follow",
-    ] {
-      #expect(CommandLineParser.usage.contains(word), "usage should mention \(word)")
-    }
-  }
 }
 
 @Suite("ResponseFormatter")

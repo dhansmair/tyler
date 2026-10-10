@@ -203,6 +203,11 @@ Decisions (2026-10-10): the file is `~/.config/tyler/tyler.toml` (`TYLER_CONFIG`
 ### M7. (Later) Trackpad scroll and swipes
 Scroll with a modifier through a CGEventTap feeding the Animator. Trackpad swipe gestures switch workspaces, for example a three-finger swipe left/right for the previous/next workspace (macOS uses three- and four-finger swipes for Spaces by default, so this needs checking). Both arrive through `PointerInput`.
 
+Swipes (plan: `plans/trackpad-swipe.md`, decided with the user 2026-10-10): built into tylerd, interactive (windows follow the fingers, then snap to the neighbouring workspace or back), with a 3-finger horizontal swipe. The code is layered as pan (touches to an offset), snap (pick a settle point) and scrollable (what moves: the workspace row now, the strip layout later).
+
+- **Measured 2026-10-11 (macOS 26.7, `devtools/live-check gestures`):** a listen-only `CGEventTap` (session tap) for gesture events (`NSEvent.EventType.gesture`, 29) gets every touch frame, with `NSEvent(cgEvent:).allTouches()` giving finger count and normalized positions. That holds even with 3- and 4-finger horizontal swipes assigned to Spaces in System Settings. A 3-finger swipe gave 30–54 frames (about 100 per second while moving) and about 0.2 trackpad widths of horizontal travel; a 4-finger swipe looked the same. `NSEvent.addGlobalMonitorForEvents(matching: .gesture)` got nothing, so the tap is the source. The terminal's existing grants were enough (no new permission prompt). Touches come and go one finger at a time, so a 3-finger contact is framed by 1- and 2-finger frames, and short 3-finger blips (1–4 frames) happen as fingers land and lift.
+- [ ] Open: whether macOS also acts on a 3-finger swipe left assigned to Spaces when there is a Space or full-screen app to switch to (the user has none). The manual tells users to move that gesture to 4 fingers.
+
 ## CLI target (v1)
 ```
 tyler start | stop | restart | status

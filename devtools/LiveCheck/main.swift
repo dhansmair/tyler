@@ -246,6 +246,7 @@ let usage = """
     positions <window-id> [x y]   where macOS really puts a window at the display's edges
     slide <seconds> <rounds> <out-ids> <in-id@x,y>...
                                   replay a workspace slide on real windows, then restore them
+    gestures <seconds>            log trackpad touches from an event tap and a global monitor
   """
 
 let arguments = Array(CommandLine.arguments.dropFirst())
@@ -255,6 +256,7 @@ do {
   case "menubar": try menubar()
   case "positions": try positions(Array(arguments.dropFirst()))
   case "slide": try slide(Array(arguments.dropFirst()))
+  case "gestures": try gestures(Array(arguments.dropFirst()))
   default:
     print(usage)
     exit(arguments.isEmpty ? 0 : 2)

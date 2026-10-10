@@ -105,7 +105,7 @@ struct RestartTests {
 
   @Test func beforePermissionTheHandedOverStateIsPassedOn() {
     let saved = SavedState(
-      stack: WorkspaceStack(), floated: [], tilingEnabled: false, originalFrames: [:])
+      row: WorkspaceRow(), floated: [], tilingEnabled: false, originalFrames: [:])
     let manager = WindowManager(
       backend: FakeBackend(), displays: FakeDisplays(), gate: FakeGate(isTrusted: false),
       restoring: saved)

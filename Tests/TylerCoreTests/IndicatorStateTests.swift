@@ -44,12 +44,12 @@ struct IndicatorStateTests {
     #expect(off.layout == nil)
   }
 
-  @Test func theStateIsBuiltFromTheStack() {
-    var stack = WorkspaceStack(count: 3)
-    stack[1].insert(WindowID(7))
-    stack[1].layout = .full
-    stack.select(1)
-    let built = IndicatorState(stack: stack, tiling: .on)
+  @Test func theStateIsBuiltFromTheRow() {
+    var row = WorkspaceRow(count: 3)
+    row[1].insert(WindowID(7))
+    row[1].layout = .full
+    row.select(1)
+    let built = IndicatorState(row: row, tiling: .on)
     #expect(
       built == state(counts: [0, 1, 0], current: 1, layout: .tall).with(layout: .full, at: 1))
   }

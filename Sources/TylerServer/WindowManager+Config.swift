@@ -6,7 +6,7 @@ extension WindowManager {
   /// Reads the config file again and applies it. The current workspace re-tiles at once; the
   /// others pick up the change when they are shown. A file that can't be used changes nothing,
   /// and no file at all means the defaults. A new workspace count takes effect at once (see
-  /// `WorkspaceStack.setCount`).
+  /// `WorkspaceRow.setCount`).
   public func reload() -> Response {
     guard let configSource else { return .error("tylerd was started without a config file") }
     finishAnimation()

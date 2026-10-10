@@ -25,7 +25,7 @@ struct WindowBookkeepingTests {
 
   @Test func restoringKeepsOnlyWindowsThatStillExist() {
     let saved = SavedState(
-      stack: WorkspaceStack(count: 2), floated: [WindowID(1), WindowID(2)], tilingEnabled: true,
+      row: WorkspaceRow(count: 2), floated: [WindowID(1), WindowID(2)], tilingEnabled: true,
       originalFrames: [WindowID(1): frame, WindowID(2): frame], seen: [WindowID(1), WindowID(2)])
     let bookkeeping = WindowBookkeeping(restoring: saved, known: [WindowID(2), WindowID(3)])
     #expect(bookkeeping.floated == [WindowID(2)])

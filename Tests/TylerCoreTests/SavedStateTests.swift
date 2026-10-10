@@ -6,42 +6,42 @@ import Testing
 
 @Suite("Saved state")
 struct SavedStateTests {
-  /// Workspace 1: windows 1, 2, 3 (2 focused), tall at 0.6 with the stack split 2:1;
+  /// Workspace 1: windows 1, 2, 3 (2 focused), tall at 0.6 with the row split 2:1;
   /// workspace 3: window 4, full; the third workspace is current.
-  private func arrangement() -> WorkspaceStack {
-    var stack = WorkspaceStack(count: 4)
+  private func arrangement() -> WorkspaceRow {
+    var row = WorkspaceRow(count: 4)
     var first = Workspace(
       layout: .tall, parameters: LayoutParameters(mainRatio: 0.6, rowWeights: [[], [2, 1]]))
     for raw in [1, 2, 3] as [UInt32] { first.insert(WindowID(raw)) }
     first.setFocus(WindowID(2))
-    stack[0] = first
+    row[0] = first
     var third = Workspace(layout: .full)
     third.insert(WindowID(4))
-    stack[2] = third
-    stack.select(2)
-    return stack
+    row[2] = third
+    row.select(2)
+    return row
   }
 
-  private func saved(_ stack: WorkspaceStack) -> SavedState {
+  private func saved(_ row: WorkspaceRow) -> SavedState {
     SavedState(
-      stack: stack, floated: [WindowID(9)], tilingEnabled: true,
+      row: row, floated: [WindowID(9)], tilingEnabled: true,
       originalFrames: [WindowID(1): CGRect(x: 10, y: 20, width: 300, height: 200)])
   }
 
   @Test func aStackComesBackAsItWas() {
-    let stack = arrangement()
-    #expect(saved(stack).stack(count: 4) { _ in true } == stack)
+    let row = arrangement()
+    #expect(saved(row).row(count: 4) { _ in true } == row)
   }
 
   @Test func windowsThatClosedAreDroppedAndFocusMovesOn() {
-    let restored = saved(arrangement()).stack(count: 4) { $0 != WindowID(2) }
+    let restored = saved(arrangement()).row(count: 4) { $0 != WindowID(2) }
     #expect(restored[0].windows == [WindowID(1), WindowID(3)])
     #expect(restored[0].focused == nil, "the focused window closed")
     #expect(restored[2].windows == [WindowID(4)])
   }
 
   @Test func fewerWorkspacesMergeTheRestIntoTheLast() {
-    let restored = saved(arrangement()).stack(count: 2) { _ in true }
+    let restored = saved(arrangement()).row(count: 2) { _ in true }
     #expect(restored.count == 2)
     #expect(restored.currentIndex == 1, "the current workspace was merged into the last")
     #expect(restored[0].windows == [WindowID(1), WindowID(2), WindowID(3)])
@@ -49,7 +49,7 @@ struct SavedStateTests {
   }
 
   @Test func moreWorkspacesAddEmptyOnes() {
-    let restored = saved(arrangement()).stack(count: 6) { _ in true }
+    let restored = saved(arrangement()).row(count: 6) { _ in true }
     #expect(restored.count == 6)
     #expect(restored.currentIndex == 2)
     #expect(restored[5].windows.isEmpty)
@@ -77,7 +77,7 @@ struct SavedStateTests {
     try JSONSerialization.data(withJSONObject: object).write(to: URL(fileURLWithPath: path))
 
     let state = try #require(try SavedState.read(from: path))
-    let restored = state.stack(count: 4) { _ in true }
+    let restored = state.row(count: 4) { _ in true }
     #expect(restored[0].parameters.rowWeights.isEmpty)
     #expect(restored[0].parameters.mainRatio == 0.6)
   }

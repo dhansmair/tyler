@@ -35,7 +35,7 @@ public final class WindowManager {
 
   // Internal rather than private so the `WindowManager+…` extensions can reach them.
   var registry = WindowRegistry()
-  var workspaces: WorkspaceStack {
+  var workspaces: WorkspaceRow {
     didSet { updateIndicator() }
   }
   /// Floated windows, original frames and the like (see `WindowBookkeeping`).
@@ -83,7 +83,7 @@ public final class WindowManager {
     self.pointer = pointer
     self.clock = clock
     pendingRestore = saved
-    workspaces = WorkspaceStack(count: config.workspaces.count)
+    workspaces = WorkspaceRow(count: config.workspaces.count)
     applyGaps()
     updateIndicator()
   }

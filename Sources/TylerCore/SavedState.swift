@@ -41,7 +41,7 @@ public struct SavedState: Codable, Equatable, Sendable {
 
   public var version: Int
   public var workspaces: [SavedWorkspace]
-  /// 0-based, like `WorkspaceStack.currentIndex`.
+  /// 0-based, like `WorkspaceRow.currentIndex`.
   public var currentIndex: Int
   public var floated: [WindowID]
   public var tilingEnabled: Bool
@@ -51,12 +51,12 @@ public struct SavedState: Codable, Equatable, Sendable {
   public var seen: [WindowID]?
 
   public init(
-    stack: WorkspaceStack, floated: Set<WindowID>, tilingEnabled: Bool,
+    row: WorkspaceRow, floated: Set<WindowID>, tilingEnabled: Bool,
     originalFrames: [WindowID: CGRect], seen: Set<WindowID> = []
   ) {
     version = Self.currentVersion
-    workspaces = stack.workspaces.map(SavedWorkspace.init)
-    currentIndex = stack.currentIndex
+    workspaces = row.workspaces.map(SavedWorkspace.init)
+    currentIndex = row.currentIndex
     self.floated = floated.sorted()
     self.tilingEnabled = tilingEnabled
     self.originalFrames = originalFrames.keys.sorted().compactMap { windowID in
@@ -72,17 +72,17 @@ public struct SavedState: Codable, Equatable, Sendable {
     return Set(workspaces.flatMap(\.windows) + floated)
   }
 
-  /// A stack of `count` workspaces holding the saved windows that still exist (`exists`), in
+  /// A row of `count` workspaces holding the saved windows that still exist (`exists`), in
   /// their saved order, with their focus, layout, ratio and row weights. Saved workspaces beyond
-  /// `count` are merged into the last one, as `WorkspaceStack.setCount` does.
-  public func stack(count: Int, keeping exists: (WindowID) -> Bool) -> WorkspaceStack {
-    var stack = WorkspaceStack(count: max(count, workspaces.count))
-    for (index, saved) in workspaces.enumerated() where index < stack.count {
-      stack[index] = saved.workspace(keeping: exists)
+  /// `count` are merged into the last one, as `WorkspaceRow.setCount` does.
+  public func row(count: Int, keeping exists: (WindowID) -> Bool) -> WorkspaceRow {
+    var row = WorkspaceRow(count: max(count, workspaces.count))
+    for (index, saved) in workspaces.enumerated() where index < row.count {
+      row[index] = saved.workspace(keeping: exists)
     }
-    stack.select(currentIndex < stack.count ? currentIndex : 0)
-    stack.setCount(count)
-    return stack
+    row.select(currentIndex < row.count ? currentIndex : 0)
+    row.setCount(count)
+    return row
   }
 
   // MARK: - File

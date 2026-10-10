@@ -2,23 +2,23 @@ import CoreGraphics
 
 /// The workspaces of one display, side by side in a row like pages. Exactly one is current (on
 /// screen) and the others are parked. A window belongs to at most one workspace.
-public struct WorkspaceStack: Equatable, Sendable {
-  /// How many workspaces a stack has unless the config file says otherwise.
+public struct WorkspaceRow: Equatable, Sendable {
+  /// How many workspaces a row has unless the config file says otherwise.
   public static let defaultCount = 4
 
   public private(set) var workspaces: [Workspace]
   /// 0-based index of the workspace on screen.
   public private(set) var currentIndex = 0
 
-  /// A stack of `count` empty workspaces (at least one), starting on the first.
-  public init(count: Int = WorkspaceStack.defaultCount) {
+  /// A row of `count` empty workspaces (at least one), starting on the first.
+  public init(count: Int = WorkspaceRow.defaultCount) {
     workspaces = Array(repeating: Workspace(), count: max(1, count))
   }
 
   public var count: Int { workspaces.count }
   public var indices: Range<Int> { workspaces.indices }
 
-  // `_modify` rather than `set`: a change such as `stack.current.resize(…)` then happens in
+  // `_modify` rather than `set`: a change such as `row.current.resize(…)` then happens in
   // place. With `set`, the copy being changed shares its window list with the one still in
   // `workspaces`, so every change copied the list (once per drag step, once per workspace per
   // sync).
@@ -77,8 +77,8 @@ public struct WorkspaceStack: Equatable, Sendable {
     return true
   }
 
-  /// Gives the stack `count` workspaces (at least one). New workspaces are added empty at the
-  /// bottom. Removed ones hand their windows to the new last workspace, appended in order after
+  /// Gives the row `count` workspaces (at least one). New workspaces are added empty at the
+  /// end (on the right). Removed ones hand their windows to the new last workspace, appended in order after
   /// its own; if the current workspace is removed, the new last one becomes current.
   public mutating func setCount(_ count: Int) {
     let count = max(1, count)

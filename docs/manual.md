@@ -9,7 +9,7 @@ tyler has no hotkeys of its own. To drive it from the keyboard, bind keys to `ty
 
 ## Concepts
 
-tyler arranges windows on displays. Each display holds a stack of workspaces, each workspace holds an ordered list of windows, and a layout turns that list into window positions.
+tyler arranges windows on displays. Each display holds a row of workspaces, each workspace holds an ordered list of windows, and a layout turns that list into window positions.
 
 ### Display
 
@@ -75,7 +75,7 @@ What counts is the window under the mouse pointer, not the one the dragged windo
 
 While `tylerd` runs, it shows the workspaces in the menu bar, for example `1 [2] 3 4  ▥`:
 
-- the number of each workspace, top of the stack first: the one on screen is in brackets (`[2]`), and empty ones are faint
+- the number of each workspace, from left to right: the one on screen is in brackets (`[2]`), and empty ones are faint
 - the symbol of the current workspace's layout: `▥` for tall, `▢` for full (in full, the other windows are stacked behind the one you see)
 
 Without tiling it says `tyler: tiling off`, and before Accessibility permission is granted `tyler: no access`. Clicking it opens a menu to switch workspaces, cycle the layout and turn tiling on or off; these do the same as the `tyler` commands. On a MacBook with a notch, macOS hides menu bar items that don't fit next to it.

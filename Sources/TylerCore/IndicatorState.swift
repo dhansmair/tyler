@@ -43,14 +43,14 @@ public struct IndicatorState: Equatable, Sendable {
     self.tiling = tiling
   }
 
-  public init(stack: WorkspaceStack, tiling: ServerStatus.Tiling) {
+  public init(row: WorkspaceRow, tiling: ServerStatus.Tiling) {
     self.init(
-      workspaces: stack.workspaces.map { Workspace(windowCount: $0.count, layout: $0.layout) },
-      currentIndex: stack.currentIndex,
+      workspaces: row.workspaces.map { Workspace(windowCount: $0.count, layout: $0.layout) },
+      currentIndex: row.currentIndex,
       tiling: tiling)
   }
 
-  /// The menu bar title: every workspace's number, top of the stack first, with the current one
+  /// The menu bar title: every workspace's number, from left to right, with the current one
   /// in brackets and empty ones faint, then the layout's symbol (`▥` tall, `▢` full). Exactly one
   /// number is bracketed, so the title keeps its width while switching. Without tiling, windows
   /// don't belong to workspaces, and a faint notice stands in for all of it.

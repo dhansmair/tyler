@@ -15,7 +15,7 @@ public enum PointerEvent: Equatable, Sendable {
 }
 
 /// The mouse and trackpad. The real implementation watches system-wide events
-/// (`TylerPlatform.PointerMonitor`); tests use a fake.
+/// (`TylerPlatform.SystemPointerInput`); tests use a fake.
 @MainActor
 public protocol PointerInput: AnyObject {
   /// Events from the moment `start()` is called. Subscribe before calling `start()`.

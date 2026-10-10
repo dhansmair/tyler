@@ -8,7 +8,7 @@ A personal window manager for macOS, written in Swift. It replaces AeroSpace and
 
 Windows are controlled through the macOS Accessibility API (no SIP changes). Workspaces work by parking the windows of inactive workspaces just past the display's right edge, and switching slides horizontally: macOS won't let a window leave through the top or bottom of the screen (measured; see `Parking` and the M4 notes in the roadmap).
 
-**Terms:** a *display* is a physical screen; a *workspace* is one page of a display's row of workspaces (it was called a "virtual monitor" until M4). Don't use "monitor" in code or docs. `docs/manual.md` (Concepts) defines the user-facing terms.
+**Terms:** a *display* is a physical screen; a *workspace* is one page of a display's row of workspaces (it was called a "virtual monitor" until M4). Don't use "monitor" for a screen, in code or docs (AppKit's event monitor API keeps its name). `docs/manual.md` (Concepts) defines the user-facing terms.
 
 ## Status
 
@@ -20,7 +20,7 @@ M1 (IPC, `tyler ping`, test harness) is done. M2 (`tyler list`, window discovery
 
 ```
 Sources/
-  TylerCore/     pure logic and POSIX helpers: wire protocol, paths, Unix sockets, window and display types, layouts, Workspace (the ordered tiling list), WorkspaceStack, WorkspaceSync (which windows each workspace holds), SlidePlan, Parking, animation tracks, IndicatorState (menu bar contents), the trackpad pan (PanRecognizer, OneEuroFilter, Snap), TOML parser and Config
+  TylerCore/     pure logic and POSIX helpers: wire protocol, paths, Unix sockets, window and display types, layouts, Workspace (the ordered tiling list), WorkspaceRow, WorkspaceSync (which windows each workspace holds), SlidePlan, Parking, animation tracks, IndicatorState (menu bar contents), the trackpad pan (PanRecognizer, OneEuroFilter, Snap), TOML parser and Config
   TylerServer/   server logic: CommandRouter, IPCServer, WindowManager (tiling; per-window state such as floated windows and original frames in WindowBookkeeping; the slide, pan or drag in progress in Interaction; keeping the lists in step with the windows and app assignments in WindowManager+Sync, workspaces in WindowManager+Workspaces, config and reload in WindowManager+Config, menu bar updates in WindowManager+Indicator, mouse resizing and swap by drag in WindowManager+Mouse, trackpad swipes in WindowManager+Pan), PointerInput, Animator, WindowRegistry, backend and Indicator protocols
   TylerPlatform/ real macOS code (AX, NSWorkspace, NSScreen, the NSStatusItem, the mouse button monitor, the trackpad's gesture tap in SwipeTap); not unit tested, keep it thin
   TylerClient/   argv parsing, response formatting, IPC client

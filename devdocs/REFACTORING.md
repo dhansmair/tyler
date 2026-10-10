@@ -76,7 +76,7 @@ Sizes: XS < 20 lines, S < 60, M < 200, L larger.
 
 ## Tier 3: tidy-ups
 
-- [ ] **14. Naming.**
+- [x] **14. Naming.**
   - The workspaces are a row now, but the code still says stack: `WorkspaceStack` → `WorkspaceRow`, along with `init(stack:)` (`IndicatorState`, `SavedState`), `stack(count:keeping:)`, and comments such as "top of the stack first" and "added empty at the bottom". The JSON format has no `stack` field, so it doesn't change. Keep "stack" in `Layouts.swift`, where it is xmonad's word for Tall's right column.
   - CLAUDE.md bans "monitor": `PointerMonitor` (and `monitor`, `monitorLog` in devtools) mean an AppKit event monitor, but rename them anyway (for example `GlobalPointerInput`). `docs/manual.md` says "an external monitor": use "display".
   - M, mechanical.
@@ -149,3 +149,4 @@ So nobody tries them again without a profile that says otherwise:
 - 2026-10-11: item 19, Core part done (`clamped(to:)`, `stepped(by:wrappingAt:)`, `insertionIndex`, `Paths` and `UnixSocket` helpers).
 - 2026-10-11: item 19 done (`DaemonController.runningStatus()`, `SavedWorkspace` conversion, `Wire.terminator`, `FakeBackend.movableIndex`). The 1-point tolerance in `Layouts.swift` stays: it is the layout's own rounding rule, not the window-in-place check.
 - 2026-10-11: item 20 done (`make lint` and `make check`, test tidy-up). The pre-commit hook keeps its own per-file entries, which lint only the staged files; `makeSocketPath` and `makeTempSocketPath` stay apart because they live in different test targets.
+- 2026-10-11: item 14 done (`WorkspaceRow`, `row:` labels and row wording; `SystemPointerInput`). "stack" now means only `tall`'s right column (roadmap terminology updated). The manual keeps "an external monitor", where it maps the user's word to *display*; AppKit's event monitor API keeps its name.

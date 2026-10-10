@@ -7,7 +7,7 @@ import TylerServer
 /// only see events sent to other apps, which is every click that matters: tylerd has no windows
 /// of its own, only the menu bar item. Trackpad swipes come from a `SwipeTap`.
 @MainActor
-public final class PointerMonitor: PointerInput {
+public final class SystemPointerInput: PointerInput {
   public let events: AsyncStream<PointerEvent>
 
   private let continuation: AsyncStream<PointerEvent>.Continuation

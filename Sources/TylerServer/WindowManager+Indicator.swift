@@ -6,7 +6,7 @@ extension WindowManager {
   /// on every change to the workspaces, which is when it runs.
   func updateIndicator() {
     guard let indicator else { return }
-    let current = IndicatorState(stack: workspaces, tiling: tilingStatus)
+    let current = IndicatorState(row: workspaces, tiling: tilingStatus)
     guard current != shownIndicatorState else { return }
     shownIndicatorState = current
     indicator.show(current)

@@ -17,7 +17,7 @@ A personal macOS window manager in Swift, replacing AeroSpace/Amethyst for this 
 - The executables stay thin. Logic lives in libraries, and everything that touches macOS (AX, NSScreen, timers) sits behind a protocol so tests can use fakes.
 - IPC: one newline-delimited JSON request and one response per connection over a Unix socket (`~/.tyler/tyler.sock`, override with `TYLER_SOCKET`).
 - Workspaces work by parking windows of inactive workspaces just past the right edge of the display's visible frame, at their own height, with 1 point visible (a variant of the AeroSpace trick; see the M4 measurements for why the right edge).
-- **Terminology (decided 2026-10-10, after M4).** *Display* is a physical screen (matches `CGDirectDisplayID` and System Settings). *Workspace* is a page in a display's row of workspaces, with its own tiling list, layout and ratio; M4 called it a "virtual monitor", and the code, CLI (`workspace`, `move-to-workspace`), wire format and `list` column (`WORKSPACE`) were renamed. *Monitor* isn't used, and *screen* only describes visibility ("on screen"). Avoid *space* (macOS Spaces). Workspaces are numbered per display (1 to n within each row, from the left), and commands act on the focused display. The per-display stack is `WorkspaceStack`; don't use "stack" for the non-master area of the `tall` layout.
+- **Terminology (decided 2026-10-10, after M4).** *Display* is a physical screen (matches `CGDirectDisplayID` and System Settings). *Workspace* is a page in a display's row of workspaces, with its own tiling list, layout and ratio; M4 called it a "virtual monitor", and the code, CLI (`workspace`, `move-to-workspace`), wire format and `list` column (`WORKSPACE`) were renamed. *Monitor* isn't used, and *screen* only describes visibility ("on screen"). Avoid *space* (macOS Spaces). Workspaces are numbered per display (1 to n within each row, from the left), and commands act on the focused display. The per-display row is `WorkspaceRow` (it was `WorkspaceStack` until 2026-10-11, when "stack" stopped meaning the row); "stack" now means only the windows to the right of the master in `tall`, as in xmonad.
 
 ## Package layout
 ```
@@ -153,7 +153,7 @@ Decisions (2026-10-10, with the user): neighbours follow **live** during the dra
 - [x] TylerCore: `rowWeights`, `ColumnLayout`, `TallLayout` on top of it, `SavedState` keeps the weights
 - [x] TylerCore: `Layout.parameters(afterResizing:)`, `Workspace.resize`
 - [x] TylerServer: `PointerInput`, `WindowManager+Mouse.swift` (the placing helpers moved to `WindowManager+Placement.swift` to keep `WindowManager.swift` under SwiftLint's 400 lines)
-- [x] TylerPlatform: `PointerMonitor` (global `leftMouseUp` monitor, button state)
+- [x] TylerPlatform: `SystemPointerInput`, then called `PointerMonitor` (global `leftMouseUp` monitor, button state)
 - [x] Throttled (2026-10-10, after the user saw live following lag, worst with Firefox): the first resize of a drag is followed at once, then at most once per interval, always to the newest frame; the release follows the last one at once. Before, every resize event moved every neighbour, and slow apps let the events pile up. If it still lags, the next lever is `AXBackend.setFrame` re-reading the whole window (title, role, …) after every move. The interval is `mouse.follow-interval` in the config (milliseconds, 0–1000, default 50, 0 follows every resize; decided with the user 2026-10-10), read at every step so `reload` applies it at once
 - [x] `restart` keeps the stack heights (2026-10-10: 708/390 before and after)
 - [x] Checked against real windows (2026-10-10, by the user): resizing is smooth and the layout follows; live following keeps up with the 30 ms interval
@@ -165,7 +165,7 @@ Decisions (2026-10-10, with the user): a **live preview**: while the dragged win
 
 - [x] TylerCore: `Workspace.swap(_:with:)`, `Workspace.dropTarget(for:at:in:)`
 - [x] TylerServer: `PointerEvent.primaryButtonDragged`, preview and swap in `WindowManager+Mouse.swift`; a command mid-drag puts the preview back
-- [x] TylerPlatform: `PointerMonitor` reports drags (global `leftMouseDragged` monitor)
+- [x] TylerPlatform: `SystemPointerInput` reports drags (global `leftMouseDragged` monitor)
 - [x] Checked against real windows (2026-10-10, by the user): preview, swap on release, snap back in a gap, `full`, resizing still works
 - [x] Tried and dropped (2026-10-10, with the user): the dragged window taking the target slot's size during the preview (a size-only AX write, top-left corner kept). It worked, but the size jumped without animation and felt awkward. Animating it isn't practical: every step makes the app lay out the window again (the reason live following is throttled), and AX-based managers (AeroSpace, Amethyst) don't animate resizes either. The dragged window keeps its size until the release
 

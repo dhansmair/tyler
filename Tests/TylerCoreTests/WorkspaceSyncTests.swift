@@ -20,62 +20,62 @@ struct WorkspaceSyncTests {
   }
 
   private func plan(
-    _ stack: WorkspaceStack, _ windows: [WindowInfo], displays: [DisplayInfo]? = nil,
+    _ row: WorkspaceRow, _ windows: [WindowInfo], displays: [DisplayInfo]? = nil,
     floated: Set<WindowID> = [], seen: Set<WindowID> = [], sliding: Set<WindowID> = []
   ) -> WorkspaceSync? {
     WorkspaceSync.plan(
-      for: stack, windows: windows, displays: displays ?? [primary, secondary],
+      for: row, windows: windows, displays: displays ?? [primary, secondary],
       marks: WorkspaceSync.Marks(floated: floated, seen: seen, sliding: sliding),
       assignedWorkspace: { $0.appName == "Firefox" ? 3 : nil })
   }
 
-  private func stack(_ lists: [[UInt32]]) -> WorkspaceStack {
-    var stack = WorkspaceStack(count: 4)
+  private func row(_ lists: [[UInt32]]) -> WorkspaceRow {
+    var row = WorkspaceRow(count: 4)
     for (index, list) in lists.enumerated() {
-      stack[index].sync(eligible: list.map(WindowID.init))
+      row[index].sync(eligible: list.map(WindowID.init))
     }
-    return stack
+    return row
   }
 
   @Test func aFirstFillGoesLeftToRight() {
-    let sync = plan(WorkspaceStack(count: 4), [window(1, left: 900), window(2, left: 100)])
+    let sync = plan(WorkspaceRow(count: 4), [window(1, left: 900), window(2, left: 100)])
     #expect(sync?.eligible.first == [WindowID(2), WindowID(1)])
   }
 
   @Test func floatedAndUntileableWindowsLeave() {
     let sync = plan(
-      stack([[1, 2, 3]]), [window(1), window(2, kind: .dialog), window(3)],
+      row([[1, 2, 3]]), [window(1), window(2, kind: .dialog), window(3)],
       floated: [WindowID(3)])
     #expect(sync?.eligible.first == [WindowID(1)])
   }
 
   @Test func aWindowOnAnotherDisplayLeavesTheCurrentWorkspaceUnlessItIsSliding() {
     let windows = [window(1), window(2, left: 2000)]
-    #expect(plan(stack([[1, 2]]), windows)?.eligible.first == [WindowID(1)])
+    #expect(plan(row([[1, 2]]), windows)?.eligible.first == [WindowID(1)])
     #expect(
-      plan(stack([[1, 2]]), windows, sliding: [WindowID(2)])?.eligible.first
+      plan(row([[1, 2]]), windows, sliding: [WindowID(2)])?.eligible.first
         == [WindowID(1), WindowID(2)])
   }
 
   @Test func aParkedWorkspaceKeepsItsWindowsWhereverTheyAre() {
-    let sync = plan(stack([[1], [2]]), [window(1), window(2, left: 2000)])
+    let sync = plan(row([[1], [2]]), [window(1), window(2, left: 2000)])
     #expect(sync?.eligible[1] == [WindowID(2)])
   }
 
   @Test func aNewWindowOfAnAssignedAppArrivesOnItsWorkspace() {
-    let sync = plan(stack([[1]]), [window(1), window(9)])
+    let sync = plan(row([[1]]), [window(1), window(9)])
     #expect(sync?.eligible[2] == [WindowID(9)])
     #expect(sync?.arrivals == [WindowID(9)])
     #expect(sync?.eligible.first == [WindowID(1)])
   }
 
   @Test func aWindowSeenBeforeJoinsTheCurrentWorkspaceWhateverItsApp() {
-    let sync = plan(stack([[1]]), [window(1), window(9)], seen: [WindowID(9)])
+    let sync = plan(row([[1]]), [window(1), window(9)], seen: [WindowID(9)])
     #expect(sync?.eligible.first == [WindowID(1), WindowID(9)])
     #expect(sync?.arrivals == [])
   }
 
   @Test func withoutADisplayNothingIsDecided() {
-    #expect(plan(stack([[1]]), [window(1)], displays: []) == nil)
+    #expect(plan(row([[1]]), [window(1)], displays: []) == nil)
   }
 }

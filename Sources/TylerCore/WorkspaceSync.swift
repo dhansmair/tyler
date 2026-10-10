@@ -34,7 +34,7 @@ public struct WorkspaceSync: Equatable, Sendable {
   /// forgotten while they are still parked. `displays` lists the primary display first;
   /// `assignedWorkspace` gives the 1-based workspace the config assigns a window's app to.
   public static func plan(
-    for stack: WorkspaceStack, windows: [WindowInfo], displays: [DisplayInfo], marks: Marks,
+    for row: WorkspaceRow, windows: [WindowInfo], displays: [DisplayInfo], marks: Marks,
     assignedWorkspace: (WindowInfo) -> Int?
   ) -> WorkspaceSync? {
     guard let primary = displays.first else { return nil }
@@ -49,27 +49,27 @@ public struct WorkspaceSync: Equatable, Sendable {
     // workspace (`nil`).
     let assignedIndex = { (window: WindowInfo) -> Int? in
       guard !marks.seen.contains(window.id), let number = assignedWorkspace(window),
-        stack.indices.contains(number - 1), number - 1 != stack.currentIndex
+        row.indices.contains(number - 1), number - 1 != row.currentIndex
       else { return nil }
       return number - 1
     }
-    let assigned = stack.allWindows
+    let assigned = row.allWindows
     let newcomers = Dictionary(
       grouping: windows.filter { window in
         !assigned.contains(window.id) && isCandidate(window) && isOnPrimary(window)
       },
       by: assignedIndex)
     var sync = WorkspaceSync(eligible: [], arrivals: [])
-    for index in stack.indices {
-      let isCurrent = index == stack.currentIndex
-      var eligible = stack[index].windows.filter { windowID in
+    for index in row.indices {
+      let isCurrent = index == row.currentIndex
+      var eligible = row[index].windows.filter { windowID in
         guard let window = byID[windowID], isCandidate(window) else { return false }
         return !isCurrent || marks.sliding.contains(windowID) || isOnPrimary(window)
       }
       var joining = newcomers[index] ?? []
       if isCurrent {
         joining += newcomers[nil] ?? []
-        if stack[index].count == 0 {
+        if row[index].count == 0 {
           // First fill: left to right, then top to bottom, so the layout matches the screen.
           joining.sort { ($0.frame.minX, $0.frame.minY) < ($1.frame.minX, $1.frame.minY) }
         }

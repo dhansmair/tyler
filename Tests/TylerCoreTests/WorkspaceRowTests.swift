@@ -3,26 +3,26 @@ import Testing
 
 @testable import TylerCore
 
-@Suite("WorkspaceStack")
-struct WorkspaceStackTests {
-  private func makeStack(_ assignments: [Int: [UInt32]], count: Int = 4) -> WorkspaceStack {
-    var stack = WorkspaceStack(count: count)
+@Suite("WorkspaceRow")
+struct WorkspaceRowTests {
+  private func makeRow(_ assignments: [Int: [UInt32]], count: Int = 4) -> WorkspaceRow {
+    var row = WorkspaceRow(count: count)
     for (index, windows) in assignments {
-      stack[index].sync(eligible: windows.map(WindowID.init))
+      row[index].sync(eligible: windows.map(WindowID.init))
     }
-    return stack
+    return row
   }
 
   @Test func startsOnTheFirstOfFourEmptyWorkspaces() {
-    let stack = WorkspaceStack()
-    #expect(stack.count == 4)
-    #expect(stack.currentIndex == 0)
-    #expect(stack.allWindows.isEmpty)
+    let row = WorkspaceRow()
+    #expect(row.count == 4)
+    #expect(row.currentIndex == 0)
+    #expect(row.allWindows.isEmpty)
   }
 
   @Test func alwaysHasAtLeastOneWorkspace() {
-    #expect(WorkspaceStack(count: 0).count == 1)
-    #expect(WorkspaceStack(count: -3).count == 1)
+    #expect(WorkspaceRow(count: 0).count == 1)
+    #expect(WorkspaceRow(count: -3).count == 1)
   }
 
   @Test(arguments: [
@@ -30,129 +30,129 @@ struct WorkspaceStackTests {
     (1, .number(1), 0), (1, .number(4), 3),
   ])
   func resolvesTargetsAndWraps(current: Int, target: WorkspaceTarget, expected: Int) {
-    var stack = WorkspaceStack()
-    stack.select(current)
-    #expect(stack.index(of: target) == expected)
+    var row = WorkspaceRow()
+    row.select(current)
+    #expect(row.index(of: target) == expected)
   }
 
   @Test func growingAddsEmptyWorkspacesAndKeepsTheRest() {
-    var stack = makeStack([0: [1], 3: [2]])
-    stack.select(3)
-    stack.setCount(6)
-    #expect(stack.count == 6)
-    #expect(stack.currentIndex == 3)
-    #expect(stack[3].windows == [WindowID(2)])
-    #expect(stack[5].windows.isEmpty)
+    var row = makeRow([0: [1], 3: [2]])
+    row.select(3)
+    row.setCount(6)
+    #expect(row.count == 6)
+    #expect(row.currentIndex == 3)
+    #expect(row[3].windows == [WindowID(2)])
+    #expect(row[5].windows.isEmpty)
   }
 
   @Test func shrinkingMergesRemovedWorkspacesIntoTheLastInOrder() {
-    var stack = makeStack([1: [1, 2], 2: [3], 3: [4, 5]])
-    stack[1].setFocus(WindowID(1))
-    stack.setCount(2)
-    #expect(stack.count == 2)
-    #expect(stack.currentIndex == 0)
+    var row = makeRow([1: [1, 2], 2: [3], 3: [4, 5]])
+    row[1].setFocus(WindowID(1))
+    row.setCount(2)
+    #expect(row.count == 2)
+    #expect(row.currentIndex == 0)
     #expect(
-      stack[1].windows == [1, 2, 3, 4, 5].map(WindowID.init),
+      row[1].windows == [1, 2, 3, 4, 5].map(WindowID.init),
       "appended after the last's own windows, whatever has focus there")
-    #expect(stack[1].focused == WindowID(1))
+    #expect(row[1].focused == WindowID(1))
   }
 
   @Test func shrinkingAwayTheCurrentWorkspaceMakesTheLastOneCurrent() {
-    var stack = makeStack([2: [1], 3: [2]])
-    stack.select(3)
-    stack.setCount(2)
-    #expect(stack.currentIndex == 1)
-    #expect(stack.current.windows == [WindowID(1), WindowID(2)])
+    var row = makeRow([2: [1], 3: [2]])
+    row.select(3)
+    row.setCount(2)
+    #expect(row.currentIndex == 1)
+    #expect(row.current.windows == [WindowID(1), WindowID(2)])
   }
 
   @Test func neverShrinksBelowOneWorkspace() {
-    var stack = makeStack([1: [1]])
-    stack.setCount(0)
-    #expect(stack.count == 1)
-    #expect(stack[0].windows == [WindowID(1)])
+    var row = makeRow([1: [1]])
+    row.setCount(0)
+    #expect(row.count == 1)
+    #expect(row[0].windows == [WindowID(1)])
   }
 
   @Test func setGapsChangesEveryWorkspaceButKeepsLayoutAndRatio() {
-    var stack = WorkspaceStack()
-    stack[2].layout = .full
-    stack[2].adjustRatio(by: 0.1)
-    stack.setGaps(inner: 8, outer: 12)
-    for index in stack.indices {
-      #expect(stack[index].parameters.innerGap == 8)
-      #expect(stack[index].parameters.outerGap == 12)
+    var row = WorkspaceRow()
+    row[2].layout = .full
+    row[2].adjustRatio(by: 0.1)
+    row.setGaps(inner: 8, outer: 12)
+    for index in row.indices {
+      #expect(row[index].parameters.innerGap == 8)
+      #expect(row[index].parameters.outerGap == 12)
     }
-    #expect(stack[2].layout == .full)
-    #expect(stack[2].parameters.mainRatio == 0.6)
-    #expect(stack[0].parameters.mainRatio == 0.5)
+    #expect(row[2].layout == .full)
+    #expect(row[2].parameters.mainRatio == 0.6)
+    #expect(row[0].parameters.mainRatio == 0.5)
   }
 
   @Test(arguments: [0, 5, -1])
   func numbersOutOfRangeResolveToNothing(number: Int) {
-    #expect(WorkspaceStack().index(of: .number(number)) == nil)
+    #expect(WorkspaceRow().index(of: .number(number)) == nil)
   }
 
   @Test func selectRejectsAnIndexOutOfRange() {
-    var stack = WorkspaceStack()
-    let outOfRange = stack.select(4)
+    var row = WorkspaceRow()
+    let outOfRange = row.select(4)
     #expect(!outOfRange)
-    #expect(stack.currentIndex == 0)
-    let inRange = stack.select(2)
+    #expect(row.currentIndex == 0)
+    let inRange = row.select(2)
     #expect(inRange)
-    #expect(stack.currentIndex == 2)
+    #expect(row.currentIndex == 2)
   }
 
   @Test func findsTheWorkspaceOfAWindow() {
-    let stack = makeStack([0: [1, 2], 2: [3]])
-    #expect(stack.index(containing: WindowID(2)) == 0)
-    #expect(stack.index(containing: WindowID(3)) == 2)
-    #expect(stack.index(containing: WindowID(9)) == nil)
-    #expect(stack.allWindows == [WindowID(1), WindowID(2), WindowID(3)])
+    let row = makeRow([0: [1, 2], 2: [3]])
+    #expect(row.index(containing: WindowID(2)) == 0)
+    #expect(row.index(containing: WindowID(3)) == 2)
+    #expect(row.index(containing: WindowID(9)) == nil)
+    #expect(row.allWindows == [WindowID(1), WindowID(2), WindowID(3)])
   }
 
   @Test func currentIsTheSelectedWorkspace() {
-    var stack = makeStack([1: [5]])
-    stack.select(1)
-    #expect(stack.current.windows == [WindowID(5)])
-    stack.current.insert(WindowID(6))
-    #expect(stack[1].windows == [WindowID(5), WindowID(6)])
+    var row = makeRow([1: [5]])
+    row.select(1)
+    #expect(row.current.windows == [WindowID(5)])
+    row.current.insert(WindowID(6))
+    #expect(row[1].windows == [WindowID(5), WindowID(6)])
   }
 
   @Test func movingAWindowInsertsItAfterTheTargetsFocusAndFocusesIt() {
-    var stack = makeStack([0: [1, 2], 1: [3, 4]])
-    stack.setFocus(WindowID(3))
-    let moved = stack.move(WindowID(1), to: 1)
+    var row = makeRow([0: [1, 2], 1: [3, 4]])
+    row.setFocus(WindowID(3))
+    let moved = row.move(WindowID(1), to: 1)
     #expect(moved)
-    #expect(stack[0].windows == [WindowID(2)])
-    #expect(stack[1].windows == [WindowID(3), WindowID(1), WindowID(4)])
-    #expect(stack[1].focused == WindowID(1))
+    #expect(row[0].windows == [WindowID(2)])
+    #expect(row[1].windows == [WindowID(3), WindowID(1), WindowID(4)])
+    #expect(row[1].focused == WindowID(1))
   }
 
   @Test func movingToAnEmptyWorkspaceWorks() {
-    var stack = makeStack([0: [1]])
-    let moved = stack.move(WindowID(1), to: 3)
+    var row = makeRow([0: [1]])
+    let moved = row.move(WindowID(1), to: 3)
     #expect(moved)
-    #expect(stack[3].windows == [WindowID(1)])
-    #expect(stack[0].count == 0)
+    #expect(row[3].windows == [WindowID(1)])
+    #expect(row[0].count == 0)
   }
 
   @Test func movingIsRefusedForUnknownWindowsTheSameWorkspaceAndBadIndices() {
-    var stack = makeStack([0: [1]])
-    let unknown = stack.move(WindowID(9), to: 1)
+    var row = makeRow([0: [1]])
+    let unknown = row.move(WindowID(9), to: 1)
     #expect(!unknown)
-    let sameWorkspace = stack.move(WindowID(1), to: 0)
+    let sameWorkspace = row.move(WindowID(1), to: 0)
     #expect(!sameWorkspace)
-    let badIndex = stack.move(WindowID(1), to: 4)
+    let badIndex = row.move(WindowID(1), to: 4)
     #expect(!badIndex)
-    #expect(stack[0].windows == [WindowID(1)])
+    #expect(row[0].windows == [WindowID(1)])
   }
 
   @Test func setFocusActsOnTheWindowsOwnWorkspace() {
-    var stack = makeStack([0: [1], 2: [7, 8]])
-    let known = stack.setFocus(WindowID(8))
+    var row = makeRow([0: [1], 2: [7, 8]])
+    let known = row.setFocus(WindowID(8))
     #expect(known)
-    #expect(stack[2].focused == WindowID(8))
-    #expect(stack[0].focused == nil)
-    let unknown = stack.setFocus(WindowID(99))
+    #expect(row[2].focused == WindowID(8))
+    #expect(row[0].focused == nil)
+    let unknown = row.setFocus(WindowID(99))
     #expect(!unknown)
   }
 }

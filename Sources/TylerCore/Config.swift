@@ -35,10 +35,10 @@ public struct Config: Equatable, Sendable {
   public struct Workspaces: Equatable, Sendable {
     static let countRange = 1...10
 
-    /// How many workspaces a display's stack has.
+    /// How many workspaces a display's row has.
     public var count: Int
 
-    public init(count: Int = WorkspaceStack.defaultCount) {
+    public init(count: Int = WorkspaceRow.defaultCount) {
       self.count = count
     }
   }

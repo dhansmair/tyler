@@ -126,12 +126,25 @@ extension WindowManager {
 
   private func focusCurrentWorkspace() {
     guard let target = workspaces.current.focused ?? workspaces.current.windows.first else {
+      unfocusParkedWindow()
       return
     }
     do {
       try requestFocus(target)
     } catch {
       Self.log.error("cannot focus window \(target.rawValue): \(error.description)")
+    }
+  }
+
+  /// An empty workspace has nothing to focus, but the window that had focus is parked now and
+  /// would still get every key typed. A floated window stays on screen, so it keeps focus.
+  private func unfocusParkedWindow() {
+    guard let focusedID = registry.focusedID, workspaces.index(containing: focusedID) != nil
+    else { return }
+    do {
+      try backend.unfocus()
+    } catch {
+      Self.log.error("cannot take focus from window \(focusedID.rawValue): \(error.description)")
     }
   }
 

@@ -96,6 +96,25 @@ struct WorkspaceSwitchTests {
     #expect(harness.isParked(2))
     #expect(harness.workspaces() == [1: 1, 2: 1], "parked windows keep their workspace")
     #expect(harness.backend.focusCalls.isEmpty)
+    #expect(harness.backend.unfocusCount == 0, "no window had focus")
+  }
+
+  @Test func switchingToAnEmptyWorkspaceTakesFocusFromTheParkedWindow() async {
+    let harness = WorkspaceHarness([1, 2])
+    await harness.osFocus(2)
+    _ = harness.manager.switchWorkspace(.down)
+    #expect(harness.isParked(2))
+    #expect(harness.backend.focusCalls.isEmpty)
+    #expect(harness.backend.unfocusCount == 1)
+  }
+
+  @Test func failingToTakeFocusStillSwitches() async {
+    let harness = WorkspaceHarness([1])
+    await harness.osFocus(1)
+    harness.backend.isUnfocusFailing = true
+    #expect(harness.manager.switchWorkspace(.down) == .message("workspace 2"))
+    #expect(harness.isParked(1))
+    #expect(harness.backend.unfocusCount == 1)
   }
 
   @Test func newWindowsOpenOnTheCurrentWorkspace() async {
@@ -239,5 +258,6 @@ struct WorkspaceSwitchTests {
     _ = harness.manager.switchWorkspace(.down)
     #expect(harness.workspaces() == [1: 1])
     #expect(harness.frame(of: 2) == floatedFrame)
+    #expect(harness.backend.unfocusCount == 0, "a floated window stays on screen, with focus")
   }
 }

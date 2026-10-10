@@ -291,7 +291,7 @@ tyler workspace up    # the previous workspace (before the first comes the last)
 tyler workspace 3     # workspace 3 (workspaces are numbered 1 to 4)
 ```
 
-Switches to another workspace. The current windows slide out and are parked, the target workspace's windows slide in, and focus goes to the window that last had focus there. Switching to an empty workspace doesn't change the focus.
+Switches to another workspace. The current windows slide out and are parked, the target workspace's windows slide in, and focus goes to the window that last had focus there. On an empty workspace no window has focus (tylerd itself becomes the active app), so what you type doesn't reach a parked window. A floated window stays on screen and keeps the focus.
 
 Focusing a parked window yourself, for example with Cmd-Tab, also switches to its workspace.
 
@@ -303,7 +303,7 @@ tyler move-to-workspace 2
 tyler move-to-workspace up --follow
 ```
 
-Sends the focused window to another workspace, where it becomes the focused window. Without `--follow` the window slides away towards its new workspace (to the right for `down`, to the left for `up`), the remaining windows re-tile, and you stay on the current workspace. With `--follow` you switch to the target workspace along with the window.
+Sends the focused window to another workspace, where it becomes the focused window. Without `--follow` the window slides away towards its new workspace (to the right for `down`, to the left for `up`), the remaining windows re-tile, and you stay on the current workspace. With `--follow` you switch to the target workspace along with the window. Sending away the last window of the current workspace leaves no window focused, as on any empty workspace.
 
 Only tiled windows can be moved.
 

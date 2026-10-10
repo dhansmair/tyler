@@ -96,9 +96,7 @@ enum AXBridge {
   /// (an accessory app like tylerd can't rely on `NSRunningApplication.activate`, which the SDK
   /// documents as cooperative and not guaranteed), then the window is raised and marked main.
   static func raise(window: AXUIElement, in processID: pid_t) -> AXError {
-    let application = applicationElement(processID: processID)
-    var status = AXUIElementSetAttributeValue(
-      application, kAXFrontmostAttribute as CFString, kCFBooleanTrue)
+    var status = makeFrontmost(processID: processID)
     if status != .success { return status }
     status = AXUIElementPerformAction(window, kAXRaiseAction as CFString)
     if status != .success { return status }
@@ -106,6 +104,12 @@ enum AXBridge {
     _ = AXUIElementSetAttributeValue(window, kAXMainAttribute as CFString, kCFBooleanTrue)
     _ = AXUIElementSetAttributeValue(window, kAXFocusedAttribute as CFString, kCFBooleanTrue)
     return .success
+  }
+
+  /// Makes an app frontmost, the same way for tylerd itself as for any other app.
+  static func makeFrontmost(processID: pid_t) -> AXError {
+    AXUIElementSetAttributeValue(
+      applicationElement(processID: processID), kAXFrontmostAttribute as CFString, kCFBooleanTrue)
   }
 
   // MARK: - Private

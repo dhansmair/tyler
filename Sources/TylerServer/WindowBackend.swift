@@ -45,6 +45,9 @@ public protocol WindowBackend: AnyObject {
   func setPosition(_ origin: CGPoint, of windowID: WindowID) throws(BackendError)
   /// Raises a window and gives it keyboard focus, bringing its app forward.
   func focus(_ windowID: WindowID) throws(BackendError)
+  /// Takes keyboard focus away from every window, so that what is typed next reaches none of
+  /// them.
+  func unfocus() throws(BackendError)
 }
 
 /// The connected displays, in Accessibility coordinates.

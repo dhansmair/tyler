@@ -79,6 +79,16 @@ public final class AXBackend: WindowBackend {
     try check(AXBridge.raise(window: element, in: processID), for: windowID, action: "focus")
   }
 
+  /// Makes tylerd frontmost. It has no windows, so keys go nowhere until the user or a command
+  /// focuses a window again.
+  public func unfocus() throws(BackendError) {
+    let status = AXBridge.makeFrontmost(processID: ProcessInfo.processInfo.processIdentifier)
+    guard status == .success else {
+      throw .refused("cannot take focus away: AX error \(status.rawValue)")
+    }
+    setFocus(nil)
+  }
+
   private func check(
     _ status: AXError,
     for windowID: WindowID,

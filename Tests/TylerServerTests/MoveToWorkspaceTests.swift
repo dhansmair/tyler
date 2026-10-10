@@ -42,13 +42,14 @@ struct MoveToWorkspaceTests {
     #expect(harness.backend.focusCalls == [WindowID(1)])
   }
 
-  @Test func movingTheLastWindowLeavesAnEmptyWorkspaceWithoutFocusCalls() async {
+  @Test func movingTheLastWindowTakesFocusFromItOnceParked() async {
     let harness = WorkspaceHarness([1])
     await harness.osFocus(1)
     _ = harness.manager.moveToWorkspace(.up, follow: false)
     #expect(harness.workspaces() == [1: 4])
     #expect(harness.isParked(1))
     #expect(harness.backend.focusCalls.isEmpty)
+    #expect(harness.backend.unfocusCount == 1)
   }
 
   @Test func movingToTheSameWorkspaceDoesNothing() async {

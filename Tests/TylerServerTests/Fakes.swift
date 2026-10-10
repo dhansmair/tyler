@@ -48,6 +48,10 @@ final class FakeBackend: WindowBackend {
   var failingMoves: Set<WindowID> = []
   /// Windows whose `focus` throws.
   var failingFocus: Set<WindowID> = []
+  /// How many times `unfocus` was called, including calls that failed.
+  private(set) var unfocusCount = 0
+  /// Whether `unfocus` throws.
+  var isUnfocusFailing = false
 
   init(windows: [WindowInfo] = []) {
     self.windows = windows
@@ -83,6 +87,11 @@ final class FakeBackend: WindowBackend {
     if failingFocus.contains(windowID) { throw .refused("fake refusal") }
   }
 
+  func unfocus() throws(BackendError) {
+    unfocusCount += 1
+    if isUnfocusFailing { throw .refused("fake refusal") }
+  }
+
   func send(_ event: WindowEvent) { continuation.yield(event) }
   func finish() { continuation.finish() }
 
@@ -90,6 +99,7 @@ final class FakeBackend: WindowBackend {
     moves = []
     nudges = []
     focusCalls = []
+    unfocusCount = 0
   }
 }
 

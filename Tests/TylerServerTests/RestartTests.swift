@@ -13,12 +13,15 @@ struct RestartTests {
     let manager: WindowManager
     let backend: FakeBackend
 
-    init(after first: ManagerHarness, saved: SavedState?, closing closed: [UInt32] = []) {
+    init(
+      after first: ManagerHarness, saved: SavedState?, closing closed: [UInt32] = [],
+      config: Config = Config()
+    ) {
       let windows = first.backend.windows.filter { !closed.contains($0.id.rawValue) }
       backend = FakeBackend(windows: windows)
       manager = WindowManager(
         backend: backend, displays: FakeDisplays(), gate: FakeGate(isTrusted: true),
-        restoring: saved)
+        animator: .snap, config: config, restoring: saved)
       manager.startIfPermitted()
     }
 
@@ -72,6 +75,18 @@ struct RestartTests {
     successor.manager.stop()
     let frames = successor.backend.windows.sorted { $0.id < $1.id }.map(\.frame)
     #expect(frames == (0..<3).map(ManagerHarness.originalFrame(index:)))
+  }
+
+  @Test func theNextTylerdTilesTheHandedOverWorkspacesWithItsGaps() async {
+    let harness = await arranged()
+    let gaps = Config(gaps: Config.Gaps(inner: 8, outer: 12))
+    let successor = Successor(after: harness, saved: harness.manager.handOver(), config: gaps)
+    #expect(successor.manager.switchWorkspace(.next) == .message("workspace 2"))
+    await settle()
+    let expected = TallLayout().frames(
+      count: 1, in: FakeDisplays.main.visibleFrame,
+      parameters: LayoutParameters(outerGap: 12, innerGap: 8))
+    #expect(successor.backend.frame(of: 3) == expected.first)
   }
 
   @Test func floatedWindowsAndTilingOffSurvive() async {

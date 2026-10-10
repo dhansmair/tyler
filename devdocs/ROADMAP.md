@@ -177,7 +177,7 @@ A niri-like layout: a workspace is one long horizontal strip of windows that scr
 
 Decisions (2026-10-11, with the user): the list stays the only model, and columns are packed from per-window sizes: `full` (1 × 1) and `half` (½ × 1) each make a column, two consecutive `quarter`s (½ × ½) share one. New windows are `half`. Focusing a window out of view scrolls just enough to show its whole column. Off-view windows park at the right edge like inactive workspaces' windows. On a strip workspace the swipe scrolls only the strip, never switches workspaces.
 
-- [ ] Tests pinning what the `Layout` protocol rework touches
+- [x] Tests pinning what the `Layout` protocol rework touches: gaps reach workspaces not on screen, workspaces a reload adds, and handed-over workspaces; a reload keeps row heights
 - [ ] `Layout` protocol rework: `LayoutInput` (sizes, focus, view anchor, parameters) and `LayoutGaps` (REFACTORING 11.3)
 - [ ] TylerCore: `WindowSize`, per-window sizes in `Workspace`, `StripLayout` (packing, fit, end clamp)
 - [ ] TylerCore: the view anchor, `offView(in:)`, off-view windows kept by `WorkspaceSync`, sizes and anchor in `SavedState`

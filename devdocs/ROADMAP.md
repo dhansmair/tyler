@@ -142,6 +142,26 @@ The user asked for a menu bar item after a window seemed lost behind another one
 - [x] TylerPlatform: `StatusBarIndicator` (`NSStatusItem`); tylerd creates it before the manager
 - [ ] Checked for real: the item appears, follows switches, layout changes, windows opening and closing, and `tiling off`; the menu works; light and dark menu bar
 
+### Mouse resizing (added 2026-10-10, between milestones)
+Resizing a tiled window with the mouse moves the layout with it: in `tall`, the divider between the master and the stack, and the dividers between windows in the stack. Plan: `plans/mouse-resize.md`.
+
+Decisions (2026-10-10, with the user): neighbours follow **live** during the drag; stack heights are kept **per slot** (a new slot gets weight 1); a window moved by its title bar **snaps back** on release, and so does any edge that isn't a divider. Designed with the long-term items below in mind: frames and resize logic are written once for "columns of rows" (`tall` is columns `[1, n-1]`, `grid` will reuse it), row weights are kept per column, the release carries the pointer location (for swap by drag), and pointer input is its own source (`PointerInput`, which M7's scroll and swipes will also use).
+
+- [ ] TylerCore: `rowWeights`, `ColumnLayout`, `TallLayout` on top of it, `SavedState` keeps the weights
+- [ ] TylerCore: `Layout.parameters(afterResizing:)`, `Workspace.resize`
+- [ ] TylerServer: `PointerInput`, `WindowManager+Mouse.swift`
+- [ ] TylerPlatform: `PointerMonitor` (global `leftMouseUp` monitor, button state)
+- [ ] Checked against real windows: master divider, stack window's left edge, stack divider, immovable edges snap back, title-bar move snaps back, `restart` keeps the heights; live following keeps up
+
+### Later: swap by drag and drop
+Drag a tiled window by its title bar onto another tiled window and the two swap slots (replaces the snap-back). Works in every layout with slots, `grid` included.
+
+### Later: grid layout
+A new layout: the same as `tall` for up to 3 windows; 4 puts one window in each corner; 5 splits the right half in three; 6 splits both halves in three (2 columns × 3 rows). Beyond that more columns appear (for example 3 × 3 at 9; the exact rule is still open). Mouse resizing and swap by drag work here too, through the shared column model.
+
+### Later: strip layout
+A niri-like layout: a workspace is one long horizontal strip of windows that scrolls left and right. Each window has its own size: full width and height, half width, half width and half height, and so on. Needs a rework of the `Layout` protocol (see Open items).
+
 ### M5. Multi-display
 Per-display stacks keyed by display UUID, reconfiguration handling, `display` and `move-to-display`.
 
@@ -161,8 +181,8 @@ Decisions (2026-10-10): the file is `~/.config/tyler/tyler.toml` (`TYLER_CONFIG`
 - [ ] Float rules, workspace count
 - [ ] LaunchAgent (`service install|uninstall`)
 
-### M7. (Later) Trackpad scroll
-Scroll with a modifier through a CGEventTap feeding the Animator.
+### M7. (Later) Trackpad scroll and swipes
+Scroll with a modifier through a CGEventTap feeding the Animator. Trackpad swipe gestures switch workspaces, for example a three-finger swipe left/right for the previous/next workspace (macOS uses three- and four-finger swipes for Spaces by default, so this needs checking). Both arrive through `PointerInput`.
 
 ## CLI target (v1)
 ```
@@ -179,6 +199,7 @@ Implemented so far: `ping`, `list [--json]`, `focus`, `swap`, `layout`, `ratio`,
 
 ## Open items
 - **Code signing.** No signing identity exists on this machine. macOS ties the Accessibility permission to the binary's code identity. Decided in M2: during development, grant Accessibility to the terminal app that runs `tylerd` (no keychain changes). Revisit in M6, when `tylerd` runs as a LaunchAgent and needs its own stable identity (a self-signed `tyler-dev` certificate, then `make install SIGN_ID=tyler-dev`).
+- **The `Layout` protocol only gets a window count** (and the area and parameters). The strip layout needs per-window sizes and a scroll offset, with frames outside the visible area (and an answer for how that meets parking). Rework the protocol when the strip layout starts, not before.
 - Native fullscreen windows are left alone. Terminals that snap to character cells won't fill their frame exactly.
 - AX calls cost one round trip per window, so a slide with many windows may be coarse (see M4). Each slide frame runs on the main thread, and an unresponsive app can block a frame for up to the 1 s AX timeout.
 - **Crash recovery (from M4).** A crash or `kill -9` skips `stop()`, so parked windows stay at the right edge. A state file of original frames, read at the next start, would fix it; out of scope for M4.

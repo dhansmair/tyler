@@ -23,16 +23,17 @@ extension WindowManager {
 
   /// Records where a window is before tylerd moves it for the first time.
   func rememberOriginalFrame(of windowID: WindowID) {
-    guard originalFrames[windowID] == nil, let frame = registry.window(withID: windowID)?.frame
+    guard bookkeeping.originalFrames[windowID] == nil,
+      let frame = registry.window(withID: windowID)?.frame
     else { return }
-    originalFrames[windowID] = frame
+    bookkeeping.originalFrames[windowID] = frame
   }
 
   /// Focuses a window, noting that the focus event it causes is tylerd's own doing.
   func requestFocus(_ windowID: WindowID) throws(BackendError) {
     let expectsEvent = registry.focusedID != windowID
     try backend.focus(windowID)
-    if expectsEvent { pendingFocus.insert(windowID) }
+    if expectsEvent { bookkeeping.pendingFocus.insert(windowID) }
   }
 
   func outcome(failures: Int) -> Response {

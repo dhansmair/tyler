@@ -32,7 +32,7 @@ Sizes: XS < 20 lines, S < 60, M < 200, L larger.
   - Fix: move the harness into `Tests/TylerServerTests/Harness.swift` as `ManagerHarness`, with a `settle(until:)` that waits for a condition in place of a counted yield loop.
   - M, low risk, about −150 lines. Do this early: it makes every later refactoring cheaper to test.
   - Done: `Tests/TylerServerTests/Harness.swift` holds `ManagerHarness`, `settle()`, `spread`, `FakeBackend.frame(of:)`/`userMoves` and `WindowManager.listed`/`slots`. `settle()` still yields a fixed number of times, but now in one place; a condition-based wait would make every caller name its condition, which wasn't worth it yet.
-- [ ] **5. A `WindowBookkeeping` struct.** `floated`, `seen`, `originalFrames` and `pendingFocus` are reset by hand in four places: when a window is destroyed (`apply`), `tearDown`, `restorePending` and `handOver` (`+Restart`). A new field that one of them forgets leaves stale state.
+- [x] **5. A `WindowBookkeeping` struct.** `floated`, `seen`, `originalFrames` and `pendingFocus` are reset by hand in four places: when a window is destroyed (`apply`), `tearDown`, `restorePending` and `handOver` (`+Restart`). A new field that one of them forgets leaves stale state.
   - Fix: one struct with `forget(_:)`, `init(saved:known:)` and `saved`.
   - M, low risk.
 
@@ -128,3 +128,4 @@ So nobody tries them again without a profile that says otherwise:
 
 - 2026-10-11: backlog created.
 - 2026-10-11: item 4 done (shared server test harness).
+- 2026-10-11: item 5 done (`WindowBookkeeping`), after regression tests for reused window ids.

@@ -27,7 +27,7 @@ extension WindowManager {
       DisplayGeometry.display(containing: window.frame, in: connected)?.id == primary.id
     }
     let isCandidate = { (window: WindowInfo) in
-      window.isTileable && !self.floated.contains(window.id)
+      window.isTileable && !self.bookkeeping.floated.contains(window.id)
     }
     let sliding = animatingWindows
     let assigned = workspaces.allWindows
@@ -59,7 +59,7 @@ extension WindowManager {
       eligible += joining.map(\.id)
       if workspaces[index].sync(eligible: eligible) && isCurrent { outcome.changedCurrent = true }
     }
-    seen.formUnion(workspaces.allWindows)
+    bookkeeping.seen.formUnion(workspaces.allWindows)
     if let focusedID = registry.focusedID, arrivals.contains(focusedID) {
       outcome.focusedArrival = workspaces.index(containing: focusedID)
     }
@@ -70,7 +70,7 @@ extension WindowManager {
   /// The workspace the config assigns a window to, or `nil` for the current one: windows that
   /// have been tiled before, and apps without an assignment, go to the current workspace.
   private func assignedIndex(of window: WindowInfo) -> Int? {
-    guard !seen.contains(window.id),
+    guard !bookkeeping.seen.contains(window.id),
       let number = config.assignedWorkspace(bundleID: window.bundleID, appName: window.appName),
       workspaces.indices.contains(number - 1), number - 1 != workspaces.currentIndex
     else { return nil }

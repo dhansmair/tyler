@@ -65,7 +65,7 @@ extension WindowManager {
   /// The OS focused `windowID` (a click, cmd-tab, an app raising itself). If it lives on a
   /// parked workspace and the focus wasn't tylerd's own doing, that workspace comes into view.
   func focusChanged(to windowID: WindowID) {
-    let isEcho = pendingFocus.remove(windowID) != nil
+    let isEcho = bookkeeping.pendingFocus.remove(windowID) != nil
     workspaces.setFocus(windowID)
     guard !isEcho, state == .running, tilingEnabled,
       let index = workspaces.index(containing: windowID), index != workspaces.currentIndex
@@ -265,7 +265,7 @@ extension WindowManager {
   func restoreOriginalFrames(of windowIDs: [WindowID]) -> Int {
     var failures = 0
     for windowID in windowIDs {
-      guard let frame = originalFrames[windowID] else { continue }
+      guard let frame = bookkeeping.originalFrames[windowID] else { continue }
       do {
         try backend.setFrame(frame, of: windowID)
       } catch {

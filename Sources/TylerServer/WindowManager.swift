@@ -38,16 +38,8 @@ public final class WindowManager {
   var workspaces: WorkspaceStack {
     didSet { updateIndicator() }
   }
-  var floated: Set<WindowID> = []
-  /// Windows that have been on a workspace. App assignments only place windows not in here, so a
-  /// window you moved, floated or minimized doesn't jump back to its app's workspace.
-  var seen: Set<WindowID> = []
-  /// Where each window was just before tylerd first moved it. `stop()` puts every window back
-  /// there, and `tiling off` does it for parked ones.
-  var originalFrames: [WindowID: CGRect] = [:]
-  /// Windows tylerd asked to focus whose focus event hasn't arrived yet. That event is tylerd's own
-  /// echo, so it must not be mistaken for the user switching to a parked window.
-  var pendingFocus: Set<WindowID> = []
+  /// Floated windows, original frames and the like (see `WindowBookkeeping`).
+  var bookkeeping = WindowBookkeeping()
   /// The slide in progress, if any.
   var animation: RunningAnimation?
   /// The trackpad pan in progress, if any (`WindowManager+Pan`).
@@ -186,7 +178,7 @@ public final class WindowManager {
       let workspace = workspaces.index(containing: window.id)
       copy.workspace = workspace.map { $0 + 1 }
       copy.slot = workspace.flatMap { workspaces[$0].slot(of: window.id) }
-      copy.isFloated = floated.contains(window.id)
+      copy.isFloated = bookkeeping.floated.contains(window.id)
       return copy
     }
     return .windows(tagged)
@@ -267,13 +259,13 @@ public final class WindowManager {
     guard let windowID = registry.focusedID, let window = registry.window(withID: windowID) else {
       return .error("no focused window")
     }
-    if floated.contains(windowID) {
-      floated.remove(windowID)
+    if bookkeeping.floated.contains(windowID) {
+      bookkeeping.floated.remove(windowID)
     } else {
       guard window.isTileable else {
         return .error("this window is never tiled, so it can't be floated")
       }
-      floated.insert(windowID)
+      bookkeeping.floated.insert(windowID)
     }
     reconcile()
     return .ok
@@ -289,10 +281,7 @@ public final class WindowManager {
     case .destroyed(let windowID):
       if drag?.windowID == windowID { endDrag() }
       forgetPreviewTarget(windowID)
-      floated.remove(windowID)
-      seen.remove(windowID)
-      originalFrames[windowID] = nil
-      pendingFocus.remove(windowID)
+      bookkeeping.forget(windowID)
     default:
       break
     }

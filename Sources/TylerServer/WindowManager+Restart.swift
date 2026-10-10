@@ -15,8 +15,8 @@ extension WindowManager {
     }
     finishAnimation()
     let saved = SavedState(
-      stack: workspaces, floated: floated, tilingEnabled: tilingEnabled,
-      originalFrames: originalFrames, seen: seen)
+      stack: workspaces, floated: bookkeeping.floated, tilingEnabled: tilingEnabled,
+      originalFrames: bookkeeping.originalFrames, seen: bookkeeping.seen)
     tearDown()
     return saved
   }
@@ -33,10 +33,7 @@ extension WindowManager {
     registry = WindowRegistry()
     workspaces = WorkspaceStack(count: config.workspaces.count)
     applyGaps()
-    floated = []
-    seen = []
-    originalFrames = [:]
-    pendingFocus = []
+    bookkeeping = WindowBookkeeping()
     pendingRestore = nil
     state = .waitingForPermission
   }
@@ -51,12 +48,7 @@ extension WindowManager {
     let known = Set(registry.windows.map(\.id))
     workspaces = saved.stack(count: config.workspaces.count) { known.contains($0) }
     applyGaps()
-    floated = Set(saved.floated).intersection(known)
-    seen = saved.seenWindows.intersection(known)
-    originalFrames = [:]
-    for entry in saved.originalFrames where known.contains(entry.id) {
-      originalFrames[entry.id] = entry.frame
-    }
+    bookkeeping = WindowBookkeeping(restoring: saved, known: known)
     tilingEnabled = saved.tilingEnabled
     return true
   }

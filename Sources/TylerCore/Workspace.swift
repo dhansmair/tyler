@@ -171,7 +171,7 @@ public struct Workspace: Equatable, Sendable {
   @discardableResult
   public mutating func resize(_ windowID: WindowID, to frame: CGRect, in area: CGRect) -> Bool {
     guard let index = windows.firstIndex(of: windowID),
-      let updated = layout.layout.parameters(
+      let updated = layout.implementation.parameters(
         afterResizing: index, to: frame, count: windows.count, in: area, parameters: parameters),
       updated != parameters
     else { return false }
@@ -190,7 +190,8 @@ public struct Workspace: Equatable, Sendable {
 
   /// One placement per window, in list order.
   public func placements(in area: CGRect) -> [Placement] {
-    let frames = layout.layout.frames(count: windows.count, in: area, parameters: parameters)
+    let frames = layout.implementation.frames(
+      count: windows.count, in: area, parameters: parameters)
     return zip(windows, frames).map { Placement(id: $0, frame: $1) }
   }
 

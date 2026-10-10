@@ -64,7 +64,7 @@ struct ColumnLayout: Equatable {
 
   /// The least share of two neighbours' combined width or height that a divider drag leaves
   /// to either of them, like `LayoutParameters.ratioRange` does for the master.
-  static let minimumShare = 0.1
+  static let minimumShare = LayoutParameters.ratioRange.lowerBound
 
   /// What dragging the edges of a window changes. Column widths are in points and not stored
   /// here: each layout keeps its own column parameters (tall: the master ratio).

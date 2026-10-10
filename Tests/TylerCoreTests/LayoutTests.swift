@@ -264,7 +264,7 @@ struct LayoutKindTests {
 
   @Test(arguments: LayoutKind.allCases)
   func everyKindProducesALayout(kind: LayoutKind) {
-    let frames = kind.layout.frames(
+    let frames = kind.implementation.frames(
       count: 2, in: CGRect(x: 0, y: 0, width: 100, height: 100), parameters: LayoutParameters())
     #expect(frames.count == 2)
   }

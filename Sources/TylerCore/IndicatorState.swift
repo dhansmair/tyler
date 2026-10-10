@@ -65,11 +65,7 @@ public struct IndicatorState: Equatable, Sendable {
           ? TitlePart("[\(number)]")
           : TitlePart(number, isFaint: workspaces[index].windowCount == 0))
     }
-    switch layout {
-    case .tall: parts.append(TitlePart("  ▥"))
-    case .full: parts.append(TitlePart("  ▢"))
-    case nil: break
-    }
+    if let layout { parts.append(TitlePart("  \(layout.symbol)")) }
     return parts
   }
 

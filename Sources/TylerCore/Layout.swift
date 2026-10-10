@@ -82,7 +82,8 @@ public struct LayoutParameters: Equatable, Sendable {
 }
 
 /// Turns a window count and an area into one frame per window, in list order. Adding a layout
-/// means one new conforming type and one new `LayoutKind` case.
+/// means one new conforming type and one new `LayoutKind` case; the compiler then asks for the
+/// case's `implementation` and `symbol`.
 public protocol Layout: Sendable {
   func frames(count: Int, in area: CGRect, parameters: LayoutParameters) -> [CGRect]
 
@@ -122,10 +123,19 @@ public enum LayoutKind: String, Codable, CaseIterable, Sendable {
     return all[(index + 1) % all.count]
   }
 
-  public var layout: any Layout {
+  /// The type that works out this layout's frames.
+  public var implementation: any Layout {
     switch self {
     case .tall: TallLayout()
     case .full: FullLayout()
+    }
+  }
+
+  /// How the menu bar item shows this layout.
+  public var symbol: String {
+    switch self {
+    case .tall: "▥"
+    case .full: "▢"
     }
   }
 }

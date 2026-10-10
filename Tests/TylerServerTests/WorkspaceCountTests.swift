@@ -56,7 +56,7 @@ struct WorkspaceCountTests {
     await harness.settle()
 
     file.write(.config(config(count: 1)))
-    harness.manager.reload()
+    _ = harness.manager.reload()
     #expect(harness.workspaces() == [1: 1, 2: 1])
     #expect(!harness.isParked(1))
     #expect(!harness.isParked(2))

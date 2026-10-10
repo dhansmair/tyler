@@ -5,15 +5,6 @@ import Testing
 
 @Suite("Workspace")
 struct WorkspaceTests {
-  private func ids(_ values: UInt32...) -> [WindowID] { values.map(WindowID.init) }
-
-  private func makeWorkspace(_ values: UInt32..., focus: UInt32? = nil) -> Workspace {
-    var workspace = Workspace()
-    for value in values { workspace.insert(WindowID(value)) }
-    if let focus { workspace.setFocus(WindowID(focus)) }
-    return workspace
-  }
-
   // MARK: - Insert and remove
 
   @Test func insertWithoutFocusAppends() {

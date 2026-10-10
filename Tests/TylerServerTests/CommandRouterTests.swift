@@ -30,7 +30,7 @@ struct CommandRouterTests {
     expected.tiling = .on
     #expect(await router.handle(.status) == .status(expected))
 
-    manager.setTiling(.off)
+    _ = manager.setTiling(.off)
     expected.tiling = .off
     #expect(await router.handle(.status) == .status(expected))
   }

@@ -195,7 +195,7 @@ struct DragSwapTests {
   @Test func turningTilingOffDuringTheDragPutsThePreviewBackFirst() async {
     await pickUpLowerWindow()
     await dragPointer(to: overMain)
-    manager.setTiling(.off)
+    _ = manager.setTiling(.off)
 
     #expect(frame(of: 1) == main)
   }

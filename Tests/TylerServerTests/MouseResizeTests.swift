@@ -223,7 +223,7 @@ struct MouseResizeTests {
   }
 
   @Test func withTilingOffNothingFollowsTheMouse() async {
-    manager.setTiling(.off)
+    _ = manager.setTiling(.off)
     backend.clearRecordedCalls()
 
     pointer.isPrimaryButtonDown = true

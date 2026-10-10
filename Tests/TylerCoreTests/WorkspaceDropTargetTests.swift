@@ -6,15 +6,6 @@ import Testing
 /// The parts of `Workspace` that swap by drag and drop builds on.
 @Suite("Workspace: drop targets")
 struct WorkspaceDropTargetTests {
-  private func ids(_ values: UInt32...) -> [WindowID] { values.map(WindowID.init) }
-
-  private func makeWorkspace(_ values: UInt32..., focus: UInt32? = nil) -> Workspace {
-    var workspace = Workspace()
-    for value in values { workspace.insert(WindowID(value)) }
-    if let focus { workspace.setFocus(WindowID(focus)) }
-    return workspace
-  }
-
   // MARK: - Swapping by ID
 
   @Test func swappingTwoWindowsByIDKeepsFocusAndTheOthersInOrder() {

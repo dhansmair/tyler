@@ -54,10 +54,10 @@ struct ReloadTests {
   @Test func reloadKeepsTheRatio() {
     let file = FakeConfigFile()
     let (manager, backend) = makeManager(file: file)
-    manager.adjustRatio(by: 0.1)
+    _ = manager.adjustRatio(by: 0.1)
     file.write(.config(gaps))
 
-    manager.reload()
+    _ = manager.reload()
     #expect(frames(backend) == expectedFrames(gaps, mainRatio: 0.6))
   }
 
@@ -86,13 +86,13 @@ struct ReloadTests {
   @Test func withTilingOffReloadMovesNothingUntilTilingIsBackOn() {
     let file = FakeConfigFile()
     let (manager, backend) = makeManager(file: file)
-    manager.setTiling(.off)
+    _ = manager.setTiling(.off)
     file.write(.config(gaps))
 
     #expect(manager.reload() == .message("reloaded \(FakeConfigFile.path)"))
     #expect(backend.moves.isEmpty)
 
-    manager.setTiling(.on)
+    _ = manager.setTiling(.on)
     #expect(frames(backend) == expectedFrames(gaps))
   }
 

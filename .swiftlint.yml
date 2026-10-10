@@ -1,6 +1,12 @@
 excluded:
   - .build
 
+# swift-format moves a trailing closure's parameters onto the next line when the call before the
+# brace fills the line (`run(...) {` then `_, origin in ...`), and this rule rejects exactly that,
+# so code the formatter just produced fails the lint. The formatter has the final say on layout.
+disabled_rules:
+  - closure_parameter_position
+
 # swift-format (the formatter) requires trailing commas in multi-line collections, while
 # SwiftLint forbids them by default. Make SwiftLint agree with the formatter.
 trailing_comma:

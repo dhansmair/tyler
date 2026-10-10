@@ -131,6 +131,45 @@ struct TilingTests {
     #expect(harness.manager.slots == [1: 1, 2: 2])
   }
 
+  @Test func aWindowDraggedToAnotherDisplayLeavesTheListAndTheRestRetile() async {
+    let displays = FakeDisplays(displays: [FakeDisplays.main, FakeDisplays.secondary])
+    let harness = ManagerHarness(windows: spread([1, 2]), displays: displays)
+    harness.backend.send(
+      .updated(makeWindow(id: 2, frame: CGRect(x: 2000, y: 100, width: 300, height: 200))))
+    await settle()
+    #expect(harness.manager.slots == [1: 1])
+    #expect(harness.frame(of: 1) == harness.area, "window 1 fills the display alone")
+  }
+
+  @Test func aWindowDraggedInFromAnotherDisplayJoinsTheList() async {
+    let displays = FakeDisplays(displays: [FakeDisplays.main, FakeDisplays.secondary])
+    let elsewhere = makeWindow(id: 3, frame: CGRect(x: 2000, y: 100, width: 300, height: 200))
+    let harness = ManagerHarness(windows: spread([1, 2]) + [elsewhere], displays: displays)
+    #expect(harness.manager.slots == [1: 1, 2: 2])
+    harness.backend.send(
+      .updated(makeWindow(id: 3, frame: CGRect(x: 600, y: 100, width: 300, height: 200))))
+    await settle()
+    #expect(harness.manager.slots[3] != nil)
+  }
+
+  @Test func anUpdateForAWindowNotSeenYetTilesIt() async {
+    // The Accessibility API can report a window's first move before its creation.
+    let harness = ManagerHarness([1])
+    harness.backend.send(
+      .updated(makeWindow(id: 9, frame: CGRect(x: 600, y: 100, width: 300, height: 200))))
+    await settle()
+    #expect(harness.manager.slots == [1: 1, 9: 2])
+  }
+
+  @Test func aWindowTurningIntoADialogLeavesTheList() async {
+    let harness = ManagerHarness([1, 2])
+    var dialog = harness.backend.windows[1]
+    dialog.kind = .dialog
+    harness.backend.send(.updated(dialog))
+    await settle()
+    #expect(harness.manager.slots == [1: 1])
+  }
+
   @Test func aTitleChangeCausesNoRetile() async {
     let harness = ManagerHarness([1, 2])
     let current = harness.backend.windows[0]

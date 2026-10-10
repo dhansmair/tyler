@@ -21,6 +21,14 @@ A set of windows with its own tiling list, layout and master ratio. A display ha
 
 The windows of the workspaces that aren't on screen are *parked*: moved just past the right edge of the display, at their own height, with only a one-point column visible. They are still open, and Cmd-Tab still lists them. Focusing a parked window, for example with Cmd-Tab, switches to its workspace.
 
+### Swiping between workspaces
+
+Swipe sideways with three fingers on the trackpad to move between workspaces. The windows follow your fingers. Swipe left to bring in the next workspace from the right, and swipe right to bring in the previous one; from the first workspace, a swipe right wraps around to the last. When you lift your fingers, the next workspace comes into view if you swiped more than halfway, or with a quick flick even before that; otherwise the windows slide back. Changing your mind halfway works too: swipe back past where you started and the other neighbour comes in instead. The workspace that comes into view gets the focus, as with `tyler workspace`.
+
+A swipe does nothing while tiling is off, while you drag a window, or when there is only one workspace. Vertical swipes and swipes with another number of fingers are left to macOS. Any command in the middle of a swipe puts the windows back first.
+
+macOS has its own sideways swipes, and tylerd doesn't stop them: in System Settings > Trackpad > More Gestures, set *Swipe between full-screen applications* to four fingers (or off), and make sure *Swipe between pages* doesn't use three fingers. Otherwise a swipe may switch Spaces or go back a page as well. To use four fingers for tyler instead, set `gestures.fingers = 4` and give macOS's swipe three fingers or turn it off. `gestures.swipe = false` turns swiping off.
+
 ### Window
 
 tyler sorts every window into one of three kinds:
@@ -114,6 +122,10 @@ follow-interval = 50   # milliseconds between steps of the layout following a dr
 [workspaces]
 count = 6    # workspaces per display
 
+[gestures]
+fingers = 3            # fingers for swiping between workspaces
+swipe-distance = 0.3   # trackpad widths to swipe a whole workspace across
+
 [assign]
 Firefox = 3                  # new Firefox windows open on workspace 3
 "com.mitchellh.ghostty" = 2  # an app can also be named by its bundle ID
@@ -125,11 +137,14 @@ Firefox = 3                  # new Firefox windows open on workspace 3
 | `gaps.outer` | Space between the tiled windows and the edge of the display's visible area | `0` |
 | `mouse.follow-interval` | Least time between two steps of the layout following a window you resize with the mouse, in milliseconds (0 to 1000) | `50` |
 | `workspaces.count` | How many workspaces each display has (1 to 10) | `4` |
+| `gestures.swipe` | Whether a sideways trackpad swipe moves between workspaces (`true` or `false`) | `true` |
+| `gestures.fingers` | How many fingers that swipe takes (3 or 4) | `3` |
+| `gestures.swipe-distance` | How far your fingers travel to swipe a whole workspace across, in trackpad widths (0.1 to 1.0): lower is more sensitive | `0.3` |
 | `assign.<app>` | The workspace that new windows of `<app>` open on | none |
 
 Gaps are whole numbers in points, the unit macOS uses for window positions (on a Retina display, one point is two pixels).
 
-Changing `workspaces.count` and running `tyler reload` takes effect at once. New workspaces are added at the bottom of the stack. When you remove workspaces, their windows move to the new last workspace, after the windows already there; if the workspace on screen was removed, the new last one comes into view.
+Changing `workspaces.count` and running `tyler reload` takes effect at once. New workspaces are added at the end of the row. When you remove workspaces, their windows move to the new last workspace, after the windows already there; if the workspace on screen was removed, the new last one comes into view.
 
 In `[assign]`, each line sends an app's new windows to a workspace. Name the app as the `APP` column of `tyler list` shows it, or by its bundle ID (`osascript -e 'id of app "Firefox"'` prints it); both ignore case. Quote names with spaces or dots: `"Google Chrome" = 2`. The workspace number must be within `workspaces.count`.
 

@@ -8,7 +8,7 @@ Today `tyler workspace prev|next` is the only way to change workspaces, so it ne
 
 Workspaces sit side by side in a horizontal row, so a horizontal swipe maps straight onto the model. Direction follows the content: fingers moving left pull the next workspace in from the right, the same as `workspace next`. `prev` and `next` wrap, like `WorkspaceStack`. With one workspace, a swipe does nothing.
 
-Status: in progress (started 2026-10-10).
+Status: done (2026-10-11); tuned after the user's first try (see M7 in the roadmap). A few checks against real windows are still open there.
 
 ## Increments (one commit each)
 

@@ -53,7 +53,13 @@ In `tall`, drag the edge between two tiled windows and the layout follows while 
 - the edge between the master and the stack sets the master ratio (the same one `tyler ratio` changes)
 - the edge between two stacked windows sets their heights; the other stacked windows keep theirs
 
-When you let go of the mouse button, every window snaps into its slot. Edges that aren't between two windows (the outer edges, the master's top and bottom) snap back, and so does a window you moved by its title bar. A divider stops before either neighbour drops below a tenth of their shared space. Stack heights belong to the slot, not the window: a window that moves into a slot takes its height. Each workspace keeps its own heights, and `tyler restart` keeps them. `full` doesn't follow the mouse; windows snap back.
+When you let go of the mouse button, every window snaps into its slot. Edges that aren't between two windows (the outer edges, the master's top and bottom) snap back, and so does a window you moved by its title bar without dropping it on another one (see below). A divider stops before either neighbour drops below a tenth of their shared space. Stack heights belong to the slot, not the window: a window that moves into a slot takes its height. Each workspace keeps its own heights, and `tyler restart` keeps them. `full` doesn't follow the mouse; windows snap back.
+
+### Swapping windows by dragging
+
+Drag a tiled window by its title bar over another tiled window, and that window moves into the slot of the one you're dragging, to show what will happen. Let go there, and the two windows swap slots: the dragged window takes the other's place in the tiling list, and each takes the size of its new slot. Move on to a third window and the first goes back; move back over the dragged window's own slot, onto a gap or outside the tiled area, and nothing will swap.
+
+What counts is the window under the mouse pointer, not the one the dragged window covers most. Letting go anywhere without a window under the pointer puts the dragged window back in its slot. The window you drag keeps focus. In `full` every window fills the same area, so dragging never swaps there. Floated windows take no part: you can't drag one into the layout, and a tiled window can't swap with one. A command or a workspace switch in the middle of a drag ends it, and the windows go back to their slots.
 
 *Gaps* are the space between neighbouring windows (inner) and between the windows and the edge of the area (outer). They are the same on every workspace and come from the config file.
 

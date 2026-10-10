@@ -158,7 +158,7 @@ Decisions (2026-10-10, with the user): neighbours follow **live** during the dra
 - [x] `restart` keeps the stack heights (2026-10-10: 708/390 before and after)
 - [x] Checked against real windows (2026-10-10, by the user): resizing is smooth and the layout follows; live following keeps up with the 30 ms interval
 
-### Swap by drag and drop (planned 2026-10-10)
+### Swap by drag and drop (added 2026-10-10, between milestones)
 Drag a tiled window by its title bar onto another tiled window and the two swap slots (replaces the snap-back). Works in every layout with slots, `grid` included. Plan: `plans/swap-by-drag.md`.
 
 Decisions (2026-10-10, with the user): a **live preview**: while the dragged window is over another tiled window's slot, that window moves into the dragged window's slot, and moves back when the pointer leaves; the release completes the swap. **The pointer decides** the target (the slot under it); a pointer in a gap, in the dragged window's own slot or outside the tiled area snaps back as before, so `full` never swaps. **Floated windows** take no part. The pointer's position during the drag comes from a new `PointerEvent.primaryButtonDragged` (a global `leftMouseDragged` monitor), not from the dragged window's moved notifications, so the preview doesn't depend on how often an app reports moves.
@@ -244,5 +244,6 @@ Implemented so far: `ping`, `list [--json]`, `focus`, `swap`, `layout`, `ratio`,
 - 2026-10-10: Renamed the project from mwm to tyler: binaries `tyler`/`tylerd`, modules `Tyler*`, socket `~/.tyler/tyler.sock`, `TYLER_SOCKET`, Logger subsystem `tyler`. The repository directory is still `mwm`.
 - 2026-10-10: Renamed "virtual monitor" to "workspace" everywhere (see Decisions) and wrote the Concepts section of `docs/manual.md`.
 - 2026-10-10: Mouse resizing built and unit tested (`plans/mouse-resize.md`); not yet run against real windows.
+- 2026-10-10: Swap by drag and drop built, unit tested and checked against real windows by the user (`plans/swap-by-drag.md`). Resizing the dragged window to the target slot during the preview was tried and dropped (see Swap by drag and drop).
 - 2026-10-10: First verification pass against real windows by Claude (macOS 26.7, 8 windows on 3 workspaces): workspace switching, `move-to-workspace`, layouts, ratio, swap, focus, reload, stale warning and restart behave; switching to an empty workspace leaves focus on a parked window.
 - 2026-10-08: M3 built and unit tested. The code that moves and focuses windows has not been run against real windows (see M3 for the checklist). Not recoverable on exit yet: quitting `tylerd` leaves windows where tiling put them (M4 adds restore).

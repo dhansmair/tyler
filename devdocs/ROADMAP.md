@@ -93,7 +93,7 @@ Built and unit tested:
 - [x] `focus next|master` moves focus across apps (Ghostty to Code and back); the `focused` flag follows. `prev` and the actual keyboard/raise were not checked separately
 - [x] `swap next|master`, `layout tall|full`, `ratio +0.05|-0.05`, `float toggle` (twice), `retile`, `tiling off` then `on` all behave. Not run: `swap prev`, `layout next`. Note: toggling float back on re-inserts the window after the focused one, so the old master lost its slot
 - [ ] Closing, minimizing and fullscreening a tiled window re-tiles the rest; dragging a window does not snap back until `tyler retile`
-- [ ] The menu bar and the Dock side are respected
+- [x] The menu bar and the Dock side are respected (2026-10-10, macOS 26.7, Dock on the left: the visible frame starts at x = 55, y = 39, and tiles sit at 67,51 with `outer = 12`)
 - [ ] A terminal (character-cell snapping) and a window with a minimum size (such as System Settings) end up where expected, and `list` shows their real frames
 - [x] `list` shows sensible `SLOT` values and `floated`
 - [ ] The size-position-size sequence in `AXBridge.setFrame` is actually needed (it is a common AX technique that I did not verify here)
@@ -122,15 +122,16 @@ Built and unit tested:
 
 **Not verified against real windows** (a user `tylerd` was running, and a second instance would fight it over the same windows). Checklist, with `tyler tiling off` or SIGTERM as the escape hatch:
 - [ ] Windows return to their original frames after SIGTERM, including parked ones
-- [ ] `workspace down|up|<n>` slides windows and ends with the right set visible; `workspace down` on the last wraps to the first
+- [x] `workspace down|up|<n>` slides windows and ends with the right set visible; `workspace down` on the last wraps to the first (2026-10-10, by Claude with `tyler list`: 1→2→3→4→1 and `up` from 1 to 4; how the slide looks was not judged)
 - [ ] New windows open on the current workspace; `list` shows the `WORKSPACE` column
-- [ ] Parked windows are really hidden (about 1 point visible) and macOS doesn't pull them back on screen
+- [x] Parked windows are really hidden (about 1 point visible) and macOS doesn't pull them back on screen (2026-10-10: parked at x = 1799 on the 1800-point display, still there after many switches)
 - [x] Slide smoothness with 3+ windows: smooth with the horizontal slide (demo script, not yet tylerd itself)
 - [ ] tylerd's horizontal slide on real windows, both directions, and parked windows staying put as a 1-point column at the right edge
 - [x] macOS lets the outgoing windows slide up past the menu bar. If it clamps them, they bunch at the top for 200 ms; then slide them down instead, or park first
   - **Measured 2026-10-10 (macOS 26.7): it clamps, in every direction, for every app tried (Ghostty, Firefox, Edge, Code).** A position write with y above the menu bar lands at y = 39; one below the screen lands at maxY − 32; horizontally, a window must overlap the display's *visible frame* (Dock excluded) by at least 1 point: x = visibleMaxX − 1 and x = visibleMinX − width + 1 are accepted, and anything further snaps back to 40 points inside (with the Dock on the left, visibleMinX = 55, so the left limit leaves a 56-point strip beside the Dock). Parking at (maxX − 1, maxY − 1) therefore really ends at (maxX − 1, maxY − 32): a 1 × 32 point sliver. So a window can travel at most (y − 39) up or (maxY − 32 − y) down, and incoming windows placed a display height away start already on screen. That is why the slide is smooth for some windows (bottom row, moving down) and jumps for others. AX calls themselves are fast (1–3 ms per write), so speed is not the cause. The fix can't be AX-only for a vertical slide.
   - **Fixed 2026-10-10: the slide is horizontal.** The user rejected a snapshot overlay (it needs Screen Recording permission) and chose a horizontal slide after a throwaway demo on real windows (Ghostty ×2, Firefox out, Edge and Code in, 250 ms, about 65 frames per second, judged smooth). All windows move by the same page offset, and each window's x is limited to `Parking.allowedX` so macOS never pulls it back. Windows park at the right edge at their own height, so windows coming in from the right start where they wait. With the Dock on the left, windows leaving to the left stop as a 56-point strip beside the Dock before they park.
-- [ ] `move-to-workspace` with and without `--follow`; cmd-tab to a parked window switches workspace
+- [x] `move-to-workspace` with and without `--follow` (2026-10-10: without, the rest re-tile and the window parks; with, it lands after the focused window and the view follows)
+- [ ] cmd-tab to a parked window switches workspace
 - [ ] `tiling off` with parked windows leaves a usable screen
 - [ ] Closing a window whose app has another window on a parked workspace: macOS may focus that parked window, and tylerd then switches to its workspace (likely unwanted; see open items)
 
@@ -140,7 +141,8 @@ The user asked for a menu bar item after a window seemed lost behind another one
 - [x] TylerCore: `IndicatorState` (title parts, layout, menu items), unit tested
 - [x] TylerServer: `Indicator` protocol; `WindowManager` pushes the state from `didSet` on `workspaces`, `tilingEnabled` and `state`, and only when it changed (`WindowManager+Indicator.swift`)
 - [x] TylerPlatform: `StatusBarIndicator` (`NSStatusItem`); tylerd creates it before the manager
-- [ ] Checked for real: the item appears, follows switches, layout changes, windows opening and closing, and `tiling off`; the menu works; light and dark menu bar
+- [x] The item appears and its text follows workspace switches and `layout tall|full` (2026-10-10, `live-check menubar`)
+- [ ] Checked for real: windows opening and closing, `tiling off`, the menu, faint empty workspaces, light and dark menu bar
 
 ### Mouse resizing (added 2026-10-10, between milestones)
 Resizing a tiled window with the mouse moves the layout with it: in `tall`, the divider between the master and the stack, and the dividers between windows in the stack. Plan: `plans/mouse-resize.md`.
@@ -152,7 +154,8 @@ Decisions (2026-10-10, with the user): neighbours follow **live** during the dra
 - [x] TylerServer: `PointerInput`, `WindowManager+Mouse.swift` (the placing helpers moved to `WindowManager+Placement.swift` to keep `WindowManager.swift` under SwiftLint's 400 lines)
 - [x] TylerPlatform: `PointerMonitor` (global `leftMouseUp` monitor, button state)
 - [x] Throttled (2026-10-10, after the user saw live following lag, worst with Firefox): the first resize of a drag is followed at once, then at most once per interval, always to the newest frame; the release follows the last one at once. Before, every resize event moved every neighbour, and slow apps let the events pile up. If it still lags, the next lever is `AXBackend.setFrame` re-reading the whole window (title, role, …) after every move. The interval is `mouse.follow-interval` in the config (milliseconds, 0–1000, default 50, 0 follows every resize; decided with the user 2026-10-10), read at every step so `reload` applies it at once
-- [ ] Checked against real windows: master divider, stack window's left edge, stack divider, immovable edges snap back, title-bar move snaps back, `restart` keeps the heights; live following keeps up
+- [x] `restart` keeps the stack heights (2026-10-10: 708/390 before and after)
+- [ ] Checked against real windows: master divider, stack window's left edge, stack divider, immovable edges snap back, title-bar move snaps back; live following keeps up
 
 ### Later: swap by drag and drop
 Drag a tiled window by its title bar onto another tiled window and the two swap slots (replaces the snap-back). Works in every layout with slots, `grid` included.
@@ -174,11 +177,13 @@ Decisions (2026-10-10): the file is `~/.config/tyler/tyler.toml` (`TYLER_CONFIG`
 - [x] TylerCore: `TOML`, `Config` (`gaps`), `ConfigError`, `ConfigSource` (file reader, injectable for tests), `Paths.configPath`, `LayoutParameters.withGaps`, `Workspace.setGaps`, `WorkspaceStack.setGaps`, `Request.reload`
 - [x] TylerServer: `WindowManager` takes a `Config` and a `ConfigSource`; `reload` in `WindowManager+Config.swift`
 - [x] tylerd loads the config at startup; TylerClient: `reload`
-- [ ] Checked against real windows: gaps at startup, `reload` after editing the file, a broken file at startup and on reload
+- [x] Checked against real windows (2026-10-10, by Claude): gaps at startup (`outer = 12`, `inner = 8` measured in `list`), `reload` after editing the file (`inner = 30` gives a 30-point gap and keeps stack heights), a broken file on reload (exit 1, the error names the key, nothing moves)
+- [ ] A broken file at startup
 - [x] `tyler start|stop|restart|status` (decided 2026-10-10): `start` spawns the `tylerd` next to `tyler` (symlinks resolved) with `posix_spawn` in a new session, stdin from /dev/null, output in `~/.tyler/tyler.log` (socket path with `.log`; truncated on start), no inherited fds, and waits up to 10 s for `status` to answer. `stop` sends SIGTERM to the pid from `status` and waits up to 10 s. A detached child keeps the terminal as the process responsible for Accessibility, so rebuilds need no new grant; a LaunchAgent would need its own grant and a stable signature (see Code signing), so `service install` will move these commands onto launchd later. `status` reports pid, binary, config, tiling, uptime, and warns when the binary's modification time is newer than at launch. The server answers JSON it can't decode with `unknown request: tylerd is probably older than tyler (run tyler restart)`. A server from before `status` existed can't be stopped by `tyler stop` (it doesn't report its pid); `tyler` says to use `pkill tylerd` once.
 - [x] **Restart keeps the windows in place** (decided with the user 2026-10-10; plan: `plans/restart-keeps-windows.md`): `tyler restart` sends SIGUSR1, tylerd writes its workspaces to `~/.tyler/tyler.state.json` (`SavedState`) and exits without moving a window, and the next tylerd carries on from the file and deletes it once windows are tracked. Windows are matched by `CGWindowID`. `stop`/SIGTERM still restore. `ServerStatus.keepsWindowsOnRestart` (nil for older servers) makes restart fall back to SIGTERM against a tylerd that would die on SIGUSR1.
 - [x] Checked for real (2026-10-10, 7 windows on workspaces 1–3, workspace 3 in `full`): a restart keeps every window on its workspace and in its slot, and moves nothing (`tyler list` and the menu bar identical before and after; the state file is removed). The first restart from the older tylerd fell back to SIGTERM and said so. Each workspace's layout after the restart is covered by unit tests only.
-- [ ] Checked for real: `tyler start` from a terminal gets Accessibility, survives closing the terminal; `restart` after `make build`; `status` stale warning; `stop` restores windows
+- [x] Checked for real (2026-10-10, by Claude): `status` warns once the binary is newer; `restart` then starts a new tylerd that has Accessibility, and `list` and the menu bar are byte-identical before and after
+- [ ] Checked for real: `tyler start` survives closing the terminal; `stop` restores windows
 - [ ] Float rules, workspace count
 - [ ] LaunchAgent (`service install|uninstall`)
 
@@ -206,7 +211,7 @@ Implemented so far: `ping`, `list [--json]`, `focus`, `swap`, `layout`, `ratio`,
 - **Crash recovery (from M4).** A crash or `kill -9` skips `stop()`, so parked windows stay at the right edge. A state file of original frames, read at the next start, would fix it; out of scope for M4.
 - **Parking with several displays (M5).** Windows park at the primary display's right edge. With a display to its right, a parked window shows on that display, and macOS may not accept the position. M5 needs to pick an edge that touches no other display (the left edge works too, but with the Dock there it leaves a strip visible), and the slide direction may have to follow it.
 - **Focus after closing a window (from M4).** When a window closes, macOS may focus another window of the same app, even one parked on another workspace, and tylerd then switches there. Unverified; if it happens, ignore focus events for parked windows right after a window of the same app closes.
-- **Focus after switching to an empty workspace** stays on the previous workspace's (now parked) window, so typing goes to a hidden window. Unverified.
+- **Focus after switching to an empty workspace** stays on the previous workspace's (now parked) window, so typing goes to a hidden window. **Confirmed 2026-10-10:** after `workspace 4` (empty), `list` still flags the parked window of the previous workspace as focused. Needs a fix.
 - **Echo tracking can go stale.** If an app accepts a focus call but never sends a focus event, the window stays on tylerd's "own focus" list, and the next real focus of it while parked doesn't switch workspaces (once). Unverified whether this happens.
 
 - **Testing pitfalls found in M1.** (1) Tests that block in `read()` must not run on Swift concurrency's cooperative pool: a task-group version of the concurrent-clients test failed ~80% of runs, plain threads pass. The cause is suspected, not verified. (2) A test that writes more than the socket buffer (~8 KB) on the same thread that later reads will deadlock. (3) macOS has no `timeout`; use `perl -e 'alarm N; exec @ARGV' cmd` to bound a run.
@@ -226,4 +231,5 @@ Implemented so far: `ping`, `list [--json]`, `focus`, `swap`, `layout`, `ratio`,
 - 2026-10-10: Renamed the project from mwm to tyler: binaries `tyler`/`tylerd`, modules `Tyler*`, socket `~/.tyler/tyler.sock`, `TYLER_SOCKET`, Logger subsystem `tyler`. The repository directory is still `mwm`.
 - 2026-10-10: Renamed "virtual monitor" to "workspace" everywhere (see Decisions) and wrote the Concepts section of `docs/manual.md`.
 - 2026-10-10: Mouse resizing built and unit tested (`plans/mouse-resize.md`); not yet run against real windows.
+- 2026-10-10: First verification pass against real windows by Claude (macOS 26.7, 8 windows on 3 workspaces): workspace switching, `move-to-workspace`, layouts, ratio, swap, focus, reload, stale warning and restart behave; switching to an empty workspace leaves focus on a parked window.
 - 2026-10-08: M3 built and unit tested. The code that moves and focuses windows has not been run against real windows (see M3 for the checklist). Not recoverable on exit yet: quitting `tylerd` leaves windows where tiling put them (M4 adds restore).

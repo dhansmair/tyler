@@ -11,6 +11,9 @@ public struct ScrollPlan: Equatable, Sendable {
   public private(set) var finals: [Placement] = []
   /// Where every window taking part goes back to if the scroll is called off.
   public private(set) var returns: [Placement] = []
+  /// Each track's window size: the size it has where it is in view, so a window keeps one size
+  /// for the whole scroll (half columns differ by a point between the two halves of the view).
+  private var sizes: [CGSize] = []
 
   /// `before` and `after` are the workspace's `arrangement` before and after its view moved.
   /// Each window slides from one frame to the other, kept where macOS accepts a position, so a
@@ -34,9 +37,11 @@ public struct ScrollPlan: Equatable, Sendable {
           Placement(
             id: placement.id, frame: CGRect(origin: track.position(at: 0), size: target.size)))
       }
+      sizes.append(isShown ? target.size : previous.size)
       finals.append(
         isShown
-          ? placement : Placement(id: placement.id, frame: Parking.frame(for: target, on: display)))
+          ? placement
+          : Placement(id: placement.id, frame: Parking.frame(for: previous, on: display)))
       returns.append(
         Placement(
           id: placement.id, frame: wasShown ? previous : Parking.frame(for: previous, on: display)))
@@ -51,11 +56,10 @@ public struct ScrollPlan: Equatable, Sendable {
   /// Where the windows taking part are `progress` of the way along, following the fingers
   /// exactly, at the size they have in view.
   public func placements(at progress: Double) -> [Placement] {
-    zip(tracks, finals).map { track, final in
+    zip(tracks, sizes).map { track, size in
       Placement(
         id: track.id,
-        frame: CGRect(
-          origin: track.position(at: progress, easing: Easing.linear), size: final.frame.size))
+        frame: CGRect(origin: track.position(at: progress, easing: Easing.linear), size: size))
     }
   }
 }

@@ -253,6 +253,33 @@ public struct Workspace: Equatable, Sendable {
 
   // MARK: - The strip's view
 
+  /// One place the strip's view can rest, where a swipe can settle.
+  public struct StripView: Equatable, Sendable {
+    /// How far the strip is scrolled from its left end, in points.
+    public let offset: CGFloat
+    /// The first window of the leftmost visible column, for `scroll(toFirstVisible:)`.
+    public let firstVisible: WindowID
+    /// Every window's frame with this view, as `arrangement(in:gaps:)` gives them.
+    public let arrangement: [Placement]
+  }
+
+  /// Every view the strip can rest at, left to right; none in other layouts.
+  public func stripViews(in area: CGRect, gaps: LayoutGaps) -> [StripView] {
+    guard layout == .strip else { return [] }
+    let columns = StripColumns(sizes: windows.map(size(of:)))
+    let geometry = StripGeometry(area: area, gaps: gaps)
+    return columns.starts.map { start in
+      let first = columns.columns[start][0]
+      var input = layoutInput
+      input.firstVisible = first
+      let frames = StripLayout().frames(for: input, in: area, gaps: gaps)
+      return StripView(
+        offset: CGFloat(geometry.left(at: columns.offset(of: start)) - geometry.left(at: 0)),
+        firstVisible: windows[first],
+        arrangement: zip(windows, frames).map { Placement(id: $0, frame: $1) })
+    }
+  }
+
   /// Scrolls the strip so that `windowID`'s column is the leftmost in view, or as near as the
   /// strip's end allows. If the focused window scrolled out of view, focus moves to the nearest
   /// window in view. Returns whether focus moved.

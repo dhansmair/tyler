@@ -63,7 +63,7 @@ Read this first when picking the work up again. The roadmap's M5 section has the
 
 **Second session (2026-10-11):** increment 14 (reconfiguration) is built and unit tested (`DisplayChangeTests`); the user's live check (unplug and replug, lid, sleep and wake) is open. Increment 15 has its test (`IndicatorTests`); its `live-check menubar` is open. The snapshot didn't need `displayNumber` and `displayCount`: nothing shows them yet, so they wait until something does.
 
-Increment 16 is built and unit tested (parking edge in `d08e1a5`, no crossing after it); its side-by-side live check with the user is open.
+Increment 16 is built and checked side by side by the user: no window crosses, but half sliding and half jumping looked wrong, so switches on a display with a neighbour are instant now (that change still needs a look). The strip of parked windows behind a left Dock is accepted for now.
 
 **Next:** 16's live check, 17 (swipes under the pointer), 19–21 (the display commands), 22 (wrap-up).
 
@@ -116,7 +116,7 @@ Increment 16 is built and unit tested (parking edge in `d08e1a5`, no crossing af
       - Slides keep the page direction. A window whose path would cross onto a neighbour jumps straight to its end instead (it vanishes into its parking spot, or appears in its slot). The others still slide.
       - On the Dell with the laptop to its left: `next` makes the outgoing windows vanish while the incoming ones slide in from the right; `prev` slides the outgoing ones out to the right while the incoming ones appear in place.
       - Swipes follow the same rule.
-      - If the half-animated switch looks wrong in the live check, the whole switch goes instant instead.
+      - If the half-animated switch looks wrong in the live check, the whole switch goes instant instead. **It did (2026-10-11): on a display with a neighbour, switches are now instant.**
     - The middle display of three has no free edge. The fallback (right edge or the bottom strip) is decided by spike S3.
 11. **New commands.** `prev`/`next` wrap; `<n>` is a display number.
     - `tyler display <n|next|prev>` focuses that display's current workspace. The pointer doesn't move.
@@ -270,7 +270,7 @@ Increments 19–21 depend only on 13, so they could come straight after it if yo
 - **No per-display menu bar content** through the public API, and the map relies on separate Spaces staying off.
 - **The middle display of three** has no free edge. Until S3 decides, parked windows sit on the neighbour.
 - **The Dock on the left:** parking on the left edge of the laptop leaves a 56-point strip of the window showing beside the Dock (measured in M4).
-- **Side by side, half of each switch is instant**: the windows heading through the side with a neighbour jump instead of sliding. A later experiment animates snapshots in tylerd's own windows, clipped to the display (needs Screen Recording permission); if it works, it replaces the jumps.
+- **Side by side, switches are instant** on a display with a neighbour (half sliding and half jumping looked worse). A later experiment animates snapshots in tylerd's own windows, clipped to the display (needs Screen Recording permission); if it works, it replaces the jumps.
 - **A window that crosses onto a shorter display is cut to its height** by macOS (measured in S3). This matters when windows are moved between displays, so tylerd always sets the full frame.
 - **Display numbers follow position.** A different external display in the same position gets the same number and the same workspaces.
 - **Version 2 state files** can't be read by older builds.

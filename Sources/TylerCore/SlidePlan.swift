@@ -18,19 +18,20 @@ public struct SlidePlan: Equatable, Sendable {
   /// `direction` and park; the target's windows (`entering`, in their slots) come in from the
   /// other side. The leaving frames must be read before any of these windows moves.
   ///
-  /// Nothing slides onto another display: a window whose way out or in passes through a side
-  /// with a neighbour jumps instead. A leaving one goes straight to its parking spot, an
-  /// entering one straight into its slot (both in `start`, with no track).
+  /// Nothing slides onto another display, so on a display with a neighbour beside it every
+  /// window jumps instead: a leaving one straight to its parking spot, an entering one straight
+  /// into its slot (both in `start`, with no track). Only the windows whose way passes the
+  /// neighbour would have to jump, but the user found half a switch sliding and half jumping
+  /// worse than an instant one.
   public init(
     to target: Int, direction: ScrollDirection, leaving: [Placement], entering: [Placement],
     on display: DisplayInfo
   ) {
     self.target = target
-    let leavesByJumping = display.neighbours.contains(direction.outgoingSide)
-    let entersByJumping = display.neighbours.contains(direction.opposite.outgoingSide)
+    let jumps = !display.neighbours.isEmpty
     for window in leaving {
       let parked = Placement(id: window.id, frame: Parking.frame(for: window.frame, on: display))
-      if leavesByJumping {
+      if jumps {
         start.append(parked)
       } else {
         tracks.append(.leaving(window.id, from: window.frame, direction: direction, on: display))
@@ -39,7 +40,7 @@ public struct SlidePlan: Equatable, Sendable {
       returns.append(window)
     }
     for slot in entering {
-      if entersByJumping {
+      if jumps {
         start.append(slot)
       } else {
         let track = Track.entering(slot.id, into: slot.frame, direction: direction, on: display)

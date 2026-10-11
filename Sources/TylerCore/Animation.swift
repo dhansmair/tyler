@@ -100,12 +100,6 @@ public enum ScrollDirection: Equatable, Sendable {
     self == .next ? -width : width
   }
 
-  /// The side of the display that outgoing windows leave through; incoming ones come in
-  /// through the other.
-  public var outgoingSide: DisplaySide {
-    self == .next ? .left : .right
-  }
-
   /// The other way.
   public var opposite: ScrollDirection {
     self == .next ? .prev : .next

@@ -174,17 +174,16 @@ extension WindowManager {
   /// Slides one visible window off the display towards the workspace it was sent to, and parks
   /// it. The view stays put, so the window moves the opposite way to windows leaving when the
   /// view scrolls: one sent to the `next` workspace goes right, where that workspace comes from.
-  /// If another display lies on that side, it jumps to its parking spot instead (see
+  /// On a display with a neighbour beside it, it jumps to its parking spot instead (see
   /// `SlidePlan`).
   private func slideOut(_ windowID: WindowID, towards direction: ScrollDirection) -> Int {
     guard let display = focusedDisplay,
       let frame = registry.window(withID: windowID)?.frame
     else { return 0 }
     let parked = [Placement(id: windowID, frame: Parking.frame(for: frame, on: display))]
-    let isBlocked = display.neighbours.contains(direction.opposite.outgoingSide)
     return animate(
       start: [],
-      tracks: isBlocked
+      tracks: !display.neighbours.isEmpty
         ? [] : [.leaving(windowID, from: frame, direction: direction.opposite, on: display)],
       finals: parked)
   }

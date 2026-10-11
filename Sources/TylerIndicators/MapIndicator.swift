@@ -2,15 +2,12 @@ import AppKit
 import TylerCore
 
 /// The map menu bar item: a thumbnail of every workspace with its windows, as `WorkspaceMap`
-/// lays them out, the current workspace outlined and the focused window bordered in the accent
-/// colour. A left click on a thumbnail switches to that workspace; a right click or ctrl-click
-/// opens the same menu as the text item. Hidden while tiling isn't running, and when
-/// `[indicator] map = false`.
+/// lays them out: the current workspace's windows bright and the others' dimmed, the focused
+/// window bordered in the accent colour. A left click on a thumbnail switches to that workspace;
+/// a right click or ctrl-click opens the same menu as the text item. Hidden while tiling isn't
+/// running, and when `[indicator] map = false`.
 @MainActor
 public final class MapIndicator: NSObject, Indicator {
-  /// Room around the map for the current workspace's outline, which sits just outside its
-  /// thumbnail.
-  private static let padding: CGFloat = 2
   private static let cornerRadius: CGFloat = 2
   private static let focusBorder: CGFloat = 1.5
 
@@ -36,8 +33,9 @@ public final class MapIndicator: NSObject, Indicator {
 
   public func show(_ snapshot: IndicatorSnapshot) {
     menu = IndicatorMenu(snapshot)
-    // As high as the status item's button allows: the thumbnails fill the menu bar's height.
-    let map = WorkspaceMap(snapshot, height: NSStatusBar.system.thickness - 2 * Self.padding)
+    // As high as the status item's button allows (22 points; the menu bar around it is out of
+    // reach).
+    let map = WorkspaceMap(snapshot, height: NSStatusBar.system.thickness)
     guard !hasShown || map != self.map else { return }
     hasShown = true
     self.map = map
@@ -54,7 +52,7 @@ public final class MapIndicator: NSObject, Indicator {
     // The image is centred in the button.
     guard let map, let image = sender.image else { return }
     let point = sender.convert(event.locationInWindow, from: nil)
-    let left = (sender.bounds.width - image.size.width) / 2 + Self.padding
+    let left = (sender.bounds.width - image.size.width) / 2
     guard let index = map.workspaceIndex(at: CGPoint(x: point.x - left, y: 0)) else { return }
     perform(.workspace(.number(index + 1)))
   }
@@ -70,37 +68,30 @@ public final class MapIndicator: NSObject, Indicator {
   /// The map as an image. Not a template image, so the accent colour survives; the colours are
   /// dynamic and resolve against the menu bar's appearance each time the image is drawn.
   private static func image(for map: WorkspaceMap) -> NSImage {
-    let size = CGSize(width: map.size.width + 2 * padding, height: map.size.height + 2 * padding)
-    return NSImage(size: size, flipped: true) { _ in
+    NSImage(size: map.size, flipped: true) { _ in
       for thumbnail in map.thumbnails {
-        draw(thumbnail, offsetBy: padding)
+        draw(thumbnail)
       }
       return true
     }
   }
 
-  private static func draw(_ thumbnail: WorkspaceMap.Thumbnail, offsetBy offset: CGFloat) {
-    let slot = thumbnail.frame.offsetBy(dx: offset, dy: offset)
-    NSColor.tertiaryLabelColor.setFill()
-    NSBezierPath(roundedRect: slot, xRadius: cornerRadius, yRadius: cornerRadius).fill()
-    if thumbnail.isCurrent {
-      let outline = NSBezierPath(
-        roundedRect: slot.insetBy(dx: -1.5, dy: -1.5), xRadius: cornerRadius + 1.5,
-        yRadius: cornerRadius + 1.5)
-      outline.lineWidth = 1
-      NSColor.tertiaryLabelColor.setStroke()
-      outline.stroke()
-    }
-    NSColor.labelColor.setFill()
+  /// The current workspace stands out by brightness, with no outline, so the thumbnails can
+  /// take the button's full height: its windows are bright and the others' dimmed, and its slot
+  /// is a little brighter, which marks it when it is empty.
+  private static func draw(_ thumbnail: WorkspaceMap.Thumbnail) {
+    let slotColor: NSColor = thumbnail.isCurrent ? .tertiaryLabelColor : .quaternaryLabelColor
+    let windowColor: NSColor = thumbnail.isCurrent ? .labelColor : .secondaryLabelColor
+    slotColor.setFill()
+    NSBezierPath(roundedRect: thumbnail.frame, xRadius: cornerRadius, yRadius: cornerRadius).fill()
+    windowColor.setFill()
     for window in thumbnail.windows {
-      window.offsetBy(dx: offset, dy: offset).fill()
+      window.fill()
     }
     // On top, inside the window's rectangle, so it stays visible against the white ones.
     if let index = thumbnail.focusedIndex {
       let inset = focusBorder / 2
-      let border = NSBezierPath(
-        rect: thumbnail.windows[index].offsetBy(dx: offset, dy: offset).insetBy(
-          dx: inset, dy: inset))
+      let border = NSBezierPath(rect: thumbnail.windows[index].insetBy(dx: inset, dy: inset))
       border.lineWidth = focusBorder
       NSColor.controlAccentColor.setStroke()
       border.stroke()

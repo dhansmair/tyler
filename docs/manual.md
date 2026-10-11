@@ -85,7 +85,7 @@ The text item reads, for example, `1 [2] 3 4  ▥`:
 
 Without tiling it says `tyler: tiling off`, and before Accessibility permission is granted `tyler: no access`. Clicking it opens a menu to switch workspaces, cycle the layout and turn tiling on or off; these do the same as the `tyler` commands.
 
-The map, left of the text, has a small thumbnail for each workspace, from left to right, with a rectangle for each tiled window where its layout puts it (in full, the windows share one rectangle; in strip, only the windows in view show). A thin outline marks the workspace on screen, and a border in your accent colour (blue unless changed in System Settings) marks its focused window. Click a thumbnail to switch to that workspace; right-click or ctrl-click the map to open the same menu as the text item. The map is hidden while tiling is off.
+The map, left of the text, has a small thumbnail for each workspace, from left to right, with a rectangle for each tiled window where its layout puts it (in full, the windows share one rectangle; in strip, only the windows in view show). The workspace on screen is the bright one (the windows of the others are dimmed), and a border in your accent colour (blue unless changed in System Settings) marks its focused window. Click a thumbnail to switch to that workspace; right-click or ctrl-click the map to open the same menu as the text item. The map is hidden while tiling is off.
 
 On a MacBook with a notch, macOS hides menu bar items that don't fit next to it.
 

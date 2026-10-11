@@ -219,7 +219,39 @@ Decisions while building: the layouts already split whole-point areas in whole p
 Notes from the live check (2026-10-11): synthetic clicks on a status item only arrive after a mouse move onto it; a click posted with `maskControl` leaves later synthetic events with control held, unless a control key-up is posted; and a synthetic Escape doesn't close a status item menu, so the next click only closes it (the same with the text item's menu). Screen capture needs Screen Recording permission, which the terminal doesn't have, so what the map looks like needs the user's eyes.
 
 ### M5. Multi-display
-Per-display stacks keyed by display UUID, reconfiguration handling, `display` and `move-to-display`.
+Plan: `plans/m5-multi-display.md` (agreed with the user 2026-10-11), on the branch `m5-multi-display` in the worktree `../tyler-m5`. Each display gets its own row of workspaces, with its own layouts; commands act on the focused display; swipes act on the display under the pointer; windows can be dragged across displays; `display`, `move-to-display` and `move-workspace-to-display` are added.
+
+Decisions (agreed in the plan):
+- **Workspace numbers are global.** Each workspace belongs to one display. A display's row is its workspaces, always sorted by number. `workspace 5` switches on the display that holds 5. `prev` and `next` stay within the focused display's row.
+- **A new config table, `[displays]`, lists each display's workspaces** (e.g. `1 = [1, 2, 3, 4]`). Without it, each display gets `workspaces.count` workspaces, numbered on from the previous display. `[assign]` uses the global numbers.
+- **Displays are numbered from 1.** The primary display (the one with the menu bar) is 1. The others follow left to right, then top to bottom.
+- **Displays that come and go.** When a display goes away, its workspaces join display 1's row. When it comes back, they return to their home: the display the config gives them, or the one they were last moved to.
+- **The menu bar items show the focused display's row.** Different content on each display's menu bar isn't possible through the public API: the copy on the other display is an `NSStatusItemReplicant`, kept in step with the original. "Displays have separate Spaces" stays off.
+- **Side by side is supported.** Each display parks at an edge that touches no other display: the right edge if it is free, otherwise the left. Slides keep the page direction, and cross the neighbour briefly while moving.
+- **Moving windows between displays.**
+  - A window dragged onto another display takes the slot under the pointer.
+  - A window that changes display any other way goes last in that display's current workspace.
+
+Setup used for the checks (2026-10-11): the laptop is primary at AX (0,0,1800,1169), with the Dock on the left. A Dell U2717D (2560×1440) sits above it, at AX (−397,−1440). "Displays have separate Spaces" is off.
+
+Checklist (one line per increment of the plan; tick only after its live check):
+- [ ] Spikes: geometry (S1), reconfiguration events and display ids (S2), side by side (S3)
+- [ ] The manager holds one row per display; single-display behaviour unchanged
+- [ ] Saved state version 2; `[displays]` in the config
+- [ ] Every display is tiled; parked windows stay on their own display
+- [ ] Commands act on the focused display; cmd-tab to a parked window on the second display
+- [ ] Unplug and replug, lid closed and opened, sleep and wake
+- [ ] The menu bar items follow the focused display
+- [ ] Side by side: the parking edge for each display, and slides that cross the neighbour
+- [ ] Swipes on the display under the pointer
+- [ ] Drag across displays
+- [ ] `display`, `move-to-display [--follow]`, `move-workspace-to-display`
+
+Known limitations:
+- The middle display of three has no free edge. The fallback is decided in S3.
+- With the Dock on the left, parking at the left edge leaves a 56-point strip beside the Dock.
+- Display numbers follow position, so a different display in the same place gets the same workspaces.
+- Older builds can't read a version 2 state file.
 
 ### M6. Config and service
 Config file (float rules, gaps, workspace count), `reload`, LaunchAgent through `service install`.
@@ -267,7 +299,8 @@ tyler focus next|prev|master            tyler swap next|prev|master
 tyler layout tall|full|next             tyler ratio +0.05|-0.05
 tyler float toggle
 tyler workspace prev|next|<n>           tyler move-to-workspace prev|next|<n> [--follow]
-tyler display next|prev                 tyler move-to-display next|prev
+tyler display prev|next|<n>             tyler move-to-display prev|next|<n> [--follow]
+tyler move-workspace-to-display prev|next|<n>
 tyler service install|uninstall
 ```
 What is implemented is the command table in `TylerClient/CommandLine.swift` (`tyler` without arguments prints it); `docs/manual.md` describes each command, and a test keeps the two in step. The CLI and wire format say `master` (the xmonad term); in Swift the case is `ListTarget.main`, because SwiftLint's `inclusive_language` rule rejects `master` in identifiers.
@@ -278,7 +311,7 @@ What is implemented is the command table in `TylerClient/CommandLine.swift` (`ty
 - Native fullscreen windows are left alone. Terminals that snap to character cells won't fill their frame exactly.
 - AX calls cost one round trip per window, so a slide with many windows may be coarse (see M4). Each slide frame runs on the main thread, and an unresponsive app can block a frame for up to the 1 s AX timeout.
 - **Crash recovery (from M4).** A crash or `kill -9` skips `stop()`, so parked windows stay at the right edge. A state file of original frames, read at the next start, would fix it; out of scope for M4.
-- **Parking with several displays (M5).** Windows park at the primary display's right edge. With a display to its right, a parked window shows on that display, and macOS may not accept the position. M5 needs to pick an edge that touches no other display (the left edge works too, but with the Dock there it leaves a strip visible), and the slide direction may have to follow it.
+- **Parking with several displays (M5).** Windows park at the primary display's right edge. With a display to its right, a parked window shows on that display, and macOS may not accept the position. M5 needs to pick an edge that touches no other display (the left edge works too, but with the Dock there it leaves a strip visible), and the slide direction may have to follow it. Planned in M5: each display parks at a free edge (the right one, otherwise the left), and slides keep the page direction (see M5).
 - **Focus after closing a window (from M4).** When a window closes, macOS may focus another window of the same app, even one parked on another workspace, and tylerd then switches there. Unverified; if it happens, ignore focus events for parked windows right after a window of the same app closes.
 - **Focus after switching to an empty workspace** stays on the previous workspace's (now parked) window, so typing goes to a hidden window. **Confirmed 2026-10-10:** after `workspace 4` (empty), `list` still flagged the parked window of the previous workspace as focused. **Fixed the same day:** when the current workspace ends up empty (a switch, or `move-to-workspace` of its last window) and a parked window has focus, tylerd makes itself frontmost through AX (`WindowBackend.unfocus`). A focused floated window keeps focus. Checked on real windows: on the empty workspace the frontmost app is `tylerd`, and switching back focuses the workspace's window again.
 - **Echo tracking can go stale.** If an app accepts a focus call but never sends a focus event, the window stays on tylerd's "own focus" list, and the next real focus of it while parked doesn't switch workspaces (once). Unverified whether this happens.

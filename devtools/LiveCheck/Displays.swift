@@ -74,7 +74,11 @@ struct Display {
 }
 
 /// `displays`: every display as tyler numbers it, with its parking edge.
+@MainActor
 func displays() {
+  // NSScreen leaves the top strip of a display without the menu bar out of its visible frame only
+  // once the process is an app, as tylerd is.
+  _ = NSApplication.shared
   let all = Display.all()
   print("displays have separate Spaces: \(NSScreen.screensHaveSeparateSpaces ? "on" : "off")")
   for display in all {

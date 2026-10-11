@@ -32,7 +32,7 @@ In zsh, pass `x y` as separate words: an unquoted `$p` holding "x y" stays one a
 
 ## Known limits (macOS 26.7, measured 2026-10-10)
 
-A window must overlap the visible frame (the display minus the menu bar and Dock) by at least 1 point horizontally; a request further out is pulled 40 points back in. It can't go above the menu bar, and at the bottom 32 points stay visible. A display without the menu bar keeps a strip clear at the top all the same (30 points on a 2560×1440 Dell, measured 2026-10-11), although its visible frame covers the whole display. `positions` re-measures this; if it disagrees with this table, macOS changed, and so must `Parking` in `Sources/TylerCore/Parking.swift`.
+A window must overlap the visible frame (the display minus the menu bar and Dock) by at least 1 point horizontally; a request further out is pulled 40 points back in. It can't go above the menu bar, and at the bottom 32 points stay visible. A display without the menu bar keeps a strip clear at the top all the same (30 points on a 2560×1440 Dell, measured 2026-10-11). `NSScreen.visibleFrame` leaves it out only after `NSApplication.shared` exists: a tool that reads screens without creating the app sees the whole display. `positions` re-measures this; if it disagrees with this table, macOS changed, and so must `Parking` in `Sources/TylerCore/Parking.swift`.
 
 ## Extending
 

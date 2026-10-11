@@ -1,4 +1,5 @@
 import AppKit
+import OSLog
 import TylerCore
 
 /// The map menu bar item: a thumbnail of every workspace with its windows, as `WorkspaceMap`
@@ -9,6 +10,7 @@ import TylerCore
 @MainActor
 public final class MapIndicator: NSObject, Indicator {
   private static let cornerRadius: CGFloat = 2
+  private static let log = Logger(subsystem: "tyler", category: "indicator")
 
   private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
   private let perform: @MainActor (Request) -> Void
@@ -19,6 +21,9 @@ public final class MapIndicator: NSObject, Indicator {
   private var hasShown = false
   /// App icons by process, kept while the process has a window on the map.
   private var icons: [Int32: NSImage] = [:]
+  /// SF Symbols by name, kept while a window on the map shows one; `nil` for a name macOS
+  /// doesn't know, which falls back to the app's icon.
+  private var symbols: [String: NSImage?] = [:]
   /// The menu a right click opens, kept up to date but only built when it opens.
   private var menu: IndicatorMenu?
 
@@ -41,7 +46,10 @@ public final class MapIndicator: NSObject, Indicator {
     hasShown = true
     self.map = map
     item.isVisible = map != nil
-    if let map { item.button?.image = Self.image(for: map, icons: icons(for: map)) }
+    if let map {
+      item.button?.image = Self.image(
+        for: map, icons: Icons(apps: icons(for: map), symbols: symbols(for: map)))
+    }
   }
 
   @objc private func click(_ sender: NSStatusBarButton) {
@@ -83,10 +91,23 @@ public final class MapIndicator: NSObject, Indicator {
     return icons
   }
 
+  /// The SF Symbols the windows on `map` show, looked up once per name. A name macOS doesn't
+  /// know is logged once and falls back to the app's icon.
+  private func symbols(for map: WorkspaceMap) -> [String: NSImage] {
+    let names = Set(map.thumbnails.flatMap(\.windows).compactMap(\.symbol))
+    symbols = symbols.filter { names.contains($0.key) }
+    for name in names where symbols[name] == nil {
+      let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)
+      if image == nil { Self.log.warning("no SF Symbol named '\(name, privacy: .public)'") }
+      symbols[name] = .some(image)
+    }
+    return symbols.compactMapValues { $0 }
+  }
+
   /// The map as an image. Not a template image, so the accent colour and the app icons survive;
   /// the colours are dynamic and resolve against the menu bar's appearance each time the image
   /// is drawn.
-  private static func image(for map: WorkspaceMap, icons: [Int32: NSImage]) -> NSImage {
+  private static func image(for map: WorkspaceMap, icons: Icons) -> NSImage {
     NSImage(size: map.size, flipped: true) { _ in
       for thumbnail in map.thumbnails {
         draw(thumbnail, icons: icons)
@@ -98,8 +119,9 @@ public final class MapIndicator: NSObject, Indicator {
   /// The current workspace stands out by brightness, with no outline, so the thumbnails can
   /// take the button's full height: its windows are bright and the others' dimmed, and its slot
   /// is a little brighter, which marks it when it is empty. Each window shows its app's icon,
-  /// dimmed like the window on other workspaces.
-  private static func draw(_ thumbnail: WorkspaceMap.Thumbnail, icons: [Int32: NSImage]) {
+  /// dimmed like the window on other workspaces, or the SF Symbol set for the app, cut out of
+  /// the window so it reads in light and dark menu bars alike.
+  private static func draw(_ thumbnail: WorkspaceMap.Thumbnail, icons: Icons) {
     let slotColor: NSColor = thumbnail.isCurrent ? .tertiaryLabelColor : .quaternaryLabelColor
     let windowColor: NSColor = thumbnail.isCurrent ? .labelColor : .secondaryLabelColor
     slotColor.setFill()
@@ -108,11 +130,32 @@ public final class MapIndicator: NSObject, Indicator {
       let window = thumbnail.windows[index]
       (index == thumbnail.focusedIndex ? focusColor : windowColor).setFill()
       window.frame.fill()
-      guard let iconFrame = window.iconFrame, let icon = window.processID.flatMap({ icons[$0] })
-      else { continue }
-      icon.draw(
-        in: iconFrame, from: .zero, operation: .sourceOver,
-        fraction: thumbnail.isCurrent ? 1 : 0.5, respectFlipped: true, hints: nil)
+      guard let iconFrame = window.iconFrame else { continue }
+      if let symbol = window.symbol.flatMap({ icons.symbols[$0] }) {
+        symbol.draw(
+          in: aspectFit(symbol.size, in: iconFrame), from: .zero, operation: .destinationOut,
+          fraction: 1, respectFlipped: true, hints: nil)
+      } else if let icon = window.processID.flatMap({ icons.apps[$0] }) {
+        icon.draw(
+          in: iconFrame, from: .zero, operation: .sourceOver,
+          fraction: thumbnail.isCurrent ? 1 : 0.5, respectFlipped: true, hints: nil)
+      }
     }
   }
+
+  /// `size` scaled to fit in `frame`, keeping its shape, and centred there.
+  private static func aspectFit(_ size: CGSize, in frame: CGRect) -> CGRect {
+    guard size.width > 0, size.height > 0 else { return frame }
+    let scale = min(frame.width / size.width, frame.height / size.height)
+    let fitted = CGSize(width: size.width * scale, height: size.height * scale)
+    return CGRect(
+      x: frame.midX - fitted.width / 2, y: frame.midY - fitted.height / 2,
+      width: fitted.width, height: fitted.height)
+  }
+}
+
+/// What the map draws on its windows: app icons by process and SF Symbols by name.
+private struct Icons {
+  var apps: [Int32: NSImage]
+  var symbols: [String: NSImage]
 }

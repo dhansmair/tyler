@@ -9,22 +9,24 @@ extension WindowManager {
     guard let indicator else { return }
     let current = IndicatorSnapshot(
       row: workspaces, tiling: tilingStatus, area: primaryDisplay?.visibleFrame,
-      settings: config.indicator, processIDs: tiledProcessIDs)
+      settings: config.indicator, apps: tiledApps)
     guard current != shownSnapshot else { return }
     shownSnapshot = current
     indicator.show(current)
   }
 
-  /// The app process of every window on a workspace. A window's process never changes, and a
-  /// window is in the registry before it joins a workspace, so this is complete whenever the
-  /// workspaces change.
-  private var tiledProcessIDs: [WindowID: Int32] {
-    var processIDs: [WindowID: Int32] = [:]
+  /// The app of every window on a workspace. A window's app never changes, and a window is in
+  /// the registry before it joins a workspace, so this is complete whenever the workspaces
+  /// change.
+  private var tiledApps: [WindowID: IndicatorSnapshot.App] {
+    var apps: [WindowID: IndicatorSnapshot.App] = [:]
     for workspace in workspaces.workspaces {
       for windowID in workspace.windows {
-        processIDs[windowID] = registry.window(withID: windowID)?.processID
+        guard let window = registry.window(withID: windowID) else { continue }
+        apps[windowID] = IndicatorSnapshot.App(
+          processID: window.processID, name: window.appName, bundleID: window.bundleID)
       }
     }
-    return processIDs
+    return apps
   }
 }

@@ -18,6 +18,8 @@ struct WorkspaceMap: Equatable, Sendable {
     var frame: CGRect
     /// Its app's process, for the app's icon; `nil` if unknown or icons are turned off.
     var processID: Int32?
+    /// The SF Symbol the config file sets for its app, shown instead of the app's icon.
+    var symbol: String?
 
     /// Where the app's icon goes: a square centred in the window, as large as fits within the
     /// margin and `iconSizes`, in whole points; `nil` when the window is too small for one.
@@ -77,16 +79,23 @@ struct WorkspaceMap: Equatable, Sendable {
       let isCurrent = index == row.currentIndex
       return Thumbnail(
         frame: frame,
-        windows: placements.map {
-          Window(
-            frame: $0.frame,
-            processID: snapshot.settings.showsIcons ? snapshot.processIDs[$0.id] : nil)
-        },
+        windows: placements.map { Self.window($0, in: snapshot) },
         focusedIndex: isCurrent ? placements.firstIndex { $0.id == workspace.focused } : nil,
         isCurrent: isCurrent)
     }
     let width = thumbnails.last?.frame.maxX ?? 0
     size = CGSize(width: width, height: thumbnail.height)
+  }
+
+  /// A placed window, with its app's icon or symbol unless icons are turned off.
+  private static func window(_ placement: Placement, in snapshot: IndicatorSnapshot) -> Window {
+    let settings = snapshot.settings
+    guard settings.showsIcons, let app = snapshot.apps[placement.id] else {
+      return Window(frame: placement.frame)
+    }
+    return Window(
+      frame: placement.frame, processID: app.processID,
+      symbol: settings.symbol(bundleID: app.bundleID, appName: app.name))
   }
 
   /// The index of the workspace whose thumbnail is at `point`'s `x`, whatever its `y` (the item

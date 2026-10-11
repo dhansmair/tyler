@@ -76,12 +76,17 @@ struct IndicatorTests {
     #expect(indicator.shown.last?.settings == Config.Indicator(text: false, map: true))
   }
 
-  @Test func theSnapshotHoldsEachTiledWindowsProcess() {
+  @Test func theSnapshotHoldsEachTiledWindowsApp() {
     gate.isTrusted = true
     manager.startIfPermitted()
     let expected = Dictionary(
-      uniqueKeysWithValues: backend.windows.map { ($0.id, $0.processID) })
-    #expect(last?.processIDs == expected)
+      uniqueKeysWithValues: backend.windows.map {
+        (
+          $0.id,
+          IndicatorSnapshot.App(processID: $0.processID, name: $0.appName, bundleID: $0.bundleID)
+        )
+      })
+    #expect(last?.apps == expected)
   }
 
   @Test func theSnapshotHoldsTheDisplaysArea() {

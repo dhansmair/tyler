@@ -91,9 +91,24 @@ struct ConfigTests {
       text = false
       map = true
       show-icons = false
+
+      [indicator.icons]
+      Firefox = "globe"
+      "com.mitchellh.ghostty" = "terminal"
       """)
-    #expect(config.indicator == Config.Indicator(text: false, map: true, showsIcons: false))
+    #expect(
+      config.indicator
+        == Config.Indicator(
+          text: false, map: true, showsIcons: false,
+          icons: ["firefox": "globe", "com.mitchellh.ghostty": "terminal"]))
     #expect(try Config.parse("indicator.map = false").indicator == Config.Indicator(map: false))
+  }
+
+  @Test func anAppsSymbolIsFoundByBundleIDBeforeName() {
+    let indicator = Config.Indicator(icons: ["firefox": "globe", "org.mozilla.firefox": "flame"])
+    #expect(indicator.symbol(bundleID: "org.mozilla.Firefox", appName: "Firefox") == "flame")
+    #expect(indicator.symbol(bundleID: nil, appName: "FIREFOX") == "globe")
+    #expect(indicator.symbol(bundleID: nil, appName: "Ghostty") == nil)
   }
 
   @Test func aWholeSwipeDistanceMayBeWrittenWithoutAPoint() throws {
@@ -132,10 +147,33 @@ struct ConfigTests {
     ("[gestures]\nswipe = 1", "gestures.swipe must be true or false"),
     (
       "indicator = true",
-      "indicator must be a table: write [indicator] and put text, map and show-icons below it"
+      "indicator must be a table: write [indicator] and put text, map, show-icons and icons below it"
     ),
-    ("[indicator]\nmenu = true", "unknown setting 'indicator.menu' (use text, map or show-icons)"),
+    (
+      "[indicator]\nmenu = true",
+      "unknown setting 'indicator.menu' (use text, map, show-icons or icons)"
+    ),
     ("[indicator]\nmap = \"no\"", "indicator.map must be true or false"),
+    (
+      "[indicator]\nicons = 3",
+      "indicator.icons must be a table: write [indicator.icons] and put app = \"symbol name\" below it"
+    ),
+    (
+      "[indicator.icons]\nFirefox = 3",
+      "indicator.icons.Firefox must be the name of an SF Symbol, such as \"globe\""
+    ),
+    (
+      "[indicator.icons]\nFirefox = \"\"",
+      "indicator.icons.Firefox must be the name of an SF Symbol, such as \"globe\""
+    ),
+    (
+      "[indicator.icons]\nFirefox = \"globe\"\nfirefox = \"flame\"",
+      "indicator.icons.firefox is set twice (app names and bundle IDs ignore case)"
+    ),
+    (
+      "[indicator.icons]\ncom.mitchellh.ghostty = \"terminal\"",
+      "indicator.icons.com is a table: quote app names and bundle IDs that contain dots"
+    ),
     ("[gestures]\nfingers = 2", "gestures.fingers must be 3 or 4"),
     ("[gestures]\nfingers = 5", "gestures.fingers must be 3 or 4"),
     (

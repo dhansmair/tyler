@@ -117,9 +117,19 @@ struct WorkspaceMapTests {
 
   @Test func eachWindowKnowsItsAppsProcess() throws {
     var apps = snapshot(counts: [2, 1], area: Self.area)
-    apps.processIDs = [WindowID(1): 101, WindowID(3): 303]
+    apps.apps = [WindowID(1): firefox, WindowID(3): ghostty]
     let map = try #require(WorkspaceMap(apps, height: 14))
     #expect(map.thumbnails.map { $0.windows.map(\.processID) } == [[101, nil], [303]])
+    #expect(map.thumbnails.flatMap(\.windows).allSatisfy { $0.symbol == nil })
+  }
+
+  @Test func theConfigFileCanSetASymbolByNameOrBundleID() throws {
+    var apps = snapshot(counts: [3], area: Self.area)
+    apps.apps = [WindowID(1): firefox, WindowID(2): ghostty, WindowID(3): other]
+    apps.settings.icons = ["firefox": "globe", "com.mitchellh.ghostty": "terminal"]
+    let windows = try #require(WorkspaceMap(apps, height: 14)).thumbnails[0].windows
+    #expect(windows.map(\.symbol) == ["globe", "terminal", nil])
+    #expect(windows.map(\.processID) == [101, 303, 505], "the app icon stays as the fallback")
   }
 
   @Test(arguments: [
@@ -137,10 +147,11 @@ struct WorkspaceMapTests {
 
   @Test func theConfigFileCanTurnTheIconsOff() throws {
     var plain = snapshot(counts: [2], area: Self.area)
-    plain.processIDs = [WindowID(1): 101, WindowID(2): 202]
+    plain.apps = [WindowID(1): firefox, WindowID(2): ghostty]
     plain.settings.showsIcons = false
+    plain.settings.icons = ["firefox": "globe"]
     let map = try #require(WorkspaceMap(plain, height: 14))
-    #expect(map.thumbnails[0].windows.map(\.processID) == [nil, nil])
+    #expect(map.thumbnails[0].windows == map.thumbnails[0].windows.map { .init(frame: $0.frame) })
   }
 
   @Test func itMarksTheCurrentAndEmptyWorkspaces() throws {
@@ -176,3 +187,9 @@ struct WorkspaceMapTests {
     #expect(try map().workspaceIndex(at: CGPoint(x: 30, y: -4)) == 1)
   }
 }
+
+private let firefox = IndicatorSnapshot.App(
+  processID: 101, name: "Firefox", bundleID: "org.mozilla.firefox")
+private let ghostty = IndicatorSnapshot.App(
+  processID: 303, name: "Ghostty", bundleID: "com.mitchellh.ghostty")
+private let other = IndicatorSnapshot.App(processID: 505, name: "Other")

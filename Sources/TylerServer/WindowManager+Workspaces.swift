@@ -97,7 +97,7 @@ extension WindowManager {
     // Sync before switching, never after: the target's windows are parked, and a parked frame
     // can overlap a neighbouring display more than this one, which would drop them.
     syncWorkspaces()
-    guard let display = primaryDisplay else {
+    guard let display = focusedDisplay else {
       workspaces.select(index)
       return 0
     }
@@ -129,7 +129,7 @@ extension WindowManager {
   /// it. The view stays put, so the window moves the opposite way to windows leaving when the
   /// view scrolls: one sent to the `next` workspace goes right, where that workspace comes from.
   private func slideOut(_ windowID: WindowID, towards direction: ScrollDirection) -> Int {
-    guard let display = primaryDisplay,
+    guard let display = focusedDisplay,
       let frame = registry.window(withID: windowID)?.frame
     else { return 0 }
     return animate(

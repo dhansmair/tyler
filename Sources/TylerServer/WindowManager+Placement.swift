@@ -7,21 +7,18 @@ extension WindowManager {
   /// Whether tiling runs: permission has been granted and tiling is on.
   var isTiling: Bool { state == .running && tilingEnabled }
 
-  /// The display tylerd tiles, the primary one; `nil` while none is connected.
-  var primaryDisplay: DisplayInfo? { displays.displays.first }
-
   /// The configured space around and between tiled windows, the same on every workspace.
   var gaps: LayoutGaps { LayoutGaps(config.gaps) }
 
   /// Where the current workspace's layout puts each of its windows in view; `nil` without a
   /// display.
   func currentPlacements() -> [Placement]? {
-    primaryDisplay.map { workspaces.current.placements(in: $0.visibleFrame, gaps: gaps) }
+    focusedDisplay.map { workspaces.current.placements(in: $0.visibleFrame, gaps: gaps) }
   }
 
   /// The current workspace's windows out of view (in the strip layout), which wait parked.
   var offViewWindows: Set<WindowID> {
-    guard let display = primaryDisplay else { return [] }
+    guard let display = focusedDisplay else { return [] }
     return Set(workspaces.current.offView(in: display.visibleFrame, gaps: gaps))
   }
 

@@ -88,7 +88,7 @@ extension WindowManager {
   /// Updates the workspace for how `drag` ended: a resize moves the dividers, a move onto
   /// another window's slot swaps the two.
   private func settle(_ drag: MouseDrag, droppedAt location: CGPoint) {
-    guard let area = primaryDisplay?.visibleFrame, let placements = currentPlacements(),
+    guard let area = focusedDisplay?.visibleFrame, let placements = currentPlacements(),
       let frame = registry.window(withID: drag.windowID)?.frame,
       let slot = placements.first(where: { $0.id == drag.windowID })
     else { return }
@@ -164,7 +164,7 @@ extension WindowManager {
   /// Lets the layout follow `windowID` having been resized to `frame`, and moves every other
   /// window that is now out of its slot.
   private func follow(_ windowID: WindowID, to frame: CGRect) {
-    guard let area = primaryDisplay?.visibleFrame,
+    guard let area = focusedDisplay?.visibleFrame,
       workspaces.current.resize(windowID, to: frame, in: area, gaps: gaps)
     else { return }
     place(

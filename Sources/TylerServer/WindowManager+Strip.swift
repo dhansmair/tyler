@@ -37,7 +37,7 @@ extension WindowManager {
   }
 
   func stripSnapshot() -> StripSnapshot? {
-    primaryDisplay.map { display in
+    focusedDisplay.map { display in
       StripSnapshot(
         display: display, view: workspaces.current.firstVisible,
         arrangement: workspaces.current.arrangement(in: display.visibleFrame, gaps: gaps))

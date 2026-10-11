@@ -37,7 +37,8 @@ public final class WindowManager {
 
   // Internal rather than private so the `WindowManager+…` extensions can reach them.
   var registry = WindowRegistry()
-  var workspaces: WorkspaceRow {
+  /// The workspaces of every display. For now there is one row, the primary display's.
+  var rows: DisplayRows {
     didSet { updateIndicator() }
   }
   /// Floated windows, original frames and the like (see `WindowBookkeeping`).
@@ -85,7 +86,9 @@ public final class WindowManager {
     self.pointer = pointer
     self.clock = clock
     pendingRestore = saved
-    workspaces = WorkspaceRow(count: config.workspaces.count)
+    rows = DisplayRows(
+      keys: displays.displays.prefix(1).map(\.key),
+      configured: [WorkspaceRow(count: config.workspaces.count).numbers])
     updateIndicator()
   }
 
@@ -358,7 +361,7 @@ extension WindowManager {
   /// set.
   @discardableResult
   func applyLayout(force: Bool = false) -> Int {
-    guard let display = primaryDisplay else { return 0 }
+    guard let display = focusedDisplay else { return 0 }
     let placements = workspaces.current.restingPlacements(on: display, gaps: gaps)
     return place(force ? placements : placements.filter { !isInPlace($0) })
   }

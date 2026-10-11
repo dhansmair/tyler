@@ -17,6 +17,9 @@ extension WindowManager {
   @discardableResult
   func syncWorkspaces() -> SyncOutcome {
     let connected = displays.displays
+    // One row for now, the primary display's; when another display becomes the primary (the lid
+    // closes), the row goes with it.
+    if let primary = connected.first { rows.reassign(to: [primary.key]) }
     guard let primary = connected.first,
       let sync = WorkspaceSync.plan(
         for: workspaces, windows: registry.windows, displays: connected,

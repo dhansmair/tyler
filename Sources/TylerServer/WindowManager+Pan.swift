@@ -59,7 +59,7 @@ extension WindowManager {
   /// Begins a pan. On a strip workspace it scrolls the strip and never switches workspaces.
   private func beginPan() {
     finishAnimation()
-    guard config.gestures.swipe, isTiling, interaction.isIdle, let display = primaryDisplay
+    guard config.gestures.swipe, isTiling, interaction.isIdle, let display = focusedDisplay
     else { return }
     if workspaces.current.layout == .strip {
       beginStripPan(on: display)

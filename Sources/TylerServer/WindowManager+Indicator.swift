@@ -8,7 +8,7 @@ extension WindowManager {
   func updateIndicator() {
     guard let indicator else { return }
     let current = IndicatorSnapshot(
-      row: workspaces, tiling: tilingStatus, area: primaryDisplay?.visibleFrame,
+      row: workspaces, tiling: tilingStatus, area: focusedDisplay?.visibleFrame,
       settings: config.indicator, apps: tiledApps)
     guard current != shownSnapshot else { return }
     shownSnapshot = current

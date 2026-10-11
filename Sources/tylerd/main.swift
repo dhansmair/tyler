@@ -45,13 +45,17 @@ do {
 }
 
 let gate = SystemAccessibilityGate()
-// The menu bar item's menu sends requests to the manager, which only exists once the item
-// does; `indicatorTarget` closes that loop.
+// The menu bar items send requests to the manager, which only exists once the items do;
+// `indicatorTarget` closes that loop.
 var indicatorTarget: WindowManager?
-let indicator = TextIndicator { request in
+let performFromIndicator: @MainActor (Request) -> Void = { request in
   guard let response = indicatorTarget?.handle(request) else { return }
   if case .error(let message) = response { warn(message) }
 }
+// Items created later sit further left, so the map goes left of the text.
+let indicator = IndicatorGroup([
+  TextIndicator(perform: performFromIndicator), MapIndicator(perform: performFromIndicator),
+])
 let manager = WindowManager(
   backend: AXBackend(),
   displays: ScreenDisplayProvider(),

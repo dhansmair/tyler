@@ -175,6 +175,9 @@ A new layout: the same as `tall` for up to 3 windows; 4 puts one window in each 
 ### Later: strip layout
 A niri-like layout: a workspace is one long horizontal strip of windows that scrolls left and right. Each window has its own size: full width and height, half width, half width and half height, and so on. Needs a rework of the `Layout` protocol (see Open items).
 
+### Later: workspace map in the menu bar
+Plan: `plans/workspace-map-indicator.md` (planned with the user 2026-10-11, not started). A second menu bar item next to the text one: one small thumbnail per workspace, a rectangle for each tiled window placed as its layout places it, an outline around the current workspace and an accent-coloured border on the focused window. A left click switches to that workspace; a right click opens the menu. `[indicator] text|map` switch each item on or off. First, as a refactoring with no change in behaviour, every indicator moves into a new `TylerIndicators` target. Behind a common interface (`IndicatorSnapshot` and the `Indicator` protocol in TylerCore), the server only hands over a snapshot.
+
 ### M5. Multi-display
 Per-display stacks keyed by display UUID, reconfiguration handling, `display` and `move-to-display`.
 

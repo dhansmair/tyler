@@ -85,7 +85,7 @@ The text item reads, for example, `1 [2] 3 4  ▥`:
 
 Without tiling it says `tyler: tiling off`, and before Accessibility permission is granted `tyler: no access`. Clicking it opens a menu to switch workspaces, cycle the layout and turn tiling on or off; these do the same as the `tyler` commands.
 
-The map, left of the text, has a small thumbnail for each workspace, from left to right, with a rectangle for each tiled window where its layout puts it (in full, the windows share one rectangle; in strip, only the windows in view show). The workspace on screen is the bright one (the windows of the others are dimmed), each window shows its app's icon when there is room for it, and the focused window is filled light blue (your accent colour, lightened, if you changed it in System Settings). Click a thumbnail to switch to that workspace; right-click or ctrl-click the map to open the same menu as the text item. The map is hidden while tiling is off.
+The map, left of the text, has a small thumbnail for each workspace, from left to right, with a rectangle for each tiled window where its layout puts it (in full, the windows share one rectangle; in strip, only the windows in view show). The workspace on screen is the bright one (the windows of the others are dimmed), each window shows its app's icon when there is room for it (`indicator.show-icons = false` turns them off), and the focused window is filled light blue (your accent colour, lightened, if you changed it in System Settings). Click a thumbnail to switch to that workspace; right-click or ctrl-click the map to open the same menu as the text item. The map is hidden while tiling is off.
 
 On a MacBook with a notch, macOS hides menu bar items that don't fit next to it.
 
@@ -154,6 +154,7 @@ Firefox = 3                  # new Firefox windows open on workspace 3
 | `gestures.swipe-distance` | How far your fingers travel to swipe a whole workspace across, in trackpad widths (0.1 to 1.0): lower is more sensitive | `0.3` |
 | `indicator.text` | Whether the menu bar shows the workspace numbers (`1 [2] 3 4  ▥`) | `true` |
 | `indicator.map` | Whether the menu bar shows the map of the workspaces | `true` |
+| `indicator.show-icons` | Whether the map shows each window's app icon | `true` |
 | `assign.<app>` | The workspace that new windows of `<app>` open on | none |
 
 Gaps are whole numbers in points, the unit macOS uses for window positions (on a Retina display, one point is two pixels).

@@ -80,7 +80,8 @@ struct ConfigTests {
   }
 
   @Test func bothIndicatorsShowByDefault() throws {
-    #expect(try Config.parse("").indicator == Config.Indicator(text: true, map: true))
+    #expect(
+      try Config.parse("").indicator == Config.Indicator(text: true, map: true, showsIcons: true))
   }
 
   @Test func parsesTheIndicators() throws {
@@ -89,8 +90,9 @@ struct ConfigTests {
       [indicator]
       text = false
       map = true
+      show-icons = false
       """)
-    #expect(config.indicator == Config.Indicator(text: false, map: true))
+    #expect(config.indicator == Config.Indicator(text: false, map: true, showsIcons: false))
     #expect(try Config.parse("indicator.map = false").indicator == Config.Indicator(map: false))
   }
 
@@ -130,9 +132,9 @@ struct ConfigTests {
     ("[gestures]\nswipe = 1", "gestures.swipe must be true or false"),
     (
       "indicator = true",
-      "indicator must be a table: write [indicator] and put text and map below it"
+      "indicator must be a table: write [indicator] and put text, map and show-icons below it"
     ),
-    ("[indicator]\nmenu = true", "unknown setting 'indicator.menu' (use text or map)"),
+    ("[indicator]\nmenu = true", "unknown setting 'indicator.menu' (use text, map or show-icons)"),
     ("[indicator]\nmap = \"no\"", "indicator.map must be true or false"),
     ("[gestures]\nfingers = 2", "gestures.fingers must be 3 or 4"),
     ("[gestures]\nfingers = 5", "gestures.fingers must be 3 or 4"),

@@ -135,6 +135,14 @@ struct WorkspaceMapTests {
     #expect(WorkspaceMap.Window(frame: CGRect(x: 0, y: 0, width: 30, height: 11)).iconFrame == nil)
   }
 
+  @Test func theConfigFileCanTurnTheIconsOff() throws {
+    var plain = snapshot(counts: [2], area: Self.area)
+    plain.processIDs = [WindowID(1): 101, WindowID(2): 202]
+    plain.settings.showsIcons = false
+    let map = try #require(WorkspaceMap(plain, height: 14))
+    #expect(map.thumbnails[0].windows.map(\.processID) == [nil, nil])
+  }
+
   @Test func itMarksTheCurrentAndEmptyWorkspaces() throws {
     let map = try map(counts: [2, 0, 1], current: 1)
     #expect(map.thumbnails.map(\.isCurrent) == [false, true, false])

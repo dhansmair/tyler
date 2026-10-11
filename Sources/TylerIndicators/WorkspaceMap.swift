@@ -16,7 +16,7 @@ struct WorkspaceMap: Equatable, Sendable {
     static let iconMargin: CGFloat = 2
 
     var frame: CGRect
-    /// Its app's process, for the app's icon; `nil` if unknown.
+    /// Its app's process, for the app's icon; `nil` if unknown or icons are turned off.
     var processID: Int32?
 
     /// Where the app's icon goes: a square centred in the window, as large as fits within the
@@ -78,7 +78,9 @@ struct WorkspaceMap: Equatable, Sendable {
       return Thumbnail(
         frame: frame,
         windows: placements.map {
-          Window(frame: $0.frame, processID: snapshot.processIDs[$0.id])
+          Window(
+            frame: $0.frame,
+            processID: snapshot.settings.showsIcons ? snapshot.processIDs[$0.id] : nil)
         },
         focusedIndex: isCurrent ? placements.firstIndex { $0.id == workspace.focused } : nil,
         isCurrent: isCurrent)

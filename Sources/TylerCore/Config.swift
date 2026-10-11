@@ -69,10 +69,13 @@ public struct Config: Equatable, Sendable {
     public var text: Bool
     /// A thumbnail of every workspace with its windows.
     public var map: Bool
+    /// Whether the map shows each window's app icon.
+    public var showsIcons: Bool
 
-    public init(text: Bool = true, map: Bool = true) {
+    public init(text: Bool = true, map: Bool = true, showsIcons: Bool = true) {
       self.text = text
       self.map = map
+      self.showsIcons = showsIcons
     }
   }
 
@@ -216,6 +219,9 @@ extension Config.Indicator {
       },
       Setting("map") { indicator, value, name throws(ConfigError) in
         indicator.map = try Section.boolean(value, name)
+      },
+      Setting("show-icons") { indicator, value, name throws(ConfigError) in
+        indicator.showsIcons = try Section.boolean(value, name)
       })
   }
 }

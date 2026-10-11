@@ -250,6 +250,8 @@ let usage = """
     slide <seconds> <rounds> <out-ids> <in-id@x,y>...
                                   replay a workspace slide on real windows, then restore them
     gestures <seconds>            log trackpad touches from an event tap and a global monitor
+    display-events <seconds> [settle]
+                                  log display changes, and the displays and windows after each
   """
 
 let arguments = Array(CommandLine.arguments.dropFirst())
@@ -261,6 +263,7 @@ do {
   case "positions": try positions(Array(arguments.dropFirst()))
   case "slide": try slide(Array(arguments.dropFirst()))
   case "gestures": try gestures(Array(arguments.dropFirst()))
+  case "display-events": try displayEvents(Array(arguments.dropFirst()))
   default:
     print(usage)
     exit(arguments.isEmpty ? 0 : 2)

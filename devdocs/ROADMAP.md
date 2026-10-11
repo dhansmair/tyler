@@ -248,6 +248,20 @@ Measured in S1 (2026-10-11, macOS 26.7, `live-check displays` and `positions --d
 - **A dialog (Cisco Secure Client) was accepted everywhere**, even past both edges and above the laptop's menu bar, and the WindowServer didn't report its position. Dialogs aren't tiled, so this doesn't matter for parking.
 - **Moving a regular window mostly onto the laptop makes tylerd from `main` adopt and tile it.** The probe then puts back only its position, not its size. Probe windows on a display tylerd doesn't tile only with positions that keep them on that display.
 
+Measured in S2 (2026-10-11, macOS 26.7, `live-check display-events`, with tiling off). The user unplugged and replugged the Dell, closed and opened the lid (clamshell), slept and woke the Mac, then moved the Dell to the right of the laptop:
+- **Ids and UUIDs stayed the same throughout:** laptop id 1, Dell id 3, in clamshell mode too. `DisplayKey` will hold the UUID: it is as cheap as the id, and it also survives a reboot.
+- **Each change arrives as a burst.** Two `begin` callbacks, then `didChangeScreenParameters`, then the callbacks with their flags (for example `remove,disabled,desktopShape` for the Dell and `desktopShape` for the laptop), then a second `didChangeScreenParameters` about 0.3 s later.
+  - One second after the last notification, `NSScreen` was up to date and macOS had finished moving windows.
+  - tylerd will act 1 s after the last `didChangeScreenParameters`.
+- **Unplugging:** macOS moves the windows of the display that went away onto the remaining one, and resizes most of them to fit. One (Firefox) landed partly off screen at x = −397.
+- **Replugging, or opening the lid:** macOS puts every window back exactly where it was.
+- **Clamshell (lid closed):** the Dell becomes the main display at (0,0) and keeps its id. Its visible frame is 55,30 2505×1410, with the Dock moving to it. The laptop's windows move onto it, offset by about (+50, +131).
+- **macOS also pulls a parked window fully back on screen when the displays change.** Window 9193, parked at x = 1799 on the laptop, ended at 1139 (inside the display) when the Dell was unplugged, although its own display stayed. So after every reconfiguration, tylerd must place every window again, parked ones included, on every display.
+- **Rearranging moves windows with their display.** The Cisco dialog stayed at its old position, on no display.
+- **Sleep and wake sent only `willSleep`, `screensDidSleep`, `screensDidWake` and `didWake`, with no display change.** The Mac only slept for about a second here, so a long sleep, where the Dell may drop off, is still unchecked.
+- **Plugging a display in also sends `activeSpaceDidChange`.**
+- **The setup for S3 is now side by side:** laptop (0,0,1800,1169), which parks at the left edge; Dell (1800,−271,2560,1440), visible 1800,−241 2560×1410, which parks at the right edge.
+
 Checklist (one line per increment of the plan; tick only after its live check):
 - [ ] Spikes: geometry (S1), reconfiguration events and display ids (S2), side by side (S3)
 - [ ] The manager holds one row per display; single-display behaviour unchanged

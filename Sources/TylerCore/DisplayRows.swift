@@ -16,6 +16,11 @@ public struct DisplayRows: Equatable, Sendable {
   public struct Entry: Equatable, Sendable {
     public let key: DisplayKey
     public var row: WorkspaceRow
+
+    public init(key: DisplayKey, row: WorkspaceRow) {
+      self.key = key
+      self.row = row
+    }
   }
 
   /// Names the only row while no display is known.
@@ -55,6 +60,17 @@ public struct DisplayRows: Equatable, Sendable {
       Entry(key: keys[$0], row: WorkspaceRow(numbers: placed[$0] ?? []))
     }
     focusedKey = keys[0]
+  }
+
+  /// Rows as a previous tylerd left them: `entries` (one unknown display if empty), each
+  /// workspace's home, and the display with focus (display 1 if it isn't among `entries`).
+  public init(entries: [Entry], homes: [Int: WorkspaceHome], focusedKey: DisplayKey?) {
+    self.entries =
+      entries.isEmpty
+      ? [Entry(key: Self.unknownDisplay, row: WorkspaceRow(numbers: []))] : entries
+    self.homes = homes
+    let keys = self.entries.map(\.key)
+    self.focusedKey = focusedKey.flatMap { keys.contains($0) ? $0 : nil } ?? keys[0]
   }
 
   // MARK: - Lookups

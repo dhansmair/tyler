@@ -36,6 +36,18 @@ struct RestartTests {
     #expect(successor.manager.setLayout(.next) == .message("layout strip"), "the layout survived")
   }
 
+  @Test func aStateFromATylerdBeforeSeveralDisplaysIsTakenOver() async {
+    let harness = await arranged()
+    let row = harness.manager.workspaces
+    let old = SavedState(
+      row: row, floated: [], tilingEnabled: true, originalFrames: [:],
+      seen: [WindowID(1), WindowID(2), WindowID(3)])
+    _ = harness.manager.handOver()
+    let successor = harness.successor(saved: old)
+    #expect(successor.manager.workspaces == row)
+    #expect(successor.backend.moves.isEmpty)
+  }
+
   @Test func windowsThatClosedInBetweenAreLeftOut() async {
     let harness = await arranged()
     let successor = harness.successor(saved: harness.manager.handOver(), closing: [1])
@@ -88,7 +100,7 @@ struct RestartTests {
     let saved = harness.manager.handOver()
     #expect(harness.isParked(1))
     #expect(harness.isParked(2))
-    #expect(saved?.currentIndex == 1)
+    #expect(saved?.displays?.first?.currentIndex == 1)
   }
 
   @Test func beforePermissionTheHandedOverStateIsPassedOn() {

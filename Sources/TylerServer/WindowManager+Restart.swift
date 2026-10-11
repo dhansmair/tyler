@@ -15,7 +15,7 @@ extension WindowManager {
     }
     finishAnimation()
     let saved = SavedState(
-      row: workspaces, floated: bookkeeping.floated, tilingEnabled: tilingEnabled,
+      rows: rows, floated: bookkeeping.floated, tilingEnabled: tilingEnabled,
       originalFrames: bookkeeping.originalFrames, seen: bookkeeping.seen)
     tearDown()
     return saved
@@ -31,7 +31,9 @@ extension WindowManager {
     endDrag()
     backend.stop()
     registry = WindowRegistry()
-    workspaces = WorkspaceRow(count: config.workspaces.count)
+    rows = DisplayRows(
+      keys: displays.displays.prefix(1).map(\.key),
+      configured: [WorkspaceRow(count: config.workspaces.count).numbers])
     bookkeeping = WindowBookkeeping()
     pendingRestore = nil
     state = .waitingForPermission
@@ -45,7 +47,9 @@ extension WindowManager {
     guard let saved = pendingRestore else { return false }
     pendingRestore = nil
     let known = Set(registry.windows.map(\.id))
-    workspaces = saved.row(count: config.workspaces.count) { known.contains($0) }
+    rows = saved.rows(count: config.workspaces.count) { known.contains($0) }
+    // Until rows come from the config per display, the configured count applies to the row.
+    workspaces.setCount(config.workspaces.count)
     bookkeeping = WindowBookkeeping(restoring: saved, known: known)
     tilingEnabled = saved.tilingEnabled
     return true

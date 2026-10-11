@@ -79,10 +79,37 @@ extension WindowManager {
   /// window's slot swaps with it; moved anywhere else, it goes back where it came from.
   private func drop(at location: CGPoint) {
     guard let drag else { return }
+    if !drag.isResize, canFollow(drag), let position = otherDisplay(under: location, than: drag) {
+      endDrag()
+      drop(drag.windowID, onDisplayAt: position, at: location)
+      return
+    }
     let canTile = canFollow(drag)
     if canTile { settle(drag, droppedAt: location) }
     endDrag()
     if canTile { applyLayout() }
+  }
+
+  /// The position in `rows` of the display under `location`, if it isn't the dragged window's.
+  private func otherDisplay(under location: CGPoint, than drag: MouseDrag) -> Int? {
+    guard let display = displays.displays.first(where: { $0.frame.contains(location) }),
+      let position = rows.position(of: display.key),
+      position != rows.location(of: drag.windowID)?.position
+    else { return nil }
+    return position
+  }
+
+  /// A window dropped on another display joins the workspace on screen there, in the slot under
+  /// the pointer (the window there moves one later) or last; that display then has focus.
+  private func drop(_ windowID: WindowID, onDisplayAt position: Int, at location: CGPoint) {
+    guard let display = display(at: position) else { return }
+    let row = rows[position]
+    let target = row.current.placements(in: display.visibleFrame, gaps: gaps).first {
+      $0.frame.contains(location)
+    }
+    rows.dropWindow(windowID, toNumber: row.number(at: row.currentIndex), before: target?.id)
+    rows.focus(rows.entries[position].key)
+    applyLayout()
   }
 
   /// Updates the workspace for how `drag` ended: a resize moves the dividers, a move onto

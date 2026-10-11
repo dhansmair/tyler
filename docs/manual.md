@@ -72,6 +72,8 @@ Drag a tiled window by its title bar over another tiled window, and that window 
 
 What counts is the window under the mouse pointer, not the one the dragged window covers most. Letting go anywhere without a window under the pointer puts the dragged window back in its slot. The window you drag keeps focus. In `full` every window fills the same area, so dragging never swaps there. Floated windows take no part: you can't drag one into the layout, and a tiled window can't swap with one. A command or a workspace switch in the middle of a drag ends it, and the windows go back to their slots.
 
+Dragging a window onto another display moves it to the workspace on screen there when you let go: it takes the slot of the window under the pointer, which moves one place later, or goes last if there is no window under the pointer. That display then has the focus. Until you let go, nothing re-tiles: the window keeps its place on its own workspace, and dragging it back home and letting go puts it back (or swaps it, as above).
+
 *Gaps* are the space between neighbouring windows (inner) and between the windows and the edge of the area (outer). They are the same on every workspace and come from the config file.
 
 ### Menu bar items

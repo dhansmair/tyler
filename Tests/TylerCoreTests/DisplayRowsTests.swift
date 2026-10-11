@@ -229,4 +229,15 @@ struct DisplayRowsTests {
     let moved = rows.moveWindow(WindowID(window), toNumber: number)
     #expect(!moved)
   }
+
+  @Test func aDroppedWindowGoesBeforeTheTargetOrLast() {
+    var rows = rows()
+    let dropped = rows.dropWindow(WindowID(12), toNumber: 5, before: WindowID(15))
+    #expect(dropped)
+    #expect(rows[1][0].windows == [WindowID(12), WindowID(15)])
+    #expect(rows[1][0].focused == WindowID(12))
+    let last = rows.dropWindow(WindowID(11), toNumber: 5, before: nil)
+    #expect(last)
+    #expect(rows[1][0].windows == [WindowID(12), WindowID(15), WindowID(11)])
+  }
 }

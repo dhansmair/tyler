@@ -191,7 +191,7 @@ Each increment is one commit, passes `make check` and updates its docs. The live
       - the user judges the half-animated switch.
     - Record in `devdocs/strip-layout.md` that the strip's off-view windows jump on a display that parks on the left.
 17. **Swipes on the display under the pointer.** Pan and strip-pan tests with two displays. Live check: the user swipes on each display.
-18. **Drag across displays** (decision 6).
+18. **Drag across displays** (decision 6). Its core (holding the window, the drop) was built right after increment 13, when the user hit the half-working version; what is left is the preview on the target display, if wanted.
     - `Marks.held` keeps the window in its list during the drag.
     - On release, insert before the window under the pointer (found with `dropTarget`), or append.
     - No preview on the target display in this version.

@@ -61,6 +61,17 @@ public struct Workspace: Equatable, Sendable {
     return true
   }
 
+  /// Adds a window just before `other` (it takes `other`'s place, and `other` moves one later),
+  /// or at the end if `other` is `nil` or not in the list.
+  @discardableResult
+  public mutating func insert(_ windowID: WindowID, before other: WindowID?) -> Bool {
+    guard !contains(windowID) else { return false }
+    let index = other.flatMap { windows.firstIndex(of: $0) } ?? windows.count
+    windows.insert(windowID, at: index)
+    refitView()
+    return true
+  }
+
   /// Removes a window. If it had focus, focus moves to the window that took its place (or the
   /// new last window), and so does the strip's view if it started at that window. A `quarter`
   /// window's column mate goes back to `half`.

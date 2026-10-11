@@ -245,6 +245,23 @@ public struct DisplayRows: Equatable, Sendable {
     return true
   }
 
+  /// Moves a window to the workspace numbered `number`, on any display, just before `target`
+  /// (which moves one later) or last when `target` is `nil`, and focuses it there: a window
+  /// dropped with the mouse. Returns false if the window is on no workspace, there is no such
+  /// workspace, or the window is already there.
+  @discardableResult
+  public mutating func dropWindow(
+    _ windowID: WindowID, toNumber number: Int, before target: WindowID?
+  ) -> Bool {
+    guard let source = location(of: windowID), let destination = location(ofNumber: number),
+      source.position != destination.position || source.index != destination.index
+    else { return false }
+    entries[source.position].row[source.index].remove(windowID)
+    entries[destination.position].row[destination.index].insert(windowID, before: target)
+    entries[destination.position].row[destination.index].setFocus(windowID)
+    return true
+  }
+
   /// Why `moveWorkspace` refused.
   public enum MoveError: Error, Equatable {
     case noSuchWorkspace

@@ -288,7 +288,7 @@ Checklist (one line per increment of the plan; tick only after its live check):
 - [ ] The menu bar items follow the focused display
 - [ ] Side by side: the parking edge for each display, and no window crossing onto the neighbour
 - [ ] Swipes on the display under the pointer
-- [ ] Drag across displays
+- [ ] Drag across displays (built early, after the user hit it on 2026-10-11: a window dragged onto the Dell was re-tiled into the Dell's list mid-drag and then left where it was dropped; no preview on the target display yet)
 - [ ] `display`, `move-to-display [--follow]`, `move-workspace-to-display`
 
 Live checks so far (2026-10-11, macOS 26.7, Dell above the laptop):

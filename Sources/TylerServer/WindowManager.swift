@@ -282,10 +282,12 @@ public final class WindowManager {
   func apply(_ event: WindowEvent) {
     if case .updated(let window) = event, let known = registry.window(withID: window.id) {
       registry.apply(event)
+      // A drag starts before any re-sync, so a window dragged onto another display is held on
+      // its workspace until it is dropped.
+      followDrag(of: window)
       // Most updates are moves and resizes, many of them echoes of tylerd's own moves (several
       // per window placed, and one per window per slide step). Only these can change the lists.
       if mayChangeLists(from: known, to: window) { reconcile() }
-      followDrag(of: window)
       return
     }
     registry.apply(event)

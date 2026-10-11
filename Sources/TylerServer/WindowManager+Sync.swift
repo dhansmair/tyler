@@ -26,7 +26,10 @@ extension WindowManager {
         marks: WorkspaceSync.Marks(
           floated: bookkeeping.floated, seen: bookkeeping.seen,
           // Strip windows out of view are parked like other workspaces' windows.
-          sliding: animatingWindows.union(offViewWindows)),
+          sliding: animatingWindows.union(offViewWindows),
+          // A dragged window stays on its workspace until it is dropped, even while it is over
+          // another display.
+          held: Set(drag.map { [$0.windowID] } ?? [])),
         assignedWorkspace: {
           self.config.assignedWorkspace(bundleID: $0.bundleID, appName: $0.appName)
         })

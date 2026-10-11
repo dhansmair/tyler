@@ -74,6 +74,7 @@ struct CommandLineTests {
           focus next|prev|master         move focus within the tiling list
           swap next|prev|master          swap the focused window with another slot
           layout tall|full|strip|next    choose the layout
+          size half|full|quarter|next    size the focused window in the strip layout
           ratio +0.05|-0.05              widen or narrow the master column
           float toggle                   float the focused window, or tile it again
           tiling on|off|toggle           start or stop tiling (off unparks hidden windows)
@@ -118,6 +119,8 @@ struct TilingCommandLineTests {
     (["layout", "tall"], Request.layout(.set(.tall))),
     (["layout", "full"], Request.layout(.set(.full))),
     (["layout", "next"], Request.layout(.next)),
+    (["size", "quarter"], Request.size(.set(.quarter))),
+    (["size", "next"], Request.size(.next)),
     (["ratio", "+0.05"], Request.ratio(0.05)),
     (["ratio", "-0.05"], Request.ratio(-0.05)),
     (["ratio", "+1"], Request.ratio(1)),
@@ -145,6 +148,8 @@ struct TilingCommandLineTests {
     (["swap", "up"], "unknown swap argument 'up' (use next|prev|master)"),
     (["layout"], "layout takes exactly one argument: tall|full|strip|next"),
     (["layout", "wide"], "unknown layout 'wide' (use tall|full|strip|next)"),
+    (["size"], "size takes exactly one argument: half|full|quarter|next"),
+    (["size", "huge"], "unknown size 'huge' (use half|full|quarter|next)"),
     (["ratio"], "ratio takes exactly one argument, such as +0.05 or -0.05"),
     (["ratio", "0.05"], "ratio must be a signed number such as +0.05 or -0.05"),
     (["ratio", "+abc"], "ratio must be a signed number such as +0.05 or -0.05"),

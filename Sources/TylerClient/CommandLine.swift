@@ -77,8 +77,17 @@ public enum CommandLineParser {
       name: "swap", arguments: choices(ListTarget.allCases),
       summary: "swap the focused window with another slot"
     ) { Invocation(request: .swap(try parseChoice($0, for: "swap"))) },
-    CommandSpec(name: "layout", arguments: layoutNames, summary: "choose the layout") {
-      Invocation(request: .layout(try parseLayout($0)))
+    CommandSpec(
+      name: "layout", arguments: namesOrNext(LayoutKind.self), summary: "choose the layout"
+    ) {
+      Invocation(
+        request: .layout(try parseNameOrNext($0, for: "layout").map(LayoutChoice.set) ?? .next))
+    },
+    CommandSpec(
+      name: "size", arguments: namesOrNext(WindowSize.self),
+      summary: "size the focused window in the strip layout"
+    ) {
+      Invocation(request: .size(try parseNameOrNext($0, for: "size").map(SizeChoice.set) ?? .next))
     },
     CommandSpec(
       name: "ratio", arguments: "+0.05|-0.05", summary: "widen or narrow the master column"
@@ -172,19 +181,25 @@ public enum CommandLineParser {
     }
   }
 
-  private static func parseLayout(_ arguments: [String]) throws -> LayoutChoice {
+  /// One argument: a `Choice` by name, or `next` (`nil`).
+  private static func parseNameOrNext<Choice: CaseIterable & RawRepresentable>(
+    _ arguments: [String], for command: String
+  ) throws -> Choice? where Choice.RawValue == String {
+    let names = namesOrNext(Choice.self)
     guard arguments.count == 1, let name = arguments.first else {
-      throw CommandLineError.usage("layout takes exactly one argument: \(layoutNames)")
+      throw CommandLineError.usage("\(command) takes exactly one argument: \(names)")
     }
-    if name == "next" { return .next }
-    guard let kind = LayoutKind(rawValue: name) else {
-      throw CommandLineError.usage("unknown layout '\(name)' (use \(layoutNames))")
+    if name == "next" { return nil }
+    guard let choice = Choice(rawValue: name) else {
+      throw CommandLineError.usage("unknown \(command) '\(name)' (use \(names))")
     }
-    return .set(kind)
+    return choice
   }
 
-  private static var layoutNames: String {
-    (LayoutKind.allCases.map(\.rawValue) + ["next"]).joined(separator: "|")
+  private static func namesOrNext<Choice: CaseIterable & RawRepresentable>(
+    _: Choice.Type
+  ) -> String where Choice.RawValue == String {
+    choices(Array(Choice.allCases)) + "|next"
   }
 
   /// A signed step such as `+0.05` or `-0.1`. The sign is required so `ratio 0.05` can't be

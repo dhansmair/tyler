@@ -83,4 +83,47 @@ struct StripTests {
     #expect(successor.isParked(1))
     #expect(successor.frame(of: 3) == halves[1])
   }
+
+  // MARK: - Sizes
+
+  @Test func aFullWindowFillsTheViewAlone() async {
+    let harness = await strip()
+    #expect(harness.manager.setSize(.set(.full)) == .message("size full"))
+    #expect(harness.frame(of: 1) == harness.area)
+    #expect(harness.isParked(2))
+    #expect(harness.isParked(3))
+  }
+
+  @Test func twoQuartersShareAColumn() async {
+    let harness = await strip()
+    _ = harness.manager.setSize(.set(.quarter))
+    await harness.osFocus(2)
+    _ = harness.manager.setSize(.set(.quarter))
+    let column = harness.frame(of: 1)
+    #expect(column?.minX == harness.frame(of: 2)?.minX)
+    #expect(column?.maxY == harness.frame(of: 2)?.minY)
+    #expect(harness.frame(of: 3) == halves[1], "window 3 comes into view beside them")
+  }
+
+  @Test func nextCyclesTheSize() async {
+    let harness = await strip()
+    #expect(harness.manager.setSize(.next) == .message("size full"))
+    #expect(harness.manager.setSize(.next) == .message("size quarter"))
+    #expect(harness.manager.setSize(.next) == .message("size half"))
+  }
+
+  @Test func otherLayoutsKeepTheSizeForTheStrip() async {
+    let harness = ManagerHarness([1, 2])
+    await harness.osFocus(1)
+    #expect(
+      harness.manager.setSize(.set(.full)) == .message("size full (used by the strip layout)"))
+    #expect(harness.frame(of: 1) == halves[0], "tall ignores it")
+    _ = harness.manager.setLayout(.set(.strip))
+    #expect(harness.frame(of: 1) == harness.area)
+  }
+
+  @Test func sizeNeedsAFocusedTiledWindow() {
+    let harness = ManagerHarness([1, 2])
+    #expect(harness.manager.setSize(.set(.full)) == .error("the focused window is not tiled"))
+  }
 }

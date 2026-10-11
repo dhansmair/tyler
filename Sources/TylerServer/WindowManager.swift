@@ -158,7 +158,8 @@ public final class WindowManager {
     case .list: windows()
     case .reload: reload()
     case .tiling(let mode): setTiling(mode)
-    case .retile, .focus, .swap, .layout, .ratio, .toggleFloat: handleTilingRequest(request)
+    case .retile, .focus, .swap, .layout, .size, .ratio, .toggleFloat:
+      handleTilingRequest(request)
     case .workspace, .moveToWorkspace: handleWorkspaceRequest(request)
     }
   }
@@ -169,6 +170,7 @@ public final class WindowManager {
     case .focus(let target): focus(target)
     case .swap(let target): swap(target)
     case .layout(let choice): setLayout(choice)
+    case .size(let choice): setSize(choice)
     case .ratio(let delta): adjustRatio(by: delta)
     case .toggleFloat: toggleFloat()
     case .ping, .status, .list, .reload, .tiling, .workspace, .moveToWorkspace:

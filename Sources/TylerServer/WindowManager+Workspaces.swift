@@ -18,7 +18,7 @@ extension WindowManager {
     switch request {
     case .workspace(let target): switchWorkspace(target)
     case .moveToWorkspace(let target, let follow): moveToWorkspace(target, follow: follow)
-    case .ping, .status, .list, .reload, .tiling, .retile, .focus, .swap, .layout, .ratio,
+    case .ping, .status, .list, .reload, .tiling, .retile, .focus, .swap, .layout, .size, .ratio,
       .toggleFloat:
       .error("not a workspace request")
     }

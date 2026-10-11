@@ -13,6 +13,8 @@ public enum Request: Codable, Equatable, Sendable {
   case focus(ListTarget)
   case swap(ListTarget)
   case layout(LayoutChoice)
+  /// Sets the focused window's size in the strip layout.
+  case size(SizeChoice)
   /// Changes the master column's share of the width by this amount.
   case ratio(Double)
   /// Floats the focused window, or tiles it again if it is floating.

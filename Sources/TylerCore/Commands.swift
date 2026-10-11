@@ -20,6 +20,12 @@ public enum LayoutChoice: Codable, Equatable, Sendable {
   case next
 }
 
+/// Either one specific strip size or the next one in `WindowSize`'s order.
+public enum SizeChoice: Codable, Equatable, Sendable {
+  case set(WindowSize)
+  case next
+}
+
 /// Which workspace a `workspace` or `move-to-workspace` command goes to.
 public enum WorkspaceTarget: Codable, Equatable, Sendable {
   /// The previous workspace (the one to the left), wrapping from the first to the last.

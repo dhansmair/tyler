@@ -173,6 +173,7 @@ tyler <command> [arguments]
 | `focus next\|prev\|master` | Move focus within the tiling list |
 | `swap next\|prev\|master` | Swap the focused window with another one |
 | `layout tall\|full\|strip\|next` | Choose the layout |
+| `size half\|full\|quarter\|next` | Size the focused window in the strip layout |
 | `ratio +<step>\|-<step>` | Widen or narrow the master column |
 | `float toggle` | Float the focused window, or tile it again |
 | `tiling on\|off\|toggle` | Start or stop tiling |
@@ -283,6 +284,17 @@ tyler layout next     # cycle: tall, full, strip, tall, ...
 ```
 
 Sets the layout of the current workspace and prints its name.
+
+### size
+
+```bash
+tyler size half       # half the width, the full height (the default)
+tyler size full       # the whole width and height
+tyler size quarter    # half the width and half the height
+tyler size next       # cycle: half, full, quarter, half, ...
+```
+
+Sets the focused window's size in the `strip` layout and prints it. Two `quarter` windows next to each other in the list share a column, one above the other; a `quarter` window on its own fills its column like `half`. Other layouts ignore the size but keep it for when the workspace switches to `strip`. A window forgets its size when it leaves tiling (floated, minimized, closed), and keeps it when it moves to another workspace.
 
 ### ratio
 

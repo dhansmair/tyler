@@ -17,6 +17,13 @@ struct WorkspaceMap: Equatable, Sendable {
     var isCurrent: Bool
 
     var isEmpty: Bool { windows.isEmpty }
+
+    /// The indices of `windows` in the order to draw them: the focused window last, so it shows
+    /// on top where windows share a frame (in `full`).
+    var drawingOrder: [Int] {
+      let others = windows.indices.filter { $0 != focusedIndex }
+      return focusedIndex.map { others + [$0] } ?? others
+    }
   }
 
   static let spacing: CGFloat = 4

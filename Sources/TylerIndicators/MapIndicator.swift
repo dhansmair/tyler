@@ -89,9 +89,9 @@ public final class MapIndicator: NSObject, Indicator {
     let windowColor: NSColor = thumbnail.isCurrent ? .labelColor : .secondaryLabelColor
     slotColor.setFill()
     NSBezierPath(roundedRect: thumbnail.frame, xRadius: cornerRadius, yRadius: cornerRadius).fill()
-    for (index, window) in thumbnail.windows.enumerated() {
+    for index in thumbnail.drawingOrder {
       (index == thumbnail.focusedIndex ? focusColor : windowColor).setFill()
-      window.fill()
+      thumbnail.windows[index].fill()
     }
   }
 }

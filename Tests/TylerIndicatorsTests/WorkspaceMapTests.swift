@@ -101,6 +101,18 @@ struct WorkspaceMapTests {
     #expect(map.thumbnails.map(\.focusedIndex) == [nil, 1])
   }
 
+  @Test(arguments: [(0, [1, 2, 0]), (1, [0, 2, 1]), (2, [0, 1, 2])])
+  func theFocusedWindowIsDrawnLast(focused: Int, order: [Int]) throws {
+    var full = snapshot(counts: [3], layout: .full, area: Self.area)
+    for _ in 0...focused { full.row.current.focus(.next) }
+    let thumbnail = try #require(WorkspaceMap(full, height: 14)).thumbnails[0]
+    #expect(thumbnail.drawingOrder == order)
+  }
+
+  @Test func withoutFocusWindowsAreDrawnInListOrder() throws {
+    #expect(try map(counts: [3]).thumbnails[0].drawingOrder == [0, 1, 2])
+  }
+
   @Test func itMarksTheCurrentAndEmptyWorkspaces() throws {
     let map = try map(counts: [2, 0, 1], current: 1)
     #expect(map.thumbnails.map(\.isCurrent) == [false, true, false])

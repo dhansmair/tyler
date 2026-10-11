@@ -50,7 +50,7 @@ extension WindowManager {
   /// The windows a pan in progress may move.
   var panningWindows: Set<WindowID> {
     switch pan?.target {
-    case .workspaceRow(let prev, let next): Set((prev.tracks + next.tracks).map(\.id))
+    case .workspaceRow(let prev, let next): prev.windows.union(next.windows)
     case .strip(let scroll): Set(scroll.views[0].arrangement.map(\.id))
     case nil: []
     }

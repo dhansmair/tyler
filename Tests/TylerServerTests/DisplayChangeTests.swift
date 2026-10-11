@@ -105,6 +105,18 @@ struct DisplayChangeTests {
     #expect(harness.isParked(9))
   }
 
+  @Test func movingTheDellToTheRightMovesTheLaptopsParkedWindowsToItsLeftEdge() async {
+    let harness = await harness()
+    let toTheRight = DisplayInfo(
+      id: dell.id, key: dell.key, frame: CGRect(x: 1800, y: -271, width: 2560, height: 1440),
+      visibleFrame: CGRect(x: 1800, y: -241, width: 2560, height: 1410))
+    await change(to: [FakeDisplays.main, toTheRight], in: harness)
+    await waitForTheDisplaysToSettle(harness)
+    #expect(harness.frame(of: 9)?.maxX == harness.area.minX + 1)
+    #expect(harness.isParked(9))
+    #expect(harness.frame(of: 3) == toTheRight.visibleFrame)
+  }
+
   @Test func aBurstOfChangesIsActedOnOnceASecondAfterTheLast() async {
     let harness = await harness()
     let moved = DisplayInfo(

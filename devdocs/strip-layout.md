@@ -114,8 +114,14 @@ Each window has a size (`WindowSize`), set with `tyler size half|full|quarter|ne
   other is resized by that point during a scroll.
 - **Leaving on the left** shows the window briefly beside a left Dock before it parks, the same as
   the workspace slide.
-- **Several displays (M5):** parking at the right edge is unsolved there in general; the strip
-  adds more parked windows.
+- **Several displays (M5):** each display parks at an edge with no neighbour, the left one when
+  another display lies to the right. Two things the strip doesn't handle yet there:
+  - on a display that parks on the left, windows out of view to the right still wait at the left
+    edge, so a scroll that brings one in makes it jump from the left edge to the right before it
+    slides in;
+  - the strip's scrolls (`ScrollPlan`) don't follow the workspace slide's rule that nothing
+    slides onto a neighbour: a window scrolling out towards another display still hangs over it
+    on the way.
 - **Focus follows mouse** (`plans/focus-follows-mouse.md`, not built) would scroll the strip when
   the pointer crosses into a partly visible window mid-scroll. Check the two together if both
   exist.

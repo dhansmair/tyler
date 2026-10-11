@@ -33,6 +33,32 @@ struct SlidePlanTests {
         == Placement(id: WindowID(2), frame: Parking.frame(for: slot.frame, on: display)))
   }
 
+  /// For each case: the display's neighbours, the direction, and whether the leaving and the
+  /// entering window slide (true) or jump (false).
+  @Test(arguments: [
+    ([DisplaySide.right], ScrollDirection.next, true, false),
+    ([.right], .prev, false, true),
+    ([.left], .next, false, true),
+    ([.left], .prev, true, false),
+    ([.left, .right], .next, false, false),
+  ])
+  func windowsJumpInsteadOfSlidingOntoANeighbour(
+    neighbours: [DisplaySide], direction: ScrollDirection, leaves: Bool, enters: Bool
+  ) {
+    var beside = display
+    beside.neighbours = Set(neighbours)
+    beside.parkingEdge = neighbours == [.right] ? .left : .right
+    let plan = SlidePlan(
+      to: 1, direction: direction, leaving: [current], entering: [slot], on: beside)
+    let parked = Placement(id: WindowID(1), frame: Parking.frame(for: current.frame, on: beside))
+    #expect(plan.tracks.contains { $0.id == WindowID(1) } == leaves)
+    #expect(plan.tracks.contains { $0.id == WindowID(2) } == enters)
+    #expect(plan.start.contains(parked) == !leaves, "a leaving window jumps to its parking spot")
+    #expect(plan.start.contains(slot) == !enters, "an entering window jumps into its slot")
+    #expect(plan.finals == [parked, slot])
+    #expect(plan.windows == [WindowID(1), WindowID(2)])
+  }
+
   @Test(arguments: [ScrollDirection.next, .prev])
   func everyWindowHasOneTrack(direction: ScrollDirection) {
     #expect(plan(direction).tracks.map(\.id) == [WindowID(1), WindowID(2)])

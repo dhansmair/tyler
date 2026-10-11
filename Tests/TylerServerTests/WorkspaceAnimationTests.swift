@@ -62,6 +62,34 @@ struct WorkspaceAnimationTests {
     #expect(harness.frame(of: 2) == harness.area)
   }
 
+  @Test func besideADisplayToTheRightNothingSlidesOntoIt() async throws {
+    let displays = FakeDisplays(displays: [FakeDisplays.main, FakeDisplays.right])
+    let harness = ManagerHarness([1, 2], displays: displays, animator: animator)
+    await harness.osFocus(2)
+    _ = harness.manager.moveToWorkspace(.next, follow: false)
+    await runAnimations(harness)
+    #expect(!harness.backend.nudges.contains { $0.id == WindowID(2) }, "sent off by a jump")
+    #expect(harness.frame(of: 2)?.maxX == harness.area.minX + 1, "parked at the left edge")
+    harness.backend.clearRecordedCalls()
+
+    // Workspace 2 comes in from the right, where the other display is: window 2 jumps into its
+    // slot, while window 1 slides out to the left.
+    _ = harness.manager.switchWorkspace(.next)
+    await runAnimations(harness)
+    #expect(!harness.backend.nudges.contains { $0.id == WindowID(2) })
+    #expect(harness.backend.nudges.contains { $0.id == WindowID(1) })
+    #expect(harness.frame(of: 2) == harness.area)
+    harness.backend.clearRecordedCalls()
+
+    // And back: window 2 would leave to the right, so it jumps; window 1 slides in from the left.
+    _ = harness.manager.switchWorkspace(.prev)
+    await runAnimations(harness)
+    #expect(!harness.backend.nudges.contains { $0.id == WindowID(2) })
+    let steps = harness.backend.nudges.filter { $0.id == WindowID(1) }.map(\.origin.x)
+    #expect(!steps.isEmpty && steps == steps.sorted(), "it comes in from the left")
+    #expect(harness.isParked(2))
+  }
+
   @Test func scrollingUpMovesTheOtherWay() async throws {
     let harness = ManagerHarness([1], animator: animator)
     await harness.settle()  // the manager learns the tiled frames

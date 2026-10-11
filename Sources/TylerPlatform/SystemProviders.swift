@@ -21,7 +21,20 @@ public final class SystemAccessibilityGate: AccessibilityGate {
 /// Reads the connected displays from AppKit and converts them to Accessibility coordinates.
 @MainActor
 public final class ScreenDisplayProvider: DisplayProvider {
-  public init() {}
+  public let changes: AsyncStream<Void>
+  private let continuation: AsyncStream<Void>.Continuation
+  /// The observer of screen changes; it lives as long as the provider, which is tylerd's.
+  private var token: NSObjectProtocol?
+
+  public init() {
+    (changes, continuation) = AsyncStream.makeStream(of: Void.self)
+    let continuation = continuation
+    token = NotificationCenter.default.addObserver(
+      forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
+    ) { _ in
+      continuation.yield()
+    }
+  }
 
   public var displays: [DisplayInfo] {
     let screens = NSScreen.screens

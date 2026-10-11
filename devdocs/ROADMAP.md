@@ -284,7 +284,7 @@ Checklist (one line per increment of the plan; tick only after its live check):
 - [ ] Saved state version 2; `[displays]` in the config
 - [x] Every display is tiled; parked windows stay on their own display (2026-10-11: see the live checks below)
 - [ ] Commands act on the focused display; cmd-tab to a parked window on the second display
-- [ ] Unplug and replug, lid closed and opened, sleep and wake
+- [ ] Unplug and replug, lid closed and opened, sleep and wake (built and unit tested 2026-10-11; the user's live check is open)
 - [ ] The menu bar items follow the focused display
 - [ ] Side by side: the parking edge for each display, and no window crossing onto the neighbour
 - [ ] Swipes on the display under the pointer
@@ -301,7 +301,10 @@ Live checks so far (2026-10-11, macOS 26.7, Dell above the laptop):
 
 Increment 13 (the focused display) also made swipes and the menu bar follow the focused display, since both read its row; increment 17 moves swipes to the display under the pointer, and increment 15 is left with checking the menu bar.
 
+Increment 14 (displays that change, 2026-10-11): `DisplayProvider.changes` yields on each `didChangeScreenParametersNotification`. tylerd acts one second after the last one (S2), on the injected clock. Until then the lists hold still, so a window macOS moves mid-change doesn't change workspace. Then any slide or drag ends, the workspaces move to the displays they now belong on (`DisplayRows.reassign`), and every window is placed again, parked ones included. In that sync every tracked window keeps its workspace wherever macOS put it (decision 7 is about the user's moves, not macOS's); only windows that came or went meanwhile change the lists. With tiling off only the rows follow.
+
 Found while building (2026-10-11):
+- **The first sync after a change treated macOS's moves as the user's.** A Dell window that macOS had moved onto the laptop joined the laptop's workspace (decision 7), and a reconnected Dell came back without it. The sync after a change now holds every tracked window.
 - **Parking a window that comes from another display at its own height put it where no display is** (a laptop window at y = 100 parked at the Dell's right edge). Arrivals and windows sent to another display now park at the spot of their slot in their workspace, on their workspace's display.
 - **Stale echoes with a display to the right.** tylerd's own moves come back as `.updated` events after it has moved the window on. A pan's end clears its marks and then places the windows' start frames, so for a moment the registry holds a window of the current workspace at its parking spot. With a display to the right, that spot lies mostly on that display, and the sync reads it as a window moved there (the test setup showed it: the window ended up tiled on the other display). Displays stacked as the user has them are safe; increment 16 (no window ever placed on another display) removes the cause. Until then, side by side is unsupported. The test fakes now put the second display above, as on the user's setup, with `FakeDisplays.right` for the cases about a display to the right.
 

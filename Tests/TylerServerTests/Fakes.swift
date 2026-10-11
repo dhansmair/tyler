@@ -147,10 +147,16 @@ final class FakePointer: PointerInput {
 @MainActor
 final class FakeDisplays: DisplayProvider {
   var displays: [DisplayInfo]
+  let changes: AsyncStream<Void>
+  private let continuation: AsyncStream<Void>.Continuation
 
   init(displays: [DisplayInfo] = [FakeDisplays.main]) {
     self.displays = displays
+    (changes, continuation) = AsyncStream.makeStream(of: Void.self)
   }
+
+  /// Reports a change, as macOS does several times for each (see `WindowManager.displaysChanged`).
+  func sendChange() { continuation.yield() }
 
   static let main = DisplayInfo(
     id: 1,

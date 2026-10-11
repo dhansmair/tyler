@@ -16,9 +16,13 @@ extension WindowManager {
   /// Updates every workspace's list on every display (see `WorkspaceSync` for the rules), parks
   /// windows that arrive on a workspace that isn't on screen, and remembers every window that
   /// has been on a workspace, so app assignments leave it alone from then on. First the rows
-  /// follow the connected displays (see `DisplayRows.reassign`).
+  /// follow the connected displays (see `DisplayRows.reassign`). While the displays are
+  /// changing, nothing changes: macOS is still moving windows between displays, and
+  /// `displaysSettled` syncs once it is done. Windows in `held` keep their workspace wherever
+  /// they are.
   @discardableResult
-  func syncWorkspaces() -> SyncOutcome {
+  func syncWorkspaces(holding held: Set<WindowID> = []) -> SyncOutcome {
+    guard displaySettling == nil else { return SyncOutcome() }
     let connected = connectedDisplays
     rows.reassign(to: connected.map(\.key), configured: configuredNumbers(config))
     guard
@@ -30,7 +34,7 @@ extension WindowManager {
           sliding: animatingWindows.union(offViewWindows),
           // A dragged window stays on its workspace until it is dropped, even while it is over
           // another display.
-          held: Set(drag.map { [$0.windowID] } ?? [])),
+          held: held.union(drag.map { [$0.windowID] } ?? [])),
         assignedWorkspace: {
           self.config.assignedWorkspace(bundleID: $0.bundleID, appName: $0.appName)
         })

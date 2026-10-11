@@ -55,6 +55,10 @@ public protocol WindowBackend: AnyObject {
 public protocol DisplayProvider: AnyObject {
   /// The primary display (the one with the menu bar) comes first.
   var displays: [DisplayInfo] { get }
+  /// Yields each time macOS reports that the displays changed: one was connected or
+  /// disconnected, the lid closed, or the arrangement or a resolution changed. Each change
+  /// arrives as a burst of several.
+  var changes: AsyncStream<Void> { get }
 }
 
 /// Whether this process may use the Accessibility API.

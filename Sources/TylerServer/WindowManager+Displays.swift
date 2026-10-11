@@ -76,6 +76,83 @@ extension WindowManager {
     rows[location.position].setFocus(windowID)
   }
 
+  // MARK: - Reconfiguration
+
+  /// How long tylerd waits after the last display change before it acts. macOS sends each
+  /// change as a burst over about 0.3 s, and one second after the last one `NSScreen` is up to
+  /// date and macOS has finished moving windows (measured in M5's spike S2).
+  static let displaySettleDelay = Duration.seconds(1)
+
+  /// Starts following display changes.
+  func startDisplays() {
+    let changes = displays.changes
+    displayPump = Task { [weak self] in
+      for await _ in changes {
+        self?.displaysChanged()
+      }
+    }
+  }
+
+  /// Stops following display changes, dropping one still pending.
+  func stopDisplays() {
+    displayPump?.cancel()
+    displayPump = nil
+    displaySettling?.cancel()
+    displaySettling = nil
+  }
+
+  /// Notes a display change and (re)starts the wait for the displays to settle, so a burst of
+  /// changes is acted on once, after the last one.
+  func displaysChanged() {
+    displaySettling?.cancel()
+    let clock = clock  // Swift opens the existential from a local, not from the stored property.
+    displaySettling = Task { [weak self] in
+      do {
+        try await clock.sleep(for: Self.displaySettleDelay)
+      } catch {
+        return  // Cancelled: a later change restarted the wait, or tylerd stopped.
+      }
+      self?.displaysSettled()
+    }
+  }
+
+  /// Once the displays have settled: ends any slide or drag, moves each workspace to the
+  /// display it now belongs on (see `DisplayRows.reassign`) and places every window again,
+  /// parked ones included, because macOS moves windows when displays change, and also pulls
+  /// parked windows back on screen.
+  func displaysSettled() {
+    displaySettling = nil
+    guard state == .running else { return }
+    finishAnimation()
+    endDrag()
+    let connected = connectedDisplays
+    Self.log.info(
+      "displays changed: \(connected.map(\.key.rawValue).joined(separator: ", "), privacy: .public)"
+    )
+    guard tilingEnabled else {
+      rows.reassign(to: connected.map(\.key), configured: configuredNumbers(config))
+      return
+    }
+    // The windows macOS moved stay on their workspaces: only windows that came or went
+    // meanwhile change the lists.
+    syncWorkspaces(holding: rows.allWindows)
+    placeEveryWindow()
+  }
+
+  /// Puts every window of every display back: those of each current workspace into their
+  /// slots, the others at their parking spots, even those that look to be there already.
+  @discardableResult
+  func placeEveryWindow() -> Int {
+    var parked: [WindowID] = []
+    for position in rows.entries.indices {
+      let row = rows[position]
+      for index in row.indices where index != row.currentIndex {
+        parked += row[index].windows
+      }
+    }
+    return applyLayout(force: true) + place(parked.compactMap(parkingPlacement(of:)))
+  }
+
   // MARK: - Listing
 
   /// All known windows, tagged with their display, workspace, tiling slot and floated state.

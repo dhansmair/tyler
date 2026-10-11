@@ -28,6 +28,7 @@ extension WindowManager {
     pointerPump?.cancel()
     pointerPump = nil
     pointer?.stop()
+    stopDisplays()
     endDrag()
     backend.stop()
     registry = WindowRegistry()

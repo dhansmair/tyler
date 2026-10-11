@@ -56,6 +56,11 @@ public final class WindowManager {
   /// The mouse, or `nil` when tylerd doesn't follow it.
   let pointer: (any PointerInput)?
   var pointerPump: Task<Void, Never>?
+  /// Follows `displays.changes` while running.
+  var displayPump: Task<Void, Never>?
+  /// Waits for the displays to settle after a change (see `displaysChanged`); `nil` when no
+  /// change is pending.
+  var displaySettling: Task<Void, Never>?
   /// Paces drag and pan steps; injected so tests don't sleep.
   let clock: any Clock<Duration>
   let indicator: (any Indicator)?
@@ -110,6 +115,7 @@ public final class WindowManager {
     }
     backend.start()
     startPointer()
+    startDisplays()
     registry.replaceAll(backend.snapshot())
     let restored = restorePending()
     state = .running

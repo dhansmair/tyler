@@ -60,9 +60,10 @@ Read this first when picking the work up again. The roadmap's M5 section has the
 **Known issues to keep in mind**
 - **Stale echoes with a display to the right** (in the roadmap). A window at its parking spot can read as moved to that display. Side by side is unsafe until increment 16.
 - **The drop has no preview** on the target display.
-- **Increment 14 is still missing:** display changes are only noticed at the next sync, with no re-placement after macOS moves windows (S2: macOS also un-parks windows).
 
-**Next:** increment 14 (reconfiguration), then 15 (indicator check), 16 (parking edges, no crossing), 17 (swipes under the pointer), 19–21 (the display commands), 22 (wrap-up).
+**Second session (2026-10-11):** increment 14 (reconfiguration) is built and unit tested (`DisplayChangeTests`); the user's live check (unplug and replug, lid, sleep and wake) is open.
+
+**Next:** 15 (indicator check), 16 (parking edges, no crossing), 17 (swipes under the pointer), 19–21 (the display commands), 22 (wrap-up).
 
 **Lessons from this session**
 - Undo a deliberate test break from a scratch copy, never with `git checkout -- <file>`: that also threw away uncommitted work.

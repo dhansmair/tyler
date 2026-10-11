@@ -11,10 +11,11 @@ struct WorkspaceMapTests {
 
   private func map(
     counts: [Int] = [2, 1, 0, 0], current: Int = 0, layout: LayoutKind = .tall,
-    area: CGRect? = WorkspaceMapTests.area
+    area: CGRect? = WorkspaceMapTests.area, height: CGFloat = 14
   ) throws -> WorkspaceMap {
     try #require(
-      WorkspaceMap(snapshot(counts: counts, current: current, layout: layout, area: area)))
+      WorkspaceMap(
+        snapshot(counts: counts, current: current, layout: layout, area: area), height: height))
   }
 
   @Test(arguments: [area, nil])
@@ -30,10 +31,16 @@ struct WorkspaceMapTests {
     #expect(map.thumbnails[0].frame.size == CGSize(width: 33, height: 14))
   }
 
+  @Test func theHeightIsTheMenuBars() throws {
+    let map = try map(height: 18)
+    #expect(map.thumbnails[0].frame.size == CGSize(width: 29, height: 18))
+    #expect(map.size == CGSize(width: 128, height: 18))
+  }
+
   @Test func tenWorkspacesFitByGettingLower() throws {
-    let map = try map(counts: Array(repeating: 1, count: 10))
+    let map = try map(counts: Array(repeating: 1, count: 10), height: 18)
     #expect(map.size.width <= WorkspaceMap.maximumWidth)
-    #expect(map.thumbnails[0].frame.size == CGSize(width: 16, height: 10))
+    #expect(map.thumbnails[0].frame.size == CGSize(width: 22, height: 14))
   }
 
   @Test(arguments: [
@@ -73,7 +80,7 @@ struct WorkspaceMapTests {
   @Test func everyRectIsInWholePoints() throws {
     var shifted = snapshot(counts: [3, 2], area: CGRect(x: 0, y: 0, width: 1512, height: 945))
     shifted.row.current.adjustRatio(by: 0.13)
-    let map = try #require(WorkspaceMap(shifted))
+    let map = try #require(WorkspaceMap(shifted, height: 14))
     let edges = map.thumbnails.flatMap(\.windows).flatMap { [$0.minX, $0.minY, $0.maxX, $0.maxY] }
     #expect(edges.allSatisfy { $0 == $0.rounded() })
   }
@@ -82,7 +89,7 @@ struct WorkspaceMapTests {
     var wider = snapshot(counts: [2], area: Self.area)
     wider.row.current.adjustRatio(by: 0.2)
     let before = try map(counts: [2]).thumbnails[0].windows
-    let after = try #require(WorkspaceMap(wider)).thumbnails[0].windows
+    let after = try #require(WorkspaceMap(wider, height: 14)).thumbnails[0].windows
     #expect(after[0].width > before[0].width)
   }
 
@@ -90,7 +97,7 @@ struct WorkspaceMapTests {
     var focused = snapshot(counts: [2, 2], current: 1, area: Self.area)
     focused.row[0].focus(.next)
     focused.row[1].focus(.prev)
-    let map = try #require(WorkspaceMap(focused))
+    let map = try #require(WorkspaceMap(focused, height: 14))
     #expect(map.thumbnails.map(\.focusedIndex) == [nil, 1])
   }
 
@@ -103,12 +110,12 @@ struct WorkspaceMapTests {
   @Test func theConfigFileCanTurnTheMapOff() {
     var off = snapshot()
     off.settings.map = false
-    #expect(WorkspaceMap(off) == nil)
+    #expect(WorkspaceMap(off, height: 14) == nil)
   }
 
   @Test(arguments: [ServerStatus.Tiling.off, .waitingForPermission])
   func withoutTilingThereIsNoMap(tiling: ServerStatus.Tiling) {
-    #expect(WorkspaceMap(snapshot(tiling: tiling)) == nil)
+    #expect(WorkspaceMap(snapshot(tiling: tiling), height: 14) == nil)
   }
 
   @Test(arguments: [

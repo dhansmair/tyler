@@ -19,10 +19,9 @@ struct WorkspaceMap: Equatable, Sendable {
     var isEmpty: Bool { windows.isEmpty }
   }
 
-  static let height: CGFloat = 14
   static let spacing: CGFloat = 4
-  /// The row's widest, reached with ten workspaces; the thumbnails get lower to stay within it.
-  static let maximumWidth: CGFloat = 200
+  /// The row's widest, reached with many workspaces; the thumbnails get lower to stay within it.
+  static let maximumWidth: CGFloat = 260
   /// The display's aspect ratio when no display is known.
   static let defaultAspect: CGFloat = 16 / 10
   /// The gaps of a thumbnail's layout, so neighbouring windows stay apart.
@@ -31,12 +30,13 @@ struct WorkspaceMap: Equatable, Sendable {
   let size: CGSize
   let thumbnails: [Thumbnail]
 
-  /// The map of `snapshot`'s row, or `nil` when the config file turns the map off or tiling
-  /// isn't running (windows then don't belong to workspaces, and there is nothing to map).
-  init?(_ snapshot: IndicatorSnapshot) {
+  /// The map of `snapshot`'s row with thumbnails `height` points high, or `nil` when the config
+  /// file turns the map off or tiling isn't running (windows then don't belong to workspaces, and
+  /// there is nothing to map).
+  init?(_ snapshot: IndicatorSnapshot, height: CGFloat) {
     guard snapshot.settings.map, snapshot.tiling == .on else { return nil }
     let row = snapshot.row
-    let thumbnail = Self.thumbnailSize(count: row.count, area: snapshot.area)
+    let thumbnail = Self.thumbnailSize(count: row.count, height: height, area: snapshot.area)
     thumbnails = row.indices.map { index in
       let frame = CGRect(
         origin: CGPoint(x: CGFloat(index) * (thumbnail.width + Self.spacing), y: 0),
@@ -68,13 +68,13 @@ struct WorkspaceMap: Equatable, Sendable {
     max(thumbnail.frame.minX - offset, 0, offset - thumbnail.frame.maxX)
   }
 
-  /// A thumbnail with the display's aspect ratio, `height` high, or lower if `count` of them
-  /// wouldn't fit in `maximumWidth`. Whole points.
-  private static func thumbnailSize(count: Int, area: CGRect?) -> CGSize {
+  /// A thumbnail with the display's aspect ratio, `height` high (whole points), or lower if
+  /// `count` of them wouldn't fit in `maximumWidth`.
+  private static func thumbnailSize(count: Int, height: CGFloat, area: CGRect?) -> CGSize {
     let aspect = area.flatMap { $0.height > 0 ? $0.width / $0.height : nil } ?? defaultAspect
     let spacings = CGFloat(count - 1) * spacing
     let fitting = (maximumWidth - spacings) / (CGFloat(count) * aspect)
-    let height = min(Self.height, fitting.rounded(.down))
-    return CGSize(width: (height * aspect).rounded(), height: height)
+    let lower = min(height.rounded(.down), fitting.rounded(.down))
+    return CGSize(width: (lower * aspect).rounded(), height: lower)
   }
 }

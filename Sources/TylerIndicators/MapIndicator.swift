@@ -36,7 +36,8 @@ public final class MapIndicator: NSObject, Indicator {
 
   public func show(_ snapshot: IndicatorSnapshot) {
     menu = IndicatorMenu(snapshot)
-    let map = WorkspaceMap(snapshot)
+    // As high as the status item's button allows: the thumbnails fill the menu bar's height.
+    let map = WorkspaceMap(snapshot, height: NSStatusBar.system.thickness - 2 * Self.padding)
     guard !hasShown || map != self.map else { return }
     hasShown = true
     self.map = map

@@ -61,9 +61,9 @@ Read this first when picking the work up again. The roadmap's M5 section has the
 - **Stale echoes with a display to the right** (in the roadmap). A window at its parking spot can read as moved to that display. Side by side is unsafe until increment 16.
 - **The drop has no preview** on the target display.
 
-**Second session (2026-10-11):** increment 14 (reconfiguration) is built and unit tested (`DisplayChangeTests`); the user's live check (unplug and replug, lid, sleep and wake) is open.
+**Second session (2026-10-11):** increment 14 (reconfiguration) is built and unit tested (`DisplayChangeTests`); the user's live check (unplug and replug, lid, sleep and wake) is open. Increment 15 has its test (`IndicatorTests`); its `live-check menubar` is open. The snapshot didn't need `displayNumber` and `displayCount`: nothing shows them yet, so they wait until something does.
 
-**Next:** 15 (indicator check), 16 (parking edges, no crossing), 17 (swipes under the pointer), 19–21 (the display commands), 22 (wrap-up).
+**Next:** 16 (parking edges, no crossing), 17 (swipes under the pointer), 19–21 (the display commands), 22 (wrap-up).
 
 **Lessons from this session**
 - Undo a deliberate test break from a scratch copy, never with `git checkout -- <file>`: that also threw away uncommitted work.

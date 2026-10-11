@@ -291,6 +291,14 @@ Checklist (one line per increment of the plan; tick only after its live check):
 - [ ] Drag across displays
 - [ ] `display`, `move-to-display [--follow]`, `move-workspace-to-display`
 
+Live checks so far (2026-10-11, macOS 26.7, Dell above the laptop):
+- **Tiling every display (increment 12).**
+  - After `tyler restart` onto the branch, the Dell's four windows were tiled on workspace 5: Edge as the main window, with Firefox, VS Code and System Settings stacked beside it. System Settings stays 723×470, its minimum size (the open M3 check).
+  - The laptop was unchanged, and `tyler list` shows display 2 for the Dell's windows.
+  - A second restart kept every window's workspace and slot (state version 2).
+  - Parking on the Dell can only be checked once commands reach it (increment 13).
+- **"Displays have separate Spaces" turned on by the user.** The S1 limits hold with it on: the Dell's right sliver at 2116 (2117 is pulled back to 2077), its left sliver, the strip at the top (y = −1410), and the laptop's right sliver at 1799 (1800 is pulled back to 1760). With the displays stacked, parking works either way. Side by side with it on is unmeasured.
+
 Found while building (2026-10-11):
 - **Stale echoes with a display to the right.** tylerd's own moves come back as `.updated` events after it has moved the window on. A pan's end clears its marks and then places the windows' start frames, so for a moment the registry holds a window of the current workspace at its parking spot. With a display to the right, that spot lies mostly on that display, and the sync reads it as a window moved there (the test setup showed it: the window ended up tiled on the other display). Displays stacked as the user has them are safe; increment 16 (no window ever placed on another display) removes the cause. Until then, side by side is unsupported. The test fakes now put the second display above, as on the user's setup, with `FakeDisplays.right` for the cases about a display to the right.
 

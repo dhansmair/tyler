@@ -8,11 +8,11 @@ Today one indicator is spread over three targets: `IndicatorState` (TylerCore), 
 Decisions (with the user, 2026-10-11):
 - A new SwiftPM target `TylerIndicators` holds everything indicator-specific: models, drawing, menus, clicks.
 - Active workspace: a **thin rounded outline** around its thumbnail. Windows are equally bright on every workspace.
-- Click on the map: a **left click switches** to that workspace (`workspace <n>`); a right click or ctrl-click opens the menu.
+- Click on the map: a **click on a thumbnail switches** to that workspace (`workspace <n>`). **The map has no menu**; the menu stays on the text item only (decided 2026-10-11).
+- Focused window: a **clearly visible blue border** (`controlAccentColor`, blue by default, 1.5 pt).
 - Config: a new `[indicator]` section with `text = true` and `map = true`, applied by `tyler reload`.
 
 Decisions for review:
-- **The menu is shared and built in TylerIndicators** from the snapshot by one function, so both items show the same menu.
 - **The focused window is the current workspace's `Workspace.focused`** (the last tiled window used). Focusing a floated window or dialog doesn't move the border. Other workspaces show no focus.
 - **In `full`, all windows share one frame**, so the thumbnail shows one rectangle.
 - **An empty workspace** shows only its faint slot.
@@ -24,7 +24,7 @@ TylerCore         IndicatorSnapshot (value) + Indicator protocol      ← the co
 TylerServer       builds the snapshot, calls indicator.show(snapshot)  (knows nothing else)
 TylerIndicators   (new) depends on TylerCore only; imports AppKit
                   models:  TextTitle, IndicatorMenu, WorkspaceMap     ← pure, unit tested
-                  AppKit:  TextIndicator, MapIndicator, IndicatorGroup, NSMenu builder
+                  AppKit:  TextIndicator (with its menu), MapIndicator, IndicatorGroup
 TylerPlatform     Accessibility and the other system code only (StatusBarIndicator moves out)
 tylerd            creates IndicatorGroup([TextIndicator, MapIndicator]) and passes it to the manager
 ```
@@ -41,7 +41,7 @@ tylerd            creates IndicatorGroup([TextIndicator, MapIndicator]) and pass
 - Before the move, check that `IndicatorStateTests` and `IndicatorTests` cover the title, the menu and the redraw rule. Add any missing test in a commit of its own.
 - `Package.swift`: add `.target(name: "TylerIndicators", dependencies: ["TylerCore"])` and `.testTarget(name: "TylerIndicatorsTests", dependencies: ["TylerCore", "TylerIndicators"])`. Add `TylerIndicators` to `tylerd`'s dependencies.
 - Add `IndicatorSnapshot` and the `Indicator` protocol to TylerCore. `WindowManager+Indicator.updateIndicator()` builds the snapshot (`area: primaryDisplay?.visibleFrame`, `settings: config.indicator`) and calls `show` when it changed.
-- Split `IndicatorState` into TylerIndicators: `TextTitle` (title parts, the layout symbol, the notice) and `IndicatorMenu` (menu items), both built from a snapshot. Move `StatusBarIndicator` there as `TextIndicator`, with the `NSMenu` building in a shared helper.
+- Split `IndicatorState` into TylerIndicators: `TextTitle` (title parts, the layout symbol, the notice) and `IndicatorMenu` (menu items), both built from a snapshot. Move `StatusBarIndicator` there as `TextIndicator`; it keeps building its `NSMenu` itself.
 - Move `Tests/TylerCoreTests/IndicatorStateTests.swift` to `Tests/TylerIndicatorsTests/` with the same assertions; only the setup changes, to build a snapshot.
 - Server `IndicatorTests` and `FakeIndicator` record snapshots, and their assertions read the snapshot. `Config.Indicator` arrives in increment 4, so the snapshot has no settings until then.
 - Update the docs: the CLAUDE.md layout section, plus a ROADMAP note under "Menu bar indicator".
@@ -58,8 +58,8 @@ tylerd            creates IndicatorGroup([TextIndicator, MapIndicator]) and pass
 - An `NSStatusItem` whose button shows an `NSImage(size:flipped:drawingHandler:)`. It isn't a template image, so the accent colour survives, and the colours resolve per appearance:
   - windows: `labelColor`
   - empty slots and the active outline: `tertiaryLabelColor` (1 pt, radius 2)
-  - the focused window's border: `controlAccentColor`, 1 pt
-- Clicks: `sendAction(on: [.leftMouseUp, .rightMouseUp])` and read `NSApp.currentEvent`. A right click or ctrl-click pops up the shared menu. A left click converts the point to image coordinates (the image is centred in the button) and calls `map.workspaceIndex(at:)`, then `perform(.workspace(.number(i + 1)))`.
+  - the focused window's border: `controlAccentColor` (blue by default), 1.5 pt, drawn on top so it stays visible against the white rectangles
+- Clicks: the item has **no `menu`**. An `NSStatusItem` with a menu opens it on every click and never calls the button's action, so the two can't be mixed without extra work, and the map doesn't need a menu. The button's action reads the click point from `NSApp.currentEvent`, converts it to image coordinates (the image is centred in the button), calls `map.workspaceIndex(at:)` and then `perform(.workspace(.number(i + 1)))`. A click on the current workspace does nothing visible.
 - `IndicatorGroup` fans `show` out to its members. `tylerd` creates the map item after the text item, so the map sits to the left of the text.
 
 ### 4. `[indicator]` config
@@ -75,7 +75,7 @@ tylerd            creates IndicatorGroup([TextIndicator, MapIndicator]) and pass
   - The outline follows `workspace next`.
   - The focus border follows `focus next`.
   - `ratio +0.05` and a mouse resize update the map.
-  - A left click switches workspace; a right click opens the menu.
+  - A click on each thumbnail switches to that workspace; the text item's menu still works.
   - Light and dark menu bars both look right.
   - `tiling off` hides the map.
   - `[indicator] text = false` followed by `reload` hides the text item.

@@ -25,11 +25,16 @@ extension WindowManager {
   }
 
   /// Makes another workspace current: its windows slide in while the current ones slide out and
-  /// park, then focus goes to the target's focused window (none if it is empty).
+  /// park, then focus goes to the target's focused window (none if it is empty). `prev` and
+  /// `next` stay on the focused display; a number on another display goes there, which then
+  /// becomes the focused display.
   public func switchWorkspace(_ target: WorkspaceTarget) -> Response {
     if let failure = beginCommand() { return failure }
+    var changedDisplay = false
+    if case .number(let number) = target { changedDisplay = focusDisplay(holding: number) }
     guard let index = workspaces.index(of: target) else { return outOfRange(target) }
     guard index != workspaces.currentIndex else {
+      if changedDisplay { focusCurrentWorkspace() }
       return .message("workspace \(workspaces.number(at: index))")
     }
     let failures = show(
@@ -44,8 +49,14 @@ extension WindowManager {
   /// `follow` the view switches along with it.
   public func moveToWorkspace(_ target: WorkspaceTarget, follow: Bool) -> Response {
     if let failure = beginCommand() { return failure }
-    guard let windowID = registry.focusedID, let source = workspaces.index(containing: windowID)
-    else {
+    guard let windowID = registry.focusedID, rows.location(of: windowID) != nil else {
+      return .error("the focused window is not tiled")
+    }
+    focusDisplay(of: windowID)
+    if case .number(let number) = target, isOnOtherDisplay(number) {
+      return moveToOtherDisplay(windowID, number: number, follow: follow)
+    }
+    guard let source = workspaces.index(containing: windowID) else {
       return .error("the focused window is not tiled")
     }
     guard let index = workspaces.index(of: target) else { return outOfRange(target) }
@@ -69,6 +80,40 @@ extension WindowManager {
       : outcome(failures: failures)
   }
 
+  /// Whether the workspace numbered `number` is on a display other than the focused one.
+  private func isOnOtherDisplay(_ number: Int) -> Bool {
+    guard let location = rows.location(ofNumber: number) else { return false }
+    return rows.entries[location.position].key != rows.focusedKey
+  }
+
+  /// Sends a window to workspace `number` on another display. If that workspace is on screen
+  /// there, the window takes its slot at once; otherwise it parks on that display. With `follow`,
+  /// that display becomes the focused one and shows the workspace.
+  private func moveToOtherDisplay(_ windowID: WindowID, number: Int, follow: Bool) -> Response {
+    let wasOnScreen = workspaces.index(containing: windowID) == workspaces.currentIndex
+    rows.moveWindow(windowID, toNumber: number)
+    guard let target = rows.location(ofNumber: number) else {
+      return .error("workspace \(number) does not exist")
+    }
+    let isOnScreen = target.index == rows[target.position].currentIndex
+    var failures = 0
+    if !isOnScreen { park([windowID]) }
+    if follow {
+      focusDisplay(holding: number)
+      if isOnScreen {
+        failures += applyLayout()
+        focusCurrentWorkspace()
+      } else {
+        let direction: ScrollDirection = target.index > workspaces.currentIndex ? .next : .prev
+        failures += show(target.index, direction: direction, focusing: true)
+      }
+    } else {
+      failures += applyLayout()
+      if wasOnScreen { focusCurrentWorkspace() }
+    }
+    return failures == 0 ? .message("moved to workspace \(number)") : outcome(failures: failures)
+  }
+
   // MARK: - Switching
 
   /// The OS focused `windowID` (a click, cmd-tab, an app raising itself). If it lives on a
@@ -76,6 +121,7 @@ extension WindowManager {
   /// is a strip window out of view on the current workspace, the strip scrolls to it.
   func focusChanged(to windowID: WindowID) {
     let isEcho = bookkeeping.pendingFocus.remove(windowID) != nil
+    focusDisplay(of: windowID)
     let snapshot = isTiling ? stripSnapshot() : nil
     recordFocus(windowID)
     // A click or cmd-tab on a strip window out of view scrolls to it.
@@ -164,7 +210,8 @@ extension WindowManager {
 
   private func outOfRange(_ target: WorkspaceTarget) -> Response {
     guard case .number(let number) = target else { return .error("no such workspace") }
-    return .error("workspace \(number) does not exist (use \(Self.describe(workspaces.numbers)))")
+    let numbers = rows.entries.flatMap(\.row.numbers).sorted()
+    return .error("workspace \(number) does not exist (use \(Self.describe(numbers)))")
   }
   /// The workspace numbers for an error message: "1 to 4" when they follow each other, else
   /// listed ("5, 6, 9").

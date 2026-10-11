@@ -206,4 +206,27 @@ struct DisplayRowsTests {
     #expect(rows[1][0].windows == [15, 16, 17, 18].map(WindowID.init))
     #expect(rows.homes[9] == .pinned(dell))
   }
+
+  @Test func aWindowMovesToAWorkspaceOnAnotherDisplay() {
+    var rows = rows()
+    let moved = rows.moveWindow(WindowID(12), toNumber: 6)
+    #expect(moved)
+    #expect(rows[0][1].windows.isEmpty)
+    #expect(rows[1][1].windows == [WindowID(16), WindowID(12)])
+    #expect(rows[1][1].focused == WindowID(12))
+  }
+
+  @Test func movingAWindowWithinItsDisplayWorksToo() {
+    var rows = rows()
+    let moved = rows.moveWindow(WindowID(12), toNumber: 3)
+    #expect(moved)
+    #expect(rows[0][2].windows == [WindowID(13), WindowID(12)])
+  }
+
+  @Test(arguments: [(12, 2), (12, 9), (99, 6)])
+  func movingAWindowIsRefusedWhenThereIsNothingToDo(window: UInt32, number: Int) {
+    var rows = rows()
+    let moved = rows.moveWindow(WindowID(window), toNumber: number)
+    #expect(!moved)
+  }
 }

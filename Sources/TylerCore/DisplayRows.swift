@@ -224,6 +224,27 @@ public struct DisplayRows: Equatable, Sendable {
     if position(of: focusedKey) == nil { focusedKey = keys[0] }
   }
 
+  /// Moves a window from its workspace to the one numbered `number`, on any display, where it
+  /// goes in after the focused window and becomes focused, keeping its strip size (a `quarter`
+  /// arrives as `half`). Returns false if the window is on no workspace, already on that one, or
+  /// there is no such workspace.
+  @discardableResult
+  public mutating func moveWindow(_ windowID: WindowID, toNumber number: Int) -> Bool {
+    guard let source = location(of: windowID), let target = location(ofNumber: number),
+      source.position != target.position || source.index != target.index
+    else { return false }
+    if source.position == target.position {
+      return entries[source.position].row.move(windowID, to: target.index)
+    }
+    let size = entries[source.position].row[source.index].size(of: windowID)
+    entries[source.position].row[source.index].remove(windowID)
+    entries[target.position].row[target.index].insert(windowID)
+    entries[target.position].row[target.index].setSize(
+      size == .quarter ? .half : size, of: windowID)
+    entries[target.position].row[target.index].setFocus(windowID)
+    return true
+  }
+
   /// Why `moveWorkspace` refused.
   public enum MoveError: Error, Equatable {
     case noSuchWorkspace

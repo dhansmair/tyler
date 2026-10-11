@@ -117,7 +117,10 @@ public final class WindowManager {
     // A handed-over workspace beyond the configured count was merged into the last one, whose
     // windows may still be parked; every other window is in its slot already, so nothing moves.
     if restored && tilingEnabled { applyLayout() }
-    if let focusedID = registry.focusedID { recordFocus(focusedID) }
+    if let focusedID = registry.focusedID {
+      focusDisplay(of: focusedID)
+      recordFocus(focusedID)
+    }
     return true
   }
 
@@ -331,7 +334,8 @@ extension WindowManager {
   private func reconcile() {
     guard isTiling else { return }
     let sync = syncWorkspaces()
-    if let index = sync.focusedArrival {
+    if let (key, index) = sync.focusedArrival {
+      rows.focus(key)
       show(index, direction: index > workspaces.currentIndex ? .next : .prev, focusing: false)
     } else if sync.changedCurrent {
       finishAnimation()

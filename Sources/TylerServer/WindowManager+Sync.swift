@@ -7,9 +7,9 @@ extension WindowManager {
   struct SyncOutcome {
     /// Whether the list of any display's current workspace changed.
     var changedCurrent = false
-    /// The parked workspace that the focused window was just assigned to, if it is on the
-    /// focused display.
-    var focusedArrival: Int?
+    /// The parked workspace that the focused window was just assigned to, if any: its display
+    /// and its index in that display's row.
+    var focusedArrival: (key: DisplayKey, index: Int)?
   }
 
   /// Updates every workspace's list on every display (see `WorkspaceSync` for the rules), parks
@@ -37,23 +37,35 @@ extension WindowManager {
         let changed = rows[position][index].sync(eligible: sync.eligible[index])
         if changed && index == rows[position].currentIndex { outcome.changedCurrent = true }
       }
-      if let display = display(at: position) { park(sync.arrivals, on: display) }
+      park(sync.arrivals)
     }
     bookkeeping.seen.formUnion(rows.allWindows)
-    let arrivals = syncs.flatMap(\.arrivals)
+    let arrivals = Set(syncs.flatMap(\.arrivals))
     if let focusedID = registry.focusedID, arrivals.contains(focusedID) {
-      outcome.focusedArrival = workspaces.index(containing: focusedID)
+      outcome.focusedArrival = rows.location(of: focusedID).map { location in
+        (rows.entries[location.position].key, location.index)
+      }
     }
     return outcome
   }
 
-  /// Moves windows straight to their parking spot, without a slide.
-  private func park(_ windowIDs: [WindowID], on display: DisplayInfo) {
-    place(
-      windowIDs.compactMap { windowID in
-        registry.window(withID: windowID).map { window in
-          Placement(id: windowID, frame: Parking.frame(for: window.frame, on: display))
-        }
-      })
+  /// Moves windows of parked workspaces straight to their parking spot, without a slide.
+  func park(_ windowIDs: [WindowID]) {
+    place(windowIDs.compactMap(parkingPlacement(of:)))
+  }
+
+  /// Where a window of a parked workspace waits: the parking spot of its slot in that workspace,
+  /// on that workspace's display. A window arriving from another display then waits at a height
+  /// where that display is, ready to slide in. `nil` if it isn't on a workspace or its display
+  /// isn't connected.
+  func parkingPlacement(of windowID: WindowID) -> Placement? {
+    guard let location = rows.location(of: windowID), let display = display(at: location.position),
+      let window = registry.window(withID: windowID)
+    else { return nil }
+    let workspace = rows[location.position][location.index]
+    let slot =
+      workspace.placements(in: display.visibleFrame, gaps: gaps).first { $0.id == windowID }?.frame
+      ?? CGRect(origin: display.visibleFrame.origin, size: window.frame.size)
+    return Placement(id: windowID, frame: Parking.frame(for: slot, on: display))
   }
 }

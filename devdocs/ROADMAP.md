@@ -299,7 +299,10 @@ Live checks so far (2026-10-11, macOS 26.7, Dell above the laptop):
   - Parking on the Dell can only be checked once commands reach it (increment 13).
 - **"Displays have separate Spaces" turned on by the user.** The S1 limits hold with it on: the Dell's right sliver at 2116 (2117 is pulled back to 2077), its left sliver, the strip at the top (y = −1410), and the laptop's right sliver at 1799 (1800 is pulled back to 1760). With the displays stacked, parking works either way. Side by side with it on is unmeasured.
 
+Increment 13 (the focused display) also made swipes and the menu bar follow the focused display, since both read its row; increment 17 moves swipes to the display under the pointer, and increment 15 is left with checking the menu bar.
+
 Found while building (2026-10-11):
+- **Parking a window that comes from another display at its own height put it where no display is** (a laptop window at y = 100 parked at the Dell's right edge). Arrivals and windows sent to another display now park at the spot of their slot in their workspace, on their workspace's display.
 - **Stale echoes with a display to the right.** tylerd's own moves come back as `.updated` events after it has moved the window on. A pan's end clears its marks and then places the windows' start frames, so for a moment the registry holds a window of the current workspace at its parking spot. With a display to the right, that spot lies mostly on that display, and the sync reads it as a window moved there (the test setup showed it: the window ended up tiled on the other display). Displays stacked as the user has them are safe; increment 16 (no window ever placed on another display) removes the cause. Until then, side by side is unsupported. The test fakes now put the second display above, as on the user's setup, with `FakeDisplays.right` for the cases about a display to the right.
 
 Known limitations:

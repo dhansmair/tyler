@@ -19,6 +19,27 @@ struct WorkspaceCountTests {
         == .error("workspace 7 does not exist (use 1 to 6)"))
   }
 
+  @Test func theLaptopsWorkspacesComeFromDisplays() {
+    let harness = ManagerHarness([1], config: Config(displays: [1: [3, 4, 9]]))
+    #expect(harness.manager.switchWorkspace(.number(9)) == .message("workspace 9"))
+    #expect(
+      harness.manager.switchWorkspace(.number(1))
+        == .error("workspace 1 does not exist (use 3, 4, 9)"))
+    #expect(harness.workspaces() == [1: 3], "windows start on the first")
+  }
+
+  @Test func reloadRenumbersFromDisplaysAndKeepsTheWindows() async {
+    let file = FakeConfigFile()
+    let harness = ManagerHarness([1, 2], configFile: file)
+    await harness.osFocus(2)
+    _ = harness.manager.moveToWorkspace(.number(2), follow: false)
+    file.write(.config(Config(displays: [1: [1, 5]])))
+
+    #expect(harness.manager.reload() == .message("reloaded \(FakeConfigFile.path)"))
+    #expect(harness.workspaces() == [1: 1, 2: 5], "workspace 2's window joined the last")
+    #expect(harness.manager.switchWorkspace(.number(5)) == .message("workspace 5"))
+  }
+
   @Test func reloadAddsWorkspaces() {
     let file = FakeConfigFile()
     let harness = ManagerHarness([1], configFile: file)

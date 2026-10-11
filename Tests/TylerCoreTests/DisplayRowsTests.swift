@@ -180,4 +180,30 @@ struct DisplayRowsTests {
     #expect(numbers(rows) == [[1, 2, 3, 4], [5, 6, 7, 8], [9]], "9 went home, no new one")
   }
 
+  @Test func newConfiguredNumbersRenumberTheRowsAndMergeTheWindowsOfThoseThatGo() {
+    var rows = rows()
+    show(2, in: &rows)
+    rows.setConfigured([[1, 2, 9], [5, 6]])
+    #expect(numbers(rows) == [[1, 2, 9], [5, 6]])
+    #expect(rows[0][2].windows == [WindowID(13), WindowID(14)], "3 and 4 merged into the last")
+    #expect(rows[1][1].windows == [WindowID(16), WindowID(17), WindowID(18)])
+    #expect(current(rows) == [2, 5])
+  }
+
+  @Test func newConfiguredNumbersMoveWorkspacesButKeepThoseMovedByHand() throws {
+    var rows = rows()
+    try rows.moveWorkspace(number: 3, to: dell)
+    rows.setConfigured([[1, 2, 3], [4, 5, 6, 7, 8]])
+    #expect(numbers(rows) == [[1, 2], [3, 4, 5, 6, 7, 8]])
+    #expect(rows.homes[3] == .pinned(dell))
+    #expect(rows.homes[4] == .configured(2))
+  }
+
+  @Test func aDisplayWhoseWorkspacesAllGoGetsANewOneWithTheirWindows() {
+    var rows = rows()
+    rows.setConfigured([[1, 2, 3, 4]])
+    #expect(numbers(rows) == [[1, 2, 3, 4], [9]])
+    #expect(rows[1][0].windows == [15, 16, 17, 18].map(WindowID.init))
+    #expect(rows.homes[9] == .pinned(dell))
+  }
 }

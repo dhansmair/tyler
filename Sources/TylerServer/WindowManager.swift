@@ -87,8 +87,7 @@ public final class WindowManager {
     self.clock = clock
     pendingRestore = saved
     rows = DisplayRows(
-      keys: displays.displays.prefix(1).map(\.key),
-      configured: [WorkspaceRow(count: config.workspaces.count).numbers])
+      keys: displays.displays.prefix(1).map(\.key), configured: Self.configuredNumbers(config))
     updateIndicator()
   }
 

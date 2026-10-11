@@ -131,6 +131,10 @@ follow-interval = 50   # milliseconds between steps of the layout following a dr
 [workspaces]
 count = 6    # workspaces per display
 
+[displays]
+1 = [1, 2, 3, 4]   # the main display's workspaces
+2 = [5, 6, 7, 8]   # the second display's
+
 [gestures]
 fingers = 3            # fingers for swiping between workspaces
 swipe-distance = 0.3   # trackpad widths to swipe a whole workspace across
@@ -153,6 +157,7 @@ Firefox = 3                  # new Firefox windows open on workspace 3
 | `gaps.outer` | Space between the tiled windows and the edge of the display's visible area | `0` |
 | `mouse.follow-interval` | Least time between two steps of the layout following a window you resize with the mouse, in milliseconds (0 to 1000) | `50` |
 | `workspaces.count` | How many workspaces each display has (1 to 10) | `4` |
+| `displays.<n>` | The numbers of display `<n>`'s workspaces (1 to 99, at most 10 per display) | `count` each, numbered on from the previous display |
 | `gestures.swipe` | Whether a sideways trackpad swipe moves between workspaces (`true` or `false`) | `true` |
 | `gestures.fingers` | How many fingers that swipe takes (3 or 4) | `3` |
 | `gestures.swipe-distance` | How far your fingers travel to swipe a whole workspace across, in trackpad widths (0.1 to 1.0): lower is more sensitive | `0.3` |
@@ -161,11 +166,13 @@ Firefox = 3                  # new Firefox windows open on workspace 3
 | `indicator.show-icons` | Whether the map shows each window's app icon | `true` |
 | `indicator.icon-font` | The font of glyph icons in `[indicator.icons]` (family or PostScript name) | `"Symbols Nerd Font"` |
 | `indicator.icons.<app>` | An SF Symbol's name, or one glyph, that the map shows on `<app>`'s windows instead of its icon | none |
-| `assign.<app>` | The workspace that new windows of `<app>` open on | none |
+| `assign.<app>` | The number of the workspace that new windows of `<app>` open on | none |
 
 Gaps are whole numbers in points, the unit macOS uses for window positions (on a Retina display, one point is two pixels).
 
-Changing `workspaces.count` and running `tyler reload` takes effect at once. New workspaces are added at the end of the row. When you remove workspaces, their windows move to the new last workspace, after the windows already there; if the workspace on screen was removed, the new last one comes into view.
+Workspace numbers are shared by all displays: each number belongs to one display. Without `[displays]`, each display gets `workspaces.count` workspaces, numbered on from the previous display: with the default of 4, the main display has 1 to 4 and a second display 5 to 8. `[displays]` lists them instead, by display number (1 is the main display, the one with the menu bar); a display it doesn't list gets `workspaces.count` workspaces numbered after the highest listed one. A display's workspaces are always in number order. For now tyler tiles only the main display, so the workspaces it lists for other displays are on the main display's row too.
+
+Changing `workspaces.count` or `[displays]` and running `tyler reload` takes effect at once. New workspaces are added in number order. When you remove workspaces, their windows move to the last workspace of their display, after the windows already there; if the workspace on screen was removed, the new last one comes into view.
 
 App icons are detailed for a box this small. In `[indicator.icons]`, each line gives an app a simpler icon instead, either:
 
@@ -174,7 +181,7 @@ App icons are detailed for a box this small. In `[indicator.icons]`, each line g
 
 Name the app as in `[assign]` below. The icon is cut out of the window's box, so it reads in light and dark menu bars. Apps without a line, symbol names macOS doesn't know, a font that isn't installed and glyphs the font doesn't have all show the app's icon (tylerd logs which, under `log stream --predicate 'subsystem == "tyler"'`).
 
-In `[assign]`, each line sends an app's new windows to a workspace. Name the app as the `APP` column of `tyler list` shows it, or by its bundle ID (`osascript -e 'id of app "Firefox"'` prints it); both ignore case. Quote names with spaces or dots: `"Google Chrome" = 2`. The workspace number must be within `workspaces.count`.
+In `[assign]`, each line sends an app's new windows to a workspace. Name the app as the `APP` column of `tyler list` shows it, or by its bundle ID (`osascript -e 'id of app "Firefox"'` prints it); both ignore case. Quote names with spaces or dots: `"Google Chrome" = 2`. The workspace number is one of the shared numbers above (1 to 99); with `[displays]`, it must be one the table lists.
 
 An assignment applies once, when a window is tiled for the first time: when it opens, or when `tylerd` starts and finds it open. If the workspace isn't on screen, the window is parked there. Apps usually focus a window they open, and focusing a parked window switches to its workspace, so you follow the window there; a window that opens in the background just waits on its workspace. After that, the window behaves like any other: `move-to-workspace` moves it, and it stays where you put it when you float it, minimize it or take it out of fullscreen. Changing `[assign]` and running `tyler reload` affects windows opened afterwards, not the ones already open.
 

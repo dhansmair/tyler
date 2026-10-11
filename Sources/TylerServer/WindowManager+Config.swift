@@ -16,8 +16,9 @@ extension WindowManager {
     } catch {
       return .error("\(configSource.path): \(error) (the current settings stay)")
     }
+    let previous = config
     config = loaded ?? Config()
-    applyWorkspaceCount()
+    applyWorkspaceNumbers(previous: previous)
     if state == .running { applyGestures() }
     let summary =
       loaded == nil
@@ -29,11 +30,12 @@ extension WindowManager {
     return .message("\(summary); \(failures) window\(failures == 1 ? "" : "s") could not be placed")
   }
 
-  /// Adds or removes workspaces to match the config. Windows of removed workspaces join the new
-  /// last one; the caller re-tiles.
-  private func applyWorkspaceCount() {
-    guard workspaces.count != config.workspaces.count else { return }
+  /// Adds or removes workspaces to match the config (see `DisplayRows.setConfigured`); the
+  /// caller re-tiles.
+  private func applyWorkspaceNumbers(previous: Config) {
+    let configured = Self.configuredNumbers(config)
+    guard configured != Self.configuredNumbers(previous) else { return }
     endDrag()
-    workspaces.setCount(config.workspaces.count)
+    rows.setConfigured(configured)
   }
 }

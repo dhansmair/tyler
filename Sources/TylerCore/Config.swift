@@ -68,19 +68,24 @@ public struct Config: Equatable, Sendable {
   public var indicator: Indicator
   public var mouse: Mouse
   public var workspaces: Workspaces
-  /// The workspace (1-based) new windows of an app open on, keyed by bundle ID or app name in
-  /// lower case.
+  /// The workspace numbers of each display, by display number (1 is the primary); empty when the
+  /// config file has no `[displays]` (see `workspaceNumbers`).
+  public var displays: [Int: [Int]]
+  /// The number of the workspace new windows of an app open on, keyed by bundle ID or app name
+  /// in lower case.
   public var assignments: [String: Int]
 
   public init(
     gaps: Gaps = Gaps(), gestures: Gestures = Gestures(), indicator: Indicator = Indicator(),
-    mouse: Mouse = Mouse(), workspaces: Workspaces = Workspaces(), assignments: [String: Int] = [:]
+    mouse: Mouse = Mouse(), workspaces: Workspaces = Workspaces(), displays: [Int: [Int]] = [:],
+    assignments: [String: Int] = [:]
   ) {
     self.gaps = gaps
     self.gestures = gestures
     self.indicator = indicator
     self.mouse = mouse
     self.workspaces = workspaces
+    self.displays = displays
     self.assignments = assignments
   }
 
@@ -126,10 +131,9 @@ extension Config {
       throw .syntax(error)
     }
     var config = Config()
-    var assign: TOMLValue?
     for (key, value) in document.sorted(by: { $0.key < $1.key }) {
       switch key {
-      case "assign": assign = value
+      case "assign", "displays": break  // read below
       case "gaps": config.gaps = try Gaps(value)
       case "gestures": config.gestures = try Gestures(value)
       case "indicator": config.indicator = try Indicator(value)
@@ -138,17 +142,25 @@ extension Config {
       default: throw .invalid("unknown setting '\(key)'")
       }
     }
-    // Read last: the numbers are checked against the workspace count.
-    if let assign {
-      config.assignments = try Self.assignments(assign, count: config.workspaces.count)
-    }
+    try config.readWorkspaceNumbers(from: document)
     return config
+  }
+
+  /// `[displays]`, then `[assign]`, whose numbers are checked against it.
+  private mutating func readWorkspaceNumbers(
+    from document: [String: TOMLValue]
+  ) throws(ConfigError) {
+    if let value = document["displays"] { displays = try Self.displays(value) }
+    if let value = document["assign"] {
+      assignments = try Self.assignments(value, displays: displays)
+    }
   }
 
   /// `[assign]`: app (bundle ID or name) = workspace number.
   private static func assignments(
-    _ value: TOMLValue, count: Int
+    _ value: TOMLValue, displays: [Int: [Int]]
   ) throws(ConfigError) -> [String: Int] {
+    let listed = Set(displays.values.joined())
     guard case .table(let table) = value else {
       throw .invalid("assign must be a table: write [assign] and put app = workspace below it")
     }
@@ -157,12 +169,13 @@ extension Config {
       if case .table = value {
         throw .invalid("assign.\(app) is a table: quote app names and bundle IDs that contain dots")
       }
-      guard case .integer(let number) = value, number >= 1 else {
-        throw .invalid("assign.\(app) must be a workspace number, 1 or more")
-      }
-      guard number <= count else {
+      guard case .integer(let number) = value, workspaceNumberRange.contains(number) else {
         throw .invalid(
-          "assign.\(app) = \(number), but there are only \(count) workspaces (workspaces.count)")
+          "assign.\(app) must be a workspace number, \(workspaceNumberRange.lowerBound) to "
+            + "\(workspaceNumberRange.upperBound)")
+      }
+      guard listed.isEmpty || listed.contains(number) else {
+        throw .invalid("assign.\(app) = \(number), but [displays] lists no workspace \(number)")
       }
       guard assignments.updateValue(number, forKey: app.lowercased()) == nil else {
         throw .invalid("assign.\(app) is set twice (app names and bundle IDs ignore case)")

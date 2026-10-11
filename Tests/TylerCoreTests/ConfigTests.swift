@@ -83,6 +83,46 @@ struct ConfigTests {
     #expect(try Config.parse("gestures.swipe-distance = 1").gestures.swipeDistance == 1)
   }
 
+  @Test func displaysListTheirWorkspaces() throws {
+    let config = try Config.parse(
+      """
+      [displays]
+      1 = [4, 1, 2]
+      3 = [7]
+
+      [assign]
+      Firefox = 7
+      """)
+    #expect(config.displays == [1: [1, 2, 4], 3: [7]])
+    #expect(config.assignments == ["firefox": 7])
+  }
+
+  /// `[displays]`, how many displays are connected, and the numbers each display gets.
+  struct NumberingCase: Sendable {
+    let displays: [Int: [Int]]
+    let displayCount: Int
+    let numbers: [[Int]]
+  }
+
+  @Test(arguments: [
+    NumberingCase(displays: [:], displayCount: 1, numbers: [[1, 2, 3, 4]]),
+    NumberingCase(displays: [:], displayCount: 2, numbers: [[1, 2, 3, 4], [5, 6, 7, 8]]),
+    NumberingCase(
+      displays: [1: [1, 2], 2: [5, 6, 7]], displayCount: 1, numbers: [[1, 2], [5, 6, 7]]),
+    NumberingCase(
+      displays: [1: [1, 2], 2: [5, 6, 7]], displayCount: 3,
+      numbers: [[1, 2], [5, 6, 7], [8, 9, 10, 11]]),
+    NumberingCase(displays: [2: [5]], displayCount: 2, numbers: [[6, 7, 8, 9], [5]]),
+  ])
+  func eachDisplayGetsItsListOrTheNextCountWorkspaces(_ numbering: NumberingCase) {
+    let config = Config(displays: numbering.displays)
+    #expect(config.workspaceNumbers(displayCount: numbering.displayCount) == numbering.numbers)
+  }
+
+  @Test func withoutDisplaysAnAssignmentMayNameAnotherDisplaysWorkspace() throws {
+    #expect(try Config.parse("[assign]\nFirefox = 7").assignments == ["firefox": 7])
+  }
+
   @Test(arguments: [
     ("gap = 8", "unknown setting 'gap'"),
     ("[gaps]\ninnr = 8", "unknown setting 'gaps.innr' (use inner or outer)"),
@@ -129,16 +169,28 @@ struct ConfigTests {
     ("[workspaces]\ncount = 11", "workspaces.count must be a whole number, 1 to 10"),
     ("[workspaces]\ncount = \"4\"", "workspaces.count must be a whole number, 1 to 10"),
     ("assign = 3", "assign must be a table: write [assign] and put app = workspace below it"),
-    ("[assign]\nFirefox = 0", "assign.Firefox must be a workspace number, 1 or more"),
-    ("[assign]\nFirefox = \"3\"", "assign.Firefox must be a workspace number, 1 or more"),
+    ("[assign]\nFirefox = 0", "assign.Firefox must be a workspace number, 1 to 99"),
+    ("[assign]\nFirefox = 100", "assign.Firefox must be a workspace number, 1 to 99"),
+    ("[assign]\nFirefox = \"3\"", "assign.Firefox must be a workspace number, 1 to 99"),
     (
-      "[assign]\nFirefox = 5",
-      "assign.Firefox = 5, but there are only 4 workspaces (workspaces.count)"
+      "[assign]\nFirefox = 7\n[displays]\n1 = [1, 2]\n2 = [5]",
+      "assign.Firefox = 7, but [displays] lists no workspace 7"
     ),
+    ("displays = 1", "displays must be a table: write [displays] and put 1 = [1, 2, 3] below it"),
+    ("[displays]\n0 = [1]", "displays.0: name a display by its number, 1 or more"),
+    ("[displays]\nlaptop = [1]", "displays.laptop: name a display by its number, 1 or more"),
+    ("[displays]\n01 = [1]", "displays.01: name a display by its number, 1 or more"),
+    ("[displays]\n1 = 1", "displays.1 must list workspace numbers, 1 to 99, like [1, 2, 3]"),
+    ("[displays]\n1 = [0]", "displays.1 must list workspace numbers, 1 to 99, like [1, 2, 3]"),
+    ("[displays]\n1 = [100]", "displays.1 must list workspace numbers, 1 to 99, like [1, 2, 3]"),
+    ("[displays]\n1 = [\"1\"]", "displays.1 must list workspace numbers, 1 to 99, like [1, 2, 3]"),
+    ("[displays]\n1 = []", "displays.1 must list 1 to 10 workspaces"),
     (
-      "[assign]\nFirefox = 3\n[workspaces]\ncount = 2",
-      "assign.Firefox = 3, but there are only 2 workspaces (workspaces.count)"
+      "[displays]\n1 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]",
+      "displays.1 must list 1 to 10 workspaces"
     ),
+    ("[displays]\n1 = [1, 1]", "displays.1 lists workspace 1 twice"),
+    ("[displays]\n1 = [1, 2]\n2 = [2, 3]", "workspace 2 is listed for display 1 and display 2"),
     (
       "[assign]\norg.mozilla.firefox = 3",
       "assign.org is a table: quote app names and bundle IDs that contain dots"

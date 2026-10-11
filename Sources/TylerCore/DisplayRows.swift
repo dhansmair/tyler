@@ -134,6 +134,42 @@ public struct DisplayRows: Equatable, Sendable {
   @discardableResult
   public mutating func reassign(to keys: [DisplayKey]) -> Bool {
     guard !keys.isEmpty, keys != self.keys else { return false }
+    rebuild(on: keys)
+    return true
+  }
+
+  /// Takes new workspace numbers from the config, where `configured[n]` lists display n + 1's.
+  /// Workspaces whose number the config no longer has go, their windows joining the last
+  /// workspace of their row; new numbers start empty. Each workspace then moves to its home: the
+  /// display the config gives it, unless it was moved by hand and keeps its number.
+  public mutating func setConfigured(_ configured: [[Int]]) {
+    var newHomes: [Int: WorkspaceHome] = [:]
+    for (index, numbers) in configured.enumerated() {
+      for number in numbers where newHomes[number] == nil {
+        newHomes[number] = .configured(index + 1)
+      }
+    }
+    for (number, home) in homes where newHomes[number] != nil {
+      if case .pinned = home { newHomes[number] = home }
+    }
+    let existing = Set(entries.flatMap(\.row.numbers))
+    var next = (Array(newHomes.keys) + existing).max().map { $0 + 1 } ?? 1
+    for position in entries.indices {
+      var kept = entries[position].row.numbers.filter { newHomes[$0] != nil }
+      if position == 0 { kept += newHomes.keys.filter { !existing.contains($0) } }
+      if kept.isEmpty {
+        newHomes[next] = .pinned(entries[position].key)
+        kept = [next]
+        next += 1
+      }
+      entries[position].row.setNumbers(kept)
+    }
+    homes = newHomes
+    rebuild(on: keys)
+  }
+
+  /// Moves every workspace to the display among `keys` it belongs on (see `reassign`).
+  private mutating func rebuild(on keys: [DisplayKey]) {
     let before = Dictionary(
       uniqueKeysWithValues: entries.map { ($0.key, $0.row.number(at: $0.row.currentIndex)) })
     for (key, number) in before where !keys.contains(key) && key != Self.unknownDisplay {
@@ -166,7 +202,6 @@ public struct DisplayRows: Equatable, Sendable {
       selectCurrent(at: position, before: before[entries[position].key], onScreen: onScreen)
     }
     if position(of: focusedKey) == nil { focusedKey = keys[0] }
-    return true
   }
 
   /// Why `moveWorkspace` refused.

@@ -135,6 +135,29 @@ public struct WorkspaceRow: Equatable, Sendable {
     currentIndex = numbers.firstIndex(of: currentNumber) ?? numbers.count - 1
   }
 
+  /// Adds `workspace` as number `number`, in number order; the current workspace stays current.
+  /// Returns false, changing nothing, if the row already has that number.
+  @discardableResult
+  public mutating func insert(_ workspace: Workspace, number: Int) -> Bool {
+    guard !numbers.contains(number) else { return false }
+    let index = numbers.firstIndex { $0 > number } ?? numbers.count
+    numbers.insert(number, at: index)
+    workspaces.insert(workspace, at: index)
+    if index <= currentIndex { currentIndex += 1 }
+    return true
+  }
+
+  /// Takes out the workspace numbered `number`, with its windows. If it was current, the next one
+  /// becomes current, or the previous one at the end of the row. Returns `nil`, changing nothing,
+  /// if the row has no such workspace or it is the row's only one.
+  public mutating func remove(number: Int) -> Workspace? {
+    guard count > 1, let index = index(ofNumber: number) else { return nil }
+    numbers.remove(at: index)
+    let workspace = workspaces.remove(at: index)
+    if index < currentIndex || currentIndex == count { currentIndex -= 1 }
+    return workspace
+  }
+
   /// Records that `windowID` got focus, on whichever workspace holds it.
   @discardableResult
   public mutating func setFocus(_ windowID: WindowID) -> Bool {

@@ -19,6 +19,8 @@ public struct Workspace: Equatable, Sendable {
   public private(set) var focused: WindowID?
   public var layout: LayoutKind
   public private(set) var parameters: LayoutParameters
+  /// Window sizes for the strip layout, kept in every layout. Windows without one are `half`.
+  public private(set) var sizes: [WindowID: WindowSize] = [:]
 
   public init(layout: LayoutKind = .tall, parameters: LayoutParameters = LayoutParameters()) {
     self.layout = layout
@@ -60,6 +62,7 @@ public struct Workspace: Equatable, Sendable {
   public mutating func remove(_ windowID: WindowID) -> Bool {
     guard let index = windows.firstIndex(of: windowID) else { return false }
     windows.remove(at: index)
+    sizes[windowID] = nil
     if focused == windowID {
       focused = windows.isEmpty ? nil : windows[min(index, windows.count - 1)]
     }
@@ -164,6 +167,19 @@ public struct Workspace: Equatable, Sendable {
 
   // MARK: - Layout
 
+  /// The window's size in the strip layout.
+  public func size(of windowID: WindowID) -> WindowSize {
+    sizes[windowID] ?? .half
+  }
+
+  /// Sets a tiled window's size in the strip layout. Returns whether it changed.
+  @discardableResult
+  public mutating func setSize(_ size: WindowSize, of windowID: WindowID) -> Bool {
+    guard contains(windowID), self.size(of: windowID) != size else { return false }
+    sizes[windowID] = size
+    return true
+  }
+
   @discardableResult
   public mutating func adjustRatio(by delta: Double) -> Bool {
     parameters.adjustRatio(by: delta)
@@ -195,7 +211,7 @@ public struct Workspace: Equatable, Sendable {
   }
 
   private var layoutInput: LayoutInput {
-    LayoutInput(count: windows.count, parameters: parameters)
+    LayoutInput(count: windows.count, parameters: parameters, sizes: windows.map(size(of:)))
   }
 
   private var focusedIndex: Int? {

@@ -179,7 +179,7 @@ Decisions (2026-10-11, with the user): the list stays the only model, and column
 
 - [x] Tests pinning what the `Layout` protocol rework touches: gaps reach workspaces not on screen, workspaces a reload adds, and handed-over workspaces; a reload keeps row heights
 - [x] `Layout` protocol rework: `LayoutInput` (count and parameters; the strip adds sizes and the view) and `LayoutGaps` (REFACTORING 11.3). Gaps are no longer stored in each workspace
-- [ ] TylerCore: `WindowSize`, per-window sizes in `Workspace`, `StripLayout` (packing, fit, end clamp)
+- [x] TylerCore: `WindowSize`, per-window sizes in `Workspace` (carried by `WorkspaceRow.move`, forgotten when a window leaves), `StripLayout` and `StripColumns` (packing, fit, end clamp, snap points), `LayoutInput.sizes` and `firstVisible`. Not a `LayoutKind` yet
 - [ ] TylerCore: the view anchor, `offView(in:)`, off-view windows kept by `WorkspaceSync`, sizes and anchor in `SavedState`
 - [ ] TylerServer: `LayoutKind.strip`, off-view windows parked, focus scrolls (jumps), `tyler size`
 - [ ] Animated scroll

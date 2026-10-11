@@ -87,10 +87,24 @@ public struct LayoutInput: Equatable, Sendable {
   /// How many windows the workspace tiles.
   public var count: Int
   public var parameters: LayoutParameters
+  /// Each window's size in the strip layout, in list order. Windows without one are `half`.
+  public var sizes: [WindowSize]
+  /// The index of a window in the strip's leftmost visible column.
+  public var firstVisible: Int
 
-  public init(count: Int, parameters: LayoutParameters = LayoutParameters()) {
+  public init(
+    count: Int, parameters: LayoutParameters = LayoutParameters(), sizes: [WindowSize] = [],
+    firstVisible: Int = 0
+  ) {
     self.count = count
     self.parameters = parameters
+    self.sizes = sizes
+    self.firstVisible = firstVisible
+  }
+
+  /// One size per window: `sizes`, padded with `half` or cut to `count`.
+  var windowSizes: [WindowSize] {
+    (0..<count).map { $0 < sizes.count ? sizes[$0] : .half }
   }
 }
 

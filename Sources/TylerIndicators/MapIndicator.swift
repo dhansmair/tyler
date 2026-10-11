@@ -3,13 +3,12 @@ import TylerCore
 
 /// The map menu bar item: a thumbnail of every workspace with its windows, as `WorkspaceMap`
 /// lays them out: the current workspace's windows bright and the others' dimmed, the focused
-/// window bordered in the accent colour. A left click on a thumbnail switches to that workspace;
+/// window filled in a light accent colour. A left click on a thumbnail switches to that workspace;
 /// a right click or ctrl-click opens the same menu as the text item. Hidden while tiling isn't
 /// running, and when `[indicator] map = false`.
 @MainActor
 public final class MapIndicator: NSObject, Indicator {
   private static let cornerRadius: CGFloat = 2
-  private static let focusBorder: CGFloat = 1.5
 
   private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
   private let perform: @MainActor (Request) -> Void
@@ -65,6 +64,12 @@ public final class MapIndicator: NSObject, Indicator {
     item.menu = nil
   }
 
+  /// The focused window's fill: the accent colour (blue unless changed in System Settings),
+  /// lightened. Blended here, while the image draws, so it follows the appearance and accent.
+  private static var focusColor: NSColor {
+    NSColor.controlAccentColor.blended(withFraction: 0.4, of: .white) ?? .controlAccentColor
+  }
+
   /// The map as an image. Not a template image, so the accent colour survives; the colours are
   /// dynamic and resolve against the menu bar's appearance each time the image is drawn.
   private static func image(for map: WorkspaceMap) -> NSImage {
@@ -84,17 +89,9 @@ public final class MapIndicator: NSObject, Indicator {
     let windowColor: NSColor = thumbnail.isCurrent ? .labelColor : .secondaryLabelColor
     slotColor.setFill()
     NSBezierPath(roundedRect: thumbnail.frame, xRadius: cornerRadius, yRadius: cornerRadius).fill()
-    windowColor.setFill()
-    for window in thumbnail.windows {
+    for (index, window) in thumbnail.windows.enumerated() {
+      (index == thumbnail.focusedIndex ? focusColor : windowColor).setFill()
       window.fill()
-    }
-    // On top, inside the window's rectangle, so it stays visible against the white ones.
-    if let index = thumbnail.focusedIndex {
-      let inset = focusBorder / 2
-      let border = NSBezierPath(rect: thumbnail.windows[index].insetBy(dx: inset, dy: inset))
-      border.lineWidth = focusBorder
-      NSColor.controlAccentColor.setStroke()
-      border.stroke()
     }
   }
 }

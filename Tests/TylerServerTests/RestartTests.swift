@@ -33,7 +33,7 @@ struct RestartTests {
     let successor = harness.successor(saved: harness.manager.handOver())
     #expect(successor.workspaces() == [1: 1, 2: 1, 3: 2])
     #expect(successor.backend.moves.isEmpty, "every window is already where it belongs")
-    #expect(successor.manager.setLayout(.next) == .message("layout tall"), "the layout survived")
+    #expect(successor.manager.setLayout(.next) == .message("layout strip"), "the layout survived")
   }
 
   @Test func windowsThatClosedInBetweenAreLeftOut() async {

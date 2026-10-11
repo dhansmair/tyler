@@ -13,12 +13,20 @@ extension WindowManager {
   /// The configured space around and between tiled windows, the same on every workspace.
   var gaps: LayoutGaps { LayoutGaps(config.gaps) }
 
-  /// Where the current workspace's layout puts each of its windows; `nil` without a display.
+  /// Where the current workspace's layout puts each of its windows in view; `nil` without a
+  /// display.
   func currentPlacements() -> [Placement]? {
     primaryDisplay.map { workspaces.current.placements(in: $0.visibleFrame, gaps: gaps) }
   }
 
-  /// Where the current workspace's layout puts `windowID`; `nil` if it isn't tiled there.
+  /// The current workspace's windows out of view (in the strip layout), which wait parked.
+  var offViewWindows: Set<WindowID> {
+    guard let display = primaryDisplay else { return [] }
+    return Set(workspaces.current.offView(in: display.visibleFrame, gaps: gaps))
+  }
+
+  /// Where the current workspace's layout puts `windowID`; `nil` if it isn't tiled there or is
+  /// out of view.
   func slot(of windowID: WindowID) -> Placement? {
     currentPlacements()?.first { $0.id == windowID }
   }

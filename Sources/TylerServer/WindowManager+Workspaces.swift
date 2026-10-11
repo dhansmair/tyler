@@ -65,10 +65,19 @@ extension WindowManager {
   // MARK: - Switching
 
   /// The OS focused `windowID` (a click, cmd-tab, an app raising itself). If it lives on a
-  /// parked workspace and the focus wasn't tylerd's own doing, that workspace comes into view.
+  /// parked workspace and the focus wasn't tylerd's own doing, that workspace comes into view. If it
+  /// is a strip window out of view on the current workspace, the strip scrolls to it.
   func focusChanged(to windowID: WindowID) {
     let isEcho = bookkeeping.pendingFocus.remove(windowID) != nil
+    let view = workspaces.current.firstVisible
     workspaces.setFocus(windowID)
+    let isOnCurrent = workspaces.index(containing: windowID) == workspaces.currentIndex
+    if isTiling, isOnCurrent, workspaces.current.firstVisible != view {
+      // A click or cmd-tab on a strip window out of view scrolls to it.
+      finishAnimation()
+      applyLayout()
+      return
+    }
     guard !isEcho, isTiling,
       let index = workspaces.index(containing: windowID), index != workspaces.currentIndex
     else { return }
@@ -102,8 +111,10 @@ extension WindowManager {
   func slidePlan(
     to index: Int, direction: ScrollDirection, on display: DisplayInfo
   ) -> SlidePlan {
-    let leaving = workspaces.current.windows.compactMap { windowID in
-      registry.window(withID: windowID).map { Placement(id: windowID, frame: $0.frame) }
+    // Only windows in view leave: strip windows out of view are parked already.
+    let leaving = workspaces.current.placements(in: display.visibleFrame, gaps: gaps).compactMap {
+      placement in
+      registry.window(withID: placement.id).map { Placement(id: placement.id, frame: $0.frame) }
     }
     return SlidePlan(
       to: index, direction: direction, leaving: leaving,
@@ -229,8 +240,9 @@ extension WindowManager {
 
   /// Brings every parked window back to where it was before tylerd moved it and empties the
   /// other workspaces. The current workspace keeps its list (so `tiling on` restores its order) and
-  /// its windows stay where they are.
+  /// its windows in view stay where they are.
   func unparkAll() {
+    restoreOriginalFrames(of: workspaces.current.windows.filter(offViewWindows.contains))
     for index in workspaces.indices where index != workspaces.currentIndex {
       restoreOriginalFrames(of: workspaces[index].windows)
       workspaces[index].sync(eligible: [])

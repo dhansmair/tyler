@@ -265,7 +265,8 @@ struct FullLayoutTests {
 struct LayoutKindTests {
   @Test func nextCyclesAndWraps() {
     #expect(LayoutKind.tall.next == .full)
-    #expect(LayoutKind.full.next == .tall)
+    #expect(LayoutKind.full.next == .strip)
+    #expect(LayoutKind.strip.next == .tall)
   }
 
   @Test(arguments: LayoutKind.allCases)

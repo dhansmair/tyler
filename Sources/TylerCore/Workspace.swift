@@ -21,6 +21,9 @@ public struct Workspace: Equatable, Sendable {
   public private(set) var parameters: LayoutParameters
   /// Window sizes for the strip layout, kept in every layout. Windows without one are `half`.
   public private(set) var sizes: [WindowID: WindowSize] = [:]
+  /// A window in the strip's leftmost visible column; `nil` while the workspace is empty. Kept
+  /// in every layout, always showing the focused window, so the strip starts out sensibly.
+  public private(set) var firstVisible: WindowID?
 
   public init(layout: LayoutKind = .tall, parameters: LayoutParameters = LayoutParameters()) {
     self.layout = layout
@@ -45,6 +48,7 @@ public struct Workspace: Equatable, Sendable {
   public mutating func insert(_ windowID: WindowID) -> Bool {
     guard !contains(windowID) else { return false }
     windows.insert(windowID, at: insertionIndex)
+    refitView()
     return true
   }
 
@@ -53,19 +57,21 @@ public struct Workspace: Equatable, Sendable {
   public mutating func append(_ windowID: WindowID) -> Bool {
     guard !contains(windowID) else { return false }
     windows.append(windowID)
+    refitView()
     return true
   }
 
   /// Removes a window. If it had focus, focus moves to the window that took its place (or the
-  /// new last window).
+  /// new last window), and so does the strip's view if it started at that window.
   @discardableResult
   public mutating func remove(_ windowID: WindowID) -> Bool {
     guard let index = windows.firstIndex(of: windowID) else { return false }
     windows.remove(at: index)
     sizes[windowID] = nil
-    if focused == windowID {
-      focused = windows.isEmpty ? nil : windows[min(index, windows.count - 1)]
-    }
+    let successor = windows.isEmpty ? nil : windows[min(index, windows.count - 1)]
+    if focused == windowID { focused = successor }
+    if firstVisible == windowID { firstVisible = successor }
+    refitView()
     return true
   }
 
@@ -86,6 +92,7 @@ public struct Workspace: Equatable, Sendable {
       insertionPoint += 1
       changed = true
     }
+    refitView()
     return changed
   }
 
@@ -97,6 +104,7 @@ public struct Workspace: Equatable, Sendable {
   public mutating func setFocus(_ windowID: WindowID) -> Bool {
     guard contains(windowID), focused != windowID else { return false }
     focused = windowID
+    refitView()
     return true
   }
 
@@ -116,6 +124,7 @@ public struct Workspace: Equatable, Sendable {
         focusedIndex.map { $0.stepped(by: -1, wrappingAt: windows.count) } ?? windows.count - 1
     }
     focused = windows[index]
+    refitView()
     return focused
   }
 
@@ -132,6 +141,7 @@ public struct Workspace: Equatable, Sendable {
     case .main: other = current == 0 ? 1 : 0
     }
     windows.swapAt(current, other)
+    refitView()
     return true
   }
 
@@ -143,6 +153,7 @@ public struct Workspace: Equatable, Sendable {
       let secondIndex = windows.firstIndex(of: second)
     else { return false }
     windows.swapAt(firstIndex, secondIndex)
+    refitView()
     return true
   }
 
@@ -177,6 +188,7 @@ public struct Workspace: Equatable, Sendable {
   public mutating func setSize(_ size: WindowSize, of windowID: WindowID) -> Bool {
     guard contains(windowID), self.size(of: windowID) != size else { return false }
     sizes[windowID] = size
+    refitView()
     return true
   }
 
@@ -204,14 +216,80 @@ public struct Workspace: Equatable, Sendable {
     layout = layout.next
   }
 
-  /// One placement per window, in list order.
-  public func placements(in area: CGRect, gaps: LayoutGaps) -> [Placement] {
+  /// Every window's frame, in list order. In the strip layout, windows out of view get frames
+  /// off the area.
+  public func arrangement(in area: CGRect, gaps: LayoutGaps) -> [Placement] {
     let frames = layout.implementation.frames(for: layoutInput, in: area, gaps: gaps)
     return zip(windows, frames).map { Placement(id: $0, frame: $1) }
   }
 
+  /// The windows in view and where they go, in list order. That is every window, except in the
+  /// strip layout.
+  public func placements(in area: CGRect, gaps: LayoutGaps) -> [Placement] {
+    arrangement(in: area, gaps: gaps).filter { Self.isVisible($0.frame, in: area) }
+  }
+
+  /// The windows out of view: only in the strip layout.
+  public func offView(in area: CGRect, gaps: LayoutGaps) -> [WindowID] {
+    arrangement(in: area, gaps: gaps).filter { !Self.isVisible($0.frame, in: area) }.map(\.id)
+  }
+
+  /// Where every window rests on `display`: the windows in view in their slots, the others
+  /// parked at the display's edge, keeping the size they'll have in view.
+  public func restingPlacements(on display: DisplayInfo, gaps: LayoutGaps) -> [Placement] {
+    let area = display.visibleFrame
+    return arrangement(in: area, gaps: gaps).map { placement in
+      Self.isVisible(placement.frame, in: area)
+        ? placement
+        : Placement(id: placement.id, frame: Parking.frame(for: placement.frame, on: display))
+    }
+  }
+
   private var layoutInput: LayoutInput {
-    LayoutInput(count: windows.count, parameters: parameters, sizes: windows.map(size(of:)))
+    LayoutInput(
+      count: windows.count, parameters: parameters, sizes: windows.map(size(of:)),
+      firstVisible: firstVisible.flatMap(windows.firstIndex(of:)) ?? 0)
+  }
+
+  /// Whether a frame is in view: its centre is inside the area. A strip column out of view lies
+  /// wholly off it, a column in view wholly on it.
+  private static func isVisible(_ frame: CGRect, in area: CGRect) -> Bool {
+    area.contains(CGPoint(x: frame.midX, y: frame.midY))
+  }
+
+  // MARK: - The strip's view
+
+  /// Scrolls the strip so that `windowID`'s column is the leftmost in view, or as near as the
+  /// strip's end allows. If the focused window scrolled out of view, focus moves to the nearest
+  /// window in view. Returns whether focus moved.
+  @discardableResult
+  public mutating func scroll(toFirstVisible windowID: WindowID) -> Bool {
+    let columns = StripColumns(sizes: windows.map(size(of:)))
+    guard let column = windows.firstIndex(of: windowID).flatMap(columns.column(of:)) else {
+      return false
+    }
+    let start = columns.clampedToEnd(column)
+    firstVisible = windows[columns.columns[start][0]]
+    let visible = columns.visible(from: start)
+    guard let focusedColumn = focusedIndex.flatMap(columns.column(of:)),
+      !visible.contains(focusedColumn)
+    else { return false }
+    let nearest = focusedColumn < visible.lowerBound ? visible.lowerBound : visible.upperBound - 1
+    focused = windows[columns.columns[nearest][0]]
+    return true
+  }
+
+  /// Moves the strip's view the least that shows the focused window whole.
+  private mutating func refitView() {
+    guard !windows.isEmpty else {
+      firstVisible = nil
+      return
+    }
+    let columns = StripColumns(sizes: windows.map(size(of:)))
+    let previous = firstVisible.flatMap(windows.firstIndex(of:)).flatMap(columns.column(of:)) ?? 0
+    let start = columns.fittedStart(
+      previous: previous, focused: focusedIndex.flatMap(columns.column(of:)))
+    firstVisible = windows[columns.columns[start][0]]
   }
 
   private var focusedIndex: Int? {

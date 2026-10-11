@@ -180,8 +180,9 @@ Decisions (2026-10-11, with the user): the list stays the only model, and column
 - [x] Tests pinning what the `Layout` protocol rework touches: gaps reach workspaces not on screen, workspaces a reload adds, and handed-over workspaces; a reload keeps row heights
 - [x] `Layout` protocol rework: `LayoutInput` (count and parameters; the strip adds sizes and the view) and `LayoutGaps` (REFACTORING 11.3). Gaps are no longer stored in each workspace
 - [x] TylerCore: `WindowSize`, per-window sizes in `Workspace` (carried by `WorkspaceRow.move`, forgotten when a window leaves), `StripLayout` and `StripColumns` (packing, fit, end clamp, snap points), `LayoutInput.sizes` and `firstVisible`. Not a `LayoutKind` yet
-- [ ] TylerCore: the view anchor, `offView(in:)`, off-view windows kept by `WorkspaceSync`, sizes and anchor in `SavedState`
-- [ ] TylerServer: `LayoutKind.strip`, off-view windows parked, focus scrolls (jumps), `tyler size`
+- [x] TylerCore: the view (`Workspace.firstVisible`, refitted after every change so the focused window stays in view; `scroll(toFirstVisible:)` moves focus into the view), `arrangement`/`placements`/`offView`/`restingPlacements` (a frame is in view when its centre is), sizes and view in `SavedState` (optional fields)
+- [x] TylerServer: `LayoutKind.strip` (`↔` in the menu bar), off-view windows parked by `applyLayout` and kept on their workspace by the sync, only windows in view slide between workspaces, `tiling off` brings off-view windows back, focusing a window out of view (command or click) scrolls to it (a jump for now)
+- [ ] `tyler size full|half|quarter|next`
 - [ ] Animated scroll
 - [ ] Swipe scrolls the strip (`PanTarget.strip`)
 - [ ] Manual

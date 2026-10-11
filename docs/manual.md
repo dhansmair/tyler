@@ -51,6 +51,7 @@ A layout turns the tiling list into window frames, within the display's visible 
 
 - `tall`: the master fills the left column, and the other windows are stacked in the right column. Two windows sit side by side; three give one on the left and two on the right.
 - `full`: every window fills the whole area.
+- `strip`: the windows form one long row of columns that scrolls left and right, and the display shows as many whole columns as fit. Each window is half the width by default, so two windows look like `tall`. Focusing a window out of view scrolls to it. Windows out of view wait at the right edge, like the windows of other workspaces.
 
 The *master ratio* is the master column's share of the width in `tall`. Each workspace has its own layout and master ratio (`tyler layout`, `tyler ratio`).
 
@@ -171,7 +172,7 @@ tyler <command> [arguments]
 | `reload` | Read the config file again and apply it |
 | `focus next\|prev\|master` | Move focus within the tiling list |
 | `swap next\|prev\|master` | Swap the focused window with another one |
-| `layout tall\|full\|next` | Choose the layout |
+| `layout tall\|full\|strip\|next` | Choose the layout |
 | `ratio +<step>\|-<step>` | Widen or narrow the master column |
 | `float toggle` | Float the focused window, or tile it again |
 | `tiling on\|off\|toggle` | Start or stop tiling |
@@ -277,7 +278,8 @@ Swaps the focused window with its neighbour in the list (wrapping around) or wit
 ```bash
 tyler layout tall
 tyler layout full
-tyler layout next     # cycle: tall, full, tall, ...
+tyler layout strip
+tyler layout next     # cycle: tall, full, strip, tall, ...
 ```
 
 Sets the layout of the current workspace and prints its name.

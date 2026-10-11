@@ -86,9 +86,10 @@ struct TilingCommandTests {
     }
   }
 
-  @Test func layoutNextCyclesBetweenTallAndFull() {
+  @Test func layoutNextCyclesThroughEveryLayout() {
     let harness = ManagerHarness([1, 2])
     #expect(harness.manager.setLayout(.next) == .message("layout full"))
+    #expect(harness.manager.setLayout(.next) == .message("layout strip"))
     #expect(harness.manager.setLayout(.next) == .message("layout tall"))
   }
 

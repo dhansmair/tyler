@@ -21,7 +21,9 @@ extension WindowManager {
       let sync = WorkspaceSync.plan(
         for: workspaces, windows: registry.windows, displays: connected,
         marks: WorkspaceSync.Marks(
-          floated: bookkeeping.floated, seen: bookkeeping.seen, sliding: animatingWindows),
+          floated: bookkeeping.floated, seen: bookkeeping.seen,
+          // Strip windows out of view are parked like other workspaces' windows.
+          sliding: animatingWindows.union(offViewWindows)),
         assignedWorkspace: {
           self.config.assignedWorkspace(bundleID: $0.bundleID, appName: $0.appName)
         })

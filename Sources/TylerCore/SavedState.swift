@@ -15,16 +15,33 @@ public struct SavedState: Codable, Equatable, Sendable {
     public var mainRatio: Double
     /// `LayoutParameters.rowWeights`; missing in files from before mouse resizing.
     public var rowWeights: [[Double]]?
+    /// The windows' strip sizes, other than `half`; missing in files from before the strip.
+    public var sizes: [SavedSize]?
+    /// `Workspace.firstVisible`; missing in files from before the strip.
+    public var firstVisible: WindowID?
 
     public init(
       windows: [WindowID], focused: WindowID?, layout: LayoutKind, mainRatio: Double,
-      rowWeights: [[Double]]? = nil
+      rowWeights: [[Double]]? = nil, sizes: [SavedSize]? = nil, firstVisible: WindowID? = nil
     ) {
       self.windows = windows
       self.focused = focused
       self.layout = layout
       self.mainRatio = mainRatio
       self.rowWeights = rowWeights
+      self.sizes = sizes
+      self.firstVisible = firstVisible
+    }
+  }
+
+  /// A window's size in the strip layout.
+  public struct SavedSize: Codable, Equatable, Sendable {
+    public var id: WindowID
+    public var size: WindowSize
+
+    public init(id: WindowID, size: WindowSize) {
+      self.id = id
+      self.size = size
     }
   }
 
@@ -73,8 +90,8 @@ public struct SavedState: Codable, Equatable, Sendable {
   }
 
   /// A row of `count` workspaces holding the saved windows that still exist (`exists`), in
-  /// their saved order, with their focus, layout, ratio and row weights. Saved workspaces beyond
-  /// `count` are merged into the last one, as `WorkspaceRow.setCount` does.
+  /// their saved order, with their focus, layout, ratio, row weights, strip sizes and view. Saved
+  /// workspaces beyond `count` are merged into the last one, as `WorkspaceRow.setCount` does.
   public func row(count: Int, keeping exists: (WindowID) -> Bool) -> WorkspaceRow {
     var row = WorkspaceRow(count: max(count, workspaces.count))
     for (index, saved) in workspaces.enumerated() where index < row.count {
@@ -138,7 +155,11 @@ extension SavedState.SavedWorkspace {
   init(_ workspace: Workspace) {
     self.init(
       windows: workspace.windows, focused: workspace.focused, layout: workspace.layout,
-      mainRatio: workspace.parameters.mainRatio, rowWeights: workspace.parameters.rowWeights)
+      mainRatio: workspace.parameters.mainRatio, rowWeights: workspace.parameters.rowWeights,
+      sizes: workspace.sizes.sorted { $0.key < $1.key }.map {
+        SavedState.SavedSize(id: $0.key, size: $0.value)
+      },
+      firstVisible: workspace.firstVisible)
   }
 
   /// The workspace as saved, with only the windows that still exist (`exists`).
@@ -148,7 +169,11 @@ extension SavedState.SavedWorkspace {
     for windowID in windows where exists(windowID) {
       workspace.insert(windowID)
     }
+    for saved in sizes ?? [] {
+      workspace.setSize(saved.size, of: saved.id)
+    }
     if let focused { workspace.setFocus(focused) }
+    if let firstVisible { workspace.scroll(toFirstVisible: firstVisible) }
     return workspace
   }
 }

@@ -143,6 +143,7 @@ extension Layout {
 public enum LayoutKind: String, Codable, CaseIterable, Sendable {
   case tall
   case full
+  case strip
 
   public var next: LayoutKind {
     let all = Self.allCases
@@ -155,6 +156,7 @@ public enum LayoutKind: String, Codable, CaseIterable, Sendable {
     switch self {
     case .tall: TallLayout()
     case .full: FullLayout()
+    case .strip: StripLayout()
     }
   }
 
@@ -163,6 +165,7 @@ public enum LayoutKind: String, Codable, CaseIterable, Sendable {
     switch self {
     case .tall: "▥"
     case .full: "▢"
+    case .strip: "↔"
     }
   }
 }

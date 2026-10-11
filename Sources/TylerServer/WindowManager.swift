@@ -223,13 +223,16 @@ public final class WindowManager {
 
   public func focus(_ target: ListTarget) -> Response {
     if let failure = beginCommand() { return failure }
+    let view = workspaces.current.firstVisible
     guard let windowID = workspaces.current.focus(target) else { return .error("no tiled windows") }
+    // In the strip, focusing a window out of view scrolls to it.
+    let failures = workspaces.current.firstVisible == view ? 0 : applyLayout()
     do {
       try requestFocus(windowID)
     } catch {
       return .error("cannot focus window \(windowID): \(error)")
     }
-    return .ok
+    return outcome(failures: failures)
   }
 
   public func swap(_ target: ListTarget) -> Response {
@@ -344,12 +347,14 @@ extension WindowManager {
     }
   }
 
-  /// Moves every window of the current workspace to its slot, returning how many could not be
-  /// placed. Windows already within a point of their slot are skipped (each move is a round
-  /// trip to the app) unless `force` is set.
+  /// Moves every window of the current workspace to its slot, or parks it if it is out of view
+  /// (in the strip layout), returning how many could not be placed. Windows already within a
+  /// point of their spot are skipped (each move is a round trip to the app) unless `force` is
+  /// set.
   @discardableResult
   func applyLayout(force: Bool = false) -> Int {
-    guard let placements = currentPlacements() else { return 0 }
+    guard let display = primaryDisplay else { return 0 }
+    let placements = workspaces.current.restingPlacements(on: display, gaps: gaps)
     return place(force ? placements : placements.filter { !isInPlace($0) })
   }
 }

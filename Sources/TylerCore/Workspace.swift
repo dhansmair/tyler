@@ -16,14 +16,14 @@ public struct Placement: Equatable, Sendable {
 public struct Workspace: Equatable, Sendable {
   public private(set) var windows: [WindowID] = []
   /// The tiled window that `focus` and `swap` are relative to.
-  public private(set) var focused: WindowID?
+  public internal(set) var focused: WindowID?
   public var layout: LayoutKind
   public private(set) var parameters: LayoutParameters
   /// Window sizes for the strip layout, kept in every layout. Windows without one are `half`.
-  public private(set) var sizes: [WindowID: WindowSize] = [:]
+  public internal(set) var sizes: [WindowID: WindowSize] = [:]
   /// A window in the strip's leftmost visible column; `nil` while the workspace is empty. Kept
   /// in every layout, always showing the focused window, so the strip starts out sensibly.
-  public private(set) var firstVisible: WindowID?
+  public internal(set) var firstVisible: WindowID?
 
   public init(layout: LayoutKind = .tall, parameters: LayoutParameters = LayoutParameters()) {
     self.layout = layout
@@ -62,10 +62,12 @@ public struct Workspace: Equatable, Sendable {
   }
 
   /// Removes a window. If it had focus, focus moves to the window that took its place (or the
-  /// new last window), and so does the strip's view if it started at that window.
+  /// new last window), and so does the strip's view if it started at that window. A `quarter`
+  /// window's column mate goes back to `half`.
   @discardableResult
   public mutating func remove(_ windowID: WindowID) -> Bool {
     guard let index = windows.firstIndex(of: windowID) else { return false }
+    unpair(windowID)
     windows.remove(at: index)
     sizes[windowID] = nil
     let successor = windows.isEmpty ? nil : windows[min(index, windows.count - 1)]
@@ -178,20 +180,6 @@ public struct Workspace: Equatable, Sendable {
 
   // MARK: - Layout
 
-  /// The window's size in the strip layout.
-  public func size(of windowID: WindowID) -> WindowSize {
-    sizes[windowID] ?? .half
-  }
-
-  /// Sets a tiled window's size in the strip layout. Returns whether it changed.
-  @discardableResult
-  public mutating func setSize(_ size: WindowSize, of windowID: WindowID) -> Bool {
-    guard contains(windowID), self.size(of: windowID) != size else { return false }
-    sizes[windowID] = size
-    refitView()
-    return true
-  }
-
   @discardableResult
   public mutating func adjustRatio(by delta: Double) -> Bool {
     parameters.adjustRatio(by: delta)
@@ -245,75 +233,13 @@ public struct Workspace: Equatable, Sendable {
     }
   }
 
-  private var layoutInput: LayoutInput {
+  var layoutInput: LayoutInput {
     LayoutInput(
       count: windows.count, parameters: parameters, sizes: windows.map(size(of:)),
       firstVisible: firstVisible.flatMap(windows.firstIndex(of:)) ?? 0)
   }
 
-  // MARK: - The strip's view
-
-  /// One place the strip's view can rest, where a swipe can settle.
-  public struct StripView: Equatable, Sendable {
-    /// How far the strip is scrolled from its left end, in points.
-    public let offset: CGFloat
-    /// The first window of the leftmost visible column, for `scroll(toFirstVisible:)`.
-    public let firstVisible: WindowID
-    /// Every window's frame with this view, as `arrangement(in:gaps:)` gives them.
-    public let arrangement: [Placement]
-  }
-
-  /// Every view the strip can rest at, left to right; none in other layouts.
-  public func stripViews(in area: CGRect, gaps: LayoutGaps) -> [StripView] {
-    guard layout == .strip else { return [] }
-    let columns = StripColumns(sizes: windows.map(size(of:)))
-    let geometry = StripGeometry(area: area, gaps: gaps)
-    return columns.starts.map { start in
-      let first = columns.columns[start][0]
-      var input = layoutInput
-      input.firstVisible = first
-      let frames = StripLayout().frames(for: input, in: area, gaps: gaps)
-      return StripView(
-        offset: CGFloat(geometry.left(at: columns.offset(of: start)) - geometry.left(at: 0)),
-        firstVisible: windows[first],
-        arrangement: zip(windows, frames).map { Placement(id: $0, frame: $1) })
-    }
-  }
-
-  /// Scrolls the strip so that `windowID`'s column is the leftmost in view, or as near as the
-  /// strip's end allows. If the focused window scrolled out of view, focus moves to the nearest
-  /// window in view. Returns whether focus moved.
-  @discardableResult
-  public mutating func scroll(toFirstVisible windowID: WindowID) -> Bool {
-    let columns = StripColumns(sizes: windows.map(size(of:)))
-    guard let column = windows.firstIndex(of: windowID).flatMap(columns.column(of:)) else {
-      return false
-    }
-    let start = columns.clampedToEnd(column)
-    firstVisible = windows[columns.columns[start][0]]
-    let visible = columns.visible(from: start)
-    guard let focusedColumn = focusedIndex.flatMap(columns.column(of:)),
-      !visible.contains(focusedColumn)
-    else { return false }
-    let nearest = focusedColumn < visible.lowerBound ? visible.lowerBound : visible.upperBound - 1
-    focused = windows[columns.columns[nearest][0]]
-    return true
-  }
-
-  /// Moves the strip's view the least that shows the focused window whole.
-  private mutating func refitView() {
-    guard !windows.isEmpty else {
-      firstVisible = nil
-      return
-    }
-    let columns = StripColumns(sizes: windows.map(size(of:)))
-    let previous = firstVisible.flatMap(windows.firstIndex(of:)).flatMap(columns.column(of:)) ?? 0
-    let start = columns.fittedStart(
-      previous: previous, focused: focusedIndex.flatMap(columns.column(of:)))
-    firstVisible = windows[columns.columns[start][0]]
-  }
-
-  private var focusedIndex: Int? {
+  var focusedIndex: Int? {
     focused.flatMap { windows.firstIndex(of: $0) }
   }
 

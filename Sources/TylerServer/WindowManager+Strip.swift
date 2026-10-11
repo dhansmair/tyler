@@ -3,8 +3,9 @@ import TylerCore
 
 /// The strip layout: window sizes, and scrolling its view.
 extension WindowManager {
-  /// Sets the focused window's size in the strip layout. Other layouts keep it for when the
-  /// workspace turns to the strip.
+  /// Sets the focused window's size in the strip layout (`quarter` pairs it with a neighbour, see
+  /// `Workspace.setSizeWithPartner`). Other layouts keep it for when the workspace turns to the
+  /// strip.
   public func setSize(_ choice: SizeChoice) -> Response {
     if let failure = beginCommand() { return failure }
     guard let windowID = registry.focusedID, workspaces.current.contains(windowID) else {
@@ -16,7 +17,10 @@ extension WindowManager {
     case .next: size = workspaces.current.size(of: windowID).next
     }
     let snapshot = stripSnapshot()
-    workspaces.current.setSize(size, of: windowID)
+    if workspaces.current.setSizeWithPartner(size, of: windowID) == .noPartner {
+      return .error(
+        "a quarter window shares its column with the next or previous window, and neither is free")
+    }
     let failures = scrollIfViewMoved(since: snapshot) ?? applyLayout()
     guard failures == 0 else { return outcome(failures: failures) }
     return .message(

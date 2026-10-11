@@ -94,15 +94,24 @@ struct StripTests {
     #expect(harness.isParked(3))
   }
 
-  @Test func twoQuartersShareAColumn() async {
+  @Test func aQuarterStacksWithTheNextWindow() async {
     let harness = await strip()
-    _ = harness.manager.setSize(.set(.quarter))
-    await harness.osFocus(2)
-    _ = harness.manager.setSize(.set(.quarter))
-    let column = harness.frame(of: 1)
-    #expect(column?.minX == harness.frame(of: 2)?.minX)
-    #expect(column?.maxY == harness.frame(of: 2)?.minY)
+    #expect(harness.manager.setSize(.set(.quarter)) == .message("size quarter"))
+    let top = harness.frame(of: 1)
+    #expect(top?.minX == harness.frame(of: 2)?.minX)
+    #expect(top?.maxY == harness.frame(of: 2)?.minY, "window 2 goes below window 1")
     #expect(harness.frame(of: 3) == halves[1], "window 3 comes into view beside them")
+  }
+
+  @Test func aQuarterWithoutANeighbourIsAnError() async {
+    let harness = ManagerHarness([1])
+    await harness.osFocus(1)
+    _ = harness.manager.setLayout(.set(.strip))
+    #expect(
+      harness.manager.setSize(.set(.quarter))
+        == .error(
+          "a quarter window shares its column with the next or previous window, and neither is free"
+        ))
   }
 
   @Test func nextCyclesTheSize() async {

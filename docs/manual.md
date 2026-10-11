@@ -290,11 +290,13 @@ Sets the layout of the current workspace and prints its name.
 ```bash
 tyler size half       # half the width, the full height (the default)
 tyler size full       # the whole width and height
-tyler size quarter    # half the width and half the height
+tyler size quarter    # stack it with the next window: half the width, half the height each
 tyler size next       # cycle: half, full, quarter, half, ...
 ```
 
-Sets the focused window's size in the `strip` layout and prints it. Two `quarter` windows next to each other in the list share a column, one above the other; a `quarter` window on its own fills its column like `half`. Other layouts ignore the size but keep it for when the workspace switches to `strip`. A window forgets its size when it leaves tiling (floated, minimized, closed), and keeps it when it moves to another workspace.
+Sets the focused window's size in the `strip` layout and prints it. `quarter` stacks two windows in one column: the focused window on top and the next window below it. If the next window already shares a column (or there is none), the previous window goes on top instead. Setting either window of a stacked pair to `half` or `full` puts the other back to `half`, and so does closing, floating or moving one of them away.
+
+Other layouts ignore the size but keep it for when the workspace switches to `strip`. A window forgets its size when it leaves tiling (floated, minimized, closed), and keeps it when it moves to another workspace (a `quarter` arrives as `half`).
 
 ### ratio
 

@@ -63,18 +63,20 @@ public struct WorkspaceRow: Equatable, Sendable {
   }
 
   /// Moves a window from its workspace to the one at `index`, where it is inserted after the
-  /// focused window and becomes focused, keeping its strip size. Returns false if the window is on
-  /// no workspace, already on that one, or the index is out of range.
+  /// focused window and becomes focused, keeping its strip size (a `quarter` arrives as `half`).
+  /// Returns false if the window is on no workspace, already on that one, or the index is out of
+  /// range.
   @discardableResult
   public mutating func move(_ windowID: WindowID, to index: Int) -> Bool {
     guard indices.contains(index), let source = self.index(containing: windowID), source != index
     else {
       return false
     }
+    // A quarter leaves its column mate behind, so it arrives as half.
     let size = workspaces[source].size(of: windowID)
     workspaces[source].remove(windowID)
     workspaces[index].insert(windowID)
-    workspaces[index].setSize(size, of: windowID)
+    workspaces[index].setSize(size == .quarter ? .half : size, of: windowID)
     workspaces[index].setFocus(windowID)
     return true
   }

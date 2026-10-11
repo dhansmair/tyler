@@ -17,6 +17,60 @@ Windows on the Dell are left alone. M5 gives each display its own row of workspa
 - The Dell U2717D is 2560×1440 and sits **above** the laptop, at AX (−397,−1440).
 - "Displays have separate Spaces" is **off**, so there is one menu bar, on the laptop.
 
+## Progress (2026-10-11, end of the first session)
+
+Read this first when picking the work up again. The roadmap's M5 section has the measurements and the checklist.
+
+**Where things stand**
+- The work is on the branch `m5-multi-display` in the worktree `../tyler-m5`, rebased onto `main` (which has the new `.claude/settings.json` formatting hook). The branch is not merged.
+- The running `tylerd` is the branch build (commit `62b01c8`). It writes state version 2, so to go back to a build from `main`, run `tyler stop` from the branch build first.
+- The user's setup changed during the session:
+  - The Dell is above the laptop again, now at AX (−443,−1440).
+  - **"Displays have separate Spaces" is on now.** The S1 limits were re-measured with it on and hold for stacked displays.
+  - Both displays' workspaces are in `tall`. A one-window strip workspace showing half the display width looked like a bug, but isn't one.
+- 722 tests pass.
+
+**Done, with commits** (the earlier hashes changed with the rebase; `git log main..m5-multi-display` lists them all)
+- 0: the plan.
+- 1–3: the spikes S1, S2 and S3.
+- 4: characterisation tests.
+- 5: `DisplayKey`/`DisplayArrangement`.
+- 6: workspace numbers in each row.
+- 7: `DisplayRows`.
+- 8: the manager holds `DisplayRows`.
+- 9: state version 2.
+- 10a: TOML arrays.
+- 10: `[displays]`.
+- 11: sync across rows.
+- 12: tile every display (`20c85bb`).
+- 13: the focused display (`c5de8e3`).
+- The core of 18, drag across displays, was built early, after the user hit the half-working version (`1344f5d`, `62b01c8`). The dragged window is held during the drag (`Marks.held`). It is dropped into the slot under the pointer on the other display. The mouse code works on the dragged window's own display. A sync re-tiles any other display whose workspace on screen changed.
+
+**Changes from the plan made along the way**
+- **Decision 10 changed after S3:** nothing crosses onto another display. Windows whose path would cross jump; the others slide. Increment 16 builds this.
+- **The menu bar and swipes already follow the focused display**, because both read the focused row. Increment 15 only needs its test and a live check. Increment 17 moves swipes to the display under the pointer.
+- **Parked windows wait at the parking spot of their slot, on their own display** (`parkingPlacement`). A window from another display used to park at its own height, where the target display may not be.
+- **The test fakes:** `FakeDisplays.secondary` is now the Dell above the laptop. `FakeDisplays.right` is a display to the right.
+
+**Open live checks (the user)**
+- Cmd-tab to a parked Dell window brings its workspace back on the Dell.
+- `tyler move-to-workspace 6` from the laptop parks the window on the Dell.
+- Drag across displays after `62b01c8`: onto a window and onto an empty spot. The user reported it working better with `tall`. Tick the roadmap items only after these checks.
+
+**Known issues to keep in mind**
+- **Stale echoes with a display to the right** (in the roadmap). A window at its parking spot can read as moved to that display. Side by side is unsafe until increment 16.
+- **The drop has no preview** on the target display.
+- **Increment 14 is still missing:** display changes are only noticed at the next sync, with no re-placement after macOS moves windows (S2: macOS also un-parks windows).
+
+**Next:** increment 14 (reconfiguration), then 15 (indicator check), 16 (parking edges, no crossing), 17 (swipes under the pointer), 19–21 (the display commands), 22 (wrap-up).
+
+**Lessons from this session**
+- Undo a deliberate test break from a scratch copy, never with `git checkout -- <file>`: that also threw away uncommitted work.
+- Python edits bypass the formatting hook, so run `swift format format -i` after them.
+- Multi-line `if` and `guard` conditions trip the brace clash between swift-format and SwiftLint, so move the condition into a `let`.
+- `#expect` can't call a mutating method; assign the result to a `let` first.
+- In zsh, `log` is a builtin, and `/usr/bin/log stream` and `log show` need rights this session lacks. Drag logs (subsystem `tyler`) only reach the user.
+
 ## Decisions
 
 1. **Global workspace numbers.**

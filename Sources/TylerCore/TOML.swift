@@ -21,9 +21,11 @@ public struct TOMLError: Error, Equatable, Sendable, CustomStringConvertible {
 }
 
 /// Parses the subset of TOML that tyler's config needs: comments, `[table]` and `[a.b]`
-/// headers, bare, quoted and dotted keys, and single-line strings, integers, floats and
-/// booleans. Arrays, inline tables, multi-line strings and dates are rejected with an error
-/// rather than misread; add them when a setting needs them.
+/// headers, bare, quoted and dotted keys, and single-line strings (with `\uXXXX` and
+/// `\UXXXXXXXX` escapes), integers, floats and booleans. Arrays, inline tables, multi-line
+/// strings and dates are rejected with an error rather than misread; add them when a setting
+/// needs them. Beyond TOML, a `\uXXXX\uXXXX` surrogate pair is read as the character it encodes,
+/// the way JSON writes characters past U+FFFF.
 public enum TOML {
   public static func parse(_ text: String) throws(TOMLError) -> [String: TOMLValue] {
     var root: [String: TOMLValue] = [:]
@@ -264,8 +266,54 @@ private struct LineScanner {
     case "n": return "\n"
     case "t": return "\t"
     case "r": return "\r"
+    case "u": return try parseUnicodeEscape(digits: 4)
+    case "U": return try parseUnicodeEscape(digits: 8)
     default: throw error("unsupported escape '\\\(character)'")
     }
+  }
+
+  /// The rest of a `\uXXXX` or `\UXXXXXXXX` escape: exactly `digits` hex digits naming a
+  /// Unicode scalar value. A `\u` high surrogate followed by a `\u` low surrogate is read as
+  /// the pair's character, as in JSON (the Nerd Fonts cheat sheet gives glyphs that way).
+  private mutating func parseUnicodeEscape(digits: Int) throws(TOMLError) -> Character {
+    let prefix = digits == 4 ? "\\u" : "\\U"
+    let (hex, value) = try parseHex(digits: digits, prefix: prefix)
+    if digits == 4, (0xD800...0xDBFF).contains(value), let low = try parseLowSurrogate() {
+      let combined = 0x10000 + ((value - 0xD800) << 10) + (low - 0xDC00)
+      if let scalar = Unicode.Scalar(combined) { return Character(scalar) }
+    }
+    guard let scalar = Unicode.Scalar(value) else {
+      throw error("\(prefix)\(hex) is not a Unicode character")
+    }
+    return Character(scalar)
+  }
+
+  /// A `\uXXXX` low surrogate right here, read if there is one.
+  private mutating func parseLowSurrogate() throws(TOMLError) -> UInt32? {
+    guard index + 1 < characters.count, characters[index] == "\\", characters[index + 1] == "u"
+    else { return nil }
+    let start = index
+    index += 2
+    let (_, value) = try parseHex(digits: 4, prefix: "\\u")
+    guard (0xDC00...0xDFFF).contains(value) else {
+      index = start
+      return nil
+    }
+    return value
+  }
+
+  /// Exactly `digits` hex digits, and their value.
+  private mutating func parseHex(
+    digits: Int, prefix: String
+  ) throws(TOMLError) -> (hex: String, value: UInt32) {
+    let end = index + digits
+    guard end <= characters.count else { throw error("\(prefix) needs \(digits) hex digits") }
+    let hex = String(characters[index..<end])
+    guard hex.allSatisfy(\.isHexDigit), let value = UInt32(hex, radix: 16) else {
+      throw error("\(prefix) needs \(digits) hex digits")
+    }
+    index = end
+    return (hex, value)
   }
 
   /// A `'...'` string, taken literally.

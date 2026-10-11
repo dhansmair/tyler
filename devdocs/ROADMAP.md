@@ -286,7 +286,7 @@ Checklist (one line per increment of the plan; tick only after its live check):
 - [ ] Commands act on the focused display; cmd-tab to a parked window on the second display
 - [ ] Unplug and replug, lid closed and opened, sleep and wake (built and unit tested 2026-10-11; unplugging the Dell checked by the user the same day: every window found its place; the lid and a long sleep are still open)
 - [ ] The menu bar items follow the focused display (unit tested 2026-10-11; the `live-check menubar` check after focus changes is open)
-- [ ] Side by side: the parking edge for each display, and no window crossing onto the neighbour
+- [x] Side by side: the parking edge for each display, and no window crossing onto the neighbour (2026-10-11, the Dell to the right of the laptop: no window crossed; switches on a display with a neighbour are instant, which the user accepted; the strip behind a left Dock stays a known limitation)
 - [ ] Swipes on the display under the pointer
 - [ ] Drag across displays (built early, after the user hit it on 2026-10-11: a window dragged onto the Dell was re-tiled into the Dell's list mid-drag and then left where it was dropped; no preview on the target display yet)
 - [ ] `display`, `move-to-display [--follow]`, `move-workspace-to-display`

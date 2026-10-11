@@ -58,38 +58,40 @@ struct WorkspaceMapTests {
     ),
   ])
   func tallPlacesWindowsAsOnTheDisplay(count: Int, frames: [CGRect]) throws {
-    #expect(try map(counts: [count]).thumbnails[0].windows == frames)
+    #expect(try map(counts: [count]).thumbnails[0].windows.map(\.frame) == frames)
   }
 
   @Test func fullStacksEveryWindowInOneFrame() throws {
-    let windows = try map(counts: [3], layout: .full).thumbnails[0].windows
+    let windows = try map(counts: [3], layout: .full).thumbnails[0].windows.map(\.frame)
     #expect(windows == Array(repeating: CGRect(x: 1, y: 1, width: 20, height: 12), count: 3))
   }
 
   @Test func theStripShowsOnlyTheWindowsInView() throws {
-    let windows = try map(counts: [3], layout: .strip).thumbnails[0].windows
+    let windows = try map(counts: [3], layout: .strip).thumbnails[0].windows.map(\.frame)
     #expect(windows.count == 2, "two half-width windows fill the view")
     #expect(windows.allSatisfy { CGRect(x: 0, y: 0, width: 22, height: 14).contains($0) })
   }
 
   @Test func windowsOnOtherWorkspacesSitInTheirThumbnail() throws {
     let second = try map().thumbnails[1]
-    #expect(second.windows == [CGRect(x: 27, y: 1, width: 20, height: 12)])
+    #expect(second.windows.map(\.frame) == [CGRect(x: 27, y: 1, width: 20, height: 12)])
   }
 
   @Test func everyRectIsInWholePoints() throws {
     var shifted = snapshot(counts: [3, 2], area: CGRect(x: 0, y: 0, width: 1512, height: 945))
     shifted.row.current.adjustRatio(by: 0.13)
     let map = try #require(WorkspaceMap(shifted, height: 14))
-    let edges = map.thumbnails.flatMap(\.windows).flatMap { [$0.minX, $0.minY, $0.maxX, $0.maxY] }
+    let edges = map.thumbnails.flatMap(\.windows).map(\.frame).flatMap {
+      [$0.minX, $0.minY, $0.maxX, $0.maxY]
+    }
     #expect(edges.allSatisfy { $0 == $0.rounded() })
   }
 
   @Test func theRatioMovesTheWindows() throws {
     var wider = snapshot(counts: [2], area: Self.area)
     wider.row.current.adjustRatio(by: 0.2)
-    let before = try map(counts: [2]).thumbnails[0].windows
-    let after = try #require(WorkspaceMap(wider, height: 14)).thumbnails[0].windows
+    let before = try map(counts: [2]).thumbnails[0].windows.map(\.frame)
+    let after = try #require(WorkspaceMap(wider, height: 14)).thumbnails[0].windows.map(\.frame)
     #expect(after[0].width > before[0].width)
   }
 
@@ -111,6 +113,26 @@ struct WorkspaceMapTests {
 
   @Test func withoutFocusWindowsAreDrawnInListOrder() throws {
     #expect(try map(counts: [3]).thumbnails[0].drawingOrder == [0, 1, 2])
+  }
+
+  @Test func eachWindowKnowsItsAppsProcess() throws {
+    var apps = snapshot(counts: [2, 1], area: Self.area)
+    apps.processIDs = [WindowID(1): 101, WindowID(3): 303]
+    let map = try #require(WorkspaceMap(apps, height: 14))
+    #expect(map.thumbnails.map { $0.windows.map(\.processID) } == [[101, nil], [303]])
+  }
+
+  @Test(arguments: [
+    (CGRect(x: 0, y: 0, width: 34, height: 20), CGRect(x: 9, y: 2, width: 16, height: 16)),
+    (CGRect(x: 1, y: 1, width: 15, height: 20), CGRect(x: 3, y: 5, width: 11, height: 11)),
+    (CGRect(x: 10, y: 4, width: 12, height: 12), CGRect(x: 12, y: 6, width: 8, height: 8)),
+  ])
+  func theIconIsCentredAsLargeAsFits(window: CGRect, icon: CGRect) {
+    #expect(WorkspaceMap.Window(frame: window).iconFrame == icon)
+  }
+
+  @Test func aWindowTooSmallShowsNoIcon() {
+    #expect(WorkspaceMap.Window(frame: CGRect(x: 0, y: 0, width: 30, height: 11)).iconFrame == nil)
   }
 
   @Test func itMarksTheCurrentAndEmptyWorkspaces() throws {

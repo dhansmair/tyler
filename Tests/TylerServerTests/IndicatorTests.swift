@@ -76,6 +76,14 @@ struct IndicatorTests {
     #expect(indicator.shown.last?.settings == Config.Indicator(text: false, map: true))
   }
 
+  @Test func theSnapshotHoldsEachTiledWindowsProcess() {
+    gate.isTrusted = true
+    manager.startIfPermitted()
+    let expected = Dictionary(
+      uniqueKeysWithValues: backend.windows.map { ($0.id, $0.processID) })
+    #expect(last?.processIDs == expected)
+  }
+
   @Test func theSnapshotHoldsTheDisplaysArea() {
     #expect(last?.area == FakeDisplays().displays.first?.visibleFrame)
   }

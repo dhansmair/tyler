@@ -17,6 +17,8 @@ public final class MapIndicator: NSObject, Indicator {
   private var map: WorkspaceMap?
   /// Until the first `show`, the item shows nothing yet but is visible.
   private var hasShown = false
+  /// App icons by process, kept while the process has a window on the map.
+  private var icons: [Int32: NSImage] = [:]
   /// The menu a right click opens, kept up to date but only built when it opens.
   private var menu: IndicatorMenu?
 
@@ -39,7 +41,7 @@ public final class MapIndicator: NSObject, Indicator {
     hasShown = true
     self.map = map
     item.isVisible = map != nil
-    if let map { item.button?.image = Self.image(for: map) }
+    if let map { item.button?.image = Self.image(for: map, icons: icons(for: map)) }
   }
 
   @objc private func click(_ sender: NSStatusBarButton) {
@@ -70,12 +72,24 @@ public final class MapIndicator: NSObject, Indicator {
     NSColor.controlAccentColor.blended(withFraction: 0.4, of: .white) ?? .controlAccentColor
   }
 
-  /// The map as an image. Not a template image, so the accent colour survives; the colours are
-  /// dynamic and resolve against the menu bar's appearance each time the image is drawn.
-  private static func image(for map: WorkspaceMap) -> NSImage {
+  /// The icons of the apps with a window on `map`, looked up once per process. Processes no
+  /// longer on the map are forgotten.
+  private func icons(for map: WorkspaceMap) -> [Int32: NSImage] {
+    let processIDs = Set(map.thumbnails.flatMap(\.windows).compactMap(\.processID))
+    icons = icons.filter { processIDs.contains($0.key) }
+    for processID in processIDs where icons[processID] == nil {
+      icons[processID] = NSRunningApplication(processIdentifier: processID)?.icon
+    }
+    return icons
+  }
+
+  /// The map as an image. Not a template image, so the accent colour and the app icons survive;
+  /// the colours are dynamic and resolve against the menu bar's appearance each time the image
+  /// is drawn.
+  private static func image(for map: WorkspaceMap, icons: [Int32: NSImage]) -> NSImage {
     NSImage(size: map.size, flipped: true) { _ in
       for thumbnail in map.thumbnails {
-        draw(thumbnail)
+        draw(thumbnail, icons: icons)
       }
       return true
     }
@@ -83,15 +97,22 @@ public final class MapIndicator: NSObject, Indicator {
 
   /// The current workspace stands out by brightness, with no outline, so the thumbnails can
   /// take the button's full height: its windows are bright and the others' dimmed, and its slot
-  /// is a little brighter, which marks it when it is empty.
-  private static func draw(_ thumbnail: WorkspaceMap.Thumbnail) {
+  /// is a little brighter, which marks it when it is empty. Each window shows its app's icon,
+  /// dimmed like the window on other workspaces.
+  private static func draw(_ thumbnail: WorkspaceMap.Thumbnail, icons: [Int32: NSImage]) {
     let slotColor: NSColor = thumbnail.isCurrent ? .tertiaryLabelColor : .quaternaryLabelColor
     let windowColor: NSColor = thumbnail.isCurrent ? .labelColor : .secondaryLabelColor
     slotColor.setFill()
     NSBezierPath(roundedRect: thumbnail.frame, xRadius: cornerRadius, yRadius: cornerRadius).fill()
     for index in thumbnail.drawingOrder {
+      let window = thumbnail.windows[index]
       (index == thumbnail.focusedIndex ? focusColor : windowColor).setFill()
-      thumbnail.windows[index].fill()
+      window.frame.fill()
+      guard let iconFrame = window.iconFrame, let icon = window.processID.flatMap({ icons[$0] })
+      else { continue }
+      icon.draw(
+        in: iconFrame, from: .zero, operation: .sourceOver,
+        fraction: thumbnail.isCurrent ? 1 : 0.5, respectFlipped: true, hints: nil)
     }
   }
 }

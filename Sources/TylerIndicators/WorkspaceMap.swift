@@ -7,11 +7,35 @@ import TylerCore
 /// thumbnails are, and the layouts split them in whole points), so the map only changes, and
 /// redraws, when it visibly changes.
 struct WorkspaceMap: Equatable, Sendable {
+  /// One window in a thumbnail.
+  struct Window: Equatable, Sendable {
+    /// The largest an app icon is drawn, and the smallest: a window too small for that shows
+    /// none.
+    static let iconSizes: ClosedRange<CGFloat> = 8...16
+    /// The least space between the icon and the window's edges.
+    static let iconMargin: CGFloat = 2
+
+    var frame: CGRect
+    /// Its app's process, for the app's icon; `nil` if unknown.
+    var processID: Int32?
+
+    /// Where the app's icon goes: a square centred in the window, as large as fits within the
+    /// margin and `iconSizes`, in whole points; `nil` when the window is too small for one.
+    var iconFrame: CGRect? {
+      let fitting = (min(frame.width, frame.height) - 2 * Self.iconMargin).rounded(.down)
+      guard fitting >= Self.iconSizes.lowerBound else { return nil }
+      let side = min(fitting, Self.iconSizes.upperBound)
+      let origin = CGPoint(
+        x: (frame.midX - side / 2).rounded(.down), y: (frame.midY - side / 2).rounded(.down))
+      return CGRect(origin: origin, size: CGSize(width: side, height: side))
+    }
+  }
+
   /// One workspace.
   struct Thumbnail: Equatable, Sendable {
     var frame: CGRect
     /// The windows in view, in list order. In `full` they all share one frame.
-    var windows: [CGRect]
+    var windows: [Window]
     /// The focused window's index in `windows`; only on the current workspace.
     var focusedIndex: Int?
     var isCurrent: Bool
@@ -53,7 +77,9 @@ struct WorkspaceMap: Equatable, Sendable {
       let isCurrent = index == row.currentIndex
       return Thumbnail(
         frame: frame,
-        windows: placements.map(\.frame),
+        windows: placements.map {
+          Window(frame: $0.frame, processID: snapshot.processIDs[$0.id])
+        },
         focusedIndex: isCurrent ? placements.firstIndex { $0.id == workspace.focused } : nil,
         isCurrent: isCurrent)
     }

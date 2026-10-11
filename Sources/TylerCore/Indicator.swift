@@ -9,15 +9,18 @@ public struct IndicatorSnapshot: Equatable, Sendable {
   /// The primary display's visible frame, or `nil` when no display is known.
   public var area: CGRect?
   public var settings: Config.Indicator
+  /// The process of each tiled window's app, so an indicator can show the app's icon.
+  public var processIDs: [WindowID: Int32]
 
   public init(
     row: WorkspaceRow, tiling: ServerStatus.Tiling, area: CGRect? = nil,
-    settings: Config.Indicator = Config.Indicator()
+    settings: Config.Indicator = Config.Indicator(), processIDs: [WindowID: Int32] = [:]
   ) {
     self.row = row
     self.tiling = tiling
     self.area = area
     self.settings = settings
+    self.processIDs = processIDs
   }
 }
 

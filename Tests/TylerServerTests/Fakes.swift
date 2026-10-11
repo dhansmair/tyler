@@ -282,10 +282,10 @@ final class FakeConfigFile: @unchecked Sendable {
   }
 }
 
-/// Records every state the manager shows.
+/// Records every snapshot the manager shows.
 @MainActor
 final class FakeIndicator: Indicator {
-  private(set) var shown: [IndicatorState] = []
+  private(set) var shown: [IndicatorSnapshot] = []
 
-  func show(_ state: IndicatorState) { shown.append(state) }
+  func show(_ snapshot: IndicatorSnapshot) { shown.append(snapshot) }
 }

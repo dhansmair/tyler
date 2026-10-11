@@ -144,6 +144,7 @@ The user asked for a menu bar item after a window seemed lost behind another one
 - [x] The item appears and its text follows workspace switches and `layout tall|full` (2026-10-10, `live-check menubar`)
 - [x] Checked for real (2026-10-10, by the user): the menu bar item and its menu work
 - [ ] Light and dark menu bar, and `tiling off`, not reported separately
+- [x] Moved into the `TylerIndicators` target (2026-10-11, first step of the workspace map): the server hands every indicator an `IndicatorSnapshot` (the row, tiling, the display's area) through the `Indicator` protocol in TylerCore, whenever the snapshot changes. `IndicatorState` became `TextTitle` and `IndicatorMenu`; `StatusBarIndicator` became `TextIndicator`, which redraws only when its title or menu changed (focus and ratio changes reach it but don't redraw it)
 
 ### Mouse resizing (added 2026-10-10, between milestones)
 Resizing a tiled window with the mouse moves the layout with it: in `tall`, the divider between the master and the stack, and the dividers between windows in the stack. Plan: `plans/mouse-resize.md`.
@@ -195,7 +196,7 @@ Decisions (2026-10-11, with the user): the list stays the only model, and column
 - [ ] Open: on a strip workspace the swipe never switches workspaces (decided with the user), so leaving one takes a key
 
 ### Later: workspace map in the menu bar
-Plan: `plans/workspace-map-indicator.md` (planned with the user 2026-10-11, not started). A second menu bar item next to the text one: one small thumbnail per workspace, a rectangle for each tiled window placed as its layout places it, an outline around the current workspace and a blue (accent-coloured) border on the focused window. A left click on a thumbnail switches to that workspace; a right click opens the same menu as the text item. `[indicator] text|map` switch each item on or off. First, as a refactoring with no change in behaviour, every indicator moves into a new `TylerIndicators` target. Behind a common interface (`IndicatorSnapshot` and the `Indicator` protocol in TylerCore), the server only hands over a snapshot.
+Plan: `plans/workspace-map-indicator.md` (planned with the user 2026-10-11; branch `workspace-map`, step 1 of 4 done). A second menu bar item next to the text one: one small thumbnail per workspace, a rectangle for each tiled window placed as its layout places it, an outline around the current workspace and a blue (accent-coloured) border on the focused window. A left click on a thumbnail switches to that workspace; a right click opens the same menu as the text item. `[indicator] text|map` switch each item on or off. First, as a refactoring with no change in behaviour, every indicator moves into a new `TylerIndicators` target. Behind a common interface (`IndicatorSnapshot` and the `Indicator` protocol in TylerCore), the server only hands over a snapshot.
 
 ### M5. Multi-display
 Per-display stacks keyed by display UUID, reconfiguration handling, `display` and `move-to-display`.

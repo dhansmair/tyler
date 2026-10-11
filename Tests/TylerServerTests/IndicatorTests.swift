@@ -16,7 +16,7 @@ struct IndicatorTests {
       backend: backend, displays: FakeDisplays(), gate: gate, indicator: indicator)
   }
 
-  private var last: IndicatorState? { indicator.shown.last }
+  private var last: IndicatorSnapshot? { indicator.shown.last }
 
   @Test func itShowsTheStateFromTheStartAndWhenPermissionArrives() {
     #expect(indicator.shown.count == 1)
@@ -24,17 +24,18 @@ struct IndicatorTests {
     gate.isTrusted = true
     manager.startIfPermitted()
     #expect(last?.tiling == .on)
-    #expect(last?.title.map(\.text).joined() == "[1] 2 3 4  ▥")
-    #expect(last?.workspaces.first?.windowCount == 2)
+    #expect(last?.row.currentIndex == 0)
+    #expect(last?.row.count == 4)
+    #expect(last?.row[0].count == 2)
   }
 
   @Test func itFollowsSwitchesLayoutsAndTiling() {
     gate.isTrusted = true
     manager.startIfPermitted()
     _ = manager.switchWorkspace(.number(3))
-    #expect(last?.title.map(\.text).joined() == "1 2 [3] 4  ▥")
+    #expect(last?.row.currentIndex == 2)
     _ = manager.setLayout(.next)
-    #expect(last?.layout == .full)
+    #expect(last?.row.current.layout == .full)
     _ = manager.setTiling(.off)
     #expect(last?.tiling == .off)
   }
@@ -45,20 +46,27 @@ struct IndicatorTests {
     backend.windows.append(makeWindow(id: 9))
     backend.send(.created(makeWindow(id: 9)))
     await settle()
-    #expect(last?.workspaces.first?.windowCount == 3)
+    #expect(last?.row[0].count == 3)
     backend.send(.destroyed(WindowID(1)))
     await settle()
-    #expect(last?.workspaces.first?.windowCount == 2)
+    #expect(last?.row[0].count == 2)
   }
 
-  @Test func itIsNotRedrawnWhenNothingItShowsChanged() async {
+  @Test func itIsToldAboutFocusButNotAboutNothing() async {
     gate.isTrusted = true
     manager.startIfPermitted()
-    let count = indicator.shown.count
     _ = manager.focus(.next)
+    backend.send(.focused(WindowID(2)))
+    await settle()
+    #expect(last?.row.current.focused == WindowID(2))
+    let count = indicator.shown.count
     backend.send(.focused(WindowID(2)))
     await settle()
     _ = manager.switchWorkspace(.number(1))
     #expect(indicator.shown.count == count)
+  }
+
+  @Test func theSnapshotHoldsTheDisplaysArea() {
+    #expect(last?.area == FakeDisplays().displays.first?.visibleFrame)
   }
 }

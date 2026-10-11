@@ -64,10 +64,3 @@ public protocol AccessibilityGate: AnyObject {
   /// Asks macOS to show its permission prompt. Safe to call repeatedly.
   func prompt()
 }
-
-/// Shows the workspaces and layout somewhere the user can see them (the menu bar). The manager
-/// calls `show` whenever what it would show changes, and once at the start.
-@MainActor
-public protocol Indicator: AnyObject {
-  func show(_ state: IndicatorState)
-}

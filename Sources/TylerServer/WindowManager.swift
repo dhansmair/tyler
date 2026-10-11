@@ -56,8 +56,8 @@ public final class WindowManager {
   /// Paces drag and pan steps; injected so tests don't sleep.
   let clock: any Clock<Duration>
   let indicator: (any Indicator)?
-  /// What the indicator shows now, so it is only redrawn when that changes.
-  var shownIndicatorState: IndicatorState?
+  /// What the indicator was last shown, so it is only told again when that changes.
+  var shownSnapshot: IndicatorSnapshot?
   /// The workspaces a previous tylerd handed over, applied once windows are tracked.
   var pendingRestore: SavedState?
 

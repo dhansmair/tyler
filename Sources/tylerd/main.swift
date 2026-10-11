@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import TylerCore
+import TylerIndicators
 import TylerPlatform
 import TylerServer
 
@@ -47,7 +48,7 @@ let gate = SystemAccessibilityGate()
 // The menu bar item's menu sends requests to the manager, which only exists once the item
 // does; `indicatorTarget` closes that loop.
 var indicatorTarget: WindowManager?
-let indicator = StatusBarIndicator { request in
+let indicator = TextIndicator { request in
   guard let response = indicatorTarget?.handle(request) else { return }
   if case .error(let message) = response { warn(message) }
 }

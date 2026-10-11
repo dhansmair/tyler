@@ -66,6 +66,16 @@ struct IndicatorTests {
     #expect(indicator.shown.count == count)
   }
 
+  @Test func reloadingTheConfigReachesTheIndicators() {
+    let file = FakeConfigFile(.config(Config(indicator: Config.Indicator(text: false))))
+    let manager = WindowManager(
+      backend: backend, displays: FakeDisplays(), gate: gate, configSource: file.source,
+      indicator: indicator)
+    #expect(indicator.shown.last?.settings.text == true)
+    _ = manager.reload()
+    #expect(indicator.shown.last?.settings == Config.Indicator(text: false, map: true))
+  }
+
   @Test func theSnapshotHoldsTheDisplaysArea() {
     #expect(last?.area == FakeDisplays().displays.first?.visibleFrame)
   }

@@ -4,7 +4,8 @@ import TylerCore
 /// The map menu bar item: a thumbnail of every workspace with its windows, as `WorkspaceMap`
 /// lays them out, the current workspace outlined and the focused window bordered in the accent
 /// colour. A left click on a thumbnail switches to that workspace; a right click or ctrl-click
-/// opens the same menu as the text item. Hidden while tiling isn't running.
+/// opens the same menu as the text item. Hidden while tiling isn't running, and when
+/// `[indicator] map = false`.
 @MainActor
 public final class MapIndicator: NSObject, Indicator {
   /// Room around the map for the current workspace's outline, which sits just outside its

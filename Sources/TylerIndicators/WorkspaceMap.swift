@@ -31,10 +31,10 @@ struct WorkspaceMap: Equatable, Sendable {
   let size: CGSize
   let thumbnails: [Thumbnail]
 
-  /// The map of `snapshot`'s row, or `nil` while tiling isn't running: windows then don't belong
-  /// to workspaces, and there is nothing to map.
+  /// The map of `snapshot`'s row, or `nil` when the config file turns the map off or tiling
+  /// isn't running (windows then don't belong to workspaces, and there is nothing to map).
   init?(_ snapshot: IndicatorSnapshot) {
-    guard snapshot.tiling == .on else { return nil }
+    guard snapshot.settings.map, snapshot.tiling == .on else { return nil }
     let row = snapshot.row
     let thumbnail = Self.thumbnailSize(count: row.count, area: snapshot.area)
     thumbnails = row.indices.map { index in

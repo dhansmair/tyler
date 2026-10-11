@@ -74,14 +74,20 @@ What counts is the window under the mouse pointer, not the one the dragged windo
 
 *Gaps* are the space between neighbouring windows (inner) and between the windows and the edge of the area (outer). They are the same on every workspace and come from the config file.
 
-### Menu bar item
+### Menu bar items
 
-While `tylerd` runs, it shows the workspaces in the menu bar, for example `1 [2] 3 4  ▥`:
+While `tylerd` runs, it shows the workspaces in the menu bar twice: as text and as a map. `[indicator]` in the config file turns either off.
+
+The text item reads, for example, `1 [2] 3 4  ▥`:
 
 - the number of each workspace, from left to right: the one on screen is in brackets (`[2]`), and empty ones are faint
 - the symbol of the current workspace's layout: `▥` for tall, `▢` for full (in full, the other windows are stacked behind the one you see)
 
-Without tiling it says `tyler: tiling off`, and before Accessibility permission is granted `tyler: no access`. Clicking it opens a menu to switch workspaces, cycle the layout and turn tiling on or off; these do the same as the `tyler` commands. On a MacBook with a notch, macOS hides menu bar items that don't fit next to it.
+Without tiling it says `tyler: tiling off`, and before Accessibility permission is granted `tyler: no access`. Clicking it opens a menu to switch workspaces, cycle the layout and turn tiling on or off; these do the same as the `tyler` commands.
+
+The map, left of the text, has a small thumbnail for each workspace, from left to right, with a rectangle for each tiled window where its layout puts it (in full, the windows share one rectangle; in strip, only the windows in view show). A thin outline marks the workspace on screen, and a border in your accent colour (blue unless changed in System Settings) marks its focused window. Click a thumbnail to switch to that workspace; right-click or ctrl-click the map to open the same menu as the text item. The map is hidden while tiling is off.
+
+On a MacBook with a notch, macOS hides menu bar items that don't fit next to it.
 
 ## Running tylerd
 
@@ -129,6 +135,9 @@ count = 6    # workspaces per display
 fingers = 3            # fingers for swiping between workspaces
 swipe-distance = 0.3   # trackpad widths to swipe a whole workspace across
 
+[indicator]
+text = false   # show only the map in the menu bar
+
 [assign]
 Firefox = 3                  # new Firefox windows open on workspace 3
 "com.mitchellh.ghostty" = 2  # an app can also be named by its bundle ID
@@ -143,6 +152,8 @@ Firefox = 3                  # new Firefox windows open on workspace 3
 | `gestures.swipe` | Whether a sideways trackpad swipe moves between workspaces (`true` or `false`) | `true` |
 | `gestures.fingers` | How many fingers that swipe takes (3 or 4) | `3` |
 | `gestures.swipe-distance` | How far your fingers travel to swipe a whole workspace across, in trackpad widths (0.1 to 1.0): lower is more sensitive | `0.3` |
+| `indicator.text` | Whether the menu bar shows the workspace numbers (`1 [2] 3 4  ▥`) | `true` |
+| `indicator.map` | Whether the menu bar shows the map of the workspaces | `true` |
 | `assign.<app>` | The workspace that new windows of `<app>` open on | none |
 
 Gaps are whole numbers in points, the unit macOS uses for window positions (on a Retina display, one point is two pixels).

@@ -195,8 +195,23 @@ Decisions (2026-10-11, with the user): the list stays the only model, and column
 - [ ] Open: no rubber band at the strip's ends (the content just stops)
 - [ ] Open: on a strip workspace the swipe never switches workspaces (decided with the user), so leaving one takes a key
 
-### Later: workspace map in the menu bar
-Plan: `plans/workspace-map-indicator.md` (planned with the user 2026-10-11; branch `workspace-map`, steps 1 to 3 of 4 done: the `TylerIndicators` target, the `WorkspaceMap` model (unit tested), and `MapIndicator` with `IndicatorGroup`, built and not yet checked on screen). A second menu bar item next to the text one: one small thumbnail per workspace, a rectangle for each tiled window placed as its layout places it, an outline around the current workspace and a blue (accent-coloured) border on the focused window. A left click on a thumbnail switches to that workspace; a right click opens the same menu as the text item. `[indicator] text|map` switch each item on or off. First, as a refactoring with no change in behaviour, every indicator moves into a new `TylerIndicators` target. Behind a common interface (`IndicatorSnapshot` and the `Indicator` protocol in TylerCore), the server only hands over a snapshot.
+### Workspace map in the menu bar (added 2026-10-11, between milestones)
+Plan: `plans/workspace-map-indicator.md` (planned with the user 2026-10-11). A second menu bar item next to the text one: one small thumbnail per workspace, a rectangle for each tiled window placed as its layout places it, an outline around the current workspace and a blue (accent-coloured) border on the focused window. A left click on a thumbnail switches to that workspace; a right click opens the same menu as the text item. `[indicator] text|map` switch each item on or off. First, as a refactoring with no change in behaviour, every indicator moves into a new `TylerIndicators` target. Behind a common interface (`IndicatorSnapshot` and the `Indicator` protocol in TylerCore), the server only hands over a snapshot.
+
+Decisions while building: the layouts already split whole-point areas in whole points, so the map doesn't round (a test guards it). The current workspace's outline sits just outside its thumbnail, in a 2-point margin around the map, so it doesn't merge with the faint slot. The focused window's border is drawn inside its rectangle.
+
+- [x] `TylerIndicators` target; the text item moved there with no change in behaviour
+- [x] `WorkspaceMap` model (thumbnails, windows by their layouts, focus, hit-testing), unit tested
+- [x] `MapIndicator` and `IndicatorGroup`; tylerd shows both items
+- [x] `[indicator] text|map`, parsed and unit tested; `reload` hands the settings to the items
+- [ ] Checked on screen: the text item unchanged (`live-check menubar`)
+- [ ] The map matches `tyler list` for tall with 1, 2 and 3 windows, for full, and for strip
+- [ ] The outline follows `workspace next`; the focus border follows `focus next`
+- [ ] `ratio +0.05` and a mouse resize update the map
+- [ ] A left click on each thumbnail switches to it; a right click and a ctrl-click on the map open the menu, placed like the text item's; the text item's menu still works
+- [ ] Light and dark menu bars both look right
+- [ ] `tiling off` hides the map; `[indicator] text = false` and `map = false` with `reload` hide each item
+- [ ] 10 workspaces fit
 
 ### M5. Multi-display
 Per-display stacks keyed by display UUID, reconfiguration handling, `display` and `move-to-display`.

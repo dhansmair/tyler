@@ -3,7 +3,7 @@ import TylerCore
 
 /// The text menu bar item: the workspace numbers with the current one in brackets and the
 /// current layout's symbol, as `TextTitle` spells them. Its menu sends ordinary requests through
-/// `perform`, the same ones `tyler` sends.
+/// `perform`, the same ones `tyler` sends. Hidden when `[indicator] text = false`.
 @MainActor
 public final class TextIndicator: Indicator {
   private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -17,6 +17,7 @@ public final class TextIndicator: Indicator {
   }
 
   public func show(_ snapshot: IndicatorSnapshot) {
+    if item.isVisible != snapshot.settings.text { item.isVisible = snapshot.settings.text }
     let title = TextTitle(snapshot)
     let menu = IndicatorMenu(snapshot)
     guard title != shown?.title || menu != shown?.menu else { return }

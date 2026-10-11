@@ -100,6 +100,12 @@ struct WorkspaceMapTests {
     #expect(map.thumbnails.map(\.isEmpty) == [false, true, false])
   }
 
+  @Test func theConfigFileCanTurnTheMapOff() {
+    var off = snapshot()
+    off.settings.map = false
+    #expect(WorkspaceMap(off) == nil)
+  }
+
   @Test(arguments: [ServerStatus.Tiling.off, .waitingForPermission])
   func withoutTilingThereIsNoMap(tiling: ServerStatus.Tiling) {
     #expect(WorkspaceMap(snapshot(tiling: tiling)) == nil)

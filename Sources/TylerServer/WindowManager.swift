@@ -29,7 +29,9 @@ public final class WindowManager {
   public internal(set) var tilingEnabled = true {
     didSet { updateIndicator() }
   }
-  public internal(set) var config: Config
+  public internal(set) var config: Config {
+    didSet { updateIndicator() }
+  }
 
   static let log = Logger(subsystem: "tyler", category: "manager")
 

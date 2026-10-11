@@ -1,18 +1,23 @@
 import CoreGraphics
 
-/// Everything an indicator (a menu bar item) may show: the workspaces, whether tiling runs, and
-/// the area windows are tiled in. Raw state, with no titles or symbols: each indicator derives
-/// what it draws, and redraws only when that changed.
+/// Everything an indicator (a menu bar item) may show: the workspaces, whether tiling runs, the
+/// area windows are tiled in, and which items the config file turns on. Raw state, with no
+/// titles or symbols: each indicator derives what it draws, and redraws only when that changed.
 public struct IndicatorSnapshot: Equatable, Sendable {
   public var row: WorkspaceRow
   public var tiling: ServerStatus.Tiling
   /// The primary display's visible frame, or `nil` when no display is known.
   public var area: CGRect?
+  public var settings: Config.Indicator
 
-  public init(row: WorkspaceRow, tiling: ServerStatus.Tiling, area: CGRect? = nil) {
+  public init(
+    row: WorkspaceRow, tiling: ServerStatus.Tiling, area: CGRect? = nil,
+    settings: Config.Indicator = Config.Indicator()
+  ) {
     self.row = row
     self.tiling = tiling
     self.area = area
+    self.settings = settings
   }
 }
 

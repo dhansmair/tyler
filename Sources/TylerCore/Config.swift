@@ -63,8 +63,22 @@ public struct Config: Equatable, Sendable {
     }
   }
 
+  /// Which menu bar items show.
+  public struct Indicator: Equatable, Sendable {
+    /// The workspace numbers and the layout's symbol, such as `1 [2] 3 4  ▥`.
+    public var text: Bool
+    /// A thumbnail of every workspace with its windows.
+    public var map: Bool
+
+    public init(text: Bool = true, map: Bool = true) {
+      self.text = text
+      self.map = map
+    }
+  }
+
   public var gaps: Gaps
   public var gestures: Gestures
+  public var indicator: Indicator
   public var mouse: Mouse
   public var workspaces: Workspaces
   /// The workspace (1-based) new windows of an app open on, keyed by bundle ID or app name in
@@ -72,11 +86,12 @@ public struct Config: Equatable, Sendable {
   public var assignments: [String: Int]
 
   public init(
-    gaps: Gaps = Gaps(), gestures: Gestures = Gestures(), mouse: Mouse = Mouse(),
-    workspaces: Workspaces = Workspaces(), assignments: [String: Int] = [:]
+    gaps: Gaps = Gaps(), gestures: Gestures = Gestures(), indicator: Indicator = Indicator(),
+    mouse: Mouse = Mouse(), workspaces: Workspaces = Workspaces(), assignments: [String: Int] = [:]
   ) {
     self.gaps = gaps
     self.gestures = gestures
+    self.indicator = indicator
     self.mouse = mouse
     self.workspaces = workspaces
     self.assignments = assignments
@@ -122,6 +137,7 @@ extension Config {
       case "assign": assign = value
       case "gaps": config.gaps = try Gaps(value)
       case "gestures": config.gestures = try Gestures(value)
+      case "indicator": config.indicator = try Indicator(value)
       case "mouse": config.mouse = try Mouse(value)
       case "workspaces": config.workspaces = try Workspaces(value)
       default: throw .invalid("unknown setting '\(key)'")
@@ -187,6 +203,19 @@ extension Config.Gestures {
       Setting("swipe-distance") { gestures, value, name throws(ConfigError) in
         gestures.swipeDistance = try Section.number(
           value, name, in: Self.swipeDistanceRange, unit: "trackpad widths")
+      })
+  }
+}
+
+extension Config.Indicator {
+  fileprivate init(_ value: TOMLValue) throws(ConfigError) {
+    self = try Section.read(
+      "indicator", value, into: Self(),
+      Setting("text") { indicator, value, name throws(ConfigError) in
+        indicator.text = try Section.boolean(value, name)
+      },
+      Setting("map") { indicator, value, name throws(ConfigError) in
+        indicator.map = try Section.boolean(value, name)
       })
   }
 }

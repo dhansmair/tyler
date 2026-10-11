@@ -172,8 +172,8 @@ Decisions (2026-10-10, with the user): a **live preview**: while the dragged win
 ### Later: grid layout
 A new layout: the same as `tall` for up to 3 windows; 4 puts one window in each corner; 5 splits the right half in three; 6 splits both halves in three (2 columns × 3 rows). Beyond that more columns appear (for example 3 × 3 at 9; the exact rule is still open). Mouse resizing and swap by drag work here too, through the shared column model.
 
-### Strip layout (in progress on the `strip-layout` branch)
-A niri-like layout: a workspace is one long horizontal strip of windows that scrolls left and right. Each window has its own size. Plan: `plans/strip-layout.md`. Work happens in the `../tyler-strip` worktree on the `strip-layout` branch, rebased onto `main` before each increment.
+### Strip layout
+A niri-like layout: a workspace is one long horizontal strip of windows that scrolls left and right. Each window has its own size. Plan: `plans/strip-layout.md`. Built on the `strip-layout` branch (in its own worktree) and merged into `main` on 2026-10-11.
 
 Decisions (2026-10-11, with the user): the list stays the only model, and columns are packed from per-window sizes: `full` (1 × 1) and `half` (½ × 1) each make a column, two consecutive `quarter`s (½ × ½) share one. New windows are `half`. Focusing a window out of view scrolls just enough to show its whole column. Off-view windows park at the right edge like inactive workspaces' windows. On a strip workspace the swipe scrolls only the strip, never switches workspaces.
 
@@ -186,8 +186,13 @@ Decisions (2026-10-11, with the user): the list stays the only model, and column
 - [x] `size quarter` stacks the focused window with the next one (or the previous one if the next already shares a column); leaving a pair (another size, closing, floating, moving away) puts the mate back to `half`. Changed 2026-10-11 after the user tried it on real windows: setting each window to `quarter` separately felt clumsy
 - [x] Animated scroll: `ScrollPlan` (TylerCore) from the arrangements before and after; windows out of view at both ends stay parked, incoming ones start where they are parked, x kept inside `Parking.allowedX`. Used by `focus`, `swap`, `size` and a click on a window out of view; the focus event a scroll causes lets it run on
 - [x] Swipe scrolls the strip (`PanTarget.strip`, `StripScroll`): the views it can rest at are worked out when the pan begins, and the windows follow the fingers along the scroll between the two views the position lies between. On release `Snap` picks a view (a flick goes on), focus moves into the view if it left it. On a strip workspace the swipe never switches workspaces, even when the strip fits. No rubber band at the ends yet: the content just stops
-- [ ] Manual
-- [ ] Checked against real windows
+- [x] Manual: the `strip` layout under Layout, `layout strip`, `size`
+- [x] Tried on real windows by the user (2026-10-11): switching to the strip, scrolling by focus, swiping (smooth), `size quarter`
+- [ ] Checked against real windows: windows leaving on the left stop beside a left Dock, then park; a slow app (Firefox) during a scroll and a swipe; `tyler restart` keeps the view; `quarter` windows against apps' minimum heights; a click on a parked window's sliver
+- [ ] Open: quarters feel odd to the user even with pairing. Pairs follow from list order, not real columns, so `swap` can split a pair (each half then shows like `half`). Rethink, maybe as explicit columns or a stack command
+- [ ] Open: mouse resizing in the strip (an edge drag snaps back now); swap by drag only between windows in view
+- [ ] Open: no rubber band at the strip's ends (the content just stops)
+- [ ] Open: on a strip workspace the swipe never switches workspaces (decided with the user), so leaving one takes a key
 
 ### Later: workspace map in the menu bar
 Plan: `plans/workspace-map-indicator.md` (planned with the user 2026-10-11, not started). A second menu bar item next to the text one: one small thumbnail per workspace, a rectangle for each tiled window placed as its layout places it, an outline around the current workspace and an accent-coloured border on the focused window. A left click switches to that workspace; a right click opens the menu. `[indicator] text|map` switch each item on or off. First, as a refactoring with no change in behaviour, every indicator moves into a new `TylerIndicators` target. Behind a common interface (`IndicatorSnapshot` and the `Indicator` protocol in TylerCore), the server only hands over a snapshot.
@@ -277,3 +282,4 @@ What is implemented is the command table in `TylerClient/CommandLine.swift` (`ty
 - 2026-10-10: Swap by drag and drop built, unit tested and checked against real windows by the user (`plans/swap-by-drag.md`). Resizing the dragged window to the target slot during the preview was tried and dropped (see Swap by drag and drop).
 - 2026-10-10: First verification pass against real windows by Claude (macOS 26.7, 8 windows on 3 workspaces): workspace switching, `move-to-workspace`, layouts, ratio, swap, focus, reload, stale warning and restart behave; switching to an empty workspace leaves focus on a parked window.
 - 2026-10-08: M3 built and unit tested. The code that moves and focuses windows has not been run against real windows (see M3 for the checklist). Not recoverable on exit yet: quitting `tylerd` leaves windows where tiling put them (M4 adds restore).
+- 2026-10-11: Strip layout built and unit tested on the `strip-layout` branch (`plans/strip-layout.md`), tried on real windows by the user, and merged into `main`. Open items in its section.

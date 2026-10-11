@@ -206,7 +206,7 @@ Decisions while building: the layouts already split whole-point areas in whole p
 - [x] `[indicator] text|map`, parsed and unit tested; `reload` hands the settings to the items
 - [x] Checked on screen (2026-10-11, macOS 26.7, by Claude): the text item is unchanged (`live-check menubar`), and the map item sits left of it (122×24 for four workspaces)
 - [ ] The map matches `tyler list` for tall with 1, 2 and 3 windows, for full, and for strip
-- [ ] The outline follows `workspace next`; the focus border follows `focus next`
+- [ ] The bright workspace follows `workspace next`; the light blue follows `focus next`
 - [ ] `ratio +0.05` and a mouse resize update the map
 - [x] A left click on each thumbnail switches to it, and one in a gap goes to the nearest; a right click and a ctrl-click on the map open the shared menu (read under the map item through Accessibility); the text item's menu still opens (2026-10-11, by Claude, with synthetic clicks; the hit-testing matched the thumbnails exactly)
 - [ ] The menu opened from the map sits under the item like the text item's (needs the user's eyes)
@@ -214,6 +214,7 @@ Decisions while building: the layouts already split whole-point areas in whole p
 - [x] `[indicator] text = false` and `map = false` with `reload` hide each item, and `true` brings it back (2026-10-11, by Claude)
 - [ ] `tiling off` hides the map
 - [ ] 10 workspaces fit
+- [x] Tried by the user on real windows (2026-10-11): "fully functional", and the look (full height, brightness for the current workspace, light blue focus, app icons, SF Symbols and Nerd Font glyphs) was tuned with them; the open items above weren't reported separately
 
 Notes from the live check (2026-10-11): synthetic clicks on a status item only arrive after a mouse move onto it; a click posted with `maskControl` leaves later synthetic events with control held, unless a control key-up is posted; and a synthetic Escape doesn't close a status item menu, so the next click only closes it (the same with the text item's menu). Screen capture needs Screen Recording permission, which the terminal doesn't have, so what the map looks like needs the user's eyes.
 

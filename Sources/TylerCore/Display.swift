@@ -1,14 +1,29 @@
 import CoreGraphics
 
+/// Names a display across unplugging, sleep and restarts: macOS gives each display a UUID that
+/// stays the same, while its `CGDirectDisplayID` may change after a reboot.
+public struct DisplayKey: Hashable, Codable, Sendable, CustomStringConvertible {
+  public var rawValue: String
+
+  public init(_ rawValue: String) {
+    self.rawValue = rawValue
+  }
+
+  public var description: String { rawValue }
+}
+
 /// One physical display, in Accessibility coordinates (origin top-left of the primary display).
 public struct DisplayInfo: Codable, Equatable, Sendable, Identifiable {
   public var id: UInt32
+  public var key: DisplayKey
   public var frame: CGRect
   /// The area not covered by the menu bar and Dock.
   public var visibleFrame: CGRect
 
-  public init(id: UInt32, frame: CGRect, visibleFrame: CGRect) {
+  /// A display; without a `key`, its id names it.
+  public init(id: UInt32, key: DisplayKey? = nil, frame: CGRect, visibleFrame: CGRect) {
     self.id = id
+    self.key = key ?? DisplayKey("\(id)")
     self.frame = frame
     self.visibleFrame = visibleFrame
   }

@@ -35,6 +35,7 @@ public final class ScreenDisplayProvider: DisplayProvider {
       else { return nil }
       return DisplayInfo(
         id: number.uint32Value,
+        key: Self.key(of: number.uint32Value),
         frame: DisplayGeometry.axRect(fromAppKit: screen.frame, primaryScreenHeight: primaryHeight),
         visibleFrame: DisplayGeometry.axRect(
           fromAppKit: screen.visibleFrame,
@@ -42,5 +43,14 @@ public final class ScreenDisplayProvider: DisplayProvider {
         )
       )
     }
+  }
+
+  /// The display's UUID, which stays the same when it is unplugged, sleeps or the Mac restarts
+  /// (measured in M5's spike S2); its id if macOS has no UUID for it.
+  private static func key(of displayID: CGDirectDisplayID) -> DisplayKey {
+    guard let uuid = CGDisplayCreateUUIDFromDisplayID(displayID)?.takeRetainedValue(),
+      let text = CFUUIDCreateString(nil, uuid) as String?
+    else { return DisplayKey("\(displayID)") }
+    return DisplayKey(text)
   }
 }

@@ -10,10 +10,22 @@ extension WindowManager {
   /// The configured space around and between tiled windows, the same on every workspace.
   var gaps: LayoutGaps { LayoutGaps(config.gaps) }
 
-  /// Where the current workspace's layout puts each of its windows in view; `nil` without a
-  /// display.
-  func currentPlacements() -> [Placement]? {
-    focusedDisplay.map { workspaces.current.placements(in: $0.visibleFrame, gaps: gaps) }
+  /// The position in `rows` of the display that has `windowID` on its current workspace; `nil`
+  /// if the window is on a parked workspace or none.
+  func onScreenPosition(of windowID: WindowID) -> Int? {
+    guard let location = rows.location(of: windowID),
+      location.index == rows[location.position].currentIndex
+    else { return nil }
+    return location.position
+  }
+
+  /// Where the layout of the current workspace holding `windowID` puts each of its windows in
+  /// view, on that workspace's display; `nil` if the window isn't on a current workspace or its
+  /// display isn't connected.
+  func currentPlacements(holding windowID: WindowID) -> [Placement]? {
+    guard let position = onScreenPosition(of: windowID), let display = display(at: position)
+    else { return nil }
+    return rows[position].current.placements(in: display.visibleFrame, gaps: gaps)
   }
 
   /// The windows of each display's current workspace that are out of view (in the strip
@@ -27,10 +39,10 @@ extension WindowManager {
     return windows
   }
 
-  /// Where the current workspace's layout puts `windowID`; `nil` if it isn't tiled there or is
-  /// out of view.
+  /// Where its display's current workspace puts `windowID`; `nil` if it isn't tiled on one or
+  /// is out of view.
   func slot(of windowID: WindowID) -> Placement? {
-    currentPlacements()?.first { $0.id == windowID }
+    currentPlacements(holding: windowID)?.first { $0.id == windowID }
   }
 
   /// Moves and resizes windows, returning how many could not be placed. One failing window

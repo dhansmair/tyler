@@ -82,4 +82,32 @@ struct DragAcrossDisplaysTests {
     #expect(harness.workspaces()[2] == 6)
     #expect(harness.frame(of: 2) == dell.visibleFrame)
   }
+
+  @Test func aDragStartedWhileTheOtherDisplayHasFocusIsStillHeldAndDropped() async {
+    let harness = await harness()
+    // The user was working on the Dell; the laptop window's focus event hasn't arrived yet.
+    await harness.osFocus(3)
+    let dellFrames = [harness.frame(of: 3), harness.frame(of: 4)]
+    await drag(in: harness, to: overWindow4)
+    #expect(harness.workspaces()[2] == 1, "held on the laptop's workspace")
+    #expect([harness.frame(of: 3), harness.frame(of: 4)] == dellFrames)
+
+    await release(in: harness, at: overWindow4)
+    #expect(harness.manager.rows[1].current.windows == [3, 2, 4].map(WindowID.init))
+    #expect(harness.frame(of: 2) == TallLayout().frames(count: 3, in: dell.visibleFrame)[1])
+    #expect(harness.frame(of: 1) == harness.area)
+  }
+
+  @Test func aSyncThatTakesAWindowOffAnotherDisplayLaysThatDisplayOut() async {
+    let harness = await harness()
+    await harness.osFocus(3)
+    // Window 2 is on the Dell now, but only a switch's own sync finds out.
+    let moved = makeWindow(id: 2, frame: CGRect(x: 1200, y: -800, width: 400, height: 300))
+    harness.backend.windows[1] = moved
+    harness.manager.registry.apply(.updated(moved))
+    _ = harness.manager.switchWorkspace(.number(6))
+    await harness.settle()
+    #expect(harness.workspaces()[2] == 5)
+    #expect(harness.frame(of: 1) == harness.area, "the laptop re-tiles around the gap")
+  }
 }

@@ -345,15 +345,18 @@ extension WindowManager {
     }
   }
 
-  /// Moves every window of each display's current workspace to its slot, or parks it if it is
-  /// out of view (in the strip layout), returning how many could not be placed. Windows already
+  /// Moves every window of each display's current workspace (of the displays `keys`, if given)
+  /// to its slot, or parks it if it is out of view (in the strip layout), returning how many
+  /// could not be placed. Windows already
   /// within a point of their spot are skipped (each move is a round trip to the app) unless
   /// `force` is set.
   @discardableResult
-  func applyLayout(force: Bool = false) -> Int {
+  func applyLayout(force: Bool = false, on keys: Set<DisplayKey>? = nil) -> Int {
     var placements: [Placement] = []
     for position in rows.entries.indices {
-      guard let display = display(at: position) else { continue }
+      guard keys?.contains(rows.entries[position].key) ?? true,
+        let display = display(at: position)
+      else { continue }
       placements += rows[position].current.restingPlacements(on: display, gaps: gaps)
     }
     return place(force ? placements : placements.filter { !isInPlace($0) })

@@ -5,7 +5,8 @@ import TylerCore
 /// to the workspace their app is assigned to.
 extension WindowManager {
   struct SyncOutcome {
-    /// Whether the list of any display's current workspace changed.
+    /// Whether the list of the focused display's current workspace changed. Other displays whose
+    /// current workspace changed are laid out by the sync itself.
     var changedCurrent = false
     /// The parked workspace that the focused window was just assigned to, if any: its display
     /// and its index in that display's row.
@@ -35,13 +36,23 @@ extension WindowManager {
         })
     else { return SyncOutcome() }
     var outcome = SyncOutcome()
+    var changedElsewhere: Set<DisplayKey> = []
     for (position, sync) in syncs.enumerated() {
+      let key = rows.entries[position].key
       for index in rows[position].indices {
         let changed = rows[position][index].sync(eligible: sync.eligible[index])
-        if changed && index == rows[position].currentIndex { outcome.changedCurrent = true }
+        guard changed && index == rows[position].currentIndex else { continue }
+        if key == rows.focusedKey {
+          outcome.changedCurrent = true
+        } else {
+          changedElsewhere.insert(key)
+        }
       }
       park(sync.arrivals)
     }
+    // Only the focused display slides, so the others can be laid out at once, whatever the
+    // caller does with the focused one.
+    if isTiling && !changedElsewhere.isEmpty { applyLayout(on: changedElsewhere) }
     bookkeeping.seen.formUnion(rows.allWindows)
     let arrivals = Set(syncs.flatMap(\.arrivals))
     if let focusedID = registry.focusedID, arrivals.contains(focusedID) {

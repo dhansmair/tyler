@@ -49,18 +49,31 @@ extension WindowManager {
   /// `mouse.follow-interval` from the config: frames arriving in between replace each other, and
   /// only the newest is followed.
   ///
-  /// A window moved by its title bar can swap with another: see `previewDrop(at:)`.
+  /// A window moved by its title bar can swap with another: see `previewDrop(at:)`, or move to
+  /// another display: see `drop(at:)`.
+  ///
+  /// The drag works on the dragged window's own display, whichever display has focus: the focus
+  /// event of a window the user starts dragging can arrive after its first moves. Starting a
+  /// drag focuses that display.
   func followDrag(of window: WindowInfo) {
-    guard let pointer, pointer.isPrimaryButtonDown, isTiling,
-      interaction.allowsDrag, workspaces.current.contains(window.id)
+    guard let pointer, pointer.isPrimaryButtonDown, isTiling, interaction.allowsDrag,
+      let position = onScreenPosition(of: window.id)
     else { return }
     if let drag, drag.windowID != window.id { return }
     guard let slot = slot(of: window.id) else { return }
     if drag == nil {
       guard !window.frame.isClose(to: slot.frame) else { return }
       drag = MouseDrag(windowID: window.id)
+      rows.focus(rows.entries[position].key)
+      Self.log.notice("drag of window \(window.id.rawValue) began on display \(position + 1)")
     }
-    guard window.frame.hasOtherSize(than: slot.frame) else { return }
+    // Over another display, a window can change size on its own (another scale, terminals
+    // snapping to cells): that is still a move, not a resize.
+    guard window.frame.hasOtherSize(than: slot.frame), !isOverAnotherDisplay(window, than: position)
+    else { return }
+    if drag?.isResize == false {
+      Self.log.notice("drag of window \(window.id.rawValue) is a resize")
+    }
     drag?.isResize = true
     drag?.pendingFrame = window.frame
     if drag?.throttle.isHolding == false { followPendingFrame() }
@@ -79,15 +92,26 @@ extension WindowManager {
   /// window's slot swaps with it; moved anywhere else, it goes back where it came from.
   private func drop(at location: CGPoint) {
     guard let drag else { return }
-    if !drag.isResize, canFollow(drag), let position = otherDisplay(under: location, than: drag) {
+    let canTile = canFollow(drag)
+    if canTile, let position = otherDisplay(under: location, than: drag) {
+      Self.log.notice(
+        "window \(drag.windowID.rawValue) dropped on display \(position + 1) at \(location.debugDescription)"
+      )
       endDrag()
       drop(drag.windowID, onDisplayAt: position, at: location)
       return
     }
-    let canTile = canFollow(drag)
+    Self.log.notice(
+      "window \(drag.windowID.rawValue) dropped on its own display (tiling it: \(canTile))")
     if canTile { settle(drag, droppedAt: location) }
     endDrag()
     if canTile { applyLayout() }
+  }
+
+  /// Whether `window` lies mostly on a display other than the one at `position` in `rows`.
+  private func isOverAnotherDisplay(_ window: WindowInfo, than position: Int) -> Bool {
+    DisplayGeometry.display(containing: window.frame, in: displays.displays)?.key
+      != rows.entries[position].key
   }
 
   /// The position in `rows` of the display under `location`, if it isn't the dragged window's.
@@ -115,18 +139,20 @@ extension WindowManager {
   /// Updates the workspace for how `drag` ended: a resize moves the dividers, a move onto
   /// another window's slot swaps the two.
   private func settle(_ drag: MouseDrag, droppedAt location: CGPoint) {
-    guard let area = focusedDisplay?.visibleFrame, let placements = currentPlacements(),
+    guard let position = onScreenPosition(of: drag.windowID),
+      let area = display(at: position)?.visibleFrame,
+      let placements = currentPlacements(holding: drag.windowID),
       let frame = registry.window(withID: drag.windowID)?.frame,
       let slot = placements.first(where: { $0.id == drag.windowID })
     else { return }
-    if frame.hasOtherSize(than: slot.frame) {
-      workspaces.current.resize(drag.windowID, to: frame, in: area, gaps: gaps)
+    if drag.isResize && frame.hasOtherSize(than: slot.frame) {
+      rows[position].current.resize(drag.windowID, to: frame, in: area, gaps: gaps)
       return
     }
     guard !drag.isResize,
       let target = Workspace.dropTarget(for: drag.windowID, at: location, among: placements)
     else { return }
-    workspaces.current.swap(drag.windowID, with: target)
+    rows[position].current.swap(drag.windowID, with: target)
   }
 
   /// Shows what a release at `location` would do: while the pointer is over another tiled
@@ -136,7 +162,8 @@ extension WindowManager {
   /// only the dragged window counts. This runs for every step of the pointer, so the workspace is
   /// laid out once per step.
   private func previewDrop(at location: CGPoint) {
-    guard let drag, !drag.isResize, canFollow(drag), let placements = currentPlacements()
+    guard let drag, !drag.isResize, canFollow(drag),
+      let placements = currentPlacements(holding: drag.windowID)
     else { return }
     let target = Workspace.dropTarget(for: drag.windowID, at: location, among: placements)
     guard target != drag.previewTarget else { return }
@@ -166,10 +193,9 @@ extension WindowManager {
   }
 
   /// Whether the layout can still react to `drag`: tiling runs, no slide, and the dragged window
-  /// is still tiled on the workspace on screen.
+  /// is still tiled on the workspace on screen on its display.
   private func canFollow(_ drag: MouseDrag) -> Bool {
-    isTiling && interaction.allowsDrag
-      && workspaces.current.contains(drag.windowID)
+    isTiling && interaction.allowsDrag && onScreenPosition(of: drag.windowID) != nil
   }
 
   /// Follows the newest frame of the drag, if there is one, then holds further steps back for
@@ -191,11 +217,12 @@ extension WindowManager {
   /// Lets the layout follow `windowID` having been resized to `frame`, and moves every other
   /// window that is now out of its slot.
   private func follow(_ windowID: WindowID, to frame: CGRect) {
-    guard let area = focusedDisplay?.visibleFrame,
-      workspaces.current.resize(windowID, to: frame, in: area, gaps: gaps)
+    guard let position = onScreenPosition(of: windowID),
+      let area = display(at: position)?.visibleFrame,
+      rows[position].current.resize(windowID, to: frame, in: area, gaps: gaps)
     else { return }
     place(
-      workspaces.current.placements(in: area, gaps: gaps).filter { placement in
+      rows[position].current.placements(in: area, gaps: gaps).filter { placement in
         placement.id != windowID && !isInPlace(placement)
       })
   }

@@ -69,6 +69,22 @@ struct WorkspaceSyncTests {
     #expect(sync?.eligible.first == [WindowID(1)])
   }
 
+  @Test func anAssignmentFindsItsWorkspaceByNumber() {
+    var numbered = WorkspaceRow(numbers: [2, 3])
+    numbered[0].sync(eligible: [WindowID(1)])
+    let sync = plan(numbered, [window(1), window(9)])
+    #expect(sync?.eligible[1] == [WindowID(9)], "workspace 3 is the row's second")
+    #expect(sync?.arrivals == [WindowID(9)])
+  }
+
+  @Test func anAssignmentToAWorkspaceTheRowLacksJoinsTheCurrentOne() {
+    var numbered = WorkspaceRow(numbers: [5, 6])
+    numbered[0].sync(eligible: [WindowID(1)])
+    let sync = plan(numbered, [window(1), window(9)])
+    #expect(sync?.eligible.first == [WindowID(1), WindowID(9)])
+    #expect(sync?.arrivals == [])
+  }
+
   @Test func aWindowSeenBeforeJoinsTheCurrentWorkspaceWhateverItsApp() {
     let sync = plan(row([[1]]), [window(1), window(9)], seen: [WindowID(9)])
     #expect(sync?.eligible.first == [WindowID(1), WindowID(9)])

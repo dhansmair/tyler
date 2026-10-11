@@ -29,11 +29,14 @@ extension WindowManager {
   public func switchWorkspace(_ target: WorkspaceTarget) -> Response {
     if let failure = beginCommand() { return failure }
     guard let index = workspaces.index(of: target) else { return outOfRange(target) }
-    guard index != workspaces.currentIndex else { return .message("workspace \(index + 1)") }
+    guard index != workspaces.currentIndex else {
+      return .message("workspace \(workspaces.number(at: index))")
+    }
     let failures = show(
       index, direction: target.direction(from: workspaces.currentIndex, to: index),
       focusing: true)
-    return failures == 0 ? .message("workspace \(index + 1)") : outcome(failures: failures)
+    return failures == 0
+      ? .message("workspace \(workspaces.number(at: index))") : outcome(failures: failures)
   }
 
   /// Sends the focused tiled window to another workspace, where it becomes that workspace's focused
@@ -46,7 +49,9 @@ extension WindowManager {
       return .error("the focused window is not tiled")
     }
     guard let index = workspaces.index(of: target) else { return outOfRange(target) }
-    guard index != source else { return .message("already on workspace \(index + 1)") }
+    guard index != source else {
+      return .message("already on workspace \(workspaces.number(at: index))")
+    }
 
     let current = workspaces.currentIndex
     let direction = target.direction(from: source, to: index)
@@ -59,7 +64,9 @@ extension WindowManager {
       failures += applyLayout()
       if source == current { focusCurrentWorkspace() }
     }
-    return failures == 0 ? .message("moved to workspace \(index + 1)") : outcome(failures: failures)
+    return failures == 0
+      ? .message("moved to workspace \(workspaces.number(at: index))")
+      : outcome(failures: failures)
   }
 
   // MARK: - Switching
@@ -157,7 +164,14 @@ extension WindowManager {
 
   private func outOfRange(_ target: WorkspaceTarget) -> Response {
     guard case .number(let number) = target else { return .error("no such workspace") }
-    return .error("workspace \(number) does not exist (use 1 to \(workspaces.count))")
+    return .error("workspace \(number) does not exist (use \(Self.describe(workspaces.numbers)))")
+  }
+  /// The workspace numbers for an error message: "1 to 4" when they follow each other, else
+  /// listed ("5, 6, 9").
+  static func describe(_ numbers: [Int]) -> String {
+    guard let first = numbers.first, let last = numbers.last else { return "none" }
+    if numbers.count > 1, last - first == numbers.count - 1 { return "\(first) to \(last)" }
+    return numbers.map(String.init).joined(separator: ", ")
   }
 
   // MARK: - Animation

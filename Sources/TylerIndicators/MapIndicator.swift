@@ -55,8 +55,8 @@ public final class MapIndicator: NSObject, Indicator {
     guard let map, let image = sender.image else { return }
     let point = sender.convert(event.locationInWindow, from: nil)
     let left = (sender.bounds.width - image.size.width) / 2
-    guard let index = map.workspaceIndex(at: CGPoint(x: point.x - left, y: 0)) else { return }
-    perform(.workspace(.number(index + 1)))
+    guard let number = map.workspaceNumber(at: CGPoint(x: point.x - left, y: 0)) else { return }
+    perform(.workspace(.number(number)))
   }
 
   /// Pops the shared menu up under the item, the way an item with a menu opens it.

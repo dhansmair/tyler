@@ -2,17 +2,35 @@ import CoreGraphics
 
 /// The workspaces of one display, side by side in a row like pages. Exactly one is current (on
 /// screen) and the others are parked. A window belongs to at most one workspace.
+///
+/// Each workspace has a number, the one commands and the menu bar use. Numbers are global across
+/// displays, so a row's numbers need not start at 1 or be consecutive (a second display may hold
+/// 5 to 8); they always ascend from left to right.
 public struct WorkspaceRow: Equatable, Sendable {
   /// How many workspaces a row has unless the config file says otherwise.
   public static let defaultCount = 4
 
   public private(set) var workspaces: [Workspace]
+  /// The number of each workspace, ascending, in step with `workspaces`.
+  public private(set) var numbers: [Int]
   /// 0-based index of the workspace on screen.
   public private(set) var currentIndex = 0
 
-  /// A row of `count` empty workspaces (at least one), starting on the first.
+  /// A row of `count` empty workspaces (at least one), numbered from 1, starting on the first.
   public init(count: Int = WorkspaceRow.defaultCount) {
-    workspaces = Array(repeating: Workspace(), count: max(1, count))
+    self.init(numbers: Array(1...max(1, count)))
+  }
+
+  /// A row of empty workspaces with these numbers (sorted, without repeats; workspace 1 alone
+  /// when empty), starting on the first.
+  public init(numbers: [Int]) {
+    self.numbers = Self.normalized(numbers)
+    workspaces = Array(repeating: Workspace(), count: self.numbers.count)
+  }
+
+  private static func normalized(_ numbers: [Int]) -> [Int] {
+    let sorted = Array(Set(numbers)).sorted()
+    return sorted.isEmpty ? [1] : sorted
   }
 
   public var count: Int { workspaces.count }
@@ -34,6 +52,14 @@ public struct WorkspaceRow: Equatable, Sendable {
     _modify { yield &workspaces[currentIndex] }
   }
 
+  /// The number of the workspace at `index`.
+  public func number(at index: Int) -> Int { numbers[index] }
+
+  /// The index of the workspace numbered `number`, if the row has it.
+  public func index(ofNumber number: Int) -> Int? {
+    numbers.firstIndex(of: number)
+  }
+
   /// The index of the workspace holding `windowID`, if any.
   public func index(containing windowID: WindowID) -> Int? {
     workspaces.firstIndex { $0.contains(windowID) }
@@ -44,13 +70,13 @@ public struct WorkspaceRow: Equatable, Sendable {
     Set(workspaces.flatMap(\.windows))
   }
 
-  /// Resolves a target to an index: `prev` and `next` wrap around, numbers are 1-based and
-  /// `nil` when out of range.
+  /// Resolves a target to an index: `prev` and `next` wrap around, and a number is `nil` when
+  /// the row has no workspace with it.
   public func index(of target: WorkspaceTarget) -> Int? {
     switch target {
     case .prev: currentIndex.stepped(by: -1, wrappingAt: count)
     case .next: currentIndex.stepped(by: 1, wrappingAt: count)
-    case .number(let number): (1...count).contains(number) ? number - 1 : nil
+    case .number(let number): index(ofNumber: number)
     }
   }
 
@@ -81,21 +107,32 @@ public struct WorkspaceRow: Equatable, Sendable {
     return true
   }
 
-  /// Gives the row `count` workspaces (at least one). New workspaces are added empty at the
-  /// end (on the right). Removed ones hand their windows to the new last workspace, appended in order after
-  /// its own; if the current workspace is removed, the new last one becomes current.
+  /// Gives the row `count` workspaces (at least one), keeping the first ones' numbers and
+  /// numbering new ones on from the last. See `setNumbers` for what happens to the windows.
   public mutating func setCount(_ count: Int) {
     let count = max(1, count)
-    guard count < workspaces.count else {
-      workspaces += Array(repeating: Workspace(), count: count - workspaces.count)
-      return
+    let last = numbers[numbers.count - 1]
+    let added = count > numbers.count ? Array(last + 1...last + count - numbers.count) : []
+    setNumbers(Array(numbers.prefix(count)) + added)
+  }
+
+  /// Gives the row the workspaces with these numbers (sorted, without repeats; workspace 1 alone
+  /// when empty). Workspaces that keep their number keep their windows; new ones are empty.
+  /// Removed ones hand their windows to the new last workspace, appended in order after its own.
+  /// If the current workspace is removed, the new last one becomes current.
+  public mutating func setNumbers(_ newNumbers: [Int]) {
+    let newNumbers = Self.normalized(newNumbers)
+    let currentNumber = numbers[currentIndex]
+    let byNumber = Dictionary(uniqueKeysWithValues: zip(numbers, workspaces))
+    let removed = numbers.filter { !newNumbers.contains($0) }.flatMap {
+      byNumber[$0]?.windows ?? []
     }
-    let removed = workspaces[count...].flatMap(\.windows)
-    workspaces.removeSubrange(count...)
+    workspaces = newNumbers.map { byNumber[$0] ?? Workspace() }
+    numbers = newNumbers
     for windowID in removed {
-      workspaces[count - 1].append(windowID)
+      workspaces[workspaces.count - 1].append(windowID)
     }
-    currentIndex = min(currentIndex, count - 1)
+    currentIndex = numbers.firstIndex(of: currentNumber) ?? numbers.count - 1
   }
 
   /// Records that `windowID` got focus, on whichever workspace holds it.

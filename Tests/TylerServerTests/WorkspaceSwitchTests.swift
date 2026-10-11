@@ -81,6 +81,11 @@ struct WorkspaceSwitchTests {
     #expect(harness.backend.moves.isEmpty)
   }
 
+  @Test(arguments: [([1, 2, 3, 4], "1 to 4"), ([5, 6, 9], "5, 6, 9"), ([7], "7")])
+  func theErrorNamesTheWorkspacesThereAre(numbers: [Int], named: String) {
+    #expect(WindowManager.describe(numbers) == named)
+  }
+
   @Test func switchingToTheCurrentWorkspaceMovesNothing() {
     let harness = ManagerHarness([1, 2])
     #expect(harness.manager.switchWorkspace(.number(1)) == .message("workspace 1"))

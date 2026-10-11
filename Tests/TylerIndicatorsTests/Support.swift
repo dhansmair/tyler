@@ -2,12 +2,12 @@ import CoreGraphics
 import TylerCore
 
 /// A snapshot whose workspaces hold `counts` windows each (numbered from 1 across the row), all
-/// with `layout`, on `current`.
+/// with `layout`, on `current`. The workspaces are numbered `numbers`, or from 1.
 func snapshot(
   counts: [Int] = [2, 1, 0, 0], current: Int = 0, layout: LayoutKind = .tall,
-  tiling: ServerStatus.Tiling = .on, area: CGRect? = nil
+  tiling: ServerStatus.Tiling = .on, area: CGRect? = nil, numbers: [Int]? = nil
 ) -> IndicatorSnapshot {
-  var row = WorkspaceRow(count: counts.count)
+  var row = numbers.map(WorkspaceRow.init(numbers:)) ?? WorkspaceRow(count: counts.count)
   var next = 1
   for (index, count) in counts.enumerated() {
     row[index].layout = layout

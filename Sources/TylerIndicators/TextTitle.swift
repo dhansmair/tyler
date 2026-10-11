@@ -28,7 +28,7 @@ struct TextTitle: Equatable, Sendable {
     var parts: [Part] = []
     for index in row.indices {
       if index > 0 { parts.append(Part(" ")) }
-      let number = String(index + 1)
+      let number = String(row.number(at: index))
       parts.append(
         index == row.currentIndex
           ? Part("[\(number)]")

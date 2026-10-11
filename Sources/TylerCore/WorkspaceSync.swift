@@ -32,7 +32,7 @@ public struct WorkspaceSync: Equatable, Sendable {
 
   /// `nil` while no display is connected: then nothing is decided, so parked windows aren't
   /// forgotten while they are still parked. `displays` lists the primary display first;
-  /// `assignedWorkspace` gives the 1-based workspace the config assigns a window's app to.
+  /// `assignedWorkspace` gives the number of the workspace the config assigns a window's app to.
   public static func plan(
     for row: WorkspaceRow, windows: [WindowInfo], displays: [DisplayInfo], marks: Marks,
     assignedWorkspace: (WindowInfo) -> Int?
@@ -49,9 +49,9 @@ public struct WorkspaceSync: Equatable, Sendable {
     // workspace (`nil`).
     let assignedIndex = { (window: WindowInfo) -> Int? in
       guard !marks.seen.contains(window.id), let number = assignedWorkspace(window),
-        row.indices.contains(number - 1), number - 1 != row.currentIndex
+        let index = row.index(ofNumber: number), index != row.currentIndex
       else { return nil }
-      return number - 1
+      return index
     }
     let assigned = row.allWindows
     let newcomers = Dictionary(

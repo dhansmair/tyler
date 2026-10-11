@@ -191,6 +191,13 @@ struct WorkspaceMapTests {
     #expect(try map().workspaceIndex(at: CGPoint(x: offset, y: 7)) == nil)
   }
 
+  @Test func aClickGoesToTheThumbnailsWorkspaceNumber() throws {
+    let map = try #require(
+      WorkspaceMap(snapshot(counts: [1, 1], area: Self.area, numbers: [5, 6]), height: 14))
+    #expect(map.workspaceNumber(at: CGPoint(x: 30, y: 7)) == 6)
+    #expect(map.workspaceNumber(at: CGPoint(x: 100, y: 7)) == nil)
+  }
+
   @Test func theHeightOfAPointDoesNotMatter() throws {
     #expect(try map().workspaceIndex(at: CGPoint(x: 30, y: -4)) == 1)
   }

@@ -23,9 +23,9 @@ struct IndicatorMenu: Equatable, Sendable {
       let row = snapshot.row
       let workspaceItems = row.indices.map { index -> Item in
         .action(
-          title: "Workspace \(index + 1)\(Self.countSuffix(row[index].count))",
+          title: "Workspace \(row.number(at: index))\(Self.countSuffix(row[index].count))",
           isChecked: index == row.currentIndex,
-          request: .workspace(.number(index + 1)))
+          request: .workspace(.number(row.number(at: index))))
       }
       let layout = row.current.layout
       items =

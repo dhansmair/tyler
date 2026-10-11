@@ -188,7 +188,7 @@ public final class WindowManager {
       var copy = window
       copy.displayID = DisplayGeometry.display(containing: window.frame, in: connected)?.id
       let workspace = workspaces.index(containing: window.id)
-      copy.workspace = workspace.map { $0 + 1 }
+      copy.workspace = workspace.map { workspaces.number(at: $0) }
       copy.slot = workspace.flatMap { workspaces[$0].slot(of: window.id) }
       copy.isFloated = bookkeeping.floated.contains(window.id)
       return copy

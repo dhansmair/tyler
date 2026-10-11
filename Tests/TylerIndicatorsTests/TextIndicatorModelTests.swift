@@ -10,6 +10,20 @@ struct TextIndicatorModelTests {
     #expect(text(snapshot(counts: [0, 0, 1, 0], current: 0, layout: .full)) == "[1] 2 3 4  ▢")
   }
 
+  @Test func theTitleAndMenuShowTheRowsOwnNumbers() {
+    let second = snapshot(counts: [1, 0, 2], current: 1, numbers: [5, 6, 9])
+    #expect(text(second) == "5 [6] 9  ▥")
+    let menu = IndicatorMenu(second).items.prefix(3)
+    #expect(
+      Array(menu) == [
+        .action(
+          title: "Workspace 5  (1 window)", isChecked: false, request: .workspace(.number(5))),
+        .action(title: "Workspace 6", isChecked: true, request: .workspace(.number(6))),
+        .action(
+          title: "Workspace 9  (2 windows)", isChecked: false, request: .workspace(.number(9))),
+      ])
+  }
+
   @Test func emptyWorkspacesAreFaint() {
     let faint = TextTitle(snapshot(counts: [2, 1, 0, 0], current: 3)).parts.filter(\.isFaint)
     #expect(faint.map(\.text) == ["3"], "the current workspace is never faint, even when empty")

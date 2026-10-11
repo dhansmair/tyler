@@ -62,6 +62,8 @@ struct WorkspaceMap: Equatable, Sendable {
 
   let size: CGSize
   let thumbnails: [Thumbnail]
+  /// The number of each thumbnail's workspace.
+  let numbers: [Int]
   /// The font of glyph icons, so changing it redraws the map.
   let iconFont: String
 
@@ -85,6 +87,7 @@ struct WorkspaceMap: Equatable, Sendable {
         focusedIndex: isCurrent ? placements.firstIndex { $0.id == workspace.focused } : nil,
         isCurrent: isCurrent)
     }
+    numbers = row.numbers
     let width = thumbnails.last?.frame.maxX ?? 0
     size = CGSize(width: width, height: thumbnail.height)
     iconFont = snapshot.settings.iconFont
@@ -109,6 +112,11 @@ struct WorkspaceMap: Equatable, Sendable {
     return thumbnails.indices.min {
       distance(point.x, thumbnails[$0]) < distance(point.x, thumbnails[$1])
     }
+  }
+
+  /// The number of the workspace whose thumbnail is at `point`, as `workspaceIndex` finds it.
+  func workspaceNumber(at point: CGPoint) -> Int? {
+    workspaceIndex(at: point).map { numbers[$0] }
   }
 
   private func distance(_ offset: CGFloat, _ thumbnail: Thumbnail) -> CGFloat {

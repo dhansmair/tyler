@@ -227,7 +227,7 @@ Decisions (agreed in the plan):
 - **Displays are numbered from 1.** The primary display (the one with the menu bar) is 1. The others follow left to right, then top to bottom.
 - **Displays that come and go.** When a display goes away, its workspaces join display 1's row. When it comes back, they return to their home: the display the config gives them, or the one they were last moved to.
 - **The menu bar items show the focused display's row.** Different content on each display's menu bar isn't possible through the public API: the copy on the other display is an `NSStatusItemReplicant`, kept in step with the original. "Displays have separate Spaces" stays off.
-- **Side by side is supported.** Each display parks at an edge that touches no other display: the right edge if it is free, otherwise the left. Slides keep the page direction, and cross the neighbour briefly while moving.
+- **Side by side is supported.** Each display parks at an edge that touches no other display: the right edge if it is free, otherwise the left. Nothing crosses onto another display: slides keep the page direction, but a window whose path would cross onto a neighbour jumps to its end instead of sliding (decided after S3).
 - **Moving windows between displays.**
   - A window dragged onto another display takes the slot under the pointer.
   - A window that changes display any other way goes last in that display's current workspace.
@@ -262,6 +262,22 @@ Measured in S2 (2026-10-11, macOS 26.7, `live-check display-events`, with tiling
 - **Plugging a display in also sends `activeSpaceDidChange`.**
 - **The setup for S3 is now side by side:** laptop (0,0,1800,1169), which parks at the left edge; Dell (1800,−271,2560,1440), visible 1800,−241 2560×1410, which parks at the right edge.
 
+Measured in S3 (2026-10-11, macOS 26.7, `live-check slide --display --park`, side by side). Each slide took 0.25 s:
+- **Laptop (display 1), parking on the left:**
+  - Outgoing windows slid left, and incoming ones jumped from the left edge to the right sliver and slid in. On the way back they slid off onto the Dell, then jumped to the left edge.
+  - 14 to 18 frames per slide, no size changed.
+  - The user found it fine.
+- **Dell (display 2), parking on the right:**
+  - Edge slid out to the left across the laptop. 21 to 23 frames per slide.
+  - **macOS shrank Edge from 2560×1410 to 2560×1130**, the laptop's visible height, and left it that size after it came back. A window that crosses onto a shorter display gets cut to fit.
+- **The user found Dell windows sweeping across the laptop distracting. Decision: nothing crosses onto another display.** A window whose path would cross jumps to its end instead of sliding; the others still slide.
+- **Ways to avoid the crossing that were considered:**
+  - keep the displays stacked;
+  - make the switch instant;
+  - slide through the free edge, reversed;
+  - animate snapshots in tylerd's own windows (see Open items);
+  - private WindowServer API, which needs SIP off and is ruled out.
+
 Checklist (one line per increment of the plan; tick only after its live check):
 - [ ] Spikes: geometry (S1), reconfiguration events and display ids (S2), side by side (S3)
 - [ ] The manager holds one row per display; single-display behaviour unchanged
@@ -270,7 +286,7 @@ Checklist (one line per increment of the plan; tick only after its live check):
 - [ ] Commands act on the focused display; cmd-tab to a parked window on the second display
 - [ ] Unplug and replug, lid closed and opened, sleep and wake
 - [ ] The menu bar items follow the focused display
-- [ ] Side by side: the parking edge for each display, and slides that cross the neighbour
+- [ ] Side by side: the parking edge for each display, and no window crossing onto the neighbour
 - [ ] Swipes on the display under the pointer
 - [ ] Drag across displays
 - [ ] `display`, `move-to-display [--follow]`, `move-workspace-to-display`
@@ -340,6 +356,11 @@ What is implemented is the command table in `TylerClient/CommandLine.swift` (`ty
 - AX calls cost one round trip per window, so a slide with many windows may be coarse (see M4). Each slide frame runs on the main thread, and an unresponsive app can block a frame for up to the 1 s AX timeout.
 - **Crash recovery (from M4).** A crash or `kill -9` skips `stop()`, so parked windows stay at the right edge. A state file of original frames, read at the next start, would fix it; out of scope for M4.
 - **Parking with several displays (M5).** Windows park at the primary display's right edge. With a display to its right, a parked window shows on that display, and macOS may not accept the position. M5 needs to pick an edge that touches no other display (the left edge works too, but with the Dock there it leaves a strip visible), and the slide direction may have to follow it. Planned in M5: each display parks at a free edge (the right one, otherwise the left), and slides keep the page direction (see M5).
+- **Animate snapshots instead of windows (after M5).**
+  - tylerd would take a snapshot of each window with ScreenCaptureKit, show the snapshots in its own borderless windows clipped to the display, and move the real windows straight to their end. Then it slides the snapshots and removes them.
+  - This would make slides between side-by-side displays possible without anything showing on the neighbour, which M5 avoids by jumping those windows.
+  - It would also make slides smoother with many windows: one window moves per frame, instead of an Accessibility call per window.
+  - Costs: the Screen Recording permission, window content frozen during the slide, and swipes that need snapshots before the first frame.
 - **Focus after closing a window (from M4).** When a window closes, macOS may focus another window of the same app, even one parked on another workspace, and tylerd then switches there. Unverified; if it happens, ignore focus events for parked windows right after a window of the same app closes.
 - **Focus after switching to an empty workspace** stays on the previous workspace's (now parked) window, so typing goes to a hidden window. **Confirmed 2026-10-10:** after `workspace 4` (empty), `list` still flagged the parked window of the previous workspace as focused. **Fixed the same day:** when the current workspace ends up empty (a switch, or `move-to-workspace` of its last window) and a parked window has focus, tylerd makes itself frontmost through AX (`WindowBackend.unfocus`). A focused floated window keeps focus. Checked on real windows: on the empty workspace the frontmost app is `tylerd`, and switching back focuses the workspace's window again.
 - **Echo tracking can go stale.** If an app accepts a focus call but never sends a focus event, the window stays on tylerd's "own focus" list, and the next real focus of it while parked doesn't switch workspaces (once). Unverified whether this happens.

@@ -247,7 +247,7 @@ let usage = """
     displays                      every display as tyler numbers it, with its parking edge
     positions <window-id> [x y] [--display <n>]
                                   where macOS really puts a window at a display's edges
-    slide <seconds> <rounds> <out-ids> <in-id@x,y>...
+    slide <seconds> <rounds> <out-ids> <in-id@x,y>... [--display <n>] [--park left|right]
                                   replay a workspace slide on real windows, then restore them
     gestures <seconds>            log trackpad touches from an event tap and a global monitor
     display-events <seconds> [settle]

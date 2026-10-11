@@ -55,7 +55,11 @@ Windows on the Dell are left alone. M5 gives each display its own row of workspa
    - Different content on each display's menu bar is not possible through the public API: the copies on other displays are an `NSStatusItemReplicant` kept in step with the original.
 10. **Side by side is supported.**
     - Each display parks windows at an edge that touches no other display: right if free, otherwise left.
-    - Slides keep the page direction everywhere. During a slide or swipe, windows briefly cross onto the neighbouring display; at rest they sit at the free edge.
+    - **Nothing crosses onto another display** (changed after spike S3: Dell windows sweeping across the laptop were distracting, and macOS shrank them to the laptop's height).
+      - Slides keep the page direction. A window whose path would cross onto a neighbour jumps straight to its end instead (it vanishes into its parking spot, or appears in its slot). The others still slide.
+      - On the Dell with the laptop to its left: `next` makes the outgoing windows vanish while the incoming ones slide in from the right; `prev` slides the outgoing ones out to the right while the incoming ones appear in place.
+      - Swipes follow the same rule.
+      - If the half-animated switch looks wrong in the live check, the whole switch goes instant instead.
     - The middle display of three has no free edge. The fallback (right edge or the bottom strip) is decided by spike S3.
 11. **New commands.** `prev`/`next` wrap; `<n>` is a display number.
     - `tyler display <n|next|prev>` focuses that display's current workspace. The pointer doesn't move.
@@ -76,7 +80,8 @@ Windows on the Dell are left alone. M5 gives each display its own row of workspa
   - New `ParkingEdge { right, left }`.
   - `frame(for:on:)` uses the display's edge; the left edge is `visibleFrame.minX − width + 1`.
   - `allowedX` doesn't change.
-  - `Track.leaving`/`entering` already clamp to `allowedX`, and `SlidePlan.start` already moves entering windows to their start. So the slide across a neighbour needs no change to the `Animator`: an incoming window on a display that parks on the left jumps to the right sliver, then slides in.
+  - `Track.leaving`/`entering` already clamp to `allowedX`, and `SlidePlan.start` already moves entering windows to their start.
+  - Avoiding the crossing: `SlidePlan` gets the display's neighbouring sides, and a track heading through a side with a neighbour becomes a jump (start equals end).
 - **`WorkspaceRow`**
   - New `numbers: [Int]`, kept parallel to `workspaces`.
   - New mutators: `init(numbers:)`, `insert(_:number:)` (keeps the row sorted), `remove(number:)`, and `setNumbers(_:)`, which generalises `setCount`.
@@ -175,9 +180,15 @@ Each increment is one commit, passes `make check` and updates its docs. The live
     - Tests: disconnect, reconnect, clamshell, a change during a slide, a burst of events.
     - Live check by the user: unplug and replug, lid, sleep and wake.
 15. **The indicator follows the focused display.** Test: the snapshot switches when focus moves to the Dell. Live check: `live-check menubar` after focus changes.
-16. **Parking edge per display; slides across the neighbour.**
-    - Tests in `ParkingTests`, `SlidePlanTests` and `WorkspaceAnimationTests` for a display that parks on the left: where incoming windows start and outgoing ones end, for `next` and `prev`; parked windows moving when the arrangement changes.
-    - Live check side by side: `workspace next`/`prev` and swipes on both displays, and `stacking` shows no parked window on the neighbour.
+16. **Parking edge per display; no crossing onto a neighbour.**
+    - Tests in `ParkingTests`, `SlidePlanTests` and `WorkspaceAnimationTests`:
+      - a display that parks on the left;
+      - on a display with a neighbour, the tracks heading through that side jump while the others slide, for `next` and `prev`;
+      - parked windows moving when the arrangement changes.
+    - Live check side by side:
+      - `workspace next`/`prev` and swipes on both displays;
+      - `stacking` shows no window on the neighbour, at rest or during a switch;
+      - the user judges the half-animated switch.
     - Record in `devdocs/strip-layout.md` that the strip's off-view windows jump on a display that parks on the left.
 17. **Swipes on the display under the pointer.** Pan and strip-pan tests with two displays. Live check: the user swipes on each display.
 18. **Drag across displays** (decision 6).
@@ -202,7 +213,8 @@ Increments 19–21 depend only on 13, so they could come straight after it if yo
 - **No per-display menu bar content** through the public API, and the map relies on separate Spaces staying off.
 - **The middle display of three** has no free edge. Until S3 decides, parked windows sit on the neighbour.
 - **The Dock on the left:** parking on the left edge of the laptop leaves a 56-point strip of the window showing beside the Dock (measured in M4).
-- **Slides between side-by-side displays** briefly show windows on the neighbour. This was chosen deliberately.
+- **Side by side, half of each switch is instant**: the windows heading through the side with a neighbour jump instead of sliding. A later experiment animates snapshots in tylerd's own windows, clipped to the display (needs Screen Recording permission); if it works, it replaces the jumps.
+- **A window that crosses onto a shorter display is cut to its height** by macOS (measured in S3). This matters when windows are moved between displays, so tylerd always sets the full frame.
 - **Display numbers follow position.** A different external display in the same position gets the same number and the same workspaces.
 - **Version 2 state files** can't be read by older builds.
 - **All of tyler's windows on the Dell get tiled** as soon as increment 12 runs.

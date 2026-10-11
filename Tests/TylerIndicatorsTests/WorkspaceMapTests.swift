@@ -1,0 +1,123 @@
+import CoreGraphics
+import Testing
+import TylerCore
+
+@testable import TylerIndicators
+
+@Suite("Workspace map")
+struct WorkspaceMapTests {
+  /// A 16:10 display, so thumbnails are 22 by 14 points.
+  private static let area = CGRect(x: 0, y: 25, width: 1600, height: 1000)
+
+  private func map(
+    counts: [Int] = [2, 1, 0, 0], current: Int = 0, layout: LayoutKind = .tall,
+    area: CGRect? = WorkspaceMapTests.area
+  ) throws -> WorkspaceMap {
+    try #require(
+      WorkspaceMap(snapshot(counts: counts, current: current, layout: layout, area: area)))
+  }
+
+  @Test(arguments: [area, nil])
+  func thumbnailsHaveTheDisplaysShapeAndGapsBetweenThem(area: CGRect?) throws {
+    let map = try map(area: area)
+    #expect(map.thumbnails.map(\.frame.minX) == [0, 26, 52, 78])
+    #expect(map.thumbnails.allSatisfy { $0.frame.size == CGSize(width: 22, height: 14) })
+    #expect(map.size == CGSize(width: 100, height: 14))
+  }
+
+  @Test func aWideDisplayGivesWideThumbnails() throws {
+    let map = try map(area: CGRect(x: 0, y: 0, width: 3440, height: 1440))
+    #expect(map.thumbnails[0].frame.size == CGSize(width: 33, height: 14))
+  }
+
+  @Test func tenWorkspacesFitByGettingLower() throws {
+    let map = try map(counts: Array(repeating: 1, count: 10))
+    #expect(map.size.width <= WorkspaceMap.maximumWidth)
+    #expect(map.thumbnails[0].frame.size == CGSize(width: 16, height: 10))
+  }
+
+  @Test(arguments: [
+    (1, [CGRect(x: 1, y: 1, width: 20, height: 12)]),
+    (
+      2,
+      [CGRect(x: 1, y: 1, width: 10, height: 12), CGRect(x: 12, y: 1, width: 9, height: 12)]
+    ),
+    (
+      3,
+      [
+        CGRect(x: 1, y: 1, width: 10, height: 12), CGRect(x: 12, y: 1, width: 9, height: 6),
+        CGRect(x: 12, y: 8, width: 9, height: 5),
+      ]
+    ),
+  ])
+  func tallPlacesWindowsAsOnTheDisplay(count: Int, frames: [CGRect]) throws {
+    #expect(try map(counts: [count]).thumbnails[0].windows == frames)
+  }
+
+  @Test func fullStacksEveryWindowInOneFrame() throws {
+    let windows = try map(counts: [3], layout: .full).thumbnails[0].windows
+    #expect(windows == Array(repeating: CGRect(x: 1, y: 1, width: 20, height: 12), count: 3))
+  }
+
+  @Test func theStripShowsOnlyTheWindowsInView() throws {
+    let windows = try map(counts: [3], layout: .strip).thumbnails[0].windows
+    #expect(windows.count == 2, "two half-width windows fill the view")
+    #expect(windows.allSatisfy { CGRect(x: 0, y: 0, width: 22, height: 14).contains($0) })
+  }
+
+  @Test func windowsOnOtherWorkspacesSitInTheirThumbnail() throws {
+    let second = try map().thumbnails[1]
+    #expect(second.windows == [CGRect(x: 27, y: 1, width: 20, height: 12)])
+  }
+
+  @Test func everyRectIsInWholePoints() throws {
+    var shifted = snapshot(counts: [3, 2], area: CGRect(x: 0, y: 0, width: 1512, height: 945))
+    shifted.row.current.adjustRatio(by: 0.13)
+    let map = try #require(WorkspaceMap(shifted))
+    let edges = map.thumbnails.flatMap(\.windows).flatMap { [$0.minX, $0.minY, $0.maxX, $0.maxY] }
+    #expect(edges.allSatisfy { $0 == $0.rounded() })
+  }
+
+  @Test func theRatioMovesTheWindows() throws {
+    var wider = snapshot(counts: [2], area: Self.area)
+    wider.row.current.adjustRatio(by: 0.2)
+    let before = try map(counts: [2]).thumbnails[0].windows
+    let after = try #require(WorkspaceMap(wider)).thumbnails[0].windows
+    #expect(after[0].width > before[0].width)
+  }
+
+  @Test func onlyTheCurrentWorkspaceShowsFocus() throws {
+    var focused = snapshot(counts: [2, 2], current: 1, area: Self.area)
+    focused.row[0].focus(.next)
+    focused.row[1].focus(.prev)
+    let map = try #require(WorkspaceMap(focused))
+    #expect(map.thumbnails.map(\.focusedIndex) == [nil, 1])
+  }
+
+  @Test func itMarksTheCurrentAndEmptyWorkspaces() throws {
+    let map = try map(counts: [2, 0, 1], current: 1)
+    #expect(map.thumbnails.map(\.isCurrent) == [false, true, false])
+    #expect(map.thumbnails.map(\.isEmpty) == [false, true, false])
+  }
+
+  @Test(arguments: [ServerStatus.Tiling.off, .waitingForPermission])
+  func withoutTilingThereIsNoMap(tiling: ServerStatus.Tiling) {
+    #expect(WorkspaceMap(snapshot(tiling: tiling)) == nil)
+  }
+
+  @Test(arguments: [
+    (0, 0), (10, 0), (22, 0), (23, 0), (25, 1), (26, 1), (99, 3), (100, 3),
+  ])
+  func aPointPicksTheNearestThumbnail(offset: CGFloat, index: Int) throws {
+    #expect(try map().workspaceIndex(at: CGPoint(x: offset, y: 7)) == index)
+  }
+
+  @Test(arguments: [-0.5, 100.5])
+  func aPointBesideTheMapPicksNone(offset: CGFloat) throws {
+    #expect(try map().workspaceIndex(at: CGPoint(x: offset, y: 7)) == nil)
+  }
+
+  @Test func theHeightOfAPointDoesNotMatter() throws {
+    #expect(try map().workspaceIndex(at: CGPoint(x: 30, y: -4)) == 1)
+  }
+}

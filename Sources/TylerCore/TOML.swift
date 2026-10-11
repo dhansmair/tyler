@@ -5,6 +5,7 @@ public enum TOMLValue: Equatable, Sendable {
   case float(Double)
   case boolean(Bool)
   case table([String: TOMLValue])
+  case array([TOMLValue])
 }
 
 /// A syntax error in a TOML document, with the 1-based line it was found on.
@@ -21,10 +22,10 @@ public struct TOMLError: Error, Equatable, Sendable, CustomStringConvertible {
 }
 
 /// Parses the subset of TOML that tyler's config needs: comments, `[table]` and `[a.b]`
-/// headers, bare, quoted and dotted keys, and single-line strings (with `\uXXXX` and
-/// `\UXXXXXXXX` escapes), integers, floats and booleans. Arrays, inline tables, multi-line
-/// strings and dates are rejected with an error rather than misread; add them when a setting
-/// needs them. Beyond TOML, a `\uXXXX\uXXXX` surrogate pair is read as the character it encodes,
+/// headers, bare, quoted and dotted keys, single-line strings (with `\uXXXX` and `\UXXXXXXXX`
+/// escapes), integers, floats, booleans and arrays on one line. Arrays across lines, inline
+/// tables, multi-line strings and dates are rejected with an error rather than misread; add them
+/// when a setting needs them. Beyond TOML, a `\uXXXX\uXXXX` surrogate pair is read as the character it encodes,
 /// the way JSON writes characters past U+FFFF.
 public enum TOML {
   public static func parse(_ text: String) throws(TOMLError) -> [String: TOMLValue] {
@@ -189,14 +190,14 @@ private struct LineScanner {
 
   mutating func parseValue() throws(TOMLError) -> TOMLValue {
     switch peek {
-    case nil, "#":
+    case nil, "#", ",", "]":
       throw error("expected a value")
     case "\"":
       return .string(try parseBasicString())
     case "'":
       return .string(try parseLiteralString())
     case "[":
-      throw error("arrays are not supported")
+      return .array(try parseArray())
     case "{":
       throw error("inline tables are not supported")
     default:
@@ -204,10 +205,28 @@ private struct LineScanner {
     }
   }
 
-  /// A boolean or a number: everything up to whitespace or a comment.
+  /// `[a, b, ...]` on one line, with an optional comma after the last value.
+  private mutating func parseArray() throws(TOMLError) -> [TOMLValue] {
+    index += 1
+    var values: [TOMLValue] = []
+    while true {
+      skipWhitespace()
+      if consume("]") { return values }
+      guard peek != nil, peek != "#" else { throw error("an array must close on the same line") }
+      values.append(try parseValue())
+      skipWhitespace()
+      if consume("]") { return values }
+      guard consume(",") else {
+        throw error(
+          peek.map { "unexpected '\($0)' in an array" } ?? "an array must close on the same line")
+      }
+    }
+  }
+
+  /// A boolean or a number: everything up to whitespace, a comment, or the end of an array item.
   private mutating func parseBareValue() throws(TOMLError) -> TOMLValue {
     var token = ""
-    while let character = peek, character != " ", character != "\t", character != "#" {
+    while let character = peek, !" \t#,]".contains(character) {
       token.append(character)
       index += 1
     }

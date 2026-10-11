@@ -60,6 +60,22 @@ struct TOMLTests {
     #expect(try TOML.parse(text).isEmpty)
   }
 
+  @Test func arraysOnOneLineAreRead() throws {
+    let text = """
+      a = [1, 2, 3]  # numbers
+      b = []
+      c = [ "x", 'y', ]
+      d = [[1], [2, 3]]
+      """
+    #expect(
+      try TOML.parse(text) == [
+        "a": .array([.integer(1), .integer(2), .integer(3)]),
+        "b": .array([]),
+        "c": .array([.string("x"), .string("y")]),
+        "d": .array([.array([.integer(1)]), .array([.integer(2), .integer(3)])]),
+      ])
+  }
+
   @Test func windowsLineEndingsWork() throws {
     #expect(try TOML.parse("[t]\r\na = 1\r\n") == ["t": .table(["a": .integer(1)])])
   }
@@ -76,7 +92,10 @@ struct TOMLTests {
     ("[t\nb = 1", 1, "expected ']' after the table name"),
     ("[t] x", 1, "unexpected 'x'"),
     ("a = 1 2", 1, "unexpected '2'"),
-    ("a = [1, 2]", 1, "arrays are not supported"),
+    ("a = [1, 2", 1, "an array must close on the same line"),
+    ("a = [1,\n2]", 1, "an array must close on the same line"),
+    ("a = [1 2]", 1, "unexpected '2' in an array"),
+    ("a = [,]", 1, "expected a value"),
     ("a = { b = 1 }", 1, "inline tables are not supported"),
     ("[[t]]", 1, "arrays of tables ([[...]]) are not supported"),
     ("a = \"open", 1, "unterminated string"),

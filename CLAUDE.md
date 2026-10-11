@@ -73,8 +73,18 @@ GCD is a documented exception, limited to `IPCServer` (blocking socket I/O) and 
 - **Work in small increments.** One self-contained change at a time (a fix, one slice of a feature, a doc update), each building, tested and documented on its own.
 - **Refactor behind tests.** Before a refactoring, add tests for any behaviour it touches that the tests don't clearly cover, in a commit of their own, so the refactoring commit changes no test (only setup). Check that each new test can fail: break the guarded code on purpose, see the test fail, and put the code back. `devdocs/REFACTORING.md` is the backlog.
 - **One commit per increment**, made as soon as it is done and the checks pass, with a message that says what changed and why. Don't bundle unrelated changes. If the working tree already holds other changes (the user's, or an earlier increment's), keep them out of the commit.
-- **Commit directly on `main`** for now; no branches or pull requests.
+- **Commit directly on `main`** for small increments; no pull requests. A bigger feature that takes many increments goes on a branch in its own worktree (see Parallel agents).
 - **The pre-commit hook stashes unstaged changes but not untracked files**, so it compiles new files that belong to a later commit. When committing part of the tree, set those aside first with `git stash push -u -- <paths>`.
+
+## Parallel agents
+
+Two agents often work in this repository at once (for example one on a feature, one on the refactoring backlog), sharing one machine, one checkout of `main` and one running `tylerd`. Learned while the strip layout and the backlog ran side by side:
+
+- **Claim before starting.** Before working on a `devdocs/REFACTORING.md` item, add it to that file's "In progress" line and commit; remove it when done. Before starting a feature, check that line and the roadmap for overlap, and say which files the two pieces of work share.
+- **A bigger feature gets its own worktree:** `git worktree add -b <name> ../tyler-<name> main`. Never switch the shared checkout to another branch: that changes files under the other agent. Rebase the branch onto `main` before each increment, so conflicts come early and small.
+- **Merging into `main`:** run `make check` on the rebased branch, then `git merge --ff-only <name>` in the main checkout, only while the other agent is idle (it refuses to overwrite uncommitted work, but changes files the other agent has open). Then remove the worktree. After a merge, the other agent re-reads the files that changed before editing them.
+- **Commits that were rebased get new hashes.** After a `git pull --rebase` on `main`, `git branch -d <name>` may say the branch is "not fully merged" although every commit is there. Check with `git diff <name> main` before using `-D`.
+- **One `tylerd` at a time.** `tyler restart` starts the `tylerd` next to the `tyler` you run, so a restart from a worktree replaces the shared one (and a restart from `main` replaces the worktree's). An older build can't read a state file that names a newer layout and starts afresh, which can leave windows parked: go back with `tyler stop` from the newer build, then `tyler start` from the older one. Agree before restarting `tylerd` for a live check.
 
 ## Agentic engineering
 

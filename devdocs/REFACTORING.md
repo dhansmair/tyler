@@ -4,6 +4,9 @@ Coding agents tend to add features on top of each other and rarely refactor, whi
 
 ## How to work through it
 
+In progress: none.
+
+- **Claim an item first:** put it on the "In progress" line above (with who is working on it) and commit, so a parallel agent doesn't take it too; clear it when the item is done. See "Parallel agents" in CLAUDE.md.
 - **One item (or one step of an item) per commit**, like any other increment. Tick it off here and add a line to the log at the end in the same commit.
 - **Pin behaviour down first.** If the tests don't clearly cover what a refactoring touches, add regression tests in a commit of their own *before* changing the code, so the refactoring commit changes no tests (or only their setup).
 - **Run `live-check`** after any item that changes how or when windows move (marked **[live]**).

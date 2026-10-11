@@ -284,7 +284,7 @@ Checklist (one line per increment of the plan; tick only after its live check):
 - [ ] Saved state version 2; `[displays]` in the config
 - [x] Every display is tiled; parked windows stay on their own display (2026-10-11: see the live checks below)
 - [ ] Commands act on the focused display; cmd-tab to a parked window on the second display
-- [ ] Unplug and replug, lid closed and opened, sleep and wake (built and unit tested 2026-10-11; the user's live check is open)
+- [ ] Unplug and replug, lid closed and opened, sleep and wake (built and unit tested 2026-10-11; unplugging the Dell checked by the user the same day: every window found its place; the lid and a long sleep are still open)
 - [ ] The menu bar items follow the focused display (unit tested 2026-10-11; the `live-check menubar` check after focus changes is open)
 - [ ] Side by side: the parking edge for each display, and no window crossing onto the neighbour
 - [ ] Swipes on the display under the pointer
@@ -297,6 +297,7 @@ Live checks so far (2026-10-11, macOS 26.7, Dell above the laptop):
   - The laptop was unchanged, and `tyler list` shows display 2 for the Dell's windows.
   - A second restart kept every window's workspace and slot (state version 2).
   - Parking on the Dell, after increment 13: `tyler workspace 6` from the laptop parked the Dell's four windows at x = 2116 (its right sliver), each at its own height, with the laptop unchanged. `tyler workspace 5` slid them back in from the left into their slots and focused workspace 5's focused window (Firefox).
+- **Unplugging the Dell (increment 14).** The user's first try ran on a `tylerd` still on the build before increment 14: windows overlapped on the laptop until the user cycled through the workspaces. After `tyler restart` onto the new build, everything went to its place about a second after unplugging.
 - **"Displays have separate Spaces" turned on by the user.** The S1 limits hold with it on: the Dell's right sliver at 2116 (2117 is pulled back to 2077), its left sliver, the strip at the top (y = −1410), and the laptop's right sliver at 1799 (1800 is pulled back to 1760). With the displays stacked, parking works either way. Side by side with it on is unmeasured.
 
 Increment 13 (the focused display) also made swipes and the menu bar follow the focused display, since both read its row; increment 17 moves swipes to the display under the pointer, and increment 15 is left with checking the menu bar.

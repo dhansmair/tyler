@@ -66,21 +66,6 @@ enum Accessibility {
 
 // MARK: - Geometry
 
-/// The primary display in Accessibility coordinates (origin top-left, y down).
-struct Display {
-  let frame: CGRect
-  let visible: CGRect
-
-  init?() {
-    guard let screen = NSScreen.screens.first else { return nil }
-    let height = screen.frame.height
-    frame = CGRect(origin: .zero, size: screen.frame.size)
-    let cocoa = screen.visibleFrame
-    visible = CGRect(
-      x: cocoa.minX, y: height - cocoa.maxY, width: cocoa.width, height: cocoa.height)
-  }
-}
-
 /// Where the WindowServer really has a window, which can lag behind what AX reports.
 func serverOrigin(of windowID: CGWindowID) -> CGPoint? {
   let list = CGWindowListCopyWindowInfo([.optionIncludingWindow], windowID) as? [[String: Any]]
@@ -92,18 +77,31 @@ func serverOrigin(of windowID: CGWindowID) -> CGPoint? {
 
 // MARK: - Commands
 
-/// `positions <window-id> [x y]`: asks macOS to put the window at the edges of the display (or
-/// at one given position) and reports where it really went.
-func positions(_ arguments: [String]) throws(UsageError) {
+/// `positions <window-id> [x y] [--display <n>]`: asks macOS to put the window at the edges of a
+/// display (the primary unless given, or at one given position) and reports where it really went.
+func positions(_ given: [String]) throws(UsageError) {
+  var arguments = given
+  var number = 1
+  if let flag = arguments.firstIndex(of: "--display") {
+    guard flag + 1 < arguments.count, let parsed = Int(arguments[flag + 1]) else {
+      throw UsageError("--display needs a display number (see `displays`)")
+    }
+    number = parsed
+    arguments.removeSubrange(flag...(flag + 1))
+  }
   guard let first = arguments.first, let windowID = CGWindowID(first) else {
-    throw UsageError("positions <window-id> [x y]")
+    throw UsageError("positions <window-id> [x y] [--display <n>]")
+  }
+  guard let display = Display(number: number) else {
+    throw UsageError("no display \(number) (see `displays`)")
   }
   guard let window = Accessibility.windows()[windowID], let home = Accessibility.origin(of: window),
-    let size = Accessibility.size(of: window), let display = Display()
+    let size = Accessibility.size(of: window)
   else { throw UsageError("no window \(windowID) (see `tyler list`)") }
 
   print("window \(windowID), size \(Int(size.width))x\(Int(size.height)), at \(format(home))")
-  print("display \(format(display.frame)), visible frame \(format(display.visible))")
+  print(
+    "display \(display.number): \(format(display.frame)), visible frame \(format(display.visible))")
   var requests = edgeRequests(home: home, size: size, display: display)
   if arguments.count == 3, let requested = point(x: arguments[1], y: arguments[2]) {
     requests = [("requested", requested)]
@@ -127,16 +125,19 @@ private func edgeRequests(
   home: CGPoint, size: CGSize, display: Display
 ) -> [(String, CGPoint)] {
   let visible = display.visible
+  // Measure from inside the display: the window may start on another one.
+  let base =
+    visible.contains(home) ? home : CGPoint(x: visible.minX + 40, y: visible.minY + 40)
   return [
-    ("top: just below menu bar", CGPoint(x: home.x, y: visible.minY)),
-    ("top: 1 point higher", CGPoint(x: home.x, y: visible.minY - 1)),
-    ("top: off screen", CGPoint(x: home.x, y: -size.height - 100)),
-    ("bottom: 40 points showing", CGPoint(x: home.x, y: display.frame.maxY - 40)),
-    ("bottom: 1 point showing", CGPoint(x: home.x, y: display.frame.maxY - 1)),
-    ("right: 1 point showing", CGPoint(x: visible.maxX - 1, y: home.y)),
-    ("right: none showing", CGPoint(x: visible.maxX, y: home.y)),
-    ("left: 1 point showing", CGPoint(x: visible.minX - size.width + 1, y: home.y)),
-    ("left: none showing", CGPoint(x: visible.minX - size.width, y: home.y)),
+    ("top: just below menu bar", CGPoint(x: base.x, y: visible.minY)),
+    ("top: 1 point higher", CGPoint(x: base.x, y: visible.minY - 1)),
+    ("top: off screen", CGPoint(x: base.x, y: display.frame.minY - size.height - 100)),
+    ("bottom: 40 points showing", CGPoint(x: base.x, y: display.frame.maxY - 40)),
+    ("bottom: 1 point showing", CGPoint(x: base.x, y: display.frame.maxY - 1)),
+    ("right: 1 point showing", CGPoint(x: visible.maxX - 1, y: base.y)),
+    ("right: none showing", CGPoint(x: visible.maxX, y: base.y)),
+    ("left: 1 point showing", CGPoint(x: visible.minX - size.width + 1, y: base.y)),
+    ("left: none showing", CGPoint(x: visible.minX - size.width, y: base.y)),
   ]
 }
 
@@ -243,7 +244,9 @@ let usage = """
   usage: devtools/live-check <command>
     stacking                      on-screen windows front to back, with tyler's workspace
     menubar                       what tylerd's menu bar item shows
-    positions <window-id> [x y]   where macOS really puts a window at the display's edges
+    displays                      every display as tyler numbers it, with its parking edge
+    positions <window-id> [x y] [--display <n>]
+                                  where macOS really puts a window at a display's edges
     slide <seconds> <rounds> <out-ids> <in-id@x,y>...
                                   replay a workspace slide on real windows, then restore them
     gestures <seconds>            log trackpad touches from an event tap and a global monitor
@@ -254,6 +257,7 @@ do {
   switch arguments.first {
   case "stacking": stacking()
   case "menubar": try menubar()
+  case "displays": displays()
   case "positions": try positions(Array(arguments.dropFirst()))
   case "slide": try slide(Array(arguments.dropFirst()))
   case "gestures": try gestures(Array(arguments.dropFirst()))

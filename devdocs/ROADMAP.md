@@ -234,6 +234,21 @@ Decisions (agreed in the plan):
 
 Setup used for the checks (2026-10-11): the laptop is primary at AX (0,0,1800,1169), with the Dock on the left. A Dell U2717D (2560×1440) sits above it, at AX (−397,−1440). "Displays have separate Spaces" is off.
 
+Measured in S1 (2026-10-11, macOS 26.7, `live-check displays` and `positions --display`, with a Firefox window on the Dell):
+- **Numbers and ids.**
+  - `displays` numbers the laptop 1 (id 1) and the Dell 2 (id 3), and both park at the right edge.
+  - Both displays have a UUID through `CGDisplayCreateUUIDFromDisplayID`.
+- **The Dell's sides follow the laptop's rules.** A window needs 1 point of horizontal overlap with the display, and a request further out is pulled 40 points back in.
+  - Right sliver: x = 2162 is accepted; 2163 and beyond get 2123.
+  - Left sliver: x = −2956 for a 2560-wide window is accepted; −2957 gets −2917.
+  - There's no display to the right of the Dell at its height, so its right edge parks as on the laptop.
+- **A display without the menu bar still keeps a strip clear at the top, 30 points on the Dell.**
+  - Its visible frame is the whole display (−397,−1440 2560×1440), but a window can't go above y = −1410. Requests at −1441 and −1600 both get −1410.
+  - No API reports the 30 points: the safe-area insets are 0, `NSStatusBar.system.thickness` is 22, and `auxiliaryTopLeftArea` is empty. Maximised windows on the Dell are 1410 high.
+  - So tyler has to subtract the strip from the top of a display that has no menu bar, or its top row gets pushed down. To decide when every display is tiled.
+- **A dialog (Cisco Secure Client) was accepted everywhere**, even past both edges and above the laptop's menu bar, and the WindowServer didn't report its position. Dialogs aren't tiled, so this doesn't matter for parking.
+- **Moving a regular window mostly onto the laptop makes tylerd from `main` adopt and tile it.** The probe then puts back only its position, not its size. Probe windows on a display tylerd doesn't tile only with positions that keep them on that display.
+
 Checklist (one line per increment of the plan; tick only after its live check):
 - [ ] Spikes: geometry (S1), reconfiguration events and display ids (S2), side by side (S3)
 - [ ] The manager holds one row per display; single-display behaviour unchanged

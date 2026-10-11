@@ -13,7 +13,8 @@ Unit tests use a fake backend that obeys every request. macOS doesn't: it clamps
 |---|---|---|
 | `devtools/live-check stacking` | On-screen windows front to back, each with its tyler workspace and title. Answers "where is my window?": hidden behind another (the `full` layout stacks them), parked (x near the right edge), or on no workspace. | no |
 | `devtools/live-check menubar` | The text of tylerd's menu bar item and where it sits. Only the text: colours (faint numbers for empty workspaces) need the user's eyes. | no |
-| `devtools/live-check positions <id> [x y]` | Asks macOS to put the window at each edge of the display (or at one position) and prints what it got, marking `CLAMPED` requests. Use it before relying on any new position, such as a new parking spot or slide path. | yes, briefly, then puts it back |
+| `devtools/live-check displays` | Every display as tyler numbers it (the primary first, then left to right, then top to bottom), with its id, UUID, frame, visible frame, and the edge tyler would park at. Also whether "Displays have separate Spaces" is on. | no |
+| `devtools/live-check positions <id> [x y] [--display <n>]` | Asks macOS to put the window at each edge of a display, the primary unless `--display` says otherwise (or at one position), and prints what it got, marking `CLAMPED` requests. Use it before relying on any new position, such as a new parking spot or slide path. | yes, briefly, then puts it back |
 | `devtools/live-check slide <seconds> <rounds> <out-ids> <in-id@x,y>...` | Replays a workspace switch: the `out` windows slide left while the `in` windows come in from the right edge into their slots, then back. Every window ends where it started. For judging a change to the motion by eye before building it into tylerd. | yes, for the whole replay |
 | `devtools/live-check gestures <seconds>` | Logs trackpad contacts of 3 or more fingers (event count, horizontal and vertical travel in trackpad widths) from a listen-only event tap and from a global `NSEvent` monitor, then a summary per source. The user does the swiping. | no |
 
@@ -27,9 +28,11 @@ Get window ids and slots from `tyler list` (`.build/debug/tyler list`). Example:
 - **Check that windows went back** afterwards with `tyler list`.
 - **Write findings down.** Measured limits and verified checklist items go into `devtools/ROADMAP.md` with the date and macOS version, the way the M4 notes record the position limits.
 
+In zsh, pass `x y` as separate words: an unquoted `$p` holding "x y" stays one argument, and `positions` then sweeps every edge. That sweep moved a window on the Dell onto the laptop, and tylerd tiled it.
+
 ## Known limits (macOS 26.7, measured 2026-10-10)
 
-A window must overlap the visible frame (the display minus the menu bar and Dock) by at least 1 point horizontally; a request further out is pulled 40 points back in. It can't go above the menu bar, and at the bottom 32 points stay visible. `positions` re-measures this; if it disagrees with this table, macOS changed, and so must `Parking` in `Sources/TylerCore/Parking.swift`.
+A window must overlap the visible frame (the display minus the menu bar and Dock) by at least 1 point horizontally; a request further out is pulled 40 points back in. It can't go above the menu bar, and at the bottom 32 points stay visible. A display without the menu bar keeps a strip clear at the top all the same (30 points on a 2560×1440 Dell, measured 2026-10-11), although its visible frame covers the whole display. `positions` re-measures this; if it disagrees with this table, macOS changed, and so must `Parking` in `Sources/TylerCore/Parking.swift`.
 
 ## Extending
 

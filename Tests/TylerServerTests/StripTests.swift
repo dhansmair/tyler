@@ -126,4 +126,62 @@ struct StripTests {
     let harness = ManagerHarness([1, 2])
     #expect(harness.manager.setSize(.set(.full)) == .error("the focused window is not tiled"))
   }
+
+  // MARK: - Scrolling
+
+  /// Three frames of 16 ms: two steps, then the final placement.
+  private static func animated(_ clock: TestClock) async -> ManagerHarness {
+    let harness = ManagerHarness(
+      [1, 2, 3],
+      animator: Animator(
+        duration: .milliseconds(48), frameInterval: .milliseconds(16), clock: clock))
+    await harness.osFocus(2)
+    _ = harness.manager.setLayout(.set(.strip))
+    await harness.settle()
+    harness.backend.clearRecordedCalls()
+    return harness
+  }
+
+  private func runAnimations(_ harness: ManagerHarness, _ clock: TestClock) async {
+    await harness.settle()
+    while clock.hasSleepers {
+      clock.advance(by: .milliseconds(16))
+      await harness.settle()
+    }
+  }
+
+  @Test func focusingAWindowOutOfViewSlidesTheStrip() async throws {
+    let clock = TestClock()
+    let harness = await Self.animated(clock)
+    let parked = try #require(harness.frame(of: 3))
+    _ = harness.manager.focus(.next)
+    #expect(harness.frame(of: 3)?.origin == parked.origin, "it starts where it is parked")
+    await runAnimations(harness, clock)
+    let steps = harness.backend.nudges.filter { $0.id == WindowID(3) }.map(\.origin.x)
+    #expect(steps.count == 2)
+    #expect(steps == steps.sorted(by: >), "it comes in from the right")
+    #expect(harness.everyPositionIsAllowed())
+    #expect(harness.isParked(1))
+    #expect(harness.frame(of: 2) == halves[0])
+    #expect(harness.frame(of: 3) == halves[1])
+  }
+
+  @Test func theFocusEventOfAScrollLetsItRunOn() async {
+    let clock = TestClock()
+    let harness = await Self.animated(clock)
+    _ = harness.manager.focus(.next)
+    await harness.osFocus(3)
+    #expect(harness.manager.animation != nil, "still sliding")
+    await runAnimations(harness, clock)
+    #expect(harness.frame(of: 3) == halves[1])
+  }
+
+  @Test func clickingAWindowOutOfViewSlidesTheStrip() async {
+    let clock = TestClock()
+    let harness = await Self.animated(clock)
+    await harness.osFocus(3)
+    await runAnimations(harness, clock)
+    #expect(harness.backend.nudges.contains { $0.id == WindowID(3) })
+    #expect(harness.frame(of: 3) == halves[1])
+  }
 }

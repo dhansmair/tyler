@@ -225,10 +225,10 @@ public final class WindowManager {
 
   public func focus(_ target: ListTarget) -> Response {
     if let failure = beginCommand() { return failure }
-    let view = workspaces.current.firstVisible
+    let snapshot = stripSnapshot()
     guard let windowID = workspaces.current.focus(target) else { return .error("no tiled windows") }
     // In the strip, focusing a window out of view scrolls to it.
-    let failures = workspaces.current.firstVisible == view ? 0 : applyLayout()
+    let failures = scrollIfViewMoved(since: snapshot) ?? 0
     do {
       try requestFocus(windowID)
     } catch {
@@ -242,8 +242,9 @@ public final class WindowManager {
     guard workspaces.current.count >= 2 else {
       return .error("need at least two tiled windows to swap")
     }
+    let snapshot = stripSnapshot()
     guard workspaces.current.swap(target) else { return .error("no tiled window is focused") }
-    return outcome(failures: applyLayout())
+    return outcome(failures: scrollIfViewMoved(since: snapshot) ?? applyLayout())
   }
 
   public func setLayout(_ choice: LayoutChoice) -> Response {

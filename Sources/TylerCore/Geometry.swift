@@ -8,6 +8,12 @@ extension CGRect {
       && abs(width - other.width) <= 1 && abs(height - other.height) <= 1
   }
 
+  /// Whether `frame` counts as in view in this area: its centre is inside. A strip column out of
+  /// view lies wholly off the area, a column in view wholly on it.
+  public func shows(_ frame: CGRect) -> Bool {
+    contains(CGPoint(x: frame.midX, y: frame.midY))
+  }
+
   /// Whether `other` differs from this rect in size by more than a point: a window dragged to
   /// another size was resized, one of the same size only moved.
   public func hasOtherSize(than other: CGRect) -> Bool {

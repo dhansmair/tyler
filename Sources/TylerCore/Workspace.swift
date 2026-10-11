@@ -226,12 +226,12 @@ public struct Workspace: Equatable, Sendable {
   /// The windows in view and where they go, in list order. That is every window, except in the
   /// strip layout.
   public func placements(in area: CGRect, gaps: LayoutGaps) -> [Placement] {
-    arrangement(in: area, gaps: gaps).filter { Self.isVisible($0.frame, in: area) }
+    arrangement(in: area, gaps: gaps).filter { area.shows($0.frame) }
   }
 
   /// The windows out of view: only in the strip layout.
   public func offView(in area: CGRect, gaps: LayoutGaps) -> [WindowID] {
-    arrangement(in: area, gaps: gaps).filter { !Self.isVisible($0.frame, in: area) }.map(\.id)
+    arrangement(in: area, gaps: gaps).filter { !area.shows($0.frame) }.map(\.id)
   }
 
   /// Where every window rests on `display`: the windows in view in their slots, the others
@@ -239,7 +239,7 @@ public struct Workspace: Equatable, Sendable {
   public func restingPlacements(on display: DisplayInfo, gaps: LayoutGaps) -> [Placement] {
     let area = display.visibleFrame
     return arrangement(in: area, gaps: gaps).map { placement in
-      Self.isVisible(placement.frame, in: area)
+      area.shows(placement.frame)
         ? placement
         : Placement(id: placement.id, frame: Parking.frame(for: placement.frame, on: display))
     }
@@ -249,12 +249,6 @@ public struct Workspace: Equatable, Sendable {
     LayoutInput(
       count: windows.count, parameters: parameters, sizes: windows.map(size(of:)),
       firstVisible: firstVisible.flatMap(windows.firstIndex(of:)) ?? 0)
-  }
-
-  /// Whether a frame is in view: its centre is inside the area. A strip column out of view lies
-  /// wholly off it, a column in view wholly on it.
-  private static func isVisible(_ frame: CGRect, in area: CGRect) -> Bool {
-    area.contains(CGPoint(x: frame.midX, y: frame.midY))
   }
 
   // MARK: - The strip's view

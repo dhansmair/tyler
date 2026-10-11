@@ -181,9 +181,9 @@ Decisions (2026-10-11, with the user): the list stays the only model, and column
 - [x] `Layout` protocol rework: `LayoutInput` (count and parameters; the strip adds sizes and the view) and `LayoutGaps` (REFACTORING 11.3). Gaps are no longer stored in each workspace
 - [x] TylerCore: `WindowSize`, per-window sizes in `Workspace` (carried by `WorkspaceRow.move`, forgotten when a window leaves), `StripLayout` and `StripColumns` (packing, fit, end clamp, snap points), `LayoutInput.sizes` and `firstVisible`. Not a `LayoutKind` yet
 - [x] TylerCore: the view (`Workspace.firstVisible`, refitted after every change so the focused window stays in view; `scroll(toFirstVisible:)` moves focus into the view), `arrangement`/`placements`/`offView`/`restingPlacements` (a frame is in view when its centre is), sizes and view in `SavedState` (optional fields)
-- [x] TylerServer: `LayoutKind.strip` (`↔` in the menu bar), off-view windows parked by `applyLayout` and kept on their workspace by the sync, only windows in view slide between workspaces, `tiling off` brings off-view windows back, focusing a window out of view (command or click) scrolls to it (a jump for now)
+- [x] TylerServer: `LayoutKind.strip` (`↔` in the menu bar), off-view windows parked by `applyLayout` and kept on their workspace by the sync, only windows in view slide between workspaces, `tiling off` brings off-view windows back, focusing a window out of view (command or click) scrolls to it
 - [x] `tyler size half|full|quarter|next` (kept in every layout, used by the strip; a window forgets it when it leaves tiling, keeps it on another workspace)
-- [ ] Animated scroll
+- [x] Animated scroll: `ScrollPlan` (TylerCore) from the arrangements before and after; windows out of view at both ends stay parked, incoming ones start where they are parked, x kept inside `Parking.allowedX`. Used by `focus`, `swap`, `size` and a click on a window out of view; the focus event a scroll causes lets it run on
 - [ ] Swipe scrolls the strip (`PanTarget.strip`)
 - [ ] Manual
 - [ ] Checked against real windows

@@ -69,15 +69,11 @@ extension WindowManager {
   /// is a strip window out of view on the current workspace, the strip scrolls to it.
   func focusChanged(to windowID: WindowID) {
     let isEcho = bookkeeping.pendingFocus.remove(windowID) != nil
-    let view = workspaces.current.firstVisible
+    let snapshot = isTiling ? stripSnapshot() : nil
     workspaces.setFocus(windowID)
+    // A click or cmd-tab on a strip window out of view scrolls to it.
     let isOnCurrent = workspaces.index(containing: windowID) == workspaces.currentIndex
-    if isTiling, isOnCurrent, workspaces.current.firstVisible != view {
-      // A click or cmd-tab on a strip window out of view scrolls to it.
-      finishAnimation()
-      applyLayout()
-      return
-    }
+    if isOnCurrent, scrollIfViewMoved(since: snapshot) != nil { return }
     guard !isEcho, isTiling,
       let index = workspaces.index(containing: windowID), index != workspaces.currentIndex
     else { return }

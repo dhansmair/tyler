@@ -139,8 +139,8 @@ swipe-distance = 0.3   # trackpad widths to swipe a whole workspace across
 text = false   # show only the map in the menu bar
 
 [indicator.icons]
-Firefox = "globe"                     # an SF Symbol instead of the app's icon on the map
-"com.mitchellh.ghostty" = "terminal"
+Firefox = "\uf269"                    # a Nerd Font glyph instead of the app's icon on the map
+"com.mitchellh.ghostty" = "terminal"  # or an SF Symbol
 
 [assign]
 Firefox = 3                  # new Firefox windows open on workspace 3
@@ -159,14 +159,20 @@ Firefox = 3                  # new Firefox windows open on workspace 3
 | `indicator.text` | Whether the menu bar shows the workspace numbers (`1 [2] 3 4  ▥`) | `true` |
 | `indicator.map` | Whether the menu bar shows the map of the workspaces | `true` |
 | `indicator.show-icons` | Whether the map shows each window's app icon | `true` |
-| `indicator.icons.<app>` | An SF Symbol the map shows on `<app>`'s windows instead of its icon | none |
+| `indicator.icon-font` | The font of glyph icons in `[indicator.icons]` (family or PostScript name) | `"Symbols Nerd Font"` |
+| `indicator.icons.<app>` | An SF Symbol's name, or one glyph, that the map shows on `<app>`'s windows instead of its icon | none |
 | `assign.<app>` | The workspace that new windows of `<app>` open on | none |
 
 Gaps are whole numbers in points, the unit macOS uses for window positions (on a Retina display, one point is two pixels).
 
 Changing `workspaces.count` and running `tyler reload` takes effect at once. New workspaces are added at the end of the row. When you remove workspaces, their windows move to the new last workspace, after the windows already there; if the workspace on screen was removed, the new last one comes into view.
 
-App icons are detailed for a box this small. In `[indicator.icons]`, each line gives an app a simpler symbol instead: the name of an [SF Symbol](https://developer.apple.com/sf-symbols/), such as `globe`, `terminal` or `doc.text` (the free SF Symbols app lists them all). Name the app as in `[assign]` below. The symbol is cut out of the window's box, so it reads in light and dark menu bars. Apps without a line, and names macOS doesn't know, show the app's icon.
+App icons are detailed for a box this small. In `[indicator.icons]`, each line gives an app a simpler icon instead, either:
+
+- the name of an [SF Symbol](https://developer.apple.com/sf-symbols/), such as `globe`, `terminal` or `doc.text` (the free SF Symbols app lists them all), or
+- one glyph of a [Nerd Font](https://www.nerdfonts.com), which has simple logos of many apps, such as Firefox's. Write it by its code point from the [cheat sheet](https://www.nerdfonts.com/cheat-sheet): `"\uf269"`, `"\U000F0239"`, or the surrogate pair the cheat sheet shows for code points past `FFFF`, `"\udb80\ude39"`. The glyph is drawn in `indicator.icon-font`, by default Symbols Nerd Font (`brew install --cask font-symbols-only-nerd-font`); any installed Nerd Font works.
+
+Name the app as in `[assign]` below. The icon is cut out of the window's box, so it reads in light and dark menu bars. Apps without a line, symbol names macOS doesn't know, a font that isn't installed and glyphs the font doesn't have all show the app's icon (tylerd logs which, under `log stream --predicate 'subsystem == "tyler"'`).
 
 In `[assign]`, each line sends an app's new windows to a workspace. Name the app as the `APP` column of `tyler list` shows it, or by its bundle ID (`osascript -e 'id of app "Firefox"'` prints it); both ignore case. Quote names with spaces or dots: `"Google Chrome" = 2`. The workspace number must be within `workspaces.count`.
 

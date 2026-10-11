@@ -18,8 +18,8 @@ struct WorkspaceMap: Equatable, Sendable {
     var frame: CGRect
     /// Its app's process, for the app's icon; `nil` if unknown or icons are turned off.
     var processID: Int32?
-    /// The SF Symbol the config file sets for its app, shown instead of the app's icon.
-    var symbol: String?
+    /// The SF Symbol or glyph the config file sets for its app, shown instead of the app's icon.
+    var customIcon: IndicatorIcon?
 
     /// Where the app's icon goes: a square centred in the window, as large as fits within the
     /// margin and `iconSizes`, in whole points; `nil` when the window is too small for one.
@@ -62,6 +62,8 @@ struct WorkspaceMap: Equatable, Sendable {
 
   let size: CGSize
   let thumbnails: [Thumbnail]
+  /// The font of glyph icons, so changing it redraws the map.
+  let iconFont: String
 
   /// The map of `snapshot`'s row with thumbnails `height` points high, or `nil` when the config
   /// file turns the map off or tiling isn't running (windows then don't belong to workspaces, and
@@ -85,6 +87,7 @@ struct WorkspaceMap: Equatable, Sendable {
     }
     let width = thumbnails.last?.frame.maxX ?? 0
     size = CGSize(width: width, height: thumbnail.height)
+    iconFont = snapshot.settings.iconFont
   }
 
   /// A placed window, with its app's icon or symbol unless icons are turned off.
@@ -95,7 +98,7 @@ struct WorkspaceMap: Equatable, Sendable {
     }
     return Window(
       frame: placement.frame, processID: app.processID,
-      symbol: settings.symbol(bundleID: app.bundleID, appName: app.name))
+      customIcon: settings.icon(bundleID: app.bundleID, appName: app.name))
   }
 
   /// The index of the workspace whose thumbnail is at `point`'s `x`, whatever its `y` (the item

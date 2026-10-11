@@ -63,33 +63,6 @@ public struct Config: Equatable, Sendable {
     }
   }
 
-  /// Which menu bar items show.
-  public struct Indicator: Equatable, Sendable {
-    /// The workspace numbers and the layout's symbol, such as `1 [2] 3 4  ▥`.
-    public var text: Bool
-    /// A thumbnail of every workspace with its windows.
-    public var map: Bool
-    /// Whether the map shows each window's app icon.
-    public var showsIcons: Bool
-    /// The SF Symbol to show instead of an app's icon, keyed by bundle ID or app name in lower
-    /// case.
-    public var icons: [String: String]
-
-    public init(
-      text: Bool = true, map: Bool = true, showsIcons: Bool = true, icons: [String: String] = [:]
-    ) {
-      self.text = text
-      self.map = map
-      self.showsIcons = showsIcons
-      self.icons = icons
-    }
-
-    /// The SF Symbol set for this app, if any; matched like `assignedWorkspace`.
-    public func symbol(bundleID: String?, appName: String) -> String? {
-      Config.lookUp(icons, bundleID: bundleID, appName: appName)
-    }
-  }
-
   public var gaps: Gaps
   public var gestures: Gestures
   public var indicator: Indicator
@@ -229,49 +202,6 @@ extension Config.Gestures {
   }
 }
 
-extension Config.Indicator {
-  fileprivate init(_ value: TOMLValue) throws(ConfigError) {
-    self = try Section.read(
-      "indicator", value, into: Self(),
-      Setting("text") { indicator, value, name throws(ConfigError) in
-        indicator.text = try Section.boolean(value, name)
-      },
-      Setting("map") { indicator, value, name throws(ConfigError) in
-        indicator.map = try Section.boolean(value, name)
-      },
-      Setting("show-icons") { indicator, value, name throws(ConfigError) in
-        indicator.showsIcons = try Section.boolean(value, name)
-      },
-      Setting("icons") { indicator, value, name throws(ConfigError) in
-        indicator.icons = try Self.icons(value, name)
-      })
-  }
-
-  /// `[indicator.icons]`: app (bundle ID or name) = SF Symbol name.
-  private static func icons(
-    _ value: TOMLValue, _ name: String
-  ) throws(ConfigError) -> [String: String] {
-    guard case .table(let table) = value else {
-      throw .invalid(
-        "\(name) must be a table: write [\(name)] and put app = \"symbol name\" below it")
-    }
-    var icons: [String: String] = [:]
-    for (app, value) in table.sorted(by: { $0.key < $1.key }) {
-      if case .table = value {
-        throw .invalid(
-          "\(name).\(app) is a table: quote app names and bundle IDs that contain dots")
-      }
-      guard case .string(let symbol) = value, !symbol.isEmpty else {
-        throw .invalid("\(name).\(app) must be the name of an SF Symbol, such as \"globe\"")
-      }
-      guard icons.updateValue(symbol, forKey: app.lowercased()) == nil else {
-        throw .invalid("\(name).\(app) is set twice (app names and bundle IDs ignore case)")
-      }
-    }
-    return icons
-  }
-}
-
 extension Config.Mouse {
   fileprivate init(_ value: TOMLValue) throws(ConfigError) {
     self = try Section.read(
@@ -295,7 +225,7 @@ extension Config.Workspaces {
 
 /// One key of a config section, and how its value goes into the section. `read` also gets the
 /// setting's full name (`gaps.inner`), for its error messages.
-private struct Setting<Value> {
+struct Setting<Value> {
   typealias Read = (inout Value, TOMLValue, _ name: String) throws(ConfigError) -> Void
 
   let key: String
@@ -309,7 +239,7 @@ private struct Setting<Value> {
 
 /// Reading a `[section]` table and its values. The error messages name the section's keys from
 /// its settings, so they can't drift from what is accepted.
-private enum Section {
+enum Section {
   static func read<Value>(
     _ name: String, _ value: TOMLValue, into defaults: Value, _ settings: Setting<Value>...
   ) throws(ConfigError) -> Value {

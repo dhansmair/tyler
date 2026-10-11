@@ -120,15 +120,17 @@ struct WorkspaceMapTests {
     apps.apps = [WindowID(1): firefox, WindowID(3): ghostty]
     let map = try #require(WorkspaceMap(apps, height: 14))
     #expect(map.thumbnails.map { $0.windows.map(\.processID) } == [[101, nil], [303]])
-    #expect(map.thumbnails.flatMap(\.windows).allSatisfy { $0.symbol == nil })
+    #expect(map.thumbnails.flatMap(\.windows).allSatisfy { $0.customIcon == nil })
   }
 
-  @Test func theConfigFileCanSetASymbolByNameOrBundleID() throws {
+  @Test func theConfigFileCanSetAnIconByNameOrBundleID() throws {
     var apps = snapshot(counts: [3], area: Self.area)
     apps.apps = [WindowID(1): firefox, WindowID(2): ghostty, WindowID(3): other]
-    apps.settings.icons = ["firefox": "globe", "com.mitchellh.ghostty": "terminal"]
+    apps.settings.icons = [
+      "firefox": .glyph("\u{F0239}"), "com.mitchellh.ghostty": .symbol("terminal"),
+    ]
     let windows = try #require(WorkspaceMap(apps, height: 14)).thumbnails[0].windows
-    #expect(windows.map(\.symbol) == ["globe", "terminal", nil])
+    #expect(windows.map(\.customIcon) == [.glyph("\u{F0239}"), .symbol("terminal"), nil])
     #expect(windows.map(\.processID) == [101, 303, 505], "the app icon stays as the fallback")
   }
 
@@ -145,11 +147,17 @@ struct WorkspaceMapTests {
     #expect(WorkspaceMap.Window(frame: CGRect(x: 0, y: 0, width: 30, height: 11)).iconFrame == nil)
   }
 
+  @Test func changingTheIconFontChangesTheMap() throws {
+    var other = snapshot()
+    other.settings.iconFont = "Hack Nerd Font"
+    #expect(WorkspaceMap(other, height: 14) != WorkspaceMap(snapshot(), height: 14))
+  }
+
   @Test func theConfigFileCanTurnTheIconsOff() throws {
     var plain = snapshot(counts: [2], area: Self.area)
     plain.apps = [WindowID(1): firefox, WindowID(2): ghostty]
     plain.settings.showsIcons = false
-    plain.settings.icons = ["firefox": "globe"]
+    plain.settings.icons = ["firefox": .symbol("globe")]
     let map = try #require(WorkspaceMap(plain, height: 14))
     #expect(map.thumbnails[0].windows == map.thumbnails[0].windows.map { .init(frame: $0.frame) })
   }

@@ -12,9 +12,10 @@ extension WindowManager {
   /// went to; `nil` while it isn't connected.
   var focusedDisplay: DisplayInfo? { display(for: rows.focusedKey) }
 
-  /// The connected displays in the order tyler numbers them (see `DisplayArrangement`).
+  /// The connected displays in the order tyler numbers them, each with its neighbours and
+  /// parking edge (see `DisplayArrangement`).
   var connectedDisplays: [DisplayInfo] {
-    DisplayArrangement.ordered(displays.displays)
+    DisplayArrangement.sided(DisplayArrangement.ordered(displays.displays))
   }
 
   /// The workspace numbers the config gives each of `displayCount` displays (at least one).
@@ -34,7 +35,7 @@ extension WindowManager {
 
   /// The connected display named `key`, if any.
   func display(for key: DisplayKey) -> DisplayInfo? {
-    displays.displays.first { $0.key == key }
+    connectedDisplays.first { $0.key == key }
   }
 
   /// The display of the row at `position` in `rows`, if connected.

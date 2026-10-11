@@ -13,4 +13,28 @@ public enum DisplayArrangement {
     }
     return [primary] + others
   }
+
+  /// The displays with their neighbours, the sides where another display lies beside them at
+  /// the same height, and the edge each parks windows at: the right one, unless only that side
+  /// has a neighbour, so parked windows never lie on another display. The middle display of
+  /// three has neighbours on both sides and parks on the right.
+  public static func sided(_ displays: [DisplayInfo]) -> [DisplayInfo] {
+    displays.map { display in
+      var sided = display
+      let beside = displays.filter { $0.id != display.id && overlapsVertically($0, display) }
+      if beside.contains(where: { $0.frame.minX >= display.frame.maxX - 1 }) {
+        sided.neighbours.insert(.right)
+      }
+      if beside.contains(where: { $0.frame.maxX <= display.frame.minX + 1 }) {
+        sided.neighbours.insert(.left)
+      }
+      sided.parkingEdge = sided.neighbours == [.right] ? .left : .right
+      return sided
+    }
+  }
+
+  /// Whether `other` reaches into the height where `display` shows windows.
+  private static func overlapsVertically(_ other: DisplayInfo, _ display: DisplayInfo) -> Bool {
+    other.frame.minY < display.visibleFrame.maxY && other.frame.maxY > display.visibleFrame.minY
+  }
 }

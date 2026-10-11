@@ -172,6 +172,14 @@ struct ParkingTests {
     #expect(Parking.allowedX(width: 856, on: display) == -800...1799)
   }
 
+  @Test func aDisplayThatParksOnTheLeftHidesWindowsPastItsLeftEdge() {
+    var left = display
+    left.parkingEdge = .left
+    let frame = Parking.frame(for: CGRect(x: 67, y: 51, width: 800, height: 600), on: left)
+    #expect(frame == CGRect(x: left.visibleFrame.minX - 799, y: 51, width: 800, height: 600))
+    #expect(Parking.allowedX(width: 800, on: left).contains(frame.minX))
+  }
+
   @Test(arguments: [(0.0, 0.0), (0.5, 0.5), (1.0, 1.0), (-1.0, 0.0), (2.0, 1.0)])
   func easingKeepsItsEndpointsAndClamps(progress: Double, expected: Double) {
     #expect(Easing.easeInOut(progress) == expected)

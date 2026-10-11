@@ -66,6 +66,15 @@ struct MultiDisplayTests {
     #expect(harness.workspaces()[9] == nil)
   }
 
+  @Test func withADisplayToTheRightTheLaptopParksAtItsLeftEdge() {
+    let harness = ManagerHarness(
+      [1, 2], displays: FakeDisplays(displays: [FakeDisplays.main, FakeDisplays.right]))
+    _ = harness.manager.switchWorkspace(.next)
+    for id: UInt32 in [1, 2] {
+      #expect(harness.frame(of: id)?.maxX == FakeDisplays.main.visibleFrame.minX + 1)
+    }
+  }
+
   @Test func aRestartKeepsTheWorkspacesOfEveryDisplay() async {
     let harness = harness()
     let successor = harness.successor(saved: harness.manager.handOver(), displays: twoDisplays())

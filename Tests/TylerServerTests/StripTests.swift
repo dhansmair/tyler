@@ -59,7 +59,7 @@ struct StripTests {
   }
 
   @Test func aWindowOutOfViewStaysOnItsWorkspaceBesideAnotherDisplay() async {
-    // Parked at the right edge, window 3 lies almost wholly on the display to the right.
+    // Window 3 waits out of view at the laptop's left edge, away from the display to the right.
     let harness = await strip(
       displays: FakeDisplays(displays: [FakeDisplays.main, FakeDisplays.right]))
     _ = harness.manager.retile()

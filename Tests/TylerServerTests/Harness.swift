@@ -134,9 +134,11 @@ struct ManagerHarness {
     backend.frame(of: windowID)
   }
 
+  /// Whether the window waits at the primary display's parking edge, as the manager sees that
+  /// display (another display beside it changes the edge).
   func isParked(_ windowID: UInt32) -> Bool {
     guard let frame = frame(of: windowID) else { return false }
-    return frame == Parking.frame(for: frame, on: display)
+    return frame == Parking.frame(for: frame, on: manager.display(for: display.key) ?? display)
   }
 
   /// Whether macOS would accept every position tylerd asked for without pulling the window

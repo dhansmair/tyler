@@ -60,6 +60,38 @@ struct DisplayArrangementTests {
     #expect(DisplayArrangement.ordered(displays).map(\.id) == ids, "\(setup)")
   }
 
+  /// Each case lists the displays and, for each, its neighbours and parking edge.
+  @Test(arguments: [
+    (
+      "another above", [display(1, left: 0, top: 0), display(2, left: -397, top: -800)],
+      [([], DisplaySide.right), ([], .right)]
+    ),
+    (
+      "side by side", [display(1, left: 0, top: 0), display(2, left: 1000, top: 0)],
+      [([DisplaySide.right], DisplaySide.left), ([.left], .right)]
+    ),
+    (
+      "another to the right, lower, still beside",
+      [display(1, left: 0, top: 0), display(2, left: 1000, top: 700)],
+      [([DisplaySide.right], DisplaySide.left), ([.left], .right)]
+    ),
+    (
+      "three in a row: the middle one keeps the right edge",
+      [
+        display(1, left: 0, top: 0), display(2, left: -1000, top: 0),
+        display(3, left: 1000, top: 0),
+      ],
+      [([DisplaySide.left, .right], DisplaySide.right), ([.right], .left), ([.left], .right)]
+    ),
+  ])
+  func eachDisplayParksAtAnEdgeWithNoNeighbour(
+    _ setup: String, displays: [DisplayInfo], expected: [([DisplaySide], DisplaySide)]
+  ) {
+    let sided = DisplayArrangement.sided(displays)
+    #expect(sided.map(\.neighbours) == expected.map { Set($0.0) }, "\(setup)")
+    #expect(sided.map(\.parkingEdge) == expected.map(\.1), "\(setup)")
+  }
+
   @Test func noDisplaysAreNumberedAsNone() {
     #expect(DisplayArrangement.ordered([]).isEmpty)
   }

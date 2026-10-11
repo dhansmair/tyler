@@ -19,6 +19,10 @@ public struct DisplayInfo: Codable, Equatable, Sendable, Identifiable {
   public var frame: CGRect
   /// The area not covered by the menu bar and Dock.
   public var visibleFrame: CGRect
+  /// The sides where another display lies beside this one (see `DisplayArrangement.sided`).
+  public var neighbours: Set<DisplaySide> = []
+  /// The edge where windows of parked workspaces wait (see `Parking`).
+  public var parkingEdge: DisplaySide = .right
 
   /// A display; without a `key`, its id names it.
   public init(id: UInt32, key: DisplayKey? = nil, frame: CGRect, visibleFrame: CGRect) {
@@ -27,6 +31,12 @@ public struct DisplayInfo: Codable, Equatable, Sendable, Identifiable {
     self.frame = frame
     self.visibleFrame = visibleFrame
   }
+}
+
+/// The left or right side of a display.
+public enum DisplaySide: String, Codable, Sendable {
+  case left
+  case right
 }
 
 public enum DisplayGeometry {

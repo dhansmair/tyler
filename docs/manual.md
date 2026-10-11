@@ -25,7 +25,7 @@ The windows of the workspaces that aren't on screen are *parked*: moved just pas
 
 Swipe sideways with three fingers on the trackpad to move between workspaces. The windows follow your fingers. Swipe left to bring in the next workspace from the right, and swipe right to bring in the previous one; from the first workspace, a swipe right wraps around to the last. When you lift your fingers, the next workspace comes into view if you swiped more than halfway, or with a quick flick even before that; otherwise the windows slide back. Changing your mind halfway works too: swipe back past where you started and the other neighbour comes in instead. The workspace that comes into view gets the focus, as with `tyler workspace`.
 
-On a workspace in the `strip` layout, the swipe scrolls the strip instead and never switches workspaces: the windows follow your fingers, and when you lift them the strip settles on the nearest whole column (a flick goes on to the next one). If the focused window scrolled out of view, the nearest window in view gets the focus. Use `tyler workspace` to leave a strip workspace.
+On a workspace in the experimental `strip` layout, the swipe scrolls the strip instead and never switches workspaces: the windows follow your fingers, and when you lift them the strip settles on the nearest whole column (a flick goes on to the next one). If the focused window scrolled out of view, the nearest window in view gets the focus. Use `tyler workspace` to leave a strip workspace.
 
 A swipe does nothing while tiling is off, while you drag a window, or when there is only one workspace. Vertical swipes and swipes with another number of fingers are left to macOS. Any command in the middle of a swipe puts the windows back first.
 
@@ -53,7 +53,7 @@ A layout turns the tiling list into window frames, within the display's visible 
 
 - `tall`: the master fills the left column, and the other windows are stacked in the right column. Two windows sit side by side; three give one on the left and two on the right.
 - `full`: every window fills the whole area.
-- `strip`: the windows form one long row of columns that scrolls left and right, and the display shows as many whole columns as fit. Each window is half the width by default, so two windows look like `tall`. Focusing a window out of view scrolls to it. Windows out of view wait at the right edge, like the windows of other workspaces.
+- `strip` (**experimental**: it works, but may still change, and some cases aren't handled yet): the windows form one long row of columns that scrolls left and right, and the display shows as many whole columns as fit. Each window is half the width by default, so two windows look like `tall`. Focusing a window out of view scrolls to it. Windows out of view wait at the right edge, like the windows of other workspaces.
 
 The *master ratio* is the master column's share of the width in `tall`. Each workspace has its own layout and master ratio (`tyler layout`, `tyler ratio`).
 
@@ -281,11 +281,11 @@ Swaps the focused window with its neighbour in the list (wrapping around) or wit
 ```bash
 tyler layout tall
 tyler layout full
-tyler layout strip
+tyler layout strip    # experimental
 tyler layout next     # cycle: tall, full, strip, tall, ...
 ```
 
-Sets the layout of the current workspace and prints its name.
+Sets the layout of the current workspace and prints its name. `strip` is experimental (see Layout).
 
 ### size
 
@@ -296,7 +296,7 @@ tyler size quarter    # stack it with the next window: half the width, half the 
 tyler size next       # cycle: half, full, quarter, half, ...
 ```
 
-Sets the focused window's size in the `strip` layout and prints it. `quarter` stacks two windows in one column: the focused window on top and the next window below it. If the next window already shares a column (or there is none), the previous window goes on top instead. Setting either window of a stacked pair to `half` or `full` puts the other back to `half`, and so does closing, floating or moving one of them away.
+Sets the focused window's size in the `strip` layout and prints it. Like the strip layout, this command is experimental and may change. `quarter` stacks two windows in one column: the focused window on top and the next window below it. If the next window already shares a column (or there is none), the previous window goes on top instead. Setting either window of a stacked pair to `half` or `full` puts the other back to `half`, and so does closing, floating or moving one of them away.
 
 Other layouts ignore the size but keep it for when the workspace switches to `strip`. A window forgets its size when it leaves tiling (floated, minimized, closed), and keeps it when it moves to another workspace (a `quarter` arrives as `half`).
 

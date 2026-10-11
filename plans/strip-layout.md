@@ -1,5 +1,7 @@
 # Plan: strip layout (niri-like)
 
+> This is the plan the strip was built from, kept as written. For the strip as it is now (experimental), see `devdocs/strip-layout.md`.
+
 ## Context
 
 The roadmap's "Later: strip layout": a workspace becomes one long horizontal strip of windows that scrolls left and right, each window with its own size. The `Layout` protocol only gets a window count, so it has to be reworked first (roadmap open item; REFACTORING item 11 steps 2–3 were deferred to this). The trackpad swipe was layered (pan → snap → target) so the strip can be a second `PanTarget`.

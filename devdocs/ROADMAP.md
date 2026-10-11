@@ -172,8 +172,8 @@ Decisions (2026-10-10, with the user): a **live preview**: while the dragged win
 ### Later: grid layout
 A new layout: the same as `tall` for up to 3 windows; 4 puts one window in each corner; 5 splits the right half in three; 6 splits both halves in three (2 columns × 3 rows). Beyond that more columns appear (for example 3 × 3 at 9; the exact rule is still open). Mouse resizing and swap by drag work here too, through the shared column model.
 
-### Strip layout
-A niri-like layout: a workspace is one long horizontal strip of windows that scrolls left and right. Each window has its own size. Plan: `plans/strip-layout.md`. Built on the `strip-layout` branch (in its own worktree) and merged into `main` on 2026-10-11.
+### Strip layout (experimental)
+A niri-like layout: a workspace is one long horizontal strip of windows that scrolls left and right. Each window has its own size. **Experimental:** it works, but its design (quarters especially) is still open. Current state, known issues and open questions: `devdocs/strip-layout.md`. Plan: `plans/strip-layout.md`. Built on the `strip-layout` branch (in its own worktree) and merged into `main` on 2026-10-11.
 
 Decisions (2026-10-11, with the user): the list stays the only model, and columns are packed from per-window sizes: `full` (1 × 1) and `half` (½ × 1) each make a column, two consecutive `quarter`s (½ × ½) share one. New windows are `half`. Focusing a window out of view scrolls just enough to show its whole column. Off-view windows park at the right edge like inactive workspaces' windows. On a strip workspace the swipe scrolls only the strip, never switches workspaces.
 

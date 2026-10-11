@@ -13,7 +13,7 @@ tyler arranges windows on displays. Each display holds a row of workspaces, each
 
 ### Display
 
-A physical screen: the built-in screen of a laptop or an external monitor. tyler calls these *displays*. For now tyler manages only the main display (the one with the menu bar). Windows on other displays are left alone.
+A physical screen: the built-in screen of a laptop or an external monitor. tyler calls these *displays*. Displays are numbered: the main display (the one with the menu bar) is 1, the others follow from left to right, then from top to bottom. Each display has its own row of workspaces and tiles its own windows. For now, workspace commands, swipes and the menu bar act on the main display; `tyler workspace 5` with workspace 5 on another display isn't supported yet. A window you move to another display (with the mouse, the Window menu or another tool) goes last in that display's workspace on screen.
 
 ### Workspace
 
@@ -170,7 +170,7 @@ Firefox = 3                  # new Firefox windows open on workspace 3
 
 Gaps are whole numbers in points, the unit macOS uses for window positions (on a Retina display, one point is two pixels).
 
-Workspace numbers are shared by all displays: each number belongs to one display. Without `[displays]`, each display gets `workspaces.count` workspaces, numbered on from the previous display: with the default of 4, the main display has 1 to 4 and a second display 5 to 8. `[displays]` lists them instead, by display number (1 is the main display, the one with the menu bar); a display it doesn't list gets `workspaces.count` workspaces numbered after the highest listed one. A display's workspaces are always in number order. For now tyler tiles only the main display, so the workspaces it lists for other displays are on the main display's row too.
+Workspace numbers are shared by all displays: each number belongs to one display. Without `[displays]`, each display gets `workspaces.count` workspaces, numbered on from the previous display: with the default of 4, the main display has 1 to 4 and a second display 5 to 8. `[displays]` lists them instead, by display number (1 is the main display, the one with the menu bar); a display it doesn't list gets `workspaces.count` workspaces numbered after the highest listed one. A display's workspaces are always in number order. Workspaces of a display that isn't connected wait on the main display's row, and go back when it is.
 
 Changing `workspaces.count` or `[displays]` and running `tyler reload` takes effect at once. New workspaces are added in number order. When you remove workspaces, their windows move to the last workspace of their display, after the windows already there; if the workspace on screen was removed, the new last one comes into view.
 

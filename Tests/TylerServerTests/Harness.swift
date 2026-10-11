@@ -113,11 +113,12 @@ struct ManagerHarness {
   /// one left them, without those in `closed`. Its recorded calls are kept, so a test can check
   /// that taking over moved nothing.
   func successor(
-    saved: SavedState?, closing closed: [UInt32] = [], config: Config = Config()
+    saved: SavedState?, closing closed: [UInt32] = [], config: Config = Config(),
+    displays: FakeDisplays = FakeDisplays()
   ) -> ManagerHarness {
     ManagerHarness(
-      windows: backend.windows.filter { !closed.contains($0.id.rawValue) }, config: config,
-      restoring: saved, clearRecordedCalls: false)
+      windows: backend.windows.filter { !closed.contains($0.id.rawValue) }, displays: displays,
+      config: config, restoring: saved, clearRecordedCalls: false)
   }
 
   /// Where `spread` puts the window at `index`, before tylerd moves it.

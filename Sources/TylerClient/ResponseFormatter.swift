@@ -41,7 +41,7 @@ public enum ResponseFormatter {
         window.appName,
         window.title.isEmpty ? "-" : singleLine(window.title),
         frameDescription(window.frame),
-        window.displayID.map(String.init) ?? "-",
+        displayDescription(of: window),
         flags(of: window),
       ]
     }
@@ -67,6 +67,12 @@ public enum ResponseFormatter {
       return "[]"
     }
     return text
+  }
+
+  /// The display tyler numbers the window's display with, or its id from an older tylerd.
+  static func displayDescription(of window: WindowInfo) -> String {
+    if let number = window.displayNumber { return String(number) }
+    return window.displayID.map(String.init) ?? "-"
   }
 
   static func flags(of window: WindowInfo) -> String {

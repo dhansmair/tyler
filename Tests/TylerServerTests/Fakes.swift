@@ -158,8 +158,16 @@ final class FakeDisplays: DisplayProvider {
     visibleFrame: CGRect(x: 55, y: 38, width: 1745, height: 1131)
   )
 
-  /// A second display to the right of `main`.
+  /// A second display above `main`, like the user's Dell: it touches no edge where `main`
+  /// parks windows. Display 2, with workspaces 5 to 8 by default.
   static let secondary = DisplayInfo(
+    id: 3,
+    frame: CGRect(x: -397, y: -1440, width: 2560, height: 1440),
+    visibleFrame: CGRect(x: -397, y: -1410, width: 2560, height: 1410)
+  )
+
+  /// A second display to the right of `main`, where `main` parks windows.
+  static let right = DisplayInfo(
     id: 2,
     frame: CGRect(x: 1800, y: 0, width: 1920, height: 1080),
     visibleFrame: CGRect(x: 1800, y: 0, width: 1920, height: 1080)

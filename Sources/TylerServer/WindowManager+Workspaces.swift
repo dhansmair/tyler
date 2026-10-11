@@ -77,7 +77,7 @@ extension WindowManager {
   func focusChanged(to windowID: WindowID) {
     let isEcho = bookkeeping.pendingFocus.remove(windowID) != nil
     let snapshot = isTiling ? stripSnapshot() : nil
-    workspaces.setFocus(windowID)
+    recordFocus(windowID)
     // A click or cmd-tab on a strip window out of view scrolls to it.
     let isOnCurrent = workspaces.index(containing: windowID) == workspaces.currentIndex
     if isOnCurrent, scrollIfViewMoved(since: snapshot) != nil { return }
@@ -252,10 +252,13 @@ extension WindowManager {
   /// other workspaces. The current workspace keeps its list (so `tiling on` restores its order) and
   /// its windows in view stay where they are.
   func unparkAll() {
-    restoreOriginalFrames(of: workspaces.current.windows.filter(offViewWindows.contains))
-    for index in workspaces.indices where index != workspaces.currentIndex {
-      restoreOriginalFrames(of: workspaces[index].windows)
-      workspaces[index].sync(eligible: [])
+    let offView = offViewWindows
+    for position in rows.entries.indices {
+      restoreOriginalFrames(of: rows[position].current.windows.filter(offView.contains))
+      for index in rows[position].indices where index != rows[position].currentIndex {
+        restoreOriginalFrames(of: rows[position][index].windows)
+        rows[position][index].sync(eligible: [])
+      }
     }
   }
 

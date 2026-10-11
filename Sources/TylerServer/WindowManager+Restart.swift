@@ -31,8 +31,7 @@ extension WindowManager {
     endDrag()
     backend.stop()
     registry = WindowRegistry()
-    rows = DisplayRows(
-      keys: displays.displays.prefix(1).map(\.key), configured: Self.configuredNumbers(config))
+    rows = freshRows()
     bookkeeping = WindowBookkeeping()
     pendingRestore = nil
     state = .waitingForPermission
@@ -47,7 +46,7 @@ extension WindowManager {
     pendingRestore = nil
     let known = Set(registry.windows.map(\.id))
     rows = saved.rows(count: config.workspaces.count) { known.contains($0) }
-    rows.setConfigured(Self.configuredNumbers(config))
+    rows.setConfigured(configuredNumbers(config))
     bookkeeping = WindowBookkeeping(restoring: saved, known: known)
     tilingEnabled = saved.tilingEnabled
     return true

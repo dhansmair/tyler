@@ -63,10 +63,12 @@ public struct WindowInfo: Codable, Equatable, Sendable, Identifiable {
   public var isFocused: Bool
   /// Filled in by the server when answering a request; `nil` when no display is known.
   public var displayID: UInt32?
+  /// The number tyler gives that display (1 is the primary); set only for `list`.
+  public var displayNumber: Int?
   /// Also server-filled: the 1-based position in the tiling list (1 is the master), or `nil` if
   /// the window isn't tiled.
   public var slot: Int?
-  /// Also server-filled: the 1-based workspace the window is tiled on, or `nil`.
+  /// Also server-filled: the number of the workspace the window is tiled on, or `nil`.
   public var workspace: Int?
   /// Also server-filled: the user floated this window, so tiling leaves it alone.
   public var isFloated: Bool

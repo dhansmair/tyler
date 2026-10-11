@@ -5,24 +5,24 @@ import TylerCore
 /// to the workspace their app is assigned to.
 extension WindowManager {
   struct SyncOutcome {
-    /// Whether the current workspace's list changed.
+    /// Whether the list of any display's current workspace changed.
     var changedCurrent = false
-    /// The parked workspace that the focused window was just assigned to, if any.
+    /// The parked workspace that the focused window was just assigned to, if it is on the
+    /// focused display.
     var focusedArrival: Int?
   }
 
-  /// Updates every workspace's list (see `WorkspaceSync` for the rules), parks windows that
-  /// arrive on a workspace that isn't on screen, and remembers every window that has been on a
-  /// workspace, so app assignments leave it alone from then on.
+  /// Updates every workspace's list on every display (see `WorkspaceSync` for the rules), parks
+  /// windows that arrive on a workspace that isn't on screen, and remembers every window that
+  /// has been on a workspace, so app assignments leave it alone from then on. First the rows
+  /// follow the connected displays (see `DisplayRows.reassign`).
   @discardableResult
   func syncWorkspaces() -> SyncOutcome {
-    let connected = displays.displays
-    // One row for now, the primary display's; when another display becomes the primary (the lid
-    // closes), the row goes with it.
-    if let primary = connected.first { rows.reassign(to: [primary.key]) }
-    guard let primary = connected.first,
-      let sync = WorkspaceSync.plan(
-        for: workspaces, windows: registry.windows, displays: connected,
+    let connected = connectedDisplays
+    rows.reassign(to: connected.map(\.key), configured: configuredNumbers(config))
+    guard
+      let syncs = WorkspaceSync.plan(
+        for: rows, windows: registry.windows, displays: connected,
         marks: WorkspaceSync.Marks(
           floated: bookkeeping.floated, seen: bookkeeping.seen,
           // Strip windows out of view are parked like other workspaces' windows.
@@ -32,15 +32,18 @@ extension WindowManager {
         })
     else { return SyncOutcome() }
     var outcome = SyncOutcome()
-    for index in workspaces.indices {
-      let changed = workspaces[index].sync(eligible: sync.eligible[index])
-      if changed && index == workspaces.currentIndex { outcome.changedCurrent = true }
+    for (position, sync) in syncs.enumerated() {
+      for index in rows[position].indices {
+        let changed = rows[position][index].sync(eligible: sync.eligible[index])
+        if changed && index == rows[position].currentIndex { outcome.changedCurrent = true }
+      }
+      if let display = display(at: position) { park(sync.arrivals, on: display) }
     }
-    bookkeeping.seen.formUnion(workspaces.allWindows)
-    if let focusedID = registry.focusedID, sync.arrivals.contains(focusedID) {
+    bookkeeping.seen.formUnion(rows.allWindows)
+    let arrivals = syncs.flatMap(\.arrivals)
+    if let focusedID = registry.focusedID, arrivals.contains(focusedID) {
       outcome.focusedArrival = workspaces.index(containing: focusedID)
     }
-    park(sync.arrivals, on: primary)
     return outcome
   }
 

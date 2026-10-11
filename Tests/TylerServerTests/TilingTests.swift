@@ -56,14 +56,16 @@ struct TilingTests {
     #expect(harness.backend.moves.map(\.id.rawValue) == [1])
   }
 
-  @Test func windowsOnAnotherDisplayAreNotTiled() {
+  @Test func windowsOnAnotherDisplayAreTiledOnItsCurrentWorkspace() {
     let windows = [
       makeWindow(id: 1, frame: CGRect(x: 100, y: 100, width: 300, height: 200)),
-      makeWindow(id: 2, frame: CGRect(x: 2000, y: 100, width: 300, height: 200)),
+      makeWindow(id: 2, frame: CGRect(x: 0, y: -1000, width: 300, height: 200)),
     ]
     let displays = FakeDisplays(displays: [FakeDisplays.main, FakeDisplays.secondary])
     let harness = ManagerHarness(windows: windows, displays: displays)
-    #expect(harness.manager.slots == [1: 1])
+    #expect(harness.workspaces() == [1: 1, 2: 5])
+    #expect(harness.frame(of: 1) == harness.area)
+    #expect(harness.frame(of: 2) == FakeDisplays.secondary.visibleFrame)
   }
 
   @Test func withNoDisplaysNothingIsTiled() {
@@ -131,25 +133,23 @@ struct TilingTests {
     #expect(harness.manager.slots == [1: 1, 2: 2])
   }
 
-  @Test func aWindowDraggedToAnotherDisplayLeavesTheListAndTheRestRetile() async {
+  @Test func aWindowMovedToAnotherDisplayJoinsItsWorkspaceAndTheRestRetile() async {
     let displays = FakeDisplays(displays: [FakeDisplays.main, FakeDisplays.secondary])
     let harness = ManagerHarness(windows: spread([1, 2]), displays: displays)
-    harness.backend.send(
-      .updated(makeWindow(id: 2, frame: CGRect(x: 2000, y: 100, width: 300, height: 200))))
-    await settle()
-    #expect(harness.manager.slots == [1: 1])
+    await harness.backend.userMoves(2, to: CGRect(x: 0, y: -1000, width: 300, height: 200))
+    #expect(harness.workspaces() == [1: 1, 2: 5])
     #expect(harness.frame(of: 1) == harness.area, "window 1 fills the display alone")
+    #expect(harness.frame(of: 2) == FakeDisplays.secondary.visibleFrame)
   }
 
-  @Test func aWindowDraggedInFromAnotherDisplayJoinsTheList() async {
+  @Test func aWindowMovedInFromAnotherDisplayGoesLast() async {
     let displays = FakeDisplays(displays: [FakeDisplays.main, FakeDisplays.secondary])
-    let elsewhere = makeWindow(id: 3, frame: CGRect(x: 2000, y: 100, width: 300, height: 200))
+    let elsewhere = makeWindow(id: 3, frame: CGRect(x: 0, y: -1000, width: 300, height: 200))
     let harness = ManagerHarness(windows: spread([1, 2]) + [elsewhere], displays: displays)
-    #expect(harness.manager.slots == [1: 1, 2: 2])
-    harness.backend.send(
-      .updated(makeWindow(id: 3, frame: CGRect(x: 600, y: 100, width: 300, height: 200))))
-    await settle()
-    #expect(harness.manager.slots[3] != nil)
+    #expect(harness.workspaces() == [1: 1, 2: 1, 3: 5])
+    await harness.backend.userMoves(3, to: CGRect(x: 600, y: 100, width: 300, height: 200))
+    #expect(harness.workspaces() == [1: 1, 2: 1, 3: 1])
+    #expect(harness.manager.slots == [1: 1, 2: 2, 3: 3])
   }
 
   @Test func anUpdateForAWindowNotSeenYetTilesIt() async {

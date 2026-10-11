@@ -33,8 +33,8 @@ extension WindowManager {
   /// Adds or removes workspaces to match the config (see `DisplayRows.setConfigured`); the
   /// caller re-tiles.
   private func applyWorkspaceNumbers(previous: Config) {
-    let configured = Self.configuredNumbers(config)
-    guard configured != Self.configuredNumbers(previous) else { return }
+    let configured = configuredNumbers(config)
+    guard configured != configuredNumbers(previous) else { return }
     endDrag()
     rows.setConfigured(configured)
   }

@@ -142,7 +142,7 @@ struct WorkspaceSwitchTests {
   }
 
   @Test func aParkedWindowStaysOnItsWorkspaceWhateverItsFrameSays() async {
-    let displays = FakeDisplays(displays: [FakeDisplays.main, FakeDisplays.secondary])
+    let displays = FakeDisplays(displays: [FakeDisplays.main, FakeDisplays.right])
     let harness = ManagerHarness([1, 2], displays: displays)
     _ = harness.manager.switchWorkspace(.next)
     // macOS (or the user) moves a parked window onto the other display.

@@ -16,10 +16,15 @@ extension WindowManager {
     focusedDisplay.map { workspaces.current.placements(in: $0.visibleFrame, gaps: gaps) }
   }
 
-  /// The current workspace's windows out of view (in the strip layout), which wait parked.
+  /// The windows of each display's current workspace that are out of view (in the strip
+  /// layout), which wait parked.
   var offViewWindows: Set<WindowID> {
-    guard let display = focusedDisplay else { return [] }
-    return Set(workspaces.current.offView(in: display.visibleFrame, gaps: gaps))
+    var windows: Set<WindowID> = []
+    for position in rows.entries.indices {
+      guard let display = display(at: position) else { continue }
+      windows.formUnion(rows[position].current.offView(in: display.visibleFrame, gaps: gaps))
+    }
+    return windows
   }
 
   /// Where the current workspace's layout puts `windowID`; `nil` if it isn't tiled there or is

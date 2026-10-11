@@ -37,7 +37,7 @@ public final class WindowManager {
 
   // Internal rather than private so the `WindowManager+…` extensions can reach them.
   var registry = WindowRegistry()
-  /// The workspaces of every display. For now there is one row, the primary display's.
+  /// The workspaces of every display, a row each.
   var rows: DisplayRows {
     didSet { updateIndicator() }
   }
@@ -87,7 +87,8 @@ public final class WindowManager {
     self.clock = clock
     pendingRestore = saved
     rows = DisplayRows(
-      keys: displays.displays.prefix(1).map(\.key), configured: Self.configuredNumbers(config))
+      keys: DisplayArrangement.ordered(displays.displays).map(\.key),
+      configured: Self.configuredNumbers(config, displayCount: displays.displays.count))
     updateIndicator()
   }
 
@@ -116,7 +117,7 @@ public final class WindowManager {
     // A handed-over workspace beyond the configured count was merged into the last one, whose
     // windows may still be parked; every other window is in its slot already, so nothing moves.
     if restored && tilingEnabled { applyLayout() }
-    if let focusedID = registry.focusedID { workspaces.setFocus(focusedID) }
+    if let focusedID = registry.focusedID { recordFocus(focusedID) }
     return true
   }
 
@@ -180,22 +181,6 @@ public final class WindowManager {
     case .ping, .status, .list, .reload, .tiling, .workspace, .moveToWorkspace:
       .error("not a tiling request")
     }
-  }
-
-  /// All known windows, tagged with their display, workspace, tiling slot and floated state.
-  public func windows() -> Response {
-    guard state == .running else { return .error(Self.permissionMessage) }
-    let connected = displays.displays
-    let tagged = registry.windows.map { window -> WindowInfo in
-      var copy = window
-      copy.displayID = DisplayGeometry.display(containing: window.frame, in: connected)?.id
-      let workspace = workspaces.index(containing: window.id)
-      copy.workspace = workspace.map { workspaces.number(at: $0) }
-      copy.slot = workspace.flatMap { workspaces[$0].slot(of: window.id) }
-      copy.isFloated = bookkeeping.floated.contains(window.id)
-      return copy
-    }
-    return .windows(tagged)
   }
 
   /// Puts every tiled window back into its slot, even ones that look to be in place.
@@ -354,14 +339,17 @@ extension WindowManager {
     }
   }
 
-  /// Moves every window of the current workspace to its slot, or parks it if it is out of view
-  /// (in the strip layout), returning how many could not be placed. Windows already within a
-  /// point of their spot are skipped (each move is a round trip to the app) unless `force` is
-  /// set.
+  /// Moves every window of each display's current workspace to its slot, or parks it if it is
+  /// out of view (in the strip layout), returning how many could not be placed. Windows already
+  /// within a point of their spot are skipped (each move is a round trip to the app) unless
+  /// `force` is set.
   @discardableResult
   func applyLayout(force: Bool = false) -> Int {
-    guard let display = focusedDisplay else { return 0 }
-    let placements = workspaces.current.restingPlacements(on: display, gaps: gaps)
+    var placements: [Placement] = []
+    for position in rows.entries.indices {
+      guard let display = display(at: position) else { continue }
+      placements += rows[position].current.restingPlacements(on: display, gaps: gaps)
+    }
     return place(force ? placements : placements.filter { !isInPlace($0) })
   }
 }

@@ -279,8 +279,8 @@ Measured in S3 (2026-10-11, macOS 26.7, `live-check slide --display --park`, sid
   - private WindowServer API, which needs SIP off and is ruled out.
 
 Checklist (one line per increment of the plan; tick only after its live check):
-- [ ] Spikes: geometry (S1), reconfiguration events and display ids (S2), side by side (S3)
-- [ ] The manager holds one row per display; single-display behaviour unchanged
+- [x] Spikes: geometry (S1), reconfiguration events and display ids (S2), side by side (S3) (2026-10-11, with the user)
+- [x] The manager holds one row per display; single-display behaviour unchanged (2026-10-11: `tyler list` and `live-check menubar` the same before and after a restart onto the branch)
 - [ ] Saved state version 2; `[displays]` in the config
 - [ ] Every display is tiled; parked windows stay on their own display
 - [ ] Commands act on the focused display; cmd-tab to a parked window on the second display
@@ -290,6 +290,9 @@ Checklist (one line per increment of the plan; tick only after its live check):
 - [ ] Swipes on the display under the pointer
 - [ ] Drag across displays
 - [ ] `display`, `move-to-display [--follow]`, `move-workspace-to-display`
+
+Found while building (2026-10-11):
+- **Stale echoes with a display to the right.** tylerd's own moves come back as `.updated` events after it has moved the window on. A pan's end clears its marks and then places the windows' start frames, so for a moment the registry holds a window of the current workspace at its parking spot. With a display to the right, that spot lies mostly on that display, and the sync reads it as a window moved there (the test setup showed it: the window ended up tiled on the other display). Displays stacked as the user has them are safe; increment 16 (no window ever placed on another display) removes the cause. Until then, side by side is unsupported. The test fakes now put the second display above, as on the user's setup, with `FakeDisplays.right` for the cases about a display to the right.
 
 Known limitations:
 - The middle display of three has no free edge. The fallback is decided in S3.

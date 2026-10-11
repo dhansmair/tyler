@@ -131,11 +131,31 @@ public struct DisplayRows: Equatable, Sendable {
   /// the display it now belongs on. A workspace that was on screen stays on screen when it moves;
   /// a display that comes back shows what it showed before it left. With no displays nothing
   /// changes. Returns whether anything did.
+  ///
+  /// `configured` (where `configured[n]` lists display n + 1's workspaces) adds the workspaces
+  /// that don't exist yet, such as those the config gives a display that just connected. It
+  /// never removes any: a workspace whose display goes away waits on display 1.
   @discardableResult
-  public mutating func reassign(to keys: [DisplayKey]) -> Bool {
-    guard !keys.isEmpty, keys != self.keys else { return false }
+  public mutating func reassign(to keys: [DisplayKey], configured: [[Int]] = []) -> Bool {
+    guard !keys.isEmpty else { return false }
+    let added = addMissing(configured)
+    guard added || keys != self.keys else { return false }
     rebuild(on: keys)
     return true
+  }
+
+  /// Adds an empty workspace, at home on its configured display, for each number in
+  /// `configured` that no workspace has. Returns whether it added any.
+  private mutating func addMissing(_ configured: [[Int]]) -> Bool {
+    var added = false
+    for (index, numbers) in configured.enumerated() {
+      for number in numbers where location(ofNumber: number) == nil {
+        homes[number] = homes[number] ?? .configured(index + 1)
+        entries[0].row.insert(Workspace(), number: number)
+        added = true
+      }
+    }
+    return added
   }
 
   /// Takes new workspace numbers from the config, where `configured[n]` lists display n + 1's.

@@ -21,6 +21,8 @@ Tick an item with the date when it is checked; record what was measured in `maco
 - [x] Windows present at startup tile: one left, the rest stacked on the right
 - [x] `window focus`, `window swap`, `layout set`, `layout ratio`, `window float toggle`, `workspace
   retile`, `tiling off` and `on`
+- [x] A new window of an app that starts a new process for each window gets the focus, and
+  `window swap` moves it (2026-10-14, two terminal windows opened by a shortcut)
 - [ ] `window float on` and `off`, each pressed twice
 - [ ] `window close` on a tiled and a floated window, with tiling off, and in an app that asks to
   save first

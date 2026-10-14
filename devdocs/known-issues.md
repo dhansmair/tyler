@@ -63,7 +63,7 @@ own issues are in `strip-layout.md`. Remove an item when it is fixed (in the sam
   (menu bar apps) are left alone.
 - **An unresponsive app stalls tylerd** for the 1 s AX timeout on the main thread once (the final
   placement of a switch, a `tyler` command, the event taps): after a move times out, its windows
-  aren't moved for 5 s (`UnresponsiveApps`), then each move tries again. Reads, focusing and
+  aren't moved or focused for 5 s (`UnresponsiveApps`), then each call tries again. Reads and
   closing still wait for it every time. The steps of a slide don't wait for it
   (`PositionWriter`); its windows skip frames.
 - **Option+drag inside apps** (Finder's copy, block selection in terminals) is lost while

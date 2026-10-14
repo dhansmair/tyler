@@ -70,6 +70,7 @@ package final class AXBackend: WindowBackend {
     else {
       throw .windowGone(windowID)
     }
+    try positions.refuseIfUnresponsive(processID)
     try check(AXBridge.raise(window: element, in: processID), for: windowID)
   }
 

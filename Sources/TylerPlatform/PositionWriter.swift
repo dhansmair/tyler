@@ -6,7 +6,8 @@ import TylerServer
 /// Moves windows without waiting for their apps: each app's moves go to an `AppWriteQueue` of its
 /// own, so the windows of a frame move side by side, a slow app skips frames instead of holding
 /// up the others, and the main thread stays free for input. An app that timed out is left alone for
-/// a while (`UnresponsiveApps`), so its windows don't hold up every switch and command again.
+/// a while (`UnresponsiveApps`), so its windows don't hold up every switch and command again; the
+/// backend asks before focusing one of them too.
 @MainActor
 final class PositionWriter {
   /// A window and where it goes. An `AXUIElement` is an immutable handle on an element of another
@@ -33,14 +34,14 @@ final class PositionWriter {
   func move(
     _ windowID: WindowID, _ element: AXUIElement, to origin: CGPoint, in processID: pid_t
   ) throws(BackendError) {
-    try skipIfUnresponsive(processID)
+    try refuseIfUnresponsive(processID)
     queue(for: processID).submit(Move(element: element, origin: origin), for: windowID)
   }
 
   /// Drops the move still waiting for `windowID` and waits until its app's queue is idle, so a
   /// write on the main thread lands after every move already sent.
   func settle(_ windowID: WindowID, in processID: pid_t) throws(BackendError) {
-    try skipIfUnresponsive(processID)
+    try refuseIfUnresponsive(processID)
     guard let queue = queues[processID] else { return }
     queue.discard(windowID)
     queue.waitUntilWritten()
@@ -77,7 +78,8 @@ final class PositionWriter {
     }
   }
 
-  private func skipIfUnresponsive(_ processID: pid_t) throws(BackendError) {
+  /// Refuses at once while `processID` is skipped, instead of waiting out the timeout again.
+  func refuseIfUnresponsive(_ processID: pid_t) throws(BackendError) {
     guard unresponsive.isSkipped(processID, at: now()) else { return }
     throw .refused("its app didn't answer a moment ago")
   }

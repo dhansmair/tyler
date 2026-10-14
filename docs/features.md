@@ -146,8 +146,8 @@ Measured on real windows (terminals, an editor and browsers, on one display, mac
 | Updates read per move | about 2.2 | about 1.8 |
 
 A frozen app still delays the end of a switch once: its window's final placement waits out the
-Accessibility timeout (1 s). For the next 5 seconds its windows are left where they are, so later
-switches and commands don't wait for it again.
+Accessibility timeout (1 s). For the next 5 seconds its windows are left where they are and aren't
+focused, so later switches and commands don't wait for it again.
 
 To see the numbers on your own machine, set `tyler config set log.level info`: each slide, swipe
 and drag leaves a line in `~/.tyler/tyler.log` with its frames, the time spent moving windows and

@@ -34,8 +34,8 @@ has its own list in [Layouts](layouts.md#strip--experimental).
 - **A crash or `kill -9` leaves windows parked** until the next `tyler start`.
 - **Native fullscreen windows, windows on other macOS Spaces and menu bar apps** are left alone.
 - **An app that doesn't answer slows tylerd down** for a second, the first time tylerd moves one
-  of its windows. Its windows then stay where they are for 5 seconds (a command says they could
-  not be placed); the first switch or command after that tries again.
+  of its windows. Its windows then stay where they are, and aren't focused, for 5 seconds (a
+  command says so); the first switch or command after that tries again.
 - **Option-drag in apps** (Finder's copy, block selection in terminals) is tyler's while
   `mouse.modifier` is Option.
 - **Terminals and windows with a minimum size** don't fill their slot exactly.

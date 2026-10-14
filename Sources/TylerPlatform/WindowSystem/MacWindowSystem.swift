@@ -24,7 +24,6 @@ package final class MacWindowSystem: WindowSystem {
   /// Which app each window is in, changed only by the connections' reports.
   private var owners: [WindowID: pid_t] = [:]
   private var focusedID: WindowID?
-  private let steps: StepWriter
   private var isStarted = false
 
   package convenience init() {
@@ -37,7 +36,6 @@ package final class MacWindowSystem: WindowSystem {
     self.workspace = workspace
     reader = WindowReader(bridge: bridge, workspace: workspace)
     self.clock = clock
-    steps = StepWriter(write: StepWriter.writing(through: bridge))
   }
 
   // MARK: - WindowSystem
@@ -65,7 +63,6 @@ package final class MacWindowSystem: WindowSystem {
     connections = [:]
     owners = [:]
     focusedID = nil
-    steps.forgetAll()
   }
 
   package func snapshot() -> [WindowInfo] {
@@ -73,14 +70,11 @@ package final class MacWindowSystem: WindowSystem {
   }
 
   package func focus(_ windowID: WindowID) throws(WindowSystemError) {
-    let (connection, element) = try located(windowID)
-    try steps.refuseIfUnresponsive(connection.processID)
-    try check(bridge.raise(window: element, in: connection.processID), for: windowID)
+    try owner(of: windowID).focus(windowID)
   }
 
   package func close(_ windowID: WindowID) throws(WindowSystemError) {
-    let (_, element) = try located(windowID)
-    try check(bridge.close(window: element), for: windowID)
+    try owner(of: windowID).close(windowID)
   }
 
   /// Makes tylerd frontmost. It has no windows, so keys go nowhere until the user or a command
@@ -88,33 +82,9 @@ package final class MacWindowSystem: WindowSystem {
   package func unfocus() throws(WindowSystemError) {
     let status = bridge.makeFrontmost(processID: workspace.ownProcessID)
     guard status == .success else {
-      throw Self.refusal(status)
+      throw WindowSystemError(refusal: status)
     }
     setFocus(nil)
-  }
-
-  private func check(_ status: AXError, for windowID: WindowID) throws(WindowSystemError) {
-    switch status {
-    case .success:
-      return
-    case .invalidUIElement:
-      // The window closed under us. Its destroyed notification may never come (registering for
-      // it can fail right after an app launches), so forget it here: the manager then drops it
-      // from its workspace instead of keeping an empty slot for it.
-      connection(of: windowID)?.forget(windowID)
-      throw .windowGone(windowID)
-    default:
-      if status == .cannotComplete, let processID = owners[windowID] {
-        steps.noteTimeout(of: processID)
-      }
-      throw Self.refusal(status)
-    }
-  }
-
-  /// Only the reason: the caller says what it asked for, of which window.
-  static func refusal(_ status: AXError) -> WindowSystemError {
-    status == .cannotComplete
-      ? .refused("its app didn't answer") : .refused("AX error \(status.rawValue)")
   }
 
   // MARK: - Apps
@@ -130,9 +100,9 @@ package final class MacWindowSystem: WindowSystem {
       app.activationPolicy == .regular
     else { return }
 
-    let connection = AppConnection(processID: processID, bridge: bridge, reader: reader) {
-      [weak self] report in self?.receive(report, from: processID)
-    }
+    let connection = AppConnection(
+      processID: processID, bridge: bridge, reader: reader, clock: clock
+    ) { [weak self] report in self?.receive(report, from: processID) }
     do {
       try connection.open()
       connections[processID] = connection
@@ -182,7 +152,6 @@ package final class MacWindowSystem: WindowSystem {
   private func detach(processID: pid_t) {
     retries[processID]?.cancel()
     retries[processID] = nil
-    steps.forget(processID)
     guard let connection = connections.removeValue(forKey: processID) else { return }
     let windowIDs = connection.windowIDs
     Self.log.info("app quit - pid \(processID) - dropping \(windowIDs.count) windows")
@@ -234,16 +203,9 @@ package final class MacWindowSystem: WindowSystem {
     owners[windowID].flatMap { connections[$0] }
   }
 
-  /// The window's connection and element, or `windowGone`.
-  private func located(_ id: WindowID) throws(WindowSystemError) -> (AppConnection, AXUIElement) {
-    guard let connection = connection(of: id), let element = connection.element(of: id) else {
-      throw .windowGone(id)
-    }
-    return (connection, element)
-  }
-
-  private func named(_ windowID: WindowID) -> String {
-    connection(of: windowID)?.named(windowID) ?? WindowInfo.logName(windowID, nil)
+  private func owner(of windowID: WindowID) throws(WindowSystemError) -> AppConnection {
+    guard let connection = connection(of: windowID) else { throw .windowGone(windowID) }
+    return connection
   }
 
   private func windowInfo(for windowID: WindowID) -> WindowInfo? {
@@ -251,67 +213,32 @@ package final class MacWindowSystem: WindowSystem {
   }
 }
 
-/// Moving and resizing windows; here because it reads and updates the window system's private state.
 extension MacWindowSystem {
   package func setFrame(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
-    let element = try settledElement(windowID)
-    // A window that already has the size only needs moving: one write instead of three. Should
-    // the size turn out to differ after all (the last read is out of date), the full move
-    // follows.
-    var current = connection(of: windowID)?.lastRead(of: windowID)?.frame
-    var actual: CGRect?
-    if current?.size == frame.size {
-      try check(bridge.setPosition(frame.origin, of: element), for: windowID)
-      actual = bridge.frame(of: element)
-      current = actual
-    }
-    if actual?.size != frame.size {
-      if let current, let origin = frame.clearingOrigin(from: current) {
-        Self.log.debug(
-          "window moved before resizing - \(named(windowID)) - it reached past its frame")
-        try check(bridge.setPosition(origin, of: element), for: windowID)
-      }
-      try check(bridge.setFrame(frame, of: element), for: windowID)
-      actual = bridge.frame(of: element)
-    }
-    // The app may have clamped the size; tell the manager what it really is.
-    guard let actual, let info = connection(of: windowID)?.note(actual, of: windowID) else {
-      return
-    }
-    continuation.yield(.updated(focusing(info)))
+    try owner(of: windowID).setFrame(frame, of: windowID)
   }
 
   package func setPosition(_ origin: CGPoint, of windowID: WindowID) throws(WindowSystemError) {
-    let (connection, element) = try located(windowID)
-    try steps.move(windowID, element, by: [.position(origin)], in: connection.processID)
+    try owner(of: windowID).setPosition(origin, of: windowID)
   }
 
-  /// Ordered from the frame last read, which lags behind the steps but grows or shrinks the same
-  /// way along a straight track.
   package func setFrameStep(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
-    let (connection, element) = try located(windowID)
-    let writes =
-      connection.lastRead(of: windowID).flatMap { FrameWrite.inPassing(from: $0.frame, to: frame) }
-      ?? [.position(frame.origin), .size(frame.size)]
-    try steps.move(windowID, element, by: writes, in: connection.processID)
-  }
-
-  package func takeQueuedWrites() -> MotionCost.Queued { steps.takeStatistics() }
-
-  /// The window's element, once the moves still queued for it are written.
-  private func settledElement(_ windowID: WindowID) throws(WindowSystemError) -> AXUIElement {
-    let (connection, element) = try located(windowID)
-    try steps.settle(windowID, in: connection.processID)
-    return element
+    try owner(of: windowID).setFrameStep(frame, of: windowID)
   }
 
   package func setFrameInPassing(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
-    let element = try settledElement(windowID)
-    guard let current = connection(of: windowID)?.lastRead(of: windowID)?.frame,
-      let writes = FrameWrite.inPassing(from: current, to: frame)
-    else { return try setFrame(frame, of: windowID) }
-    for write in writes {
-      try check(bridge.write(write, to: element), for: windowID)
+    try owner(of: windowID).setFrameInPassing(frame, of: windowID)
+  }
+
+  /// What the apps' step queues wrote since the last call, all apps together.
+  package func takeQueuedWrites() -> MotionCost.Queued {
+    attachedApps.reduce(into: MotionCost.Queued()) { total, connection in
+      let statistics = connection.takeQueuedWrites()
+      total.add(
+        written: statistics.written, skipped: statistics.skipped, time: statistics.time,
+        slowest: statistics.slowest.map {
+          MotionCost.Write(windowID: $0.key, duration: $0.duration)
+        })
     }
   }
 }

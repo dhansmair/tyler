@@ -25,7 +25,7 @@ struct MacWindowSystemFailuresTests {
     (AXError.attributeUnsupported, "AX error -25205"),
   ])
   func aRefusalGivesOnlyTheReason(status: AXError, reason: String) {
-    #expect(MacWindowSystem.refusal(status) == .refused(reason))
+    #expect(WindowSystemError(refusal: status) == .refused(reason))
   }
 
   @Test func aWindowThatClosedUnderUsIsForgotten() async {
@@ -54,6 +54,20 @@ struct MacWindowSystemFailuresTests {
     #expect(harness.accessibility.calls(on: 2).isEmpty, "nothing was asked of the app")
     try harness.windowSystem.focus(WindowID(3))
     #expect(harness.accessibility.calls(on: 3).contains(.raise), "another app still answers")
+
+    harness.clock.advance(by: .seconds(5))
+    try harness.windowSystem.focus(WindowID(2))
+    #expect(harness.accessibility.calls(on: 2).contains(.raise), "the pause is over")
+  }
+
+  @Test func anAppStartedAgainIsNotSkipped() async throws {
+    let harness = await started()
+    harness.accessibility.answer(.cannotComplete, fromApp: 100)
+    #expect(throws: WindowSystemError.self) { try harness.windowSystem.focus(WindowID(1)) }
+    harness.accessibility.answer(nil, fromApp: 100)
+    harness.workspace.quit(100)
+    harness.workspace.launch(100, name: "App")
+    try harness.windowSystem.focus(WindowID(1))
   }
 
   @Test func anotherFailureLeavesTheAppAlone() async throws {

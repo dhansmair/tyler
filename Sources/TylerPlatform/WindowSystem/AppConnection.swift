@@ -1,9 +1,11 @@
 import ApplicationServices
 import TylerCore
 import TylerRuntime
+import TylerServer
 
-/// tylerd's connection to one app: its windows, reading them, and its notifications turned into
-/// reports. It knows nothing of other apps, so not which window has the focus across them: the
+/// tylerd's connection to one app: its windows, reading them, its notifications turned into
+/// reports, moving, focusing and closing its windows, and whether it answers. It knows nothing of
+/// other apps, so not which window has the focus across them: the
 /// window system, which it reports to, does.
 @MainActor
 final class AppConnection {
@@ -15,7 +17,19 @@ final class AppConnection {
     case focused(WindowID?)
   }
 
-  private static let log = TylerLog(category: "ax")
+  /// A window and the writes that take it where it goes. An `AXUIElement` is an immutable handle
+  /// on an element of another process, and the Accessibility API may be called from any thread.
+  struct Move: @unchecked Sendable {
+    let element: AXUIElement
+    let writes: [FrameWrite]
+  }
+
+  /// How long an app that timed out is left alone: each call to an app that doesn't answer waits
+  /// the full Accessibility timeout, so placing its windows one by one on every switch would hold
+  /// up tylerd for a second per window.
+  static let pause = Duration.seconds(5)
+
+  nonisolated private static let log = TylerLog(category: "ax")
 
   let processID: pid_t
   private let application: AXUIElement
@@ -25,16 +39,26 @@ final class AppConnection {
   private var windows = TrackedWindows()
   private var pendingReads = PendingReads()
   private var pendingReadsTask: Task<Void, Never>?
+  /// Steps are written on a queue of the app's own, so the windows of a frame move side by side,
+  /// a slow app skips frames instead of holding up the others, and the main thread stays free.
+  private let steps: AppWriteQueue<WindowID, Move>
+  private let clock: any Clock<Duration>
+  /// Set once the app timed out: whether its pause is over.
+  private var isPauseOver: (() -> Bool)?
 
   init(
-    processID: pid_t, bridge: AXBridge, reader: WindowReader,
+    processID: pid_t, bridge: AXBridge, reader: WindowReader, clock: any Clock<Duration>,
     report: @escaping (Report) -> Void
   ) {
     self.processID = processID
     application = bridge.applicationElement(processID: processID)
     self.bridge = bridge
     self.reader = reader
+    self.clock = clock
     self.report = report
+    steps = AppWriteQueue(label: "tyler.moves.\(processID)") { windowID, move in
+      Self.write(move, of: windowID, through: bridge)
+    }
   }
 
   /// Observes the app and reports its windows. Throws if the app refuses, which is common for an
@@ -59,17 +83,14 @@ final class AppConnection {
 
   var windowIDs: [WindowID] { windows.ids }
 
-  func element(of windowID: WindowID) -> AXUIElement? { windows.element(of: windowID) }
-  func lastRead(of windowID: WindowID) -> WindowInfo? { windows.lastRead(of: windowID) }
-
   /// Reads the window in full. Its `isFocused` is for the window system to set.
   func read(_ windowID: WindowID) -> WindowInfo? {
     windows.read(windowID, isFocused: false, by: reader)
   }
 
   /// The last read with a new frame. Its `isFocused` is for the window system to set.
-  func note(_ frame: CGRect, isFullscreen: Bool? = nil, of windowID: WindowID) -> WindowInfo? {
-    windows.note(frame, isFullscreen: isFullscreen, of: windowID, isFocused: false)
+  private func note(_ frame: CGRect, isFullscreen: Bool? = nil, of id: WindowID) -> WindowInfo? {
+    windows.note(frame, isFullscreen: isFullscreen, of: id, isFocused: false)
   }
 
   /// Reports the window the app has focused.
@@ -95,7 +116,7 @@ final class AppConnection {
     }
   }
 
-  func named(_ windowID: WindowID) -> String {
+  private func named(_ windowID: WindowID) -> String {
     WindowInfo.logName(windowID, windows.lastRead(of: windowID))
   }
 
@@ -173,6 +194,146 @@ final class AppConnection {
         continue
       }
       report(.updated(info))
+    }
+  }
+}
+
+/// Moving, focusing and closing; here because it reads and updates the connection's private state.
+extension AppConnection {
+  func setFrame(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
+    let element = try settledElement(windowID)
+    // A window that already has the size only needs moving: one write instead of three. Should
+    // the size turn out to differ after all (the last read is out of date), the full move
+    // follows.
+    var current = windows.lastRead(of: windowID)?.frame
+    var actual: CGRect?
+    if current?.size == frame.size {
+      try check(bridge.setPosition(frame.origin, of: element), for: windowID)
+      actual = bridge.frame(of: element)
+      current = actual
+    }
+    if actual?.size != frame.size {
+      if let current, let origin = frame.clearingOrigin(from: current) {
+        Self.log.debug(
+          "window moved before resizing - \(named(windowID)) - it reached past its frame")
+        try check(bridge.setPosition(origin, of: element), for: windowID)
+      }
+      try check(bridge.setFrame(frame, of: element), for: windowID)
+      actual = bridge.frame(of: element)
+    }
+    // The app may have clamped the size; tell the manager what it really is.
+    guard let actual, let info = note(actual, of: windowID) else { return }
+    report(.updated(info))
+  }
+
+  func setPosition(_ origin: CGPoint, of windowID: WindowID) throws(WindowSystemError) {
+    try move(windowID, by: [.position(origin)])
+  }
+
+  /// Ordered from the frame last read, which lags behind the steps but grows or shrinks the same
+  /// way along a straight track.
+  func setFrameStep(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
+    let writes =
+      windows.lastRead(of: windowID).flatMap { FrameWrite.inPassing(from: $0.frame, to: frame) }
+      ?? [.position(frame.origin), .size(frame.size)]
+    try move(windowID, by: writes)
+  }
+
+  func setFrameInPassing(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
+    let element = try settledElement(windowID)
+    guard let current = windows.lastRead(of: windowID)?.frame,
+      let writes = FrameWrite.inPassing(from: current, to: frame)
+    else { return try setFrame(frame, of: windowID) }
+    for write in writes {
+      try check(bridge.write(write, to: element), for: windowID)
+    }
+  }
+
+  /// What the step queue wrote since the last call.
+  func takeQueuedWrites() -> AppWriteQueue<WindowID, Move>.Statistics { steps.takeStatistics() }
+
+  func focus(_ windowID: WindowID) throws(WindowSystemError) {
+    let element = try element(of: windowID)
+    try refuseIfSkipped()
+    try check(bridge.raise(window: element, in: processID), for: windowID)
+  }
+
+  func close(_ windowID: WindowID) throws(WindowSystemError) {
+    try check(bridge.close(window: try element(of: windowID)), for: windowID)
+  }
+
+  private func element(of windowID: WindowID) throws(WindowSystemError) -> AXUIElement {
+    guard let element = windows.element(of: windowID) else { throw .windowGone(windowID) }
+    return element
+  }
+
+  private func move(_ windowID: WindowID, by writes: [FrameWrite]) throws(WindowSystemError) {
+    let element = try element(of: windowID)
+    try refuseIfSkipped()
+    steps.submit(Move(element: element, writes: writes), for: windowID)
+  }
+
+  /// The window's element, once the steps still queued are written: the step waiting for it is
+  /// dropped, and a write on the main thread then lands after every step already sent.
+  private func settledElement(_ windowID: WindowID) throws(WindowSystemError) -> AXUIElement {
+    let element = try element(of: windowID)
+    try refuseIfSkipped()
+    steps.discard(windowID)
+    steps.waitUntilWritten()
+    return element
+  }
+
+  private func check(_ status: AXError, for windowID: WindowID) throws(WindowSystemError) {
+    switch status {
+    case .success:
+      return
+    case .invalidUIElement:
+      // The window closed under us. Its destroyed notification may never come (registering for
+      // it can fail right after an app launches), so forget it here: the manager then drops it
+      // from its workspace instead of keeping an empty slot for it.
+      forget(windowID)
+      throw .windowGone(windowID)
+    default:
+      if status == .cannotComplete { noteTimeout() }
+      throw WindowSystemError(refusal: status)
+    }
+  }
+
+  // MARK: - Whether the app answers
+
+  private var isSkipped: Bool { isPauseOver.map { !$0() } ?? false }
+
+  /// Refuses at once while the app is skipped, instead of waiting out the timeout again.
+  private func refuseIfSkipped() throws(WindowSystemError) {
+    guard !isSkipped else { throw .refused("its app didn't answer a moment ago") }
+  }
+
+  /// Skips the app for `pause`, from now: a call to it timed out.
+  private func noteTimeout() {
+    let wasSkipped = isSkipped
+    let clock = clock  // Swift opens the existential from a local, not from the stored property.
+    isPauseOver = Self.deadline(Self.pause, on: clock)
+    guard !wasSkipped else { return }
+    Self.log.warning(
+      "app skipping started - pid \(processID) - it didn't answer within "
+        + "\(AXBridge.messagingTimeout) s; its windows aren't moved for \(Self.pause)")
+  }
+
+  private static func deadline(_ duration: Duration, on clock: some Clock<Duration>) -> () -> Bool {
+    let end = clock.now.advanced(by: duration)
+    return { clock.now >= end }
+  }
+
+  nonisolated private static func write(
+    _ move: Move, of windowID: WindowID, through bridge: AXBridge
+  ) {
+    for write in move.writes {
+      let status = bridge.write(write, to: move.element)
+      if status != .success {
+        // One missed frame is invisible; the final placement reports real failures.
+        log.debug("window stepping failed - #\(windowID) - AX error \(status.rawValue)")
+        return
+      }
     }
   }
 }

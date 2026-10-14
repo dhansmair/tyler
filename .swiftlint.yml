@@ -86,7 +86,7 @@ custom_rules:
     name: "One place moves windows"
     included: "Sources/TylerServer/.*\\.swift"
     excluded: "Sources/TylerServer/Motion/WindowMover\\.swift"
-    regex: "\\bbackend\\s*\\??\\s*\\.\\s*(setFrame|setPosition|focus|unfocus)\\b"
+    regex: "\\bwindowSystem\\s*\\??\\s*\\.\\s*(setFrame|setPosition|focus|unfocus)\\b"
     excluded_match_kinds: [comment, doccomment, string]
     message: "Only WindowMover moves and focuses windows (devdocs/architecture.md)."
     severity: error
@@ -101,7 +101,7 @@ custom_rules:
   controllers_decide:
     name: "Controllers decide, the manager acts"
     included: "Sources/TylerServer/.*Controller\\.swift"
-    regex: "\\b(WindowManager|WindowMover|mover|backend|pointer|animator|Interaction)\\b"
+    regex: "\\b(WindowManager|WindowMover|mover|windowSystem|WindowSystem|pointer|animator|Interaction)\\b"
     match_kinds: [identifier, typeidentifier]
-    message: "A controller returns effects; it never reaches the manager, the mover, the backend, the pointer or the running interaction (devdocs/architecture.md)."
+    message: "A controller returns effects; it never reaches the manager, the mover, the window system, the pointer or the running interaction (devdocs/architecture.md)."
     severity: error

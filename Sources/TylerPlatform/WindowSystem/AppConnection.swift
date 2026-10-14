@@ -83,14 +83,14 @@ final class AppConnection {
 
   var windowIDs: [WindowID] { windows.ids }
 
-  /// Reads the window in full. Its `isFocused` is for the window system to set.
+  /// Reads the window in full. Whether it has the focus is for the window system to say.
   func read(_ windowID: WindowID) -> WindowInfo? {
-    windows.read(windowID, isFocused: false, by: reader)
+    windows.read(windowID, by: reader)
   }
 
-  /// The last read with a new frame. Its `isFocused` is for the window system to set.
+  /// The last read with a new frame.
   private func note(_ frame: CGRect, isFullscreen: Bool? = nil, of id: WindowID) -> WindowInfo? {
-    windows.note(frame, isFullscreen: isFullscreen, of: id, isFocused: false)
+    windows.note(frame, isFullscreen: isFullscreen, of: id)
   }
 
   /// Reports the window the app has focused.
@@ -112,7 +112,7 @@ final class AppConnection {
         return nil
       }
       return reader.read(
-        element, id: windowID, processID: processID, known: nil, isFocused: false)
+        element, id: windowID, processID: processID, known: nil)
     }
   }
 

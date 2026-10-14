@@ -44,7 +44,7 @@ struct TrackedWindowsTests {
 
   @Test func aFrameNeedsAnEarlierRead() {
     var windows = tracking()
-    let noted = windows.note(.zero, of: WindowID(10), isFocused: false)
+    let noted = windows.note(.zero, of: WindowID(10))
     #expect(noted == nil)
   }
 }

@@ -44,11 +44,10 @@ struct TrackedWindows {
 
   /// Reads the window in full, keeping the result as its last read.
   @MainActor
-  mutating func read(_ id: WindowID, isFocused: Bool, by reader: WindowReader) -> WindowInfo? {
+  mutating func read(_ id: WindowID, by reader: WindowReader) -> WindowInfo? {
     guard let entry = entries[id],
       let info = reader.read(
-        entry.element, id: id, processID: entry.processID, known: entry.lastRead,
-        isFocused: isFocused)
+        entry.element, id: id, processID: entry.processID, known: entry.lastRead)
     else { return nil }
     entries[id]?.lastRead = info
     return info
@@ -56,12 +55,11 @@ struct TrackedWindows {
 
   /// The last read with a new frame (and full screen state), kept as the last read.
   mutating func note(
-    _ frame: CGRect, isFullscreen: Bool? = nil, of windowID: WindowID, isFocused: Bool
+    _ frame: CGRect, isFullscreen: Bool? = nil, of windowID: WindowID
   ) -> WindowInfo? {
     guard var info = entries[windowID]?.lastRead else { return nil }
     info.frame = frame
     if let isFullscreen { info.isFullscreen = isFullscreen }
-    info.isFocused = isFocused
     entries[windowID]?.lastRead = info
     return info
   }

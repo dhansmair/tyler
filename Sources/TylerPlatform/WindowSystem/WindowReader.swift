@@ -1,7 +1,8 @@
 import ApplicationServices
 import TylerCore
 
-/// Reads a window as its app reports it.
+/// Reads a window as its app reports it. Whether it has the focus is for the window system to
+/// say, which knows every app.
 @MainActor
 struct WindowReader {
   let bridge: AXBridge
@@ -10,7 +11,7 @@ struct WindowReader {
   /// In one round trip; `nil` if the frame can't be read. A window's app never changes, so with an
   /// earlier read (`known`) the app isn't looked up again.
   func read(
-    _ element: AXUIElement, id: WindowID, processID: pid_t, known: WindowInfo?, isFocused: Bool
+    _ element: AXUIElement, id: WindowID, processID: pid_t, known: WindowInfo?
   ) -> WindowInfo? {
     guard let attributes = bridge.windowAttributes(of: element) else { return nil }
     let app = known == nil ? workspace.runningApp(processID) : nil
@@ -25,7 +26,7 @@ struct WindowReader {
         role: attributes.role, subrole: attributes.subrole, buttons: attributes.buttons),
       isMinimized: attributes.isMinimized ?? false,
       isFullscreen: attributes.isFullscreen ?? false,
-      isFocused: isFocused
+      isFocused: false
     )
   }
 }

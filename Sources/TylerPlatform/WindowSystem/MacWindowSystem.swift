@@ -19,13 +19,12 @@ package final class MacWindowSystem: WindowSystem {
   let workspace: any WorkspaceClient
   let reader: WindowReader
   private let clock: any Clock<Duration>
-  private var observed: Set<pid_t> = []
+  private var connections: [pid_t: AppConnection] = [:]
   private var retries: [pid_t: Task<Void, Never>] = [:]
-  private var windows = TrackedWindows()
+  /// Which app each window is in, changed only by the connections' reports.
+  private var owners: [WindowID: pid_t] = [:]
   private var focusedID: WindowID?
-  private var pendingReads = PendingReads()
   private let steps: StepWriter
-  private var pendingReadsTask: Task<Void, Never>?
   private var isStarted = false
 
   package convenience init() {
@@ -62,32 +61,25 @@ package final class MacWindowSystem: WindowSystem {
     workspace.stop()
     for retry in retries.values { retry.cancel() }
     retries = [:]
-    for processID in observed { bridge.stopObserving(processID: processID) }
-    observed = []
-    windows.forgetAll()
+    for connection in connections.values { connection.close() }
+    connections = [:]
+    owners = [:]
     focusedID = nil
-    pendingReadsTask?.cancel()
-    pendingReadsTask = nil
-    _ = pendingReads.takeAll()
     steps.forgetAll()
   }
 
   package func snapshot() -> [WindowInfo] {
-    windows.ids.compactMap { windowInfo(for: $0) }
+    owners.keys.sorted().compactMap { windowInfo(for: $0) }
   }
 
   package func focus(_ windowID: WindowID) throws(WindowSystemError) {
-    guard let element = windows.element(of: windowID),
-      let processID = windows.processID(of: windowID)
-    else {
-      throw .windowGone(windowID)
-    }
-    try steps.refuseIfUnresponsive(processID)
-    try check(bridge.raise(window: element, in: processID), for: windowID)
+    let (connection, element) = try located(windowID)
+    try steps.refuseIfUnresponsive(connection.processID)
+    try check(bridge.raise(window: element, in: connection.processID), for: windowID)
   }
 
   package func close(_ windowID: WindowID) throws(WindowSystemError) {
-    guard let element = windows.element(of: windowID) else { throw .windowGone(windowID) }
+    let (_, element) = try located(windowID)
     try check(bridge.close(window: element), for: windowID)
   }
 
@@ -109,10 +101,10 @@ package final class MacWindowSystem: WindowSystem {
       // The window closed under us. Its destroyed notification may never come (registering for
       // it can fail right after an app launches), so forget it here: the manager then drops it
       // from its workspace instead of keeping an empty slot for it.
-      forget(windowID)
+      connection(of: windowID)?.forget(windowID)
       throw .windowGone(windowID)
     default:
-      if status == .cannotComplete, let processID = windows.processID(of: windowID) {
+      if status == .cannotComplete, let processID = owners[windowID] {
         steps.noteTimeout(of: processID)
       }
       throw Self.refusal(status)
@@ -127,28 +119,27 @@ package final class MacWindowSystem: WindowSystem {
 
   // MARK: - Apps
 
-  var attachedProcessIDs: [pid_t] { observed.sorted() }
+  var attachedApps: [AppConnection] {
+    connections.keys.sorted().compactMap { connections[$0] }
+  }
 
   private func attach(processID: pid_t, attempt: Int) {
-    guard isStarted, !observed.contains(processID),
+    guard isStarted, connections[processID] == nil,
       processID != workspace.ownProcessID,
       let app = workspace.runningApp(processID),
       app.activationPolicy == .regular
     else { return }
 
-    let application = bridge.applicationElement(processID: processID)
+    let connection = AppConnection(processID: processID, bridge: bridge, reader: reader) {
+      [weak self] report in self?.receive(report, from: processID)
+    }
     do {
-      try bridge.observe(application, processID: processID) { [weak self] notification, element in
-        self?.handle(notification, element: element, processID: processID)
-      }
-      observed.insert(processID)
+      try connection.open()
+      connections[processID] = connection
       retries[processID] = nil
-      for window in bridge.windows(of: application) {
-        register(window: window, processID: processID)
-      }
       // A freshly launched app may have come to the front before its first attempt succeeded.
       if workspace.frontmostProcessID == processID {
-        readFocus(of: processID)
+        connection.readFocus()
       }
     } catch {
       let name = app.name ?? String(processID)
@@ -183,7 +174,7 @@ package final class MacWindowSystem: WindowSystem {
 
   private func detachQuitApps() {
     let running = Set(workspace.runningApps.map(\.processID))
-    for processID in observed.union(retries.keys) where !running.contains(processID) {
+    for processID in Set(connections.keys).union(retries.keys) where !running.contains(processID) {
       detach(processID: processID)
     }
   }
@@ -191,65 +182,40 @@ package final class MacWindowSystem: WindowSystem {
   private func detach(processID: pid_t) {
     retries[processID]?.cancel()
     retries[processID] = nil
-    if observed.remove(processID) != nil { bridge.stopObserving(processID: processID) }
     steps.forget(processID)
-    let windowIDs = windows.ids(ownedBy: processID)
+    guard let connection = connections.removeValue(forKey: processID) else { return }
+    let windowIDs = connection.windowIDs
     Self.log.info("app quit - pid \(processID) - dropping \(windowIDs.count) windows")
-    for windowID in windowIDs { forget(windowID) }
+    for windowID in windowIDs { connection.forget(windowID) }
+    connection.close()
   }
 
   private func appActivated(processID: pid_t) {
     // An app that ran out of attach attempts (a slow launch, or busy when tylerd started) or
     // became a regular app after launching gets another chance whenever it comes to the front.
-    if !observed.contains(processID), retries[processID] == nil {
+    if let connection = connections[processID] {
+      connection.readFocus()
+    } else if retries[processID] == nil {
       attach(processID: processID, attempt: 1)
-    } else if observed.contains(processID) {
-      readFocus(of: processID)
     }
-  }
-
-  private func readFocus(of processID: pid_t) {
-    let application = bridge.applicationElement(processID: processID)
-    let windowID = bridge.focusedWindow(of: application).flatMap { window in
-      register(window: window, processID: processID)
-    }
-    setFocus(windowID)
   }
 
   // MARK: - Windows
 
-  /// Starts tracking `window` if it's new. Returns its id, or `nil` if it has none.
-  @discardableResult
-  private func register(window: AXUIElement, processID: pid_t) -> WindowID? {
-    guard let windowID = bridge.windowID(of: window) else {
-      Self.log.info("window tracking skipped - pid \(processID) - it has no window number")
-      return nil
+  private func receive(_ report: AppConnection.Report, from processID: pid_t) {
+    switch report {
+    case .created(let info):
+      owners[info.id] = processID
+      continuation.yield(.created(focusing(info)))
+    case .updated(let info):
+      continuation.yield(.updated(focusing(info)))
+    case .destroyed(let windowID):
+      owners[windowID] = nil
+      if focusedID == windowID { focusedID = nil }
+      continuation.yield(.destroyed(windowID))
+    case .focused(let windowID):
+      setFocus(windowID)
     }
-    guard !windows.contains(windowID) else { return windowID }
-    guard observed.contains(processID) else {
-      Self.log.debug("window tracking skipped - \(named(windowID)) - its app isn't observed")
-      return nil
-    }
-
-    windows.track(window, as: windowID, ownedBy: processID)
-    let failures = bridge.observe(window: window, processID: processID)
-    if let info = windowInfo(for: windowID) {
-      continuation.yield(.created(info))
-    }
-    // After the first read, so the line names the window.
-    for failure in failures {
-      Self.log.warning(
-        "window observing failed - \(named(windowID)) - won't update live: "
-          + String(describing: failure))
-    }
-    return windowID
-  }
-
-  private func forget(_ windowID: WindowID) {
-    guard windows.forget(windowID) else { return }
-    pendingReads.forget(windowID)
-    if focusedID == windowID { focusedID = nil }
-    continuation.yield(.destroyed(windowID))
   }
 
   private func setFocus(_ windowID: WindowID?) {
@@ -258,12 +224,30 @@ package final class MacWindowSystem: WindowSystem {
     continuation.yield(.focused(windowID))
   }
 
+  private func focusing(_ info: WindowInfo) -> WindowInfo {
+    var info = info
+    info.isFocused = info.id == focusedID
+    return info
+  }
+
+  private func connection(of windowID: WindowID) -> AppConnection? {
+    owners[windowID].flatMap { connections[$0] }
+  }
+
+  /// The window's connection and element, or `windowGone`.
+  private func located(_ id: WindowID) throws(WindowSystemError) -> (AppConnection, AXUIElement) {
+    guard let connection = connection(of: id), let element = connection.element(of: id) else {
+      throw .windowGone(id)
+    }
+    return (connection, element)
+  }
+
   private func named(_ windowID: WindowID) -> String {
-    WindowInfo.logName(windowID, windows.lastRead(of: windowID))
+    connection(of: windowID)?.named(windowID) ?? WindowInfo.logName(windowID, nil)
   }
 
   private func windowInfo(for windowID: WindowID) -> WindowInfo? {
-    windows.read(windowID, isFocused: windowID == focusedID, by: reader)
+    connection(of: windowID)?.read(windowID).map(focusing)
   }
 }
 
@@ -274,7 +258,7 @@ extension MacWindowSystem {
     // A window that already has the size only needs moving: one write instead of three. Should
     // the size turn out to differ after all (the last read is out of date), the full move
     // follows.
-    var current = windows.lastRead(of: windowID)?.frame
+    var current = connection(of: windowID)?.lastRead(of: windowID)?.frame
     var actual: CGRect?
     if current?.size == frame.size {
       try check(bridge.setPosition(frame.origin, of: element), for: windowID)
@@ -291,110 +275,43 @@ extension MacWindowSystem {
       actual = bridge.frame(of: element)
     }
     // The app may have clamped the size; tell the manager what it really is.
-    guard let actual, let info = noteFrame(actual, of: windowID) else { return }
-    continuation.yield(.updated(info))
-  }
-
-  private func noteFrame(
-    _ frame: CGRect, isFullscreen: Bool? = nil, of windowID: WindowID
-  ) -> WindowInfo? {
-    windows.note(frame, isFullscreen: isFullscreen, of: windowID, isFocused: windowID == focusedID)
+    guard let actual, let info = connection(of: windowID)?.note(actual, of: windowID) else {
+      return
+    }
+    continuation.yield(.updated(focusing(info)))
   }
 
   package func setPosition(_ origin: CGPoint, of windowID: WindowID) throws(WindowSystemError) {
-    guard let element = windows.element(of: windowID),
-      let processID = windows.processID(of: windowID)
-    else { throw .windowGone(windowID) }
-    try steps.move(windowID, element, by: [.position(origin)], in: processID)
+    let (connection, element) = try located(windowID)
+    try steps.move(windowID, element, by: [.position(origin)], in: connection.processID)
   }
 
   /// Ordered from the frame last read, which lags behind the steps but grows or shrinks the same
   /// way along a straight track.
   package func setFrameStep(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
-    guard let element = windows.element(of: windowID),
-      let processID = windows.processID(of: windowID)
-    else { throw .windowGone(windowID) }
+    let (connection, element) = try located(windowID)
     let writes =
-      windows.lastRead(of: windowID).flatMap { FrameWrite.inPassing(from: $0.frame, to: frame) }
+      connection.lastRead(of: windowID).flatMap { FrameWrite.inPassing(from: $0.frame, to: frame) }
       ?? [.position(frame.origin), .size(frame.size)]
-    try steps.move(windowID, element, by: writes, in: processID)
+    try steps.move(windowID, element, by: writes, in: connection.processID)
   }
 
   package func takeQueuedWrites() -> MotionCost.Queued { steps.takeStatistics() }
 
   /// The window's element, once the moves still queued for it are written.
   private func settledElement(_ windowID: WindowID) throws(WindowSystemError) -> AXUIElement {
-    guard let element = windows.element(of: windowID) else { throw .windowGone(windowID) }
-    if let processID = windows.processID(of: windowID) {
-      try steps.settle(windowID, in: processID)
-    }
+    let (connection, element) = try located(windowID)
+    try steps.settle(windowID, in: connection.processID)
     return element
   }
 
   package func setFrameInPassing(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
     let element = try settledElement(windowID)
-    guard let current = windows.lastRead(of: windowID)?.frame,
+    guard let current = connection(of: windowID)?.lastRead(of: windowID)?.frame,
       let writes = FrameWrite.inPassing(from: current, to: frame)
     else { return try setFrame(frame, of: windowID) }
     for write in writes {
       try check(bridge.write(write, to: element), for: windowID)
-    }
-  }
-}
-
-/// What an app's notifications change. In this file because it reads the window system's private state.
-extension MacWindowSystem {
-  private func handle(_ notification: String, element: AXUIElement, processID: pid_t) {
-    switch notification {
-    case kAXWindowCreatedNotification:
-      register(window: element, processID: processID)
-    case kAXFocusedWindowChangedNotification:
-      setFocus(register(window: element, processID: processID))
-    case kAXUIElementDestroyedNotification:
-      // The element is already invalid, so it can't be asked for its id; find it by identity.
-      if let windowID = windows.identify(element) {
-        forget(windowID)
-      }
-    default:
-      guard let windowID = bridge.windowID(of: element) ?? windows.identify(element) else {
-        Self.log.info(
-          "notification dropped - pid \(processID) - \(notification) of an unknown window")
-        return
-      }
-      if pendingReads.note(notification, for: windowID) {
-        // Read once the burst is over: after the notifications already waiting.
-        pendingReadsTask = pendingReadsTask ?? Task { [weak self] in self?.readPending() }
-        return
-      }
-      // Minimized or deminimized: a missed one leaves a window tiled, so it is read at once and
-      // a failure is worth seeing by default.
-      guard let info = windowInfo(for: windowID) else {
-        Self.log.warning(
-          "notification dropped - \(named(windowID)) - \(notification): the read failed")
-        return
-      }
-      continuation.yield(.updated(info))
-    }
-  }
-
-  private func readPending() {
-    pendingReadsTask = nil
-    for (windowID, depth) in pendingReads.takeAll() {
-      guard let element = windows.element(of: windowID) else { continue }
-      let info: WindowInfo? =
-        switch depth {
-        case .frame: bridge.frame(of: element).flatMap { noteFrame($0, of: windowID) }
-        case .frameAndFullscreen:
-          bridge.frameAndFullscreen(of: element).flatMap {
-            noteFrame($0.0, isFullscreen: $0.1, of: windowID)
-          }
-        case .full: windowInfo(for: windowID)
-        }
-      guard let info else {
-        Self.log.info("window update dropped - \(named(windowID)) - the read failed")
-        continue
-      }
-      continuation.yield(.updated(info))
     }
   }
 }

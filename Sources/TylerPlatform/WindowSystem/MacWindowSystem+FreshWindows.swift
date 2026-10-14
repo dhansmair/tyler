@@ -7,20 +7,9 @@ import TylerServer
 extension MacWindowSystem {
   package func freshWindows() -> FreshWindows {
     let tracked = snapshot()
-    let trackedIDs = Set(tracked.map(\.id))
-    var untracked: [WindowInfo] = []
-    for processID in attachedProcessIDs {
-      let application = bridge.applicationElement(processID: processID)
-      for element in bridge.windows(of: application) {
-        guard let windowID = bridge.windowID(of: element), !trackedIDs.contains(windowID),
-          let info = reader.read(
-            element, id: windowID, processID: processID, known: nil, isFocused: false)
-        else { continue }
-        untracked.append(info)
-      }
-    }
+    let untracked = attachedApps.flatMap { $0.untrackedWindows() }
     let ownID = workspace.ownProcessID
-    let attached = Set(attachedProcessIDs)
+    let attached = Set(attachedApps.map(\.processID))
     let unattached = workspace.runningApps.filter { app in
       app.activationPolicy == .regular && app.processID != ownID
         && !attached.contains(app.processID)

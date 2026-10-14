@@ -28,6 +28,7 @@ struct SyncController {
       to: connected.map(\.key),
       configured: context.config.workspaceNumbers(displayCount: max(1, connected.count)))
     var outcome = Outcome()
+    let isFocusUnlisted = context.registry.focusedID.map { model.rows.location(of: $0) == nil }
     let arrived = arrivedCrossings(in: model.rows)
     if !arrived.isEmpty { outcome.effects.append(.releaseCrossings(arrived)) }
     let tiling = TilingSnapshot(rows: model.rows, displays: connected, gaps: context.gaps)
@@ -68,13 +69,24 @@ struct SyncController {
       outcome.effects.append(.place(context.moves(toward: placements)))
     }
     model.bookkeeping.seen.formUnion(model.rows.allWindows)
-    let arrivals = Set(syncs.flatMap(\.arrivals))
-    if let focusedID = context.registry.focusedID, arrivals.contains(focusedID) {
-      outcome.focusedArrival = model.rows.location(of: focusedID).map { location in
-        (model.rows.entries[location.position].key, location.index)
-      }
-    }
+    outcome.focusedArrival = followFocus(
+      wasUnlisted: isFocusUnlisted == true, arrivals: Set(syncs.flatMap(\.arrivals)),
+      model: &model)
     return outcome
+  }
+
+  /// A new window's focus event often comes before the window is tileable, when there was no
+  /// list to record it on, so it is recorded once the window is listed. Returns where the focused
+  /// window went if it was assigned to a parked workspace.
+  private func followFocus(
+    wasUnlisted: Bool, arrivals: Set<WindowID>, model: inout Model
+  ) -> (key: DisplayKey, index: Int)? {
+    guard let focusedID = context.registry.focusedID else { return nil }
+    if wasUnlisted { model.recordFocus(focusedID) }
+    guard arrivals.contains(focusedID) else { return nil }
+    return model.rows.location(of: focusedID).map { location in
+      (model.rows.entries[location.position].key, location.index)
+    }
   }
 
   /// The windows sent to another display that the registry now shows on their workspace's

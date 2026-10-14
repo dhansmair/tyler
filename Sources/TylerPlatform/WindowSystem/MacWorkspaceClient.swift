@@ -1,22 +1,32 @@
 import AppKit
 
-/// Tells the window system when an app launches, comes to the front or quits.
+/// The real `WorkspaceClient`.
 @MainActor
-final class RunningAppsObserver {
-  struct Handlers {
-    let launched: @MainActor @Sendable (pid_t) -> Void
-    let activated: @MainActor @Sendable (pid_t) -> Void
-    let quit: @MainActor @Sendable () -> Void
-  }
-
+final class MacWorkspaceClient: WorkspaceClient {
   private var tokens: [any NSObjectProtocol] = []
   private var quitObservation: NSKeyValueObservation?
 
-  func start(_ handlers: Handlers) {
+  nonisolated init() {}
+
+  var runningApps: [RunningApp] { NSWorkspace.shared.runningApplications.map(Self.describe) }
+
+  var frontmostProcessID: pid_t? { NSWorkspace.shared.frontmostApplication?.processIdentifier }
+
+  var ownProcessID: pid_t { ProcessInfo.processInfo.processIdentifier }
+
+  func runningApp(_ processID: pid_t) -> RunningApp? {
+    NSRunningApplication(processIdentifier: processID).map(Self.describe)
+  }
+
+  func start(
+    launched: @escaping @MainActor @Sendable (pid_t) -> Void,
+    activated: @escaping @MainActor @Sendable (pid_t) -> Void,
+    quit: @escaping @MainActor @Sendable () -> Void
+  ) {
     let center = NSWorkspace.shared.notificationCenter
     let names: [(Notification.Name, @MainActor @Sendable (pid_t) -> Void)] = [
-      (NSWorkspace.didLaunchApplicationNotification, handlers.launched),
-      (NSWorkspace.didActivateApplicationNotification, handlers.activated),
+      (NSWorkspace.didLaunchApplicationNotification, launched),
+      (NSWorkspace.didActivateApplicationNotification, activated),
     ]
     for (name, action) in names {
       let token = center.addObserver(forName: name, object: nil, queue: .main) { note in
@@ -31,7 +41,7 @@ final class RunningAppsObserver {
     // The apps removed say -1 for their process id by then, so what is still running decides.
     quitObservation = NSWorkspace.shared.observe(\.runningApplications) { _, change in
       guard change.kind == .removal else { return }
-      MainActor.assumeIsolated { handlers.quit() }
+      MainActor.assumeIsolated { quit() }
     }
   }
 
@@ -41,5 +51,11 @@ final class RunningAppsObserver {
     tokens = []
     quitObservation?.invalidate()
     quitObservation = nil
+  }
+
+  private static func describe(_ app: NSRunningApplication) -> RunningApp {
+    RunningApp(
+      processID: app.processIdentifier, activationPolicy: app.activationPolicy,
+      name: app.localizedName, bundleID: app.bundleIdentifier)
   }
 }

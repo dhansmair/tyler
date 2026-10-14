@@ -10,30 +10,30 @@ extension MacWindowSystem {
     let trackedIDs = Set(tracked.map(\.id))
     var untracked: [WindowInfo] = []
     for processID in attachedProcessIDs {
-      let application = AXBridge.applicationElement(processID: processID)
-      for element in AXBridge.windows(of: application) {
-        guard let windowID = AXBridge.windowID(of: element), !trackedIDs.contains(windowID),
-          let info = WindowInfo.read(
+      let application = bridge.applicationElement(processID: processID)
+      for element in bridge.windows(of: application) {
+        guard let windowID = bridge.windowID(of: element), !trackedIDs.contains(windowID),
+          let info = reader.read(
             element, id: windowID, processID: processID, known: nil, isFocused: false)
         else { continue }
         untracked.append(info)
       }
     }
-    let ownID = ProcessInfo.processInfo.processIdentifier
+    let ownID = workspace.ownProcessID
     let attached = Set(attachedProcessIDs)
-    let unattached = NSWorkspace.shared.runningApplications.filter { app in
-      app.activationPolicy == .regular && app.processIdentifier != ownID
-        && !attached.contains(app.processIdentifier)
+    let unattached = workspace.runningApps.filter { app in
+      app.activationPolicy == .regular && app.processID != ownID
+        && !attached.contains(app.processID)
     }
     return FreshWindows(
       tracked: tracked, untracked: untracked,
-      unattachedApps: unattached.map { $0.localizedName ?? "pid \($0.processIdentifier)" }.sorted(),
+      unattachedApps: unattached.map { $0.name ?? "pid \($0.processID)" }.sorted(),
       focusedID: frontmostFocusedWindow())
   }
 
   private func frontmostFocusedWindow() -> WindowID? {
-    guard let front = NSWorkspace.shared.frontmostApplication else { return nil }
-    let application = AXBridge.applicationElement(processID: front.processIdentifier)
-    return AXBridge.focusedWindow(of: application).flatMap(AXBridge.windowID(of:))
+    guard let front = workspace.frontmostProcessID else { return nil }
+    let application = bridge.applicationElement(processID: front)
+    return bridge.focusedWindow(of: application).flatMap(bridge.windowID(of:))
   }
 }

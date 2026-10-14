@@ -4,7 +4,8 @@ import TylerCore
 import TylerRuntime
 import TylerServer
 
-/// The real `WindowSystem`, on the Accessibility API and `NSWorkspace`'s apps.
+/// The real `WindowSystem`, on the Accessibility API (`AXClient`) and `NSWorkspace`'s apps
+/// (`WorkspaceClient`).
 @MainActor
 package final class MacWindowSystem: WindowSystem {
   package let events: AsyncStream<WindowEvent>
@@ -14,18 +15,30 @@ package final class MacWindowSystem: WindowSystem {
   private static let retryDelay = Duration.milliseconds(500)
 
   private let continuation: AsyncStream<WindowEvent>.Continuation
-  private var observers: [pid_t: AppObserver] = [:]
+  let bridge: AXBridge
+  let workspace: any WorkspaceClient
+  let reader: WindowReader
+  private let clock: any Clock<Duration>
+  private var observed: Set<pid_t> = []
   private var retries: [pid_t: Task<Void, Never>] = [:]
   private var windows = TrackedWindows()
   private var focusedID: WindowID?
   private var pendingReads = PendingReads()
-  private let steps = StepWriter()
+  private let steps: StepWriter
   private var pendingReadsTask: Task<Void, Never>?
-  private let runningApps = RunningAppsObserver()
   private var isStarted = false
 
-  package init() {
+  package convenience init() {
+    self.init(client: MacAXClient(), workspace: MacWorkspaceClient(), clock: ContinuousClock())
+  }
+
+  init(client: any AXClient, workspace: any WorkspaceClient, clock: any Clock<Duration>) {
     (events, continuation) = AsyncStream.makeStream(of: WindowEvent.self)
+    bridge = AXBridge(client: client)
+    self.workspace = workspace
+    reader = WindowReader(bridge: bridge, workspace: workspace)
+    self.clock = clock
+    steps = StepWriter(write: StepWriter.writing(through: bridge))
   }
 
   // MARK: - WindowSystem
@@ -33,25 +46,24 @@ package final class MacWindowSystem: WindowSystem {
   package func start() {
     guard !isStarted else { return }
     isStarted = true
-    AXBridge.limitMessagingTimeout()
-    runningApps.start(
-      .init(
-        launched: { [weak self] in self?.attach(processID: $0, attempt: 1) },
-        activated: { [weak self] in self?.appActivated(processID: $0) },
-        quit: { [weak self] in self?.detachQuitApps() }))
-    for app in NSWorkspace.shared.runningApplications {
-      attach(processID: app.processIdentifier, attempt: 1)
+    bridge.limitMessagingTimeout()
+    workspace.start(
+      launched: { [weak self] in self?.attach(processID: $0, attempt: 1) },
+      activated: { [weak self] in self?.appActivated(processID: $0) },
+      quit: { [weak self] in self?.detachQuitApps() })
+    for app in workspace.runningApps {
+      attach(processID: app.processID, attempt: 1)
     }
   }
 
   package func stop() {
     guard isStarted else { return }
     isStarted = false
-    runningApps.stop()
+    workspace.stop()
     for retry in retries.values { retry.cancel() }
     retries = [:]
-    for observer in observers.values { observer.stop() }
-    observers = [:]
+    for processID in observed { bridge.stopObserving(processID: processID) }
+    observed = []
     windows.forgetAll()
     focusedID = nil
     pendingReadsTask?.cancel()
@@ -71,18 +83,18 @@ package final class MacWindowSystem: WindowSystem {
       throw .windowGone(windowID)
     }
     try steps.refuseIfUnresponsive(processID)
-    try check(AXBridge.raise(window: element, in: processID), for: windowID)
+    try check(bridge.raise(window: element, in: processID), for: windowID)
   }
 
   package func close(_ windowID: WindowID) throws(WindowSystemError) {
     guard let element = windows.element(of: windowID) else { throw .windowGone(windowID) }
-    try check(AXBridge.close(window: element), for: windowID)
+    try check(bridge.close(window: element), for: windowID)
   }
 
   /// Makes tylerd frontmost. It has no windows, so keys go nowhere until the user or a command
   /// focuses a window again.
   package func unfocus() throws(WindowSystemError) {
-    let status = AXBridge.makeFrontmost(processID: ProcessInfo.processInfo.processIdentifier)
+    let status = bridge.makeFrontmost(processID: workspace.ownProcessID)
     guard status == .success else {
       throw Self.refusal(status)
     }
@@ -115,34 +127,31 @@ package final class MacWindowSystem: WindowSystem {
 
   // MARK: - Apps
 
-  var attachedProcessIDs: [pid_t] { observers.keys.sorted() }
+  var attachedProcessIDs: [pid_t] { observed.sorted() }
 
   private func attach(processID: pid_t, attempt: Int) {
-    guard isStarted, observers[processID] == nil,
-      processID != ProcessInfo.processInfo.processIdentifier,
-      let app = NSRunningApplication(processIdentifier: processID),
+    guard isStarted, !observed.contains(processID),
+      processID != workspace.ownProcessID,
+      let app = workspace.runningApp(processID),
       app.activationPolicy == .regular
     else { return }
 
-    let application = AXBridge.applicationElement(processID: processID)
+    let application = bridge.applicationElement(processID: processID)
     do {
-      let observer = try AppObserver(
-        processID: processID,
-        applicationElement: application
-      ) { [weak self] notification, element in
+      try bridge.observe(application, processID: processID) { [weak self] notification, element in
         self?.handle(notification, element: element, processID: processID)
       }
-      observers[processID] = observer
+      observed.insert(processID)
       retries[processID] = nil
-      for window in AXBridge.windows(of: application) {
+      for window in bridge.windows(of: application) {
         register(window: window, processID: processID)
       }
       // A freshly launched app may have come to the front before its first attempt succeeded.
-      if NSWorkspace.shared.frontmostApplication?.processIdentifier == processID {
+      if workspace.frontmostProcessID == processID {
         readFocus(of: processID)
       }
     } catch {
-      let name = app.localizedName ?? String(processID)
+      let name = app.name ?? String(processID)
       Self.log.info(
         "app observing failed - \(name) (pid \(processID)) - attempt \(attempt): "
           + String(describing: error))
@@ -153,7 +162,7 @@ package final class MacWindowSystem: WindowSystem {
   /// A freshly launched app often refuses AX for a moment; try again shortly.
   private func scheduleRetry(processID: pid_t, attempt: Int) {
     guard attempt < Self.maxAttachAttempts else {
-      let name = NSRunningApplication(processIdentifier: processID)?.localizedName ?? "?"
+      let name = workspace.runningApp(processID)?.name ?? "?"
       Self.log.warning(
         "app observing stopped - \(name) (pid \(processID)) - gave up after \(attempt) attempts; "
           + "tries again when it comes to the front")
@@ -161,9 +170,10 @@ package final class MacWindowSystem: WindowSystem {
       return
     }
     retries[processID]?.cancel()
+    let clock = clock  // Swift opens the existential from a local, not from the stored property.
     retries[processID] = Task { [weak self] in
       do {
-        try await Task.sleep(for: Self.retryDelay)
+        try await clock.sleep(for: Self.retryDelay)
       } catch {
         return  // Cancelled by stop() or a newer retry; nothing left to do.
       }
@@ -172,8 +182,8 @@ package final class MacWindowSystem: WindowSystem {
   }
 
   private func detachQuitApps() {
-    let running = Set(NSWorkspace.shared.runningApplications.map(\.processIdentifier))
-    for processID in Set(observers.keys).union(retries.keys) where !running.contains(processID) {
+    let running = Set(workspace.runningApps.map(\.processID))
+    for processID in observed.union(retries.keys) where !running.contains(processID) {
       detach(processID: processID)
     }
   }
@@ -181,8 +191,7 @@ package final class MacWindowSystem: WindowSystem {
   private func detach(processID: pid_t) {
     retries[processID]?.cancel()
     retries[processID] = nil
-    observers[processID]?.stop()
-    observers[processID] = nil
+    if observed.remove(processID) != nil { bridge.stopObserving(processID: processID) }
     steps.forget(processID)
     let windowIDs = windows.ids(ownedBy: processID)
     Self.log.info("app quit - pid \(processID) - dropping \(windowIDs.count) windows")
@@ -192,16 +201,16 @@ package final class MacWindowSystem: WindowSystem {
   private func appActivated(processID: pid_t) {
     // An app that ran out of attach attempts (a slow launch, or busy when tylerd started) or
     // became a regular app after launching gets another chance whenever it comes to the front.
-    if observers[processID] == nil, retries[processID] == nil {
+    if !observed.contains(processID), retries[processID] == nil {
       attach(processID: processID, attempt: 1)
-    } else if observers[processID] != nil {
+    } else if observed.contains(processID) {
       readFocus(of: processID)
     }
   }
 
   private func readFocus(of processID: pid_t) {
-    let application = AXBridge.applicationElement(processID: processID)
-    let windowID = AXBridge.focusedWindow(of: application).flatMap { window in
+    let application = bridge.applicationElement(processID: processID)
+    let windowID = bridge.focusedWindow(of: application).flatMap { window in
       register(window: window, processID: processID)
     }
     setFocus(windowID)
@@ -212,18 +221,18 @@ package final class MacWindowSystem: WindowSystem {
   /// Starts tracking `window` if it's new. Returns its id, or `nil` if it has none.
   @discardableResult
   private func register(window: AXUIElement, processID: pid_t) -> WindowID? {
-    guard let windowID = AXBridge.windowID(of: window) else {
+    guard let windowID = bridge.windowID(of: window) else {
       Self.log.info("window tracking skipped - pid \(processID) - it has no window number")
       return nil
     }
     guard !windows.contains(windowID) else { return windowID }
-    guard let observer = observers[processID] else {
+    guard observed.contains(processID) else {
       Self.log.debug("window tracking skipped - \(named(windowID)) - its app isn't observed")
       return nil
     }
 
     windows.track(window, as: windowID, ownedBy: processID)
-    let failures = observer.observe(window: window)
+    let failures = bridge.observe(window: window, processID: processID)
     if let info = windowInfo(for: windowID) {
       continuation.yield(.created(info))
     }
@@ -254,7 +263,7 @@ package final class MacWindowSystem: WindowSystem {
   }
 
   private func windowInfo(for windowID: WindowID) -> WindowInfo? {
-    windows.read(windowID, isFocused: windowID == focusedID)
+    windows.read(windowID, isFocused: windowID == focusedID, by: reader)
   }
 }
 
@@ -268,18 +277,18 @@ extension MacWindowSystem {
     var current = windows.lastRead(of: windowID)?.frame
     var actual: CGRect?
     if current?.size == frame.size {
-      try check(AXBridge.setPosition(frame.origin, of: element), for: windowID)
-      actual = AXBridge.frame(of: element)
+      try check(bridge.setPosition(frame.origin, of: element), for: windowID)
+      actual = bridge.frame(of: element)
       current = actual
     }
     if actual?.size != frame.size {
       if let current, let origin = frame.clearingOrigin(from: current) {
         Self.log.debug(
           "window moved before resizing - \(named(windowID)) - it reached past its frame")
-        try check(AXBridge.setPosition(origin, of: element), for: windowID)
+        try check(bridge.setPosition(origin, of: element), for: windowID)
       }
-      try check(AXBridge.setFrame(frame, of: element), for: windowID)
-      actual = AXBridge.frame(of: element)
+      try check(bridge.setFrame(frame, of: element), for: windowID)
+      actual = bridge.frame(of: element)
     }
     // The app may have clamped the size; tell the manager what it really is.
     guard let actual, let info = noteFrame(actual, of: windowID) else { return }
@@ -328,7 +337,7 @@ extension MacWindowSystem {
       let writes = FrameWrite.inPassing(from: current, to: frame)
     else { return try setFrame(frame, of: windowID) }
     for write in writes {
-      try check(AXBridge.write(write, to: element), for: windowID)
+      try check(bridge.write(write, to: element), for: windowID)
     }
   }
 }
@@ -347,7 +356,7 @@ extension MacWindowSystem {
         forget(windowID)
       }
     default:
-      guard let windowID = AXBridge.windowID(of: element) ?? windows.identify(element) else {
+      guard let windowID = bridge.windowID(of: element) ?? windows.identify(element) else {
         Self.log.info(
           "notification dropped - pid \(processID) - \(notification) of an unknown window")
         return
@@ -374,9 +383,9 @@ extension MacWindowSystem {
       guard let element = windows.element(of: windowID) else { continue }
       let info: WindowInfo? =
         switch depth {
-        case .frame: AXBridge.frame(of: element).flatMap { noteFrame($0, of: windowID) }
+        case .frame: bridge.frame(of: element).flatMap { noteFrame($0, of: windowID) }
         case .frameAndFullscreen:
-          AXBridge.frameAndFullscreen(of: element).flatMap {
+          bridge.frameAndFullscreen(of: element).flatMap {
             noteFrame($0.0, isFullscreen: $0.1, of: windowID)
           }
         case .full: windowInfo(for: windowID)

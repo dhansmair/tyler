@@ -43,13 +43,14 @@ struct TrackedWindows {
   }
 
   /// Reads the window in full, keeping the result as its last read.
-  mutating func read(_ windowID: WindowID, isFocused: Bool) -> WindowInfo? {
-    guard let entry = entries[windowID],
-      let info = WindowInfo.read(
-        entry.element, id: windowID, processID: entry.processID, known: entry.lastRead,
+  @MainActor
+  mutating func read(_ id: WindowID, isFocused: Bool, by reader: WindowReader) -> WindowInfo? {
+    guard let entry = entries[id],
+      let info = reader.read(
+        entry.element, id: id, processID: entry.processID, known: entry.lastRead,
         isFocused: isFocused)
     else { return nil }
-    entries[windowID]?.lastRead = info
+    entries[id]?.lastRead = info
     return info
   }
 

@@ -26,7 +26,7 @@ final class StepWriter {
 
   init(
     now: @escaping () -> ContinuousClock.Instant = { .now },
-    write: @escaping @Sendable (WindowID, Move) -> Void = StepWriter.writeStep
+    write: @escaping @Sendable (WindowID, Move) -> Void
   ) {
     self.now = now
     self.write = write
@@ -92,9 +92,16 @@ final class StepWriter {
     return queue
   }
 
-  nonisolated private static func writeStep(_ windowID: WindowID, _ move: Move) {
+  /// Writes each step through `bridge`.
+  nonisolated static func writing(through bridge: AXBridge) -> @Sendable (WindowID, Move) -> Void {
+    { windowID, move in writeStep(windowID, move, through: bridge) }
+  }
+
+  nonisolated private static func writeStep(
+    _ windowID: WindowID, _ move: Move, through bridge: AXBridge
+  ) {
     for write in move.writes {
-      let status = AXBridge.write(write, to: move.element)
+      let status = bridge.write(write, to: move.element)
       if status != .success {
         // One missed frame is invisible; the final placement reports real failures.
         log.debug("window stepping failed - #\(windowID) - AX error \(status.rawValue)")

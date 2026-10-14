@@ -36,7 +36,7 @@ Get window ids and slots from `tyler window list` (`.build/debug/tyler window li
 
 - **Prefer reading to moving.** Start with `stacking`, `menubar` and `tyler window list`. Move windows only when the question needs it.
 - **Tell the user before moving their windows**, and for `slide` give the countdown time to watch: they judge smoothness, not you. Ask them what they saw instead of guessing.
-- **Check the screen isn't locked before restarting `tylerd`** (`ioreg -n Root -d1 | grep IOConsoleLocked` says `No`): while it is, the Accessibility API shows no windows, the new `tylerd` finds none, and the workspaces handed over are lost. Live checks can't run on a locked screen either.
+- **Check the screen isn't locked before restarting `tylerd`** (`ioreg -n Root -d1 | grep IOConsoleLocked` says `No`): while it is, the Accessibility API shows no windows and the new `tylerd` finds none: each window gets its workspace back only when it appears after the unlock. Live checks can't run on a locked screen either.
 - **Don't run `tyler stop` without asking.** It puts every window back where it was before tylerd moved it, so the user loses their arrangement. `tyler restart` keeps the windows in place (the old tylerd hands its workspaces over), so it's safe after a rebuild; still say that you're restarting.
 - **Check that windows went back** afterwards with `tyler window list`.
 - **Write findings down.** Measured behaviour goes into `devdocs/macos-behaviour.md` with the macOS version and the setup in general terms; tick checked items in `devdocs/testing.md` with the date.

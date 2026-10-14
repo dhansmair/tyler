@@ -1,3 +1,4 @@
+import CoreGraphics
 import TylerCore
 
 /// What a controller wants done. Controllers decide and return effects; only the manager carries
@@ -31,6 +32,9 @@ enum Effect: Equatable {
   /// A failure makes the command's reply an error.
   case close(WindowID)
   case restoreOriginalFrames([WindowID])
+  /// Where windows a previous tylerd handed over, which appeared late, were before it first moved
+  /// them; before anything moves them.
+  case rememberOriginalFrames([WindowID: CGRect])
   /// The pointer watches for what the config turns on (the swipe, moves while focus follows the
   /// mouse, drags with the modifier) and stops watching what it turns off.
   case applyPointerSettings

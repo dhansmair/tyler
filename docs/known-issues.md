@@ -7,10 +7,8 @@ has its own list in [Layouts](layouts.md#strip--experimental).
 ## Bugs
 
 - **A window of a slow or busy app may be missed** when `tylerd` starts or restarts while the app
-  is busy (an IDE indexing, for example). It is picked up once you focus it; after a restart it may
-  come back on the current workspace instead of its own.
-- **Don't restart `tylerd` while the screen is locked**: macOS shows it no windows then, so every
-  window comes back on its display's current workspace.
+  is busy (an IDE indexing, for example). It is picked up once you focus it, and after a restart
+  it goes back to its own workspace.
 - **An Option-click can be lost** if `tylerd` was busy at that moment (an app not answering).
 - **One window of a parked workspace may show at the left edge** with two displays side by side
   (seen once with Firefox).

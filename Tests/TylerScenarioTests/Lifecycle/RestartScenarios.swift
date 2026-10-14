@@ -112,4 +112,53 @@ struct RestartScenarios {
       windows: [], gate: FakeGate(isTrusted: false), restoring: saved)
     #expect(harness.manager.handOver() == saved)
   }
+
+  /// The windows of `windows` named in `ids` appear one by one, as apps that answer late do.
+  private func appear(_ ids: [UInt32], of windows: [WindowInfo], in next: ManagerHarness) async {
+    for id in ids {
+      guard let window = windows.first(where: { $0.id == WindowID(id) }) else { continue }
+      next.backend.windows.append(window)
+      next.backend.send(.created(window))
+      await next.settle()
+    }
+  }
+
+  @Test func aWindowWhoseAppAnswersLateGetsItsWorkspaceBack() async {
+    let harness = await arranged()
+    let windows = harness.backend.windows
+    let successor = harness.successor(saved: harness.manager.handOver(), closing: [3])
+    #expect(successor.workspaces() == [1: 1, 2: 1])
+    await appear([3], of: windows, in: successor)
+    #expect(successor.workspaces() == [1: 1, 2: 1, 3: 2])
+    #expect(successor.isParked(3))
+    #expect(successor.backend.moves.isEmpty)
+    successor.manager.stop()
+    #expect(successor.frame(of: 3) == ManagerHarness.originalFrame(index: 2), "stop puts it back")
+  }
+
+  @Test func aRestartOnALockedScreenGetsEveryWorkspaceBackAsTheWindowsAppear() async {
+    let harness = await arranged()
+    let windows = harness.backend.windows
+    let successor = harness.successor(saved: harness.manager.handOver(), closing: [1, 2, 3])
+    await appear([2, 3, 1], of: windows, in: successor)
+    #expect(successor.workspaces() == [1: 1, 2: 1, 3: 2])
+    #expect(successor.manager.workspaces[0].windows == [WindowID(1), WindowID(2)])
+    #expect(successor.backend.moves.isEmpty, "every window is already where it belongs")
+    #expect(successor.manager.setLayout(.next) == .message("layout tall"), "the layout survived")
+  }
+
+  @Test func aFloatedWindowThatAppearsLateIsStillFloated() async {
+    let harness = ManagerHarness([1, 2])
+    await harness.osFocus(2)
+    _ = harness.manager.setFloat(.toggle)
+    let windows = harness.backend.windows
+    let successor = harness.successor(saved: harness.manager.handOver(), closing: [2])
+    await appear([2], of: windows, in: successor)
+    #expect(successor.workspaces() == [1: 1])
+    guard case .windows(let listed) = successor.manager.windows() else {
+      Issue.record("no windows")
+      return
+    }
+    #expect(listed.first { $0.id == WindowID(2) }?.isFloated == true)
+  }
 }

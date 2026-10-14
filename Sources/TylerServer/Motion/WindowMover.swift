@@ -135,6 +135,10 @@ final class WindowMover {
     }
   }
 
+  func remember(originalFrames frames: [WindowID: CGRect]) {
+    originalFrames.merge(frames) { _, handedOver in handedOver }
+  }
+
   /// Forgets a window that closed. Window ids can be reused, and a new window must not inherit
   /// an old one's state.
   func forget(_ windowID: WindowID) {

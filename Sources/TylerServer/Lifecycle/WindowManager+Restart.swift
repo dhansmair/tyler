@@ -16,7 +16,9 @@ extension WindowManager {
     endSlideOrSwipe()
     let saved = SavedState(
       rows: rows, floated: bookkeeping.floated, tilingEnabled: tilingEnabled,
-      originalFrames: mover.originalFrames, seen: bookkeeping.seen)
+      originalFrames: mover.originalFrames, seen: bookkeeping.seen,
+      processIDs: Dictionary(
+        registry.windows.map { ($0.id, $0.processID) }, uniquingKeysWith: { first, _ in first }))
     tearDown()
     return saved
   }
@@ -36,16 +38,17 @@ extension WindowManager {
     registry = WindowRegistry()
     rows = freshRows()
     bookkeeping = WindowBookkeeping()
+    model.lateHandOver = LateHandOver()
     mover.reset()
     interpreter = WindowEventInterpreter()
     pendingRestore = nil
     state = .waitingForPermission
   }
 
-  /// Takes over the workspaces a previous tylerd handed over, keeping only windows that still
-  /// exist. Runs once the registry holds the windows and before the first reconcile, which then
-  /// finds the current workspace's windows already in their slots and moves nothing. Returns
-  /// whether there was anything to take over.
+  /// Takes over the workspaces a previous tylerd handed over; windows not there yet get their
+  /// place back when they appear (`LateHandOver`). Runs once the registry holds the windows and
+  /// before the first reconcile, which then finds the current workspace's windows already in
+  /// their slots and moves nothing. Returns whether there was anything to take over.
   func restorePending() -> Bool {
     guard let saved = pendingRestore else { return false }
     pendingRestore = nil
@@ -54,6 +57,7 @@ extension WindowManager {
     rows.newLayout = config.layouts.initial
     rows.setConfigured(configuredNumbers(config))
     bookkeeping = WindowBookkeeping(restoring: saved, known: known)
+    model.lateHandOver = LateHandOver(saved, taken: known)
     mover.adopt(saved, known: known)
     tilingEnabled = saved.tilingEnabled
     return true

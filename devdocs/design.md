@@ -276,10 +276,13 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
 - **`tyler restart` keeps windows in place**: tylerd writes its workspaces to
   `~/.tyler/tyler.state.json` (version 3: a row per display, and each workspace's `LayoutStates`
   as one value, so a new layout or a new piece of layout state needs no change to the file's
-  format) and exits without moving anything; the
-  next one matches windows by `CGWindowID` and carries on. A file more than a minute old was left
-  behind and is ignored and removed (window IDs are reused after a reboot or a new login). `status`
-  warns when the binary on disk is newer than the running one.
+  format) and exits without moving anything; the next one matches windows by `CGWindowID` and
+  carries on. A window not there yet (its app answers late, or the screen is locked and macOS
+  shows no windows) gets its workspace, its place in the order, its float and its original frame
+  back when it appears (`LateHandOver`), if it is the same app's: the file names each window's
+  process ID, which a restart doesn't change. A file more than a minute old was left behind and
+  is ignored and removed (window IDs are reused after a reboot or a new login). `status` warns
+  when the binary on disk is newer than the running one.
 
 ## Diagnostics
 

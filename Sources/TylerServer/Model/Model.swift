@@ -4,5 +4,6 @@ import TylerCore
 struct Model: Equatable {
   var rows: DisplayRows
   var bookkeeping = WindowBookkeeping()
+  var lateHandOver = LateHandOver()
   var tilingEnabled = true
 }

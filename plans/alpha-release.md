@@ -53,11 +53,14 @@ settled or stale, what was missing).
 
 Each with a regression test (`devdocs/known-issues.md` has the details).
 
-- [ ] **A restart keeps the saved state of apps that attach late.** `restorePending` applies the
+- [x] **A restart keeps the saved state of apps that attach late.** `restorePending` applies the
   hand-over only to the windows of the first snapshot, so a window of an app that answers a moment
   later comes back as new, on the current workspace. After a restart while the screen is locked,
   every window loses its workspace. Keep the unmatched part of the saved state and apply it as
   windows appear.
+  Done (2026-10-14): `LateHandOver`; the state file names each window's process ID, so another
+  app's window that takes a handed-over ID starts afresh. Still to check on real windows
+  (`devdocs/testing.md`).
 - [ ] **TextEdit's untitled documents are read as `dialog`** and stay untiled: 3 out of 3 on
   2026-10-14 (AppleScript's `make new document`), while a document opened from a file was tiled.
   A stock app is what someone tries first. Find out what `WindowKind.classify` sees (role,

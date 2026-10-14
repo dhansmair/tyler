@@ -96,6 +96,12 @@ package struct SavedState: Codable, Equatable, Sendable {
     package var home: WorkspaceHome
   }
 
+  /// The app a window belongs to.
+  package struct WindowApp: Codable, Equatable, Sendable {
+    package var id: WindowID
+    package var processID: Int32
+  }
+
   /// Where a window was before tylerd first moved it.
   package struct OriginalFrame: Codable, Equatable, Sendable {
     package var id: WindowID
@@ -126,6 +132,10 @@ package struct SavedState: Codable, Equatable, Sendable {
   package var seen: [WindowID]?
   /// When the previous tylerd wrote the file; missing in files from before 0.1.0.
   package var writtenAt: Date?
+  /// Each window's app, which keeps its process ID across a restart: a window that appears late
+  /// with the ID of one handed over is only taken for it if it is the same app's. Missing in
+  /// files from before late windows were taken over.
+  package var apps: [WindowApp]?
 
   /// How old a file may be when it is read. A hand-over takes seconds; an older file was left
   /// behind (the next tylerd never started, or stopped before tracking windows), and window IDs
@@ -134,7 +144,8 @@ package struct SavedState: Codable, Equatable, Sendable {
 
   package init(
     rows: DisplayRows, floated: Set<WindowID>, tilingEnabled: Bool,
-    originalFrames: [WindowID: CGRect], seen: Set<WindowID> = []
+    originalFrames: [WindowID: CGRect], seen: Set<WindowID> = [],
+    processIDs: [WindowID: Int32] = [:]
   ) {
     version = Self.currentVersion
     displays = rows.entries.map(SavedDisplay.init)
@@ -148,6 +159,9 @@ package struct SavedState: Codable, Equatable, Sendable {
       originalFrames[windowID].map { OriginalFrame(id: windowID, frame: $0) }
     }
     self.seen = seen.sorted()
+    apps = processIDs.keys.sorted().compactMap { windowID in
+      processIDs[windowID].map { WindowApp(id: windowID, processID: $0) }
+    }
   }
 
   /// A version 1 state, with one row, as a tylerd from before several displays wrote it.
@@ -164,6 +178,7 @@ package struct SavedState: Codable, Equatable, Sendable {
     focusedDisplay = nil
     workspaces = row.workspaces.map(SavedWorkspace.init)
     currentIndex = row.currentIndex
+    apps = nil
   }
 
   /// The windows the previous tylerd had tiled. A file from before app assignments doesn't
@@ -172,6 +187,16 @@ package struct SavedState: Codable, Equatable, Sendable {
     if let seen { return Set(seen) }
     let saved = (workspaces ?? []) + (displays ?? []).flatMap(\.workspaces)
     return Set(saved.flatMap(\.windows) + floated)
+  }
+
+  /// Every saved workspace with its number. A version 1 file numbers its row from 1.
+  package var numberedWorkspaces: [(number: Int, workspace: SavedWorkspace)] {
+    guard let displays else {
+      return (workspaces ?? []).enumerated().map { (number: $0.offset + 1, workspace: $0.element) }
+    }
+    return displays.flatMap { saved in
+      zip(saved.numbers, saved.workspaces).map { (number: $0.0, workspace: $0.1) }
+    }
   }
 
   /// A row of `count` workspaces holding the saved windows of a version 1 file that still exist

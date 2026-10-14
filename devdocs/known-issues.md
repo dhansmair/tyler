@@ -13,13 +13,6 @@ own issues are in `strip-layout.md`. Remove an item when it is fixed (in the sam
   `[]` when the read fails or times out, which looks like an app without windows, and nothing reads
   them again. Seen as possible when tylerd starts while an IDE is indexing; such a window shows up
   only once it gets focus. Retry the windows read when it fails rather than returns nothing.
-- **A restart can drop the saved state of windows whose app attaches late**: the hand-over is
-  applied to the windows in the first `snapshot()`, so a window of an app that answers AX a moment
-  later comes back as new (current or assigned workspace, not floated, its original frame lost).
-  Keep the unmatched part of the saved state for a few seconds and apply it as windows appear.
-  A restart while the screen is locked is the extreme case: the Accessibility API reports no
-  windows then (`macos-behaviour.md`), so every window loses its workspace. At the least, a
-  hand-over that matches no window should wait until windows appear instead of being dropped.
 - **An Option-click can be lost if the mouse button interceptor is turned off mid-press**: the press was already
   swallowed, `MouseButtonInterceptor.turnBackOn` drops it, and the app gets a release without a press. Also,
   a `MouseButtonInterceptor` whose creation failed is kept, so `tyler config reload` never tries to create it again.

@@ -26,7 +26,8 @@ extension WindowManager {
         hasMoved = true
       case .focus, .focusCurrentWorkspace:
         focus(effect, &setbacks)
-      case .endSlideOrSwipe, .forgetDrag, .releaseCrossings, .applyPointerSettings:
+      case .endSlideOrSwipe, .forgetDrag, .releaseCrossings, .applyPointerSettings,
+        .rememberOriginalFrames:
         updateState(effect)
       case .close(let windowID):
         setbacks.closeFailure = close(windowID)
@@ -47,7 +48,7 @@ extension WindowManager {
     case .animate(let transition): animate(transition)
     case .restoreOriginalFrames(let windowIDs): restoreOriginalFrames(of: windowIDs)
     case .focus, .focusCurrentWorkspace, .endSlideOrSwipe, .forgetDrag, .releaseCrossings,
-      .applyPointerSettings, .close:
+      .applyPointerSettings, .rememberOriginalFrames, .close:
       0
     }
   }
@@ -64,7 +65,8 @@ extension WindowManager {
       if let problem = focusCurrentWorkspace() { setbacks.unfocused = problem }
     case .reconcile, .place, .placeInPassing, .nudge, .carry, .carryFrame, .animate,
       .restoreOriginalFrames,
-      .endSlideOrSwipe, .forgetDrag, .releaseCrossings, .applyPointerSettings, .close:
+      .endSlideOrSwipe, .forgetDrag, .releaseCrossings, .applyPointerSettings,
+      .rememberOriginalFrames, .close:
       break
     }
   }
@@ -74,6 +76,7 @@ extension WindowManager {
     case .endSlideOrSwipe: endSlideOrSwipe()
     case .forgetDrag: forgetDrag()
     case .releaseCrossings(let windowIDs): mover.release(windowIDs)
+    case .rememberOriginalFrames(let frames): mover.remember(originalFrames: frames)
     case .applyPointerSettings: applyPointerSettings()
     case .reconcile, .place, .placeInPassing, .nudge, .carry, .carryFrame, .animate,
       .restoreOriginalFrames,

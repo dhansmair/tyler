@@ -70,12 +70,14 @@ struct RestoreScenarios {
   @Test func aStateHandedOverLeavesOutWindowsThatClosedInBetween() async {
     let harness = ManagerHarness([1, 2])
     let saved = harness.manager.handOver()
-    // Window 2 closed, and a new window took its id before the next tylerd started.
+    // Window 2 closed, and another app's new window took its id before the next tylerd started.
     let opened = CGRect(x: 700, y: 300, width: 500, height: 400)
     let successor = harness.successor(saved: saved, closing: [2])
     let backend = successor.backend
-    backend.windows.append(makeWindow(id: 2, frame: opened))
-    backend.send(.created(makeWindow(id: 2, frame: opened)))
+    var newcomer = makeWindow(id: 2, frame: opened)
+    newcomer.processID = 501
+    backend.windows.append(newcomer)
+    backend.send(.created(newcomer))
     await settle()
     successor.manager.stop()
     #expect(backend.frame(of: 2) == opened)

@@ -137,6 +137,10 @@ Tick an item with the date when it is checked; record what was measured in `maco
 - [ ] Windows leaving on the left beside a left Dock
 - [ ] A slow app (Firefox) during a scroll and a swipe
 - [ ] `restart` keeps the view and the sizes
+- [ ] `restart` while the screen is locked: after the unlock, every window is back on its
+  workspace and in its place, nothing moves, and `tyler stop` still puts them back
+- [ ] `restart` while an app is slow to answer (an IDE indexing): its windows come back on their
+  own workspaces once it answers
 - [ ] `quarter` windows against apps' minimum heights
 - [ ] A click on a parked window's sliver scrolls to it
 - [x] A `full` window after a `half` one shows its first half at the right edge (macOS takes the

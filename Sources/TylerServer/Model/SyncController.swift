@@ -27,7 +27,7 @@ struct SyncController {
     model.rows.reassign(
       to: connected.map(\.key),
       configured: context.config.workspaceNumbers(displayCount: max(1, connected.count)))
-    var outcome = Outcome()
+    var outcome = Outcome(effects: restoreLateWindows(model: &model))
     let isFocusUnlisted = context.registry.focusedID.map { model.rows.location(of: $0) == nil }
     let arrived = arrivedCrossings(in: model.rows)
     if !arrived.isEmpty { outcome.effects.append(.releaseCrossings(arrived)) }
@@ -73,6 +73,14 @@ struct SyncController {
       wasUnlisted: isFocusUnlisted == true, arrivals: Set(syncs.flatMap(\.arrivals)),
       model: &model)
     return outcome
+  }
+
+  /// Puts windows a previous tylerd handed over that appeared only now back where they were.
+  private func restoreLateWindows(model: inout Model) -> [Effect] {
+    let late = model.lateHandOver.restore(
+      context.registry.windows, into: &model.rows, floated: &model.bookkeeping.floated)
+    model.bookkeeping.seen.formUnion(late.restored)
+    return late.originalFrames.isEmpty ? [] : [.rememberOriginalFrames(late.originalFrames)]
   }
 
   /// A new window's focus event often comes before the window is tileable, when there was no

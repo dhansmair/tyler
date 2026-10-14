@@ -6,6 +6,7 @@ Coding agents tend to add features on top of each other and rarely refactor, whi
 
 In progress: none.
 
+- **Where items come from:** after every feature, the agent that built it re-reads the feature's whole diff for refactorings (see "Review a feature once it works" in CLAUDE.md). Small finds are done at once; larger ones land here.
 - **Claim an item first:** put it on the "In progress" line above (with who is working on it) and commit, so a parallel agent doesn't take it too; clear it when the item is done. See "Parallel agents" in CLAUDE.md.
 - **One item (or one step of an item) per commit**, like any other increment. Delete it here in the same commit.
 - **Pin behaviour down first.** If the tests don't clearly cover what a refactoring touches, add regression tests in a commit of their own *before* changing the code, so the refactoring commit changes no tests (or only their setup).

@@ -23,6 +23,9 @@ Tick an item with the date when it is checked; record what was measured in `maco
   retile`, `tiling off` and `on`
 - [x] A new window of an app that starts a new process for each window gets the focus, and
   `window swap` moves it (2026-10-14, two terminal windows opened by a shortcut)
+- [x] `window swap` animates (`animations.swap`): the two windows slide and resize into each
+  other's slots, also master and stack; quick presses in a row (2026-10-14, `tall` with three
+  terminal windows)
 - [ ] `window float on` and `off`, each pressed twice
 - [ ] `window close` on a tiled and a floated window, with tiling off, and in an app that asks to
   save first
@@ -104,6 +107,9 @@ Tick an item with the date when it is checked; record what was measured in `maco
 
 - [x] Mouse resizing moves the dividers live; `restart` keeps stack heights
 - [x] Swap by drag: preview, swap on release, snap back in a gap, `full`
+- [x] The drag preview animates (`animations.drag-preview`): the window slides and resizes into the
+  dragged window's slot; sweeping across windows hands each over where it is (2026-10-14, `tall`
+  with three terminal windows)
 - [x] Focus follows mouse on every display; a quick sweep focuses nothing; a switch with a still
   pointer keeps its focus
 - [x] Moving and resizing with the modifier, on a debug build

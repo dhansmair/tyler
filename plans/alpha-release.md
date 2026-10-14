@@ -74,6 +74,11 @@ Each with a regression test (`devdocs/known-issues.md` has the details).
   doesn't give.
 - [ ] README: a GIF or screenshot of a slide and the map (a screen recording by the maintainer).
 
+The three test layers (`plans/testing.md`) are under way alongside: the unit and scenario layers
+and the `Scenario` setup are in place, the suites move onto it as changes touch them. Its next
+step rewrites `devdocs/testing.md` as a catalogue and makes a passing run of it the release
+check above; until then the release check is the **release** items as they are.
+
 ### Release
 
 - [ ] A last sweep for anything about the personal setup: the tree and every commit message since
@@ -100,8 +105,7 @@ Not part of 0.1.0; the release says so rather than half-doing them.
   `tyler debug windows` shows the drift; re-reading every tiled window at each sync costs AX calls
   on a busy path, so it waits until the drift is seen again. It stays in `known-issues.md`.
 - **Floated windows staying visible under focus follows mouse**
-  (`plans/floated-windows-stay-visible.md`) and **the three test layers**
-  (`plans/testing.md`): their own plans, after the release.
+  (`plans/floated-windows-stay-visible.md`): its own plan, after the release.
 - **Full Xcode instead of the Command Line Tools.** It only concerns contributors: `make install`
   works with either, and the Makefile's flags for the Command Line Tools are harmless with Xcode;
   `make lint` sets `TOOLCHAIN_DIR` to the Command Line Tools unless it is set already.

@@ -83,7 +83,7 @@ Each with a regression test (`devdocs/known-issues.md` has the details).
   second user account: install the Command Line Tools only, follow the README word for word,
   grant Accessibility, start, bind keys, stop, and fix every step that needs knowledge the README
   doesn't give.
-- [ ] README: a GIF or screenshot of a slide and the map (a screen recording by the maintainer).
+- [ ] README: a demo video of the tiling, the slides and the mouse (`plans/demo-video.md`).
 
 The three test layers (`plans/testing.md`) are under way alongside: the unit and scenario layers
 and the `Scenario` setup are in place, the suites move onto it as changes touch them. Its next

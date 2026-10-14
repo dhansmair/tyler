@@ -95,7 +95,8 @@ window is then parked and out of the picture).
   profile for the demo.
 - [ ] A US keyboard layout as input source if KeyCastr shows Option+letter as the special
   character it types on the current one.
-- [ ] KeyCastr: position (bottom centre), size, fade time; mouse clicks on.
+- [ ] KeyCastr: Display Mode All Modified Keys, a longer Linger Time, position (bottom centre),
+  size; mouse clicks on.
 - [ ] OBS: macOS Screen Capture of the one display, 60 fps (slides look jerky at 30), cursor on,
   no audio, the canvas at the display's resolution.
 - [ ] A dry run without recording, to tune the pauses.
@@ -113,11 +114,10 @@ window is then parked and out of the picture).
 ## Increments
 
 1. `live-check key <combination>...`. Done (2026-10-15): skhd's tap sees the keys posted at the
-   HID tap (Option+J, Option+K moved the focus and back). Still to check: KeyCastr shows them.
+   HID tap (Option+J, Option+K moved the focus and back), and KeyCastr shows them, the ones
+   skhd handles included. KeyCastr needs Display Mode set to All Modified Keys (the default,
+   Command Keys Only, shows only ⌘ combinations) and a longer Linger Time than its default.
 2. `devtools/demo-video` with the action table, the skhd config, preflight and the storyboard;
    a dry run on real windows.
 3. Recording and the README (by hand), then tick the alpha item and delete this plan.
 
-## Open questions
-
-- Whether KeyCastr shows keys posted at the HID tap, held modifiers included.

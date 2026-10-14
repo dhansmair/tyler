@@ -68,9 +68,6 @@ Each with a regression test (`devdocs/known-issues.md` has the details).
   Done: macOS reports them as `AXDialog` until TextEdit is first active, and its Open panel as
   `AXStandardWindow` (which tylerd tiled). `classify` now also reads the title bar's buttons;
   checked on real windows.
-- [ ] **Windows of a busy app are read again.** `AXBridge.windows(of:)` gives `[]` when the read
-  fails or times out, which looks like an app without windows, and nothing reads them again. Not
-  seen yet, but small: retry the read when it fails, rather than when it returns nothing.
 
 ### Checks on real windows
 
@@ -110,6 +107,9 @@ Not part of 0.1.0; the release says so rather than half-doing them.
 - **A minimized window that keeps its slot** (seen once). A dropped update is logged now, and
   `tyler debug windows` shows the drift; re-reading every tiled window at each sync costs AX calls
   on a busy path, so it waits until the drift is seen again. It stays in `known-issues.md`.
+- **Reading a busy app's windows again** (`devdocs/known-issues.md`). The read can only fail
+  right after the app answered every call of the attach, so it is rare, nobody has seen it, and
+  a window it misses is picked up once it gets focus.
 - **Floated windows staying visible under focus follows mouse**
   (`plans/floated-windows-stay-visible.md`): its own plan, after the release.
 - **Full Xcode instead of the Command Line Tools.** It only concerns contributors: `make install`

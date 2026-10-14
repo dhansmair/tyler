@@ -12,7 +12,11 @@ own issues are in `strip-layout.md`. Remove an item when it is fixed (in the sam
 - **Windows of a busy app can go untracked at attach** (unverified): `AXBridge.windows(of:)` gives
   `[]` when the read fails or times out, which looks like an app without windows, and nothing reads
   them again. Seen as possible when tylerd starts while an IDE is indexing; such a window shows up
-  only once it gets focus. Retry the windows read when it fails rather than returns nothing.
+  only once it gets focus. It can only happen right after the app answered every call of the
+  attach (the notifications are registered first, and a failure there retries the whole
+  attach). Retry the windows read when it fails rather than returns nothing, but keep the
+  observer: an app that never answers the read would otherwise run out of attach attempts and
+  not be observed at all.
 - **An Option-click can be lost if the mouse button interceptor is turned off mid-press**: the press was already
   swallowed, `MouseButtonInterceptor.turnBackOn` drops it, and the app gets a release without a press. Also,
   a `MouseButtonInterceptor` whose creation failed is kept, so `tyler config reload` never tries to create it again.

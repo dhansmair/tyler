@@ -58,7 +58,8 @@ Sources/
     GapCursor/     GapHover: the resize cursor over the gap under the pointer, and when it is checked again
     Pointer/       the pointer's events, each handed to its feature
     Config/        ConfigController (`config get|set`, what a new config changes), reading the file for `config reload`; Indicator/: menu bar updates; Diagnostics/: `tyler debug`; Lifecycle/: the restart handover
-    IPC/           IPCServer, CommandRouter; Backend/: the protocols in front of macOS (WindowBackend, PointerInput, WindowStacking)
+    IPC/           IPCServer, CommandRouter
+    Ports/         the protocols in front of macOS (WindowBackend, PointerInput, WindowStacking, …) and the events they speak
   TylerIndicators/ the menu bar items behind the Indicator protocol: pure models (TextTitle, IndicatorMenu, WorkspaceMap), unit tested, and thin AppKit classes (TextIndicator, MapIndicator, IndicatorGroup, the shared MenuBuilder)
   TylerPlatform/ real macOS code (AX, NSWorkspace, NSScreen, the mouse button monitor, the window that shows the resize cursor over a gap (GapCursorWindow), the event taps: TrackpadGestureListener for swipes, PointerMoveListener for the pointer's moves, MouseButtonInterceptor for drags with the modifier, the window under the pointer in CGWindowStacking); not unit tested, keep it thin
   TylerClient/   argv parsing, response formatting, IPC client

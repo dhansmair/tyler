@@ -174,7 +174,7 @@ TylerServer mirrors the layers: a folder per feature holds its controller (and i
 it has one) and the feature's input handling and pacing as `extension WindowManager`,
 `Motion/` the timing types and the mover, `Model/` the model and the registry, `Manager/` the
 manager itself, the controllers' shared types and the effect runner, `Input/` the window
-event interpreter. TylerPlatform implements the server's ports in `Backend/`.
+event interpreter. `Ports/` holds the ports, the protocols in front of macOS that TylerPlatform implements.
 
 ## Rules
 

@@ -72,8 +72,9 @@ Each with a regression test (`devdocs/known-issues.md` has the details).
 ### Structure
 
 - [ ] **One connection per app** (`plans/app-connection.md`): the platform's window code in layers
-  (all apps, one app, the raw calls), with `AXBackend` renamed `SystemWindowBackend`. No change in
-  behaviour; it is the code a reader of the repository would struggle with most, and it makes the
+  (all apps, one app, the raw calls), and the ports named after what they are: `WindowSystem`
+  and its real `MacWindowSystem` (ex `AXBackend`), `Mac…` for every real implementation, the
+  protocols in `TylerServer/Ports/`. No change in behaviour; it is the code a reader of the repository would struggle with most, and it makes the
   attach and timeout logic unit-testable. Before the release checks, so they run on the new code.
 
 ### Checks on real windows

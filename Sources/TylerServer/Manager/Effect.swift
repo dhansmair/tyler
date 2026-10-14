@@ -2,7 +2,7 @@ import CoreGraphics
 import TylerCore
 
 /// What a controller wants done. Controllers decide and return effects; only the manager carries
-/// them out (`run(_:)`), in order, so no controller touches the backend. A controller never
+/// them out (`run(_:)`), in order, so no controller touches the window system. A controller never
 /// depends on an earlier effect having run: the registry changes only through window events.
 /// The other effects that move windows carry their moves, worked out when the controller
 /// decided: transitions (a slide, a preview, putting a preview back) and parking. `reconcile` and

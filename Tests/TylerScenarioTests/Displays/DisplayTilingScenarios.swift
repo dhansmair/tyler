@@ -47,8 +47,8 @@ struct DisplayTilingScenarios {
     let harness = harness(config: Config(apps: ["firefox": Config.App(workspace: 6)]))
     var firefox = makeWindow(id: 9, frame: CGRect(x: 700, y: 100, width: 300, height: 200))
     firefox.appName = "Firefox"
-    harness.backend.windows.append(firefox)
-    harness.backend.send(.created(firefox))
+    harness.windowSystem.windows.append(firefox)
+    harness.windowSystem.send(.created(firefox))
     await harness.settle()
 
     #expect(harness.workspaces()[9] == 6)
@@ -60,8 +60,8 @@ struct DisplayTilingScenarios {
     let harness = harness(config: Config(apps: ["firefox": Config.App(workspace: 6)]))
     var firefox = makeWindow(id: 9, frame: CGRect(x: 700, y: 100, width: 300, height: 200))
     firefox.appName = "Firefox"
-    harness.backend.windows.append(firefox)
-    harness.backend.send(.created(firefox))
+    harness.windowSystem.windows.append(firefox)
+    harness.windowSystem.send(.created(firefox))
     await harness.settle()
 
     #expect(harness.manager.setTiling(.off) == .message("tiling off"))
@@ -82,6 +82,6 @@ struct DisplayTilingScenarios {
     let harness = harness()
     let successor = harness.successor(saved: harness.manager.handOver(), displays: twoDisplays())
     #expect(successor.workspaces() == [1: 1, 2: 1, 3: 5])
-    #expect(successor.backend.moves.isEmpty, "every window is already where it belongs")
+    #expect(successor.windowSystem.moves.isEmpty, "every window is already where it belongs")
   }
 }

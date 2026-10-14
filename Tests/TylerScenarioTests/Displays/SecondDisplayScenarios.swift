@@ -22,7 +22,7 @@ struct SecondDisplayScenarios {
   @Test func theIndicatorShowsThePrimaryDisplaysArea() {
     let indicator = FakeIndicator()
     let manager = WindowManager(
-      backend: FakeWindowSystem(windows: spread([1, 2])), displays: twoDisplays(),
+      windowSystem: FakeWindowSystem(windows: spread([1, 2])), displays: twoDisplays(),
       gate: FakeGate(isTrusted: true), indicator: indicator)
     manager.startIfPermitted()
     #expect(indicator.shown.last?.area == FakeDisplays.main.visibleFrame)
@@ -33,8 +33,8 @@ struct SecondDisplayScenarios {
       [1], displays: twoDisplays(), config: Config(apps: ["firefox": Config.App(workspace: 3)]))
     var firefox = makeWindow(id: 9, frame: CGRect(x: 700, y: 100, width: 300, height: 200))
     firefox.appName = "Firefox"
-    harness.backend.windows.append(firefox)
-    harness.backend.send(.created(firefox))
+    harness.windowSystem.windows.append(firefox)
+    harness.windowSystem.send(.created(firefox))
     await harness.settle()
 
     #expect(harness.workspaces()[9] == 3)
@@ -62,7 +62,7 @@ struct SecondDisplayScenarios {
     await harness.settle()
 
     pointer.isPrimaryButtonDown = true
-    await harness.backend.userMoves(1, to: CGRect(x: 55, y: 38, width: 1047, height: 1131))
+    await harness.windowSystem.userMoves(1, to: CGRect(x: 55, y: 38, width: 1047, height: 1131))
     #expect(harness.frame(of: 2) == CGRect(x: 1102, y: 38, width: 698, height: 566))
     pointer.release()
     await harness.settle()

@@ -21,7 +21,7 @@ struct StripSwipeScenarios {
     await harness.osFocus(1)
     _ = harness.manager.setLayout(.set(.strip))
     await harness.settle()
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     return harness
   }
 
@@ -53,7 +53,7 @@ struct StripSwipeScenarios {
     #expect(incoming.minX > halves[1].minX, "but only part of the way")
     #expect(harness.manager.workspaces.currentIndex == 0)
     #expect(harness.manager.workspaces.current.firstVisible == WindowID(1), "nothing decided yet")
-    let leaving = harness.backend.moves.filter { $0.id == WindowID(1) }.map(\.frame.size)
+    let leaving = harness.windowSystem.moves.filter { $0.id == WindowID(1) }.map(\.frame.size)
     #expect(leaving.allSatisfy { $0 == halves[0].size }, "the leaving window keeps its size")
   }
 
@@ -61,7 +61,7 @@ struct StripSwipeScenarios {
     let harness = await strip()
     await swipe(.began, .moved(offset: -0.1), .ended(velocity: 0), in: harness)
     expectSecondView(harness)
-    #expect(harness.backend.focusCalls.last == WindowID(2), "focus moves into the view")
+    #expect(harness.windowSystem.focusCalls.last == WindowID(2), "focus moves into the view")
     #expect(harness.manager.workspaces.currentIndex == 0, "the swipe stays on this workspace")
   }
 
@@ -69,7 +69,7 @@ struct StripSwipeScenarios {
     let harness = await strip()
     await swipe(.began, .moved(offset: -0.03), .ended(velocity: 0), in: harness)
     expectFirstView(harness)
-    #expect(harness.backend.focusCalls.isEmpty)
+    #expect(harness.windowSystem.focusCalls.isEmpty)
   }
 
   @Test func aFlickGoesOn() async {
@@ -89,15 +89,15 @@ struct StripSwipeScenarios {
     let harness = await strip()
     await swipe(.began, .moved(offset: 0.1), .ended(velocity: 1), in: harness)
     expectFirstView(harness)
-    #expect(harness.backend.moves.isEmpty)
-    #expect(harness.backend.nudges.isEmpty)
+    #expect(harness.windowSystem.moves.isEmpty)
+    #expect(harness.windowSystem.nudges.isEmpty)
   }
 
   @Test func aStripThatFitsNeverSwitchesWorkspaces() async {
     let harness = await strip([1, 2])
     await swipe(.began, .moved(offset: -0.2), .ended(velocity: -1), in: harness)
     #expect(harness.manager.workspaces.currentIndex == 0)
-    #expect(harness.backend.moves.isEmpty)
+    #expect(harness.windowSystem.moves.isEmpty)
   }
 
   @Test func aCommandMidSwipePutsTheWindowsBack() async {

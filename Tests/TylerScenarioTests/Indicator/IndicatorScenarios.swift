@@ -10,14 +10,14 @@ import TylerTestSupport
 @Suite("Indicator updates")
 @MainActor
 struct IndicatorScenarios {
-  private let backend = FakeWindowSystem(windows: spread([1, 2]))
+  private let windowSystem = FakeWindowSystem(windows: spread([1, 2]))
   private let indicator = FakeIndicator()
   private let gate = FakeGate(isTrusted: false)
   private let manager: WindowManager
 
   init() {
     manager = WindowManager(
-      backend: backend, displays: FakeDisplays(), gate: gate, indicator: indicator)
+      windowSystem: windowSystem, displays: FakeDisplays(), gate: gate, indicator: indicator)
   }
 
   private var last: IndicatorSnapshot? { indicator.shown.last }
@@ -47,11 +47,11 @@ struct IndicatorScenarios {
   @Test func itCountsWindowsThatOpenAndClose() async {
     gate.isTrusted = true
     manager.startIfPermitted()
-    backend.windows.append(makeWindow(id: 9))
-    backend.send(.created(makeWindow(id: 9)))
+    windowSystem.windows.append(makeWindow(id: 9))
+    windowSystem.send(.created(makeWindow(id: 9)))
     await settle()
     #expect(last?.row[0].count == 3)
-    backend.send(.destroyed(WindowID(1)))
+    windowSystem.send(.destroyed(WindowID(1)))
     await settle()
     #expect(last?.row[0].count == 2)
   }
@@ -60,11 +60,11 @@ struct IndicatorScenarios {
     gate.isTrusted = true
     manager.startIfPermitted()
     _ = manager.focus(.next)
-    backend.send(.focused(WindowID(2)))
+    windowSystem.send(.focused(WindowID(2)))
     await settle()
     #expect(last?.row.current.focused == WindowID(2))
     let count = indicator.shown.count
-    backend.send(.focused(WindowID(2)))
+    windowSystem.send(.focused(WindowID(2)))
     await settle()
     _ = manager.switchWorkspace(.number(1))
     #expect(indicator.shown.count == count)
@@ -74,7 +74,7 @@ struct IndicatorScenarios {
     let textOff = Config.Indicators(text: .init(isEnabled: false))
     let file = FakeConfigFile(.config(Config(indicators: textOff)))
     let manager = WindowManager(
-      backend: backend, displays: FakeDisplays(), gate: gate, configSource: file.source,
+      windowSystem: windowSystem, displays: FakeDisplays(), gate: gate, configSource: file.source,
       indicator: indicator)
     #expect(indicator.shown.last?.settings.text.isEnabled == true)
     _ = manager.reload()
@@ -94,7 +94,7 @@ struct IndicatorScenarios {
     gate.isTrusted = true
     manager.startIfPermitted()
     let expected = Dictionary(
-      uniqueKeysWithValues: backend.windows.map {
+      uniqueKeysWithValues: windowSystem.windows.map {
         (
           $0.id,
           IndicatorSnapshot.App(processID: $0.processID, name: $0.appName, bundleID: $0.bundleID)
@@ -106,7 +106,7 @@ struct IndicatorScenarios {
   @Test func theSnapshotHoldsTheIconTheConfigFileSetsForAnApp() {
     let config = Config(apps: ["app": Config.App(icon: .symbol("terminal"))])
     let manager = WindowManager(
-      backend: backend, displays: FakeDisplays(), gate: gate, config: config,
+      windowSystem: windowSystem, displays: FakeDisplays(), gate: gate, config: config,
       indicator: indicator)
     gate.isTrusted = true
     manager.startIfPermitted()
@@ -119,21 +119,22 @@ struct IndicatorScenarios {
 
   @Test func itShowsTheFocusedDisplaysRowAndFollowsFocusToTheExternalDisplay() async {
     let external = FakeDisplays.secondary
-    backend.windows.append(
+    windowSystem.windows.append(
       makeWindow(id: 3, frame: CGRect(x: 100, y: -1000, width: 300, height: 200)))
     let manager = WindowManager(
-      backend: backend, displays: FakeDisplays(displays: [FakeDisplays.main, external]), gate: gate,
+      windowSystem: windowSystem, displays: FakeDisplays(displays: [FakeDisplays.main, external]),
+      gate: gate,
       indicator: indicator)
     gate.isTrusted = true
     manager.startIfPermitted()
 
-    backend.send(.focused(WindowID(3)))
+    windowSystem.send(.focused(WindowID(3)))
     await settle()
     #expect(last?.row.numbers == [5, 6, 7, 8])
     #expect(last?.row.current.windows == [WindowID(3)])
     #expect(last?.area == external.visibleFrame)
 
-    backend.send(.focused(WindowID(1)))
+    windowSystem.send(.focused(WindowID(1)))
     await settle()
     #expect(last?.row.numbers == [1, 2, 3, 4])
     #expect(last?.area == FakeDisplays.main.visibleFrame)

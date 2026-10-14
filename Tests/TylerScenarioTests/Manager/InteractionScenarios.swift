@@ -22,7 +22,7 @@ struct InteractionScenarios {
       await harness.settle()
     }
     await harness.settle()
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     return harness
   }
 
@@ -30,7 +30,7 @@ struct InteractionScenarios {
   private func resizeWindow1(in harness: ManagerHarness) async {
     pointer.isPrimaryButtonDown = true
     let frame = harness.frame(of: 1) ?? .zero
-    await harness.backend.userMoves(1, to: frame.insetBy(dx: 0, dy: 50))
+    await harness.windowSystem.userMoves(1, to: frame.insetBy(dx: 0, dy: 50))
   }
 
   @Test func aSwipeDuringADragIsIgnored() async {
@@ -42,7 +42,7 @@ struct InteractionScenarios {
     await harness.settle()
     #expect(harness.manager.swipe == nil)
     #expect(harness.manager.drag != nil, "the drag goes on")
-    #expect(harness.backend.nudges.isEmpty)
+    #expect(harness.windowSystem.nudges.isEmpty)
   }
 
   @Test func aResizeDuringASwipeIsNotFollowed() async {

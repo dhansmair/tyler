@@ -124,7 +124,7 @@ struct Scenario {
 
   /// The user clicks into `window`, or macOS focuses it.
   func focus(_ window: UInt32) async {
-    harness.backend.send(.focused(WindowID(window)))
+    harness.windowSystem.send(.focused(WindowID(window)))
     await runUntilQuiet()
   }
 
@@ -137,7 +137,7 @@ struct Scenario {
     }
     let end = CGPoint(x: frame.midX + offset.dx, y: frame.minY + 10 + offset.dy)
     pointer.isPrimaryButtonDown = true
-    await harness.backend.userMoves(window, to: frame.offsetBy(dx: offset.dx, dy: offset.dy))
+    await harness.windowSystem.userMoves(window, to: frame.offsetBy(dx: offset.dx, dy: offset.dy))
     pointer.drag(to: end)
     await runUntilQuiet()
     pointer.release(at: end)
@@ -205,7 +205,7 @@ struct Scenario {
 
   /// The window tylerd last focused.
   var focused: UInt32? {
-    harness.backend.focusCalls.last?.rawValue
+    harness.windowSystem.focusCalls.last?.rawValue
   }
 
   /// Whether `window` waits just past the parking edge of one of the displays.

@@ -35,7 +35,7 @@ struct MoveToDisplayScenarios {
     #expect(harness.workspaces()[2] == 5)
     #expect(external.visibleFrame.contains(harness.frame(of: 2) ?? .zero))
     #expect(harness.frame(of: 1) == harness.area, "window 1 fills the laptop alone")
-    #expect(harness.backend.focusCalls.last == WindowID(1))
+    #expect(harness.windowSystem.focusCalls.last == WindowID(1))
     #expect(focusedKey(harness) == FakeDisplays.main.key)
   }
 
@@ -54,7 +54,7 @@ struct MoveToDisplayScenarios {
     #expect(
       harness.manager.moveToDisplay(.number(2), follow: true) == .message("moved to display 2"))
     #expect(focusedKey(harness) == external.key)
-    #expect(harness.backend.focusCalls.last == WindowID(2))
+    #expect(harness.windowSystem.focusCalls.last == WindowID(2))
     #expect(external.visibleFrame.contains(harness.frame(of: 2) ?? .zero))
   }
 
@@ -79,20 +79,20 @@ struct MoveToDisplayScenarios {
   @Test func sendingTheLastWindowAwayLeavesNoFocusOnTheLaptop() async {
     let harness = harness(laptop: [1])
     await harness.osFocus(1)
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     _ = harness.manager.moveToDisplay(.number(2), follow: false)
-    #expect(harness.backend.focusCalls.isEmpty)
-    #expect(harness.backend.unfocusCount == 1)
+    #expect(harness.windowSystem.focusCalls.isEmpty)
+    #expect(harness.windowSystem.unfocusCount == 1)
     #expect(focusedKey(harness) == FakeDisplays.main.key)
   }
 
   @Test func theWindowsOwnDisplayChangesNothing() async {
     let harness = harness()
     await harness.osFocus(1)
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     #expect(
       harness.manager.moveToDisplay(.number(1), follow: true) == .message("already on display 1"))
-    #expect(harness.backend.moves.isEmpty)
+    #expect(harness.windowSystem.moves.isEmpty)
   }
 
   @Test func onlyATiledFocusedWindowCanMove() async {

@@ -7,7 +7,7 @@ import TylerTestSupport
 
 @testable import TylerServer
 
-/// Tiling: commands, driven through a fake backend.
+/// Tiling: commands, driven through a fake window system.
 @Suite("Tiling: commands")
 @MainActor
 struct TilingCommandScenarios {
@@ -18,11 +18,11 @@ struct TilingCommandScenarios {
   @Test func focusNextFocusesTheNextTiledWindow() {
     let harness = ManagerHarness([1, 2, 3])
     _ = harness.manager.focus(.main)
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     #expect(harness.manager.focus(.next) == .ok)
-    #expect(harness.backend.focusCalls == [WindowID(2)])
+    #expect(harness.windowSystem.focusCalls == [WindowID(2)])
     #expect(harness.manager.focus(.next) == .ok)
-    #expect(harness.backend.focusCalls == [WindowID(2), WindowID(3)])
+    #expect(harness.windowSystem.focusCalls == [WindowID(2), WindowID(3)])
   }
 
   @Test func focusWrapsAroundAndCanJumpToTheMain() {
@@ -31,12 +31,12 @@ struct TilingCommandScenarios {
     _ = harness.manager.focus(.next)  // wraps to the first
     _ = harness.manager.focus(.prev)  // back to the last
     _ = harness.manager.focus(.main)
-    #expect(harness.backend.focusCalls == [WindowID(3), WindowID(1), WindowID(3), WindowID(1)])
+    #expect(harness.windowSystem.focusCalls == [3, 1, 3, 1].map(WindowID.init))
   }
 
   @Test func aFailedFocusIsReportedAsAnError() {
     let harness = ManagerHarness([1, 2])
-    harness.backend.failingFocus = [WindowID(1)]
+    harness.windowSystem.failingFocus = [WindowID(1)]
     guard case .error(let message) = harness.manager.focus(.main) else {
       Issue.record("expected an error")
       return
@@ -51,19 +51,19 @@ struct TilingCommandScenarios {
 
   @Test func swapReordersAndRetiles() async {
     let harness = ManagerHarness([1, 2, 3])
-    harness.backend.send(.focused(WindowID(1)))
+    harness.windowSystem.send(.focused(WindowID(1)))
     await settle()
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
 
     #expect(harness.manager.swap(.next) == .ok)
     #expect(harness.manager.slots == [2: 1, 1: 2, 3: 3])
     // Windows 1 and 2 traded slots, so both had to move.
-    #expect(Set(harness.backend.moves.map(\.id.rawValue)) == [1, 2])
+    #expect(Set(harness.windowSystem.moves.map(\.id.rawValue)) == [1, 2])
   }
 
   @Test func swapMainBringsTheFocusedWindowToTheMainSlot() async {
     let harness = ManagerHarness([1, 2, 3])
-    harness.backend.send(.focused(WindowID(3)))
+    harness.windowSystem.send(.focused(WindowID(3)))
     await settle()
     _ = harness.manager.swap(.main)
     #expect(harness.manager.slots == [3: 1, 2: 2, 1: 3])
@@ -112,20 +112,20 @@ struct TilingCommandScenarios {
     #expect((harness.frame(of: 1)?.width ?? 0) > before)
 
     _ = harness.manager.adjustRatio(by: 5)  // clamps to the maximum
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     guard case .message(let text) = harness.manager.adjustRatio(by: 0.05) else {
       Issue.record("expected a message at the limit")
       return
     }
     #expect(text.contains("already at its limit"))
-    #expect(harness.backend.moves.isEmpty)
+    #expect(harness.windowSystem.moves.isEmpty)
   }
 
   // MARK: - Floating
 
   @Test func floatingTheFocusedWindowRemovesItFromTheListAndRetilesTheRest() async {
     let harness = ManagerHarness([1, 2, 3])
-    harness.backend.send(.focused(WindowID(2)))
+    harness.windowSystem.send(.focused(WindowID(2)))
     await settle()
     #expect(harness.manager.setFloat(.toggle) == .ok)
     #expect(harness.manager.slots == [1: 1, 3: 2])
@@ -136,17 +136,17 @@ struct TilingCommandScenarios {
 
   @Test func aFloatedWindowIsNotMovedByLaterRetiles() async {
     let harness = ManagerHarness([1, 2, 3])
-    harness.backend.send(.focused(WindowID(2)))
+    harness.windowSystem.send(.focused(WindowID(2)))
     await settle()
     _ = harness.manager.setFloat(.toggle)
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     _ = harness.manager.retile()
-    #expect(!harness.backend.moves.map(\.id.rawValue).contains(2))
+    #expect(!harness.windowSystem.moves.map(\.id.rawValue).contains(2))
   }
 
   @Test func floatingTwiceTilesTheWindowAgain() async {
     let harness = ManagerHarness([1, 2])
-    harness.backend.send(.focused(WindowID(2)))
+    harness.windowSystem.send(.focused(WindowID(2)))
     await settle()
     _ = harness.manager.setFloat(.toggle)
     #expect(harness.manager.slots == [1: 1])
@@ -157,7 +157,7 @@ struct TilingCommandScenarios {
 
   @Test func floatOnAndOffSetTheStateWhateverItWas() async {
     let harness = ManagerHarness([1, 2])
-    harness.backend.send(.focused(WindowID(2)))
+    harness.windowSystem.send(.focused(WindowID(2)))
     await settle()
     #expect(harness.manager.setFloat(.on) == .ok)
     #expect(harness.manager.slots == [1: 1])
@@ -172,7 +172,7 @@ struct TilingCommandScenarios {
   @Test(arguments: FloatMode.allCases)
   func windowsThatAreNeverTiledCannotBeFloatedOrTiled(mode: FloatMode) async {
     let harness = ManagerHarness(windows: spread([1]) + [makeWindow(id: 8, kind: .dialog)])
-    harness.backend.send(.focused(WindowID(8)))
+    harness.windowSystem.send(.focused(WindowID(8)))
     await settle()
     #expect(
       harness.manager.setFloat(mode)
@@ -186,12 +186,12 @@ struct TilingCommandScenarios {
 
   @Test func aDestroyedWindowIsForgottenByTheFloatedSet() async {
     let harness = ManagerHarness([1, 2])
-    harness.backend.send(.focused(WindowID(2)))
+    harness.windowSystem.send(.focused(WindowID(2)))
     await settle()
     _ = harness.manager.setFloat(.toggle)
-    harness.backend.send(.destroyed(WindowID(2)))
+    harness.windowSystem.send(.destroyed(WindowID(2)))
     // The window id comes back (ids can be reused); it must tile like a new window.
-    harness.backend.send(
+    harness.windowSystem.send(
       .created(makeWindow(id: 2, frame: CGRect(x: 300, y: 100, width: 300, height: 200))))
     await settle()
     #expect(harness.manager.slots[2] != nil)
@@ -215,11 +215,11 @@ struct TilingCommandScenarios {
   @Test func tilingOffLeavesWindowsAloneWhenThingsChange() async {
     let harness = ManagerHarness([1, 2])
     _ = harness.manager.setTiling(.off)
-    harness.backend.send(
+    harness.windowSystem.send(
       .created(makeWindow(id: 9, frame: CGRect(x: 700, y: 100, width: 300, height: 200))))
-    harness.backend.send(.destroyed(WindowID(1)))
+    harness.windowSystem.send(.destroyed(WindowID(1)))
     await settle()
-    #expect(harness.backend.moves.isEmpty)
+    #expect(harness.windowSystem.moves.isEmpty)
   }
 
   @Test func tilingOffStillAnswersListAndTilingItself() {
@@ -233,32 +233,32 @@ struct TilingCommandScenarios {
     let harness = ManagerHarness([1, 2])
     _ = harness.manager.setTiling(.off)
     let window = makeWindow(id: 9, frame: CGRect(x: 700, y: 100, width: 300, height: 200))
-    harness.backend.windows.append(window)
-    harness.backend.send(.created(window))
+    harness.windowSystem.windows.append(window)
+    harness.windowSystem.send(.created(window))
     await settle()
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
 
     #expect(harness.manager.setTiling(.on) == .message("tiling on"))
     #expect(harness.manager.slots.count == 3)
-    #expect(!harness.backend.moves.isEmpty)
+    #expect(!harness.windowSystem.moves.isEmpty)
   }
 
   @Test func turningTilingOnSaysWhichWindowsItCouldNotPlace() {
     let harness = ManagerHarness([1, 2])
     _ = harness.manager.setTiling(.off)
-    harness.backend.failingMoves = [WindowID(2)]
+    harness.windowSystem.failingMoves = [WindowID(2)]
     #expect(harness.manager.setTiling(.on) == .message("tiling on; 1 window could not be placed"))
   }
 
   @Test func turningTilingOnWhenAlreadyOnDoesNotMoveAnything() {
     let harness = ManagerHarness([1, 2])
     #expect(harness.manager.setTiling(.on) == .message("tiling on"))
-    #expect(harness.backend.moves.isEmpty)
+    #expect(harness.windowSystem.moves.isEmpty)
   }
 
   @Test func turningTilingOnKeepsTheOrderOfWindowsAlreadyInTheList() async {
     let harness = ManagerHarness([1, 2, 3])
-    harness.backend.send(.focused(WindowID(3)))
+    harness.windowSystem.send(.focused(WindowID(3)))
     await settle()
     _ = harness.manager.swap(.main)  // order is now 3, 2, 1
     _ = harness.manager.setTiling(.off)
@@ -270,7 +270,7 @@ struct TilingCommandScenarios {
 
   @Test func commandsWithoutPermissionExplainWhatToDo() {
     let manager = WindowManager(
-      backend: FakeWindowSystem(), displays: FakeDisplays(), gate: FakeGate(isTrusted: false))
+      windowSystem: FakeWindowSystem(), displays: FakeDisplays(), gate: FakeGate(isTrusted: false))
     let expected = Response.error(WindowManager.permissionMessage)
     #expect(manager.retile() == expected)
     #expect(manager.focus(.next) == expected)
@@ -283,7 +283,7 @@ struct TilingCommandScenarios {
   @Test(arguments: [(TilingMode.on, "tiling on"), (.off, "tiling off")])
   func tilingWithoutPermissionSaysItWaits(mode: TilingMode, reply: String) {
     let manager = WindowManager(
-      backend: FakeWindowSystem(), displays: FakeDisplays(), gate: FakeGate(isTrusted: false))
+      windowSystem: FakeWindowSystem(), displays: FakeDisplays(), gate: FakeGate(isTrusted: false))
     let expected =
       "\(reply) once Accessibility permission is granted\n\(WindowManager.permissionMessage)"
     #expect(manager.setTiling(mode) == .message(expected))
@@ -295,7 +295,7 @@ struct TilingCommandScenarios {
     _ = harness.manager.setTiling(.off)
     gate.isTrusted = true
     #expect(harness.manager.startIfPermitted())
-    #expect(harness.backend.moves.isEmpty)
+    #expect(harness.windowSystem.moves.isEmpty)
     #expect(harness.manager.tilingStatus == .off)
   }
 

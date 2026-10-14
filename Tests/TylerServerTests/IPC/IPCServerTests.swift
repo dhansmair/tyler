@@ -144,9 +144,11 @@ struct IPCServerTests {
   }
 
   @Test @MainActor func listWorksEndToEndOverTheSocket() async throws {
-    let backend = FakeWindowSystem(windows: [makeWindow(id: 11, title: "hello", isFocused: true)])
+    let windowSystem = FakeWindowSystem(windows: [
+      makeWindow(id: 11, title: "hello", isFocused: true)
+    ])
     let manager = WindowManager(
-      backend: backend,
+      windowSystem: windowSystem,
       displays: FakeDisplays(),
       gate: FakeGate(isTrusted: true)
     )
@@ -176,14 +178,14 @@ struct IPCServerTests {
   }
 
   @Test @MainActor func anActionCommandWorksEndToEndOverTheSocket() async throws {
-    let backend = FakeWindowSystem(windows: [
+    let windowSystem = FakeWindowSystem(windows: [
       makeWindow(id: 1, frame: CGRect(x: 100, y: 100, width: 300, height: 200)),
       makeWindow(id: 2, frame: CGRect(x: 500, y: 100, width: 300, height: 200)),
     ])
     let manager = WindowManager(
-      backend: backend, displays: FakeDisplays(), gate: FakeGate(isTrusted: true))
+      windowSystem: windowSystem, displays: FakeDisplays(), gate: FakeGate(isTrusted: true))
     manager.startIfPermitted()
-    backend.clearRecordedCalls()
+    windowSystem.clearRecordedCalls()
     let router = CommandRouter(manager: manager)
 
     let path = makeSocketPath()
@@ -198,9 +200,9 @@ struct IPCServerTests {
       }.start()
     }
     #expect(try response.get() == .message("layout full"))
-    // The command reached the manager and moved the windows through the backend.
-    #expect(Set(backend.moves.map(\.id.rawValue)) == [1, 2])
-    #expect(backend.moves.allSatisfy { $0.frame == FakeDisplays.main.visibleFrame })
+    // The command reached the manager and moved the windows through the window system.
+    #expect(Set(windowSystem.moves.map(\.id.rawValue)) == [1, 2])
+    #expect(windowSystem.moves.allSatisfy { $0.frame == FakeDisplays.main.visibleFrame })
   }
 
   @Test func stopRemovesTheSocketFile() throws {

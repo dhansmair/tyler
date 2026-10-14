@@ -8,7 +8,7 @@ import TylerServer
 /// own, so the windows of a frame move side by side, a slow app skips frames instead of holding
 /// up the others, and the main thread stays free for input. An app that timed out is left alone for
 /// a while (`UnresponsiveApps`), so its windows don't hold up every switch and command again; the
-/// backend asks before focusing one of them too.
+/// window system asks before focusing one of them too.
 @MainActor
 final class StepWriter {
   /// A window and the writes that take it where it goes. An `AXUIElement` is an immutable handle

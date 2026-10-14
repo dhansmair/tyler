@@ -18,12 +18,12 @@ struct MouseResizeScenarios {
 
   private let pointer = FakePointer()
   private let clock = TestClock()
-  private let backend: FakeWindowSystem
+  private let windowSystem: FakeWindowSystem
   // Held here because the manager's event pumps only keep it weakly.
   private let manager: WindowManager
 
   init() async {
-    (manager, backend) = await Self.makeStarted(pointer: pointer, clock: clock)
+    (manager, windowSystem) = await Self.makeStarted(pointer: pointer, clock: clock)
   }
 
   private static func makeStarted(
@@ -31,13 +31,13 @@ struct MouseResizeScenarios {
   ) async -> (WindowManager, FakeWindowSystem) {
     let harness = ManagerHarness([1, 2, 3], config: config, pointer: pointer, clock: clock)
     await settle()
-    harness.backend.clearRecordedCalls()
-    return (harness.manager, harness.backend)
+    harness.windowSystem.clearRecordedCalls()
+    return (harness.manager, harness.windowSystem)
   }
 
   /// The user drags window `id` to `frame`: the app moves it and reports the new frame.
   private func drag(_ id: UInt32, to frame: CGRect) async {
-    await backend.userMoves(id, to: frame)
+    await windowSystem.userMoves(id, to: frame)
   }
 
   /// Lets the drag interval pass, and the step waiting for it run.
@@ -46,11 +46,11 @@ struct MouseResizeScenarios {
     await settle()
   }
 
-  private func frame(of id: UInt32) -> CGRect? { backend.frame(of: id) }
+  private func frame(of id: UInt32) -> CGRect? { windowSystem.frame(of: id) }
 
   /// The windows that followed a step of the drag.
   private func moved() -> Set<UInt32> {
-    Set(backend.passingMoves.map(\.id.rawValue))
+    Set(windowSystem.passingMoves.map(\.id.rawValue))
   }
 
   @Test func theStackFollowsTheLeftWindowsRightEdgeWhileItIsDragged() async {
@@ -83,8 +83,8 @@ struct MouseResizeScenarios {
     #expect(frame(of: 2)?.minX == 753)
     #expect(frame(of: 3)?.minX == 753)
     // Two steps, two windows each; the updates tylerd's own moves caused changed nothing.
-    #expect(backend.passingMoves.count == 4)
-    #expect(backend.moves.isEmpty, "steps move windows in passing; the release settles them")
+    #expect(windowSystem.passingMoves.count == 4)
+    #expect(windowSystem.moves.isEmpty, "steps move windows in passing; the release settles them")
   }
 
   @Test func resizesWithinTheIntervalAreFollowedOnceToTheNewestFrame() async {
@@ -92,11 +92,11 @@ struct MouseResizeScenarios {
     await drag(1, to: CGRect(x: 55, y: 38, width: 1047, height: 1131))
     await drag(1, to: CGRect(x: 55, y: 38, width: 900, height: 1131))
     await drag(1, to: CGRect(x: 55, y: 38, width: 698, height: 1131))
-    #expect(backend.passingMoves.count == 2, "only the first resize so far")
+    #expect(windowSystem.passingMoves.count == 2, "only the first resize so far")
     #expect(frame(of: 2)?.minX == 1102)
 
     await waitOutTheInterval()
-    #expect(backend.passingMoves.count == 4, "900 was skipped")
+    #expect(windowSystem.passingMoves.count == 4, "900 was skipped")
     #expect(frame(of: 2)?.minX == 753)
     #expect(frame(of: 3)?.minX == 753)
   }
@@ -106,7 +106,7 @@ struct MouseResizeScenarios {
     await drag(1, to: CGRect(x: 55, y: 38, width: 1047, height: 1131))
     await waitOutTheInterval()
     await waitOutTheInterval()
-    backend.clearRecordedCalls()
+    windowSystem.clearRecordedCalls()
 
     await drag(1, to: CGRect(x: 55, y: 38, width: 698, height: 1131))
     #expect(moved() == [2, 3])
@@ -115,54 +115,55 @@ struct MouseResizeScenarios {
 
   @Test func theIntervalStaysFreeAfterASlowStep() async {
     pointer.isPrimaryButtonDown = true
-    backend.onWrite = { [clock] in clock.advance(by: .milliseconds(20)) }
+    windowSystem.onWrite = { [clock] in clock.advance(by: .milliseconds(20)) }
     await drag(1, to: CGRect(x: 55, y: 38, width: 1047, height: 1131))
-    backend.onWrite = nil
+    windowSystem.onWrite = nil
     await drag(1, to: CGRect(x: 55, y: 38, width: 698, height: 1131))
 
     clock.advance(by: .milliseconds(10))
     await settle()
-    #expect(backend.passingMoves.count == 2, "the first step took 40 ms; the interval follows it")
+    #expect(
+      windowSystem.passingMoves.count == 2, "the first step took 40 ms; the interval follows it")
     clock.advance(by: .milliseconds(40))
     await settle()
-    #expect(backend.passingMoves.count == 4)
+    #expect(windowSystem.passingMoves.count == 4)
   }
 
   @Test func theIntervalComesFromTheConfig() async {
     let pointer = FakePointer()
     let clock = TestClock()
-    let (manager, backend) = await Self.makeStarted(
+    let (manager, windowSystem) = await Self.makeStarted(
       pointer: pointer, clock: clock, config: Config(mouse: Config.Mouse(followInterval: 100)))
     pointer.isPrimaryButtonDown = true
     for width in [1047, 698] {
       let window = makeWindow(id: 1, frame: CGRect(x: 55, y: 38, width: width, height: 1131))
-      backend.windows[0] = window
-      backend.send(.updated(window))
+      windowSystem.windows[0] = window
+      windowSystem.send(.updated(window))
       await settle()
     }
 
     clock.advance(by: .milliseconds(50))
     await settle()
-    #expect(backend.passingMoves.count == 2, "100 ms haven't passed yet")
+    #expect(windowSystem.passingMoves.count == 2, "100 ms haven't passed yet")
     clock.advance(by: .milliseconds(50))
     await settle()
-    #expect(backend.passingMoves.count == 4)
+    #expect(windowSystem.passingMoves.count == 4)
     #expect(manager.workspaces.current.layoutStates.tall.mainRatio == 0.4)
   }
 
   @Test func anIntervalOfZeroFollowsEveryResize() async {
     let pointer = FakePointer()
-    let (manager, backend) = await Self.makeStarted(
+    let (manager, windowSystem) = await Self.makeStarted(
       pointer: pointer, config: Config(mouse: Config.Mouse(followInterval: 0)))
     pointer.isPrimaryButtonDown = true
     for width in [1047, 900, 698] {
       let window = makeWindow(id: 1, frame: CGRect(x: 55, y: 38, width: width, height: 1131))
-      backend.windows[0] = window
-      backend.send(.updated(window))
+      windowSystem.windows[0] = window
+      windowSystem.send(.updated(window))
       await settle()
     }
 
-    #expect(backend.passingMoves.count == 6, "two neighbours, three resizes")
+    #expect(windowSystem.passingMoves.count == 6, "two neighbours, three resizes")
     #expect(manager.workspaces.current.layoutStates.tall.mainRatio == 0.4)
   }
 
@@ -173,10 +174,11 @@ struct MouseResizeScenarios {
     pointer.release()
     await settle()
     #expect(frame(of: 2)?.minX == 1277)
-    let moves = backend.passingMoves.count
+    let moves = windowSystem.passingMoves.count
 
     await waitOutTheInterval()
-    #expect(backend.passingMoves.count == moves, "nothing is left waiting once the drag is over")
+    #expect(
+      windowSystem.passingMoves.count == moves, "nothing is left waiting once the drag is over")
   }
 
   @Test func theDraggedWindowSnapsIntoItsSlotOnRelease() async {
@@ -184,12 +186,12 @@ struct MouseResizeScenarios {
     pointer.isPrimaryButtonDown = true
     // The right edge is a divider; the top edge is the display's and can't move.
     await drag(1, to: CGRect(x: 55, y: 100, width: 1047, height: 1069))
-    backend.clearRecordedCalls()
+    windowSystem.clearRecordedCalls()
     pointer.release()
     await settle()
 
     #expect(
-      backend.moves == [
+      windowSystem.moves == [
         Placement(id: WindowID(1), frame: CGRect(x: 55, y: 38, width: 1047, height: 1131))
       ])
   }
@@ -198,11 +200,11 @@ struct MouseResizeScenarios {
 
     pointer.isPrimaryButtonDown = true
     await drag(2, to: CGRect(x: 600, y: 300, width: 872, height: 566))
-    #expect(backend.passingMoves.isEmpty, "nothing follows a move")
+    #expect(windowSystem.passingMoves.isEmpty, "nothing follows a move")
 
     pointer.release()
     await settle()
-    #expect(backend.moves == [Placement(id: WindowID(2), frame: upper)])
+    #expect(windowSystem.moves == [Placement(id: WindowID(2), frame: upper)])
     #expect(frame(of: 1) == main)
     #expect(frame(of: 3) == lower)
   }
@@ -230,7 +232,7 @@ struct MouseResizeScenarios {
     #expect(harness.frame(of: 3)?.minX == 928)
 
     pointer.isPrimaryButtonDown = true
-    await harness.backend.userMoves(1, to: CGRect(x: 55, y: 38, width: 1047, height: 566))
+    await harness.windowSystem.userMoves(1, to: CGRect(x: 55, y: 38, width: 1047, height: 566))
     pointer.release()
     await settle()
 
@@ -245,44 +247,44 @@ struct MouseResizeScenarios {
     pointer.release()
     await settle()
 
-    #expect(backend.moves.isEmpty && backend.passingMoves.isEmpty)
+    #expect(windowSystem.moves.isEmpty && windowSystem.passingMoves.isEmpty)
   }
 
   @Test func withoutPointerInputNothingFollowsTheMouse() async {
-    let (manager, backend) = await Self.makeStarted(pointer: nil)
+    let (manager, windowSystem) = await Self.makeStarted(pointer: nil)
     let window = makeWindow(id: 1, frame: CGRect(x: 55, y: 38, width: 1047, height: 1131))
-    backend.windows[0] = window
-    backend.send(.updated(window))
+    windowSystem.windows[0] = window
+    windowSystem.send(.updated(window))
     await settle()
 
-    #expect(backend.moves.isEmpty && backend.passingMoves.isEmpty)
+    #expect(windowSystem.moves.isEmpty && windowSystem.passingMoves.isEmpty)
     #expect(manager.workspaces.current.layoutStates.tall.mainRatio == 0.5)
   }
 
   @Test func withTilingOffNothingFollowsTheMouse() async {
     _ = manager.setTiling(.off)
-    backend.clearRecordedCalls()
+    windowSystem.clearRecordedCalls()
 
     pointer.isPrimaryButtonDown = true
     await drag(1, to: CGRect(x: 55, y: 38, width: 1047, height: 1131))
     pointer.release()
     await settle()
 
-    #expect(backend.moves.isEmpty && backend.passingMoves.isEmpty)
+    #expect(windowSystem.moves.isEmpty && windowSystem.passingMoves.isEmpty)
   }
 
   @Test func aFloatedWindowIsNotFollowed() async {
-    backend.send(.focused(WindowID(3)))
+    windowSystem.send(.focused(WindowID(3)))
     await settle()
     #expect(manager.setFloat(.toggle) == .ok)
-    backend.clearRecordedCalls()
+    windowSystem.clearRecordedCalls()
 
     pointer.isPrimaryButtonDown = true
     await drag(3, to: CGRect(x: 500, y: 300, width: 900, height: 700))
     pointer.release()
     await settle()
 
-    #expect(backend.moves.isEmpty && backend.passingMoves.isEmpty)
+    #expect(windowSystem.moves.isEmpty && windowSystem.passingMoves.isEmpty)
   }
 
   @Test func aCommandEndsTheDrag() async {
@@ -290,7 +292,7 @@ struct MouseResizeScenarios {
     pointer.isPrimaryButtonDown = true
     await drag(2, to: CGRect(x: 600, y: 300, width: 872, height: 566))
     #expect(manager.retile() == .ok)
-    backend.clearRecordedCalls()
+    windowSystem.clearRecordedCalls()
     // Without the command ending the drag, window 2 would still be the only one that counts.
     await drag(3, to: CGRect(x: 928, y: 504, width: 872, height: 665))
 

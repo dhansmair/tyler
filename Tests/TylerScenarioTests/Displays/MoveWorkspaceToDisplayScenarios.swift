@@ -27,7 +27,7 @@ struct MoveWorkspaceToDisplayScenarios {
     await harness.osFocus(9)
     _ = harness.manager.moveToWorkspace(.number(2), follow: false)
     await harness.osFocus(1)
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     return harness
   }
 
@@ -61,7 +61,7 @@ struct MoveWorkspaceToDisplayScenarios {
     #expect(isParked(3, on: external, harness))
     #expect(isParked(4, on: external, harness))
     #expect(harness.manager.rows.focusedKey == external.key)
-    #expect(harness.backend.focusCalls.last == WindowID(1))
+    #expect(harness.windowSystem.focusCalls.last == WindowID(1))
   }
 
   @Test func theDisplayItLeftShowsItsNextWorkspace() async {
@@ -97,7 +97,7 @@ struct MoveWorkspaceToDisplayScenarios {
   /// refused the move belongs where it stayed from the next command on.
   @Test func aWindowWhoseAppRefusedTheMoveStaysBehindAtTheNextCommand() async {
     let harness = await harness()
-    harness.backend.failingMoves = [WindowID(2)]
+    harness.windowSystem.failingMoves = [WindowID(2)]
     #expect(
       harness.manager.moveWorkspaceToDisplay(.number(2))
         == .message("moved workspace 1 to display 2; 1 window could not be placed"))
@@ -113,7 +113,7 @@ struct MoveWorkspaceToDisplayScenarios {
     #expect(
       harness.manager.moveWorkspaceToDisplay(.number(1))
         == .error("workspace 1 is already on display 1"))
-    #expect(harness.backend.moves.isEmpty)
+    #expect(harness.windowSystem.moves.isEmpty)
   }
 
   @Test func theOnlyWorkspaceOfADisplayCannotLeaveIt() async {
@@ -121,7 +121,7 @@ struct MoveWorkspaceToDisplayScenarios {
     #expect(
       harness.manager.moveWorkspaceToDisplay(.next)
         == .error("workspace 1 is the only one on its display"))
-    #expect(harness.backend.moves.isEmpty)
+    #expect(harness.windowSystem.moves.isEmpty)
   }
 
   @Test func aNumberNoDisplayHasIsAnError() async {

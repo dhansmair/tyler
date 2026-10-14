@@ -12,8 +12,8 @@ import TylerTestSupport
 struct NewWindowFocusScenarios {
   @Test func swapMovesANewWindowFocusedBeforeItWasCreated() async {
     let scenario = await Scenario(workspaces: [1: [1, 2]])
-    scenario.harness.backend.send(.focused(WindowID(3)))
-    scenario.harness.backend.send(.created(makeWindow(id: 3)))
+    scenario.harness.windowSystem.send(.focused(WindowID(3)))
+    scenario.harness.windowSystem.send(.created(makeWindow(id: 3)))
     await scenario.runUntilQuiet()
     #expect(scenario.list(1) == [1, 3, 2])
 
@@ -24,9 +24,9 @@ struct NewWindowFocusScenarios {
 
   @Test func swapMovesANewWindowFocusedBeforeItWasTileable() async {
     let scenario = await Scenario(workspaces: [1: [1, 2]])
-    scenario.harness.backend.send(.created(makeWindow(id: 3, kind: .dialog)))
-    scenario.harness.backend.send(.focused(WindowID(3)))
-    scenario.harness.backend.send(.updated(makeWindow(id: 3)))
+    scenario.harness.windowSystem.send(.created(makeWindow(id: 3, kind: .dialog)))
+    scenario.harness.windowSystem.send(.focused(WindowID(3)))
+    scenario.harness.windowSystem.send(.updated(makeWindow(id: 3)))
     await scenario.runUntilQuiet()
     #expect(scenario.list(1) == [1, 3, 2])
 

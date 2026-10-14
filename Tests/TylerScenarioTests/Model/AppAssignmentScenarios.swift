@@ -22,8 +22,8 @@ struct AppAssignmentScenarios {
 
   /// Opens a window the way an app would: it exists, then tylerd hears about it.
   private func open(_ window: WindowInfo, in harness: ManagerHarness) async {
-    harness.backend.windows.append(window)
-    harness.backend.send(.created(window))
+    harness.windowSystem.windows.append(window)
+    harness.windowSystem.send(.created(window))
     await harness.settle()
   }
 
@@ -41,7 +41,7 @@ struct AppAssignmentScenarios {
 
     #expect(harness.workspaces()[9] == 3)
     #expect(harness.isParked(9))
-    #expect(harness.backend.moves.map(\.id) == [WindowID(9)], "nothing else moved")
+    #expect(harness.windowSystem.moves.map(\.id) == [WindowID(9)], "nothing else moved")
     #expect(harness.manager.switchWorkspace(.number(1)) == .message("workspace 1"))
   }
 
@@ -109,7 +109,7 @@ struct AppAssignmentScenarios {
     let saved = harness.manager.handOver()
 
     let successor = harness.successor(saved: saved, config: config)
-    successor.backend.send(.focused(WindowID(9)))
+    successor.windowSystem.send(.focused(WindowID(9)))
     await successor.settle()
     _ = successor.manager.setFloat(.toggle)
     guard case .windows(let windows) = successor.manager.windows() else {
@@ -121,8 +121,8 @@ struct AppAssignmentScenarios {
 
   @Test func aClosedWindowsIDIsForgotten() async {
     let harness = await movedAndFloated()
-    harness.backend.windows.removeAll { $0.id == WindowID(9) }
-    harness.backend.send(.destroyed(WindowID(9)))
+    harness.windowSystem.windows.removeAll { $0.id == WindowID(9) }
+    harness.windowSystem.send(.destroyed(WindowID(9)))
     await harness.settle()
     // Window ids can be reused; a new window with this id is new.
     await open(firefox(id: 9), in: harness)

@@ -30,7 +30,7 @@ struct DragAcrossDisplaysScenarios {
       displays: FakeDisplays(displays: [FakeDisplays.main, FakeDisplays.secondary]),
       config: config, pointer: pointer, clock: TestClock())
     await harness.osFocus(2)
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     return harness
   }
 
@@ -39,8 +39,9 @@ struct DragAcrossDisplaysScenarios {
   private func drag(in harness: ManagerHarness, to location: CGPoint) async {
     let size = harness.frame(of: 2)?.size ?? .zero
     pointer.isPrimaryButtonDown = true
-    await harness.backend.userMoves(2, to: CGRect(origin: CGPoint(x: 1000, y: 100), size: size))
-    await harness.backend.userMoves(
+    await harness.windowSystem.userMoves(
+      2, to: CGRect(origin: CGPoint(x: 1000, y: 100), size: size))
+    await harness.windowSystem.userMoves(
       2, to: CGRect(origin: CGPoint(x: location.x - 400, y: location.y - 10), size: size))
     pointer.drag(to: location)
     await harness.settle()
@@ -154,7 +155,7 @@ struct DragAcrossDisplaysScenarios {
     await harness.osFocus(3)
     // Window 2 is on the external display now, but only a switch's own sync finds out.
     let moved = makeWindow(id: 2, frame: CGRect(x: 1200, y: -800, width: 400, height: 300))
-    harness.backend.windows[1] = moved
+    harness.windowSystem.windows[1] = moved
     harness.manager.registry.apply(.updated(moved))
     _ = harness.manager.switchWorkspace(.number(6))
     await harness.settle()

@@ -20,7 +20,7 @@ extension WindowManager {
   /// It reads every window again but changes nothing.
   func windowDrift() -> Response {
     guard state == .running else { return .error(Self.permissionMessage) }
-    let fresh = backend.freshWindows()
+    let fresh = windowSystem.freshWindows()
     var drift = WindowDrift.compare(believed: registry.windows, fresh: fresh)
     compareWorkspaceFocus(with: fresh.focusedID ?? registry.focusedID, in: &drift)
     return .drift(drift)

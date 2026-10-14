@@ -17,24 +17,24 @@ struct RestartScenarios {
     _ = harness.manager.moveToWorkspace(.next, follow: false)
     _ = harness.manager.setLayout(.set(.full))
     await harness.settle()
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     return harness
   }
 
   @Test func handingOverMovesNoWindow() async {
     let harness = await arranged()
-    let frames = harness.backend.windows.map(\.frame)
+    let frames = harness.windowSystem.windows.map(\.frame)
     #expect(harness.manager.handOver() != nil)
-    #expect(harness.backend.moves.isEmpty)
-    #expect(harness.backend.windows.map(\.frame) == frames)
-    #expect(harness.backend.stopCount == 1)
+    #expect(harness.windowSystem.moves.isEmpty)
+    #expect(harness.windowSystem.windows.map(\.frame) == frames)
+    #expect(harness.windowSystem.stopCount == 1)
   }
 
   @Test func theNextTylerdCarriesOnWithoutMovingAnything() async {
     let harness = await arranged()
     let successor = harness.successor(saved: harness.manager.handOver())
     #expect(successor.workspaces() == [1: 1, 2: 1, 3: 2])
-    #expect(successor.backend.moves.isEmpty, "every window is already where it belongs")
+    #expect(successor.windowSystem.moves.isEmpty, "every window is already where it belongs")
     #expect(successor.manager.setLayout(.next) == .message("layout tall"), "the layout survived")
   }
 
@@ -47,7 +47,7 @@ struct RestartScenarios {
     _ = harness.manager.handOver()
     let successor = harness.successor(saved: old)
     #expect(successor.manager.workspaces == row)
-    #expect(successor.backend.moves.isEmpty)
+    #expect(successor.windowSystem.moves.isEmpty)
   }
 
   @Test func windowsThatClosedInBetweenAreLeftOut() async {
@@ -60,7 +60,7 @@ struct RestartScenarios {
     let harness = await arranged()
     let successor = harness.successor(saved: harness.manager.handOver())
     successor.manager.stop()
-    let frames = successor.backend.windows.sorted { $0.id < $1.id }.map(\.frame)
+    let frames = successor.windowSystem.windows.sorted { $0.id < $1.id }.map(\.frame)
     #expect(frames == (0..<3).map(ManagerHarness.originalFrame(index:)))
   }
 
@@ -73,7 +73,7 @@ struct RestartScenarios {
     let expected = TallLayout().frames(
       count: 1, in: FakeDisplays.main.visibleFrame,
       gaps: LayoutGaps(inner: 8, outer: 12))
-    #expect(successor.backend.frame(of: 3) == expected.first)
+    #expect(successor.windowSystem.frame(of: 3) == expected.first)
   }
 
   @Test func floatedWindowsAndTilingOffSurvive() async {
@@ -117,33 +117,33 @@ struct RestartScenarios {
   private func appear(_ ids: [UInt32], of windows: [WindowInfo], in next: ManagerHarness) async {
     for id in ids {
       guard let window = windows.first(where: { $0.id == WindowID(id) }) else { continue }
-      next.backend.windows.append(window)
-      next.backend.send(.created(window))
+      next.windowSystem.windows.append(window)
+      next.windowSystem.send(.created(window))
       await next.settle()
     }
   }
 
   @Test func aWindowWhoseAppAnswersLateGetsItsWorkspaceBack() async {
     let harness = await arranged()
-    let windows = harness.backend.windows
+    let windows = harness.windowSystem.windows
     let successor = harness.successor(saved: harness.manager.handOver(), closing: [3])
     #expect(successor.workspaces() == [1: 1, 2: 1])
     await appear([3], of: windows, in: successor)
     #expect(successor.workspaces() == [1: 1, 2: 1, 3: 2])
     #expect(successor.isParked(3))
-    #expect(successor.backend.moves.isEmpty)
+    #expect(successor.windowSystem.moves.isEmpty)
     successor.manager.stop()
     #expect(successor.frame(of: 3) == ManagerHarness.originalFrame(index: 2), "stop puts it back")
   }
 
   @Test func aRestartOnALockedScreenGetsEveryWorkspaceBackAsTheWindowsAppear() async {
     let harness = await arranged()
-    let windows = harness.backend.windows
+    let windows = harness.windowSystem.windows
     let successor = harness.successor(saved: harness.manager.handOver(), closing: [1, 2, 3])
     await appear([2, 3, 1], of: windows, in: successor)
     #expect(successor.workspaces() == [1: 1, 2: 1, 3: 2])
     #expect(successor.manager.workspaces[0].windows == [WindowID(1), WindowID(2)])
-    #expect(successor.backend.moves.isEmpty, "every window is already where it belongs")
+    #expect(successor.windowSystem.moves.isEmpty, "every window is already where it belongs")
     #expect(successor.manager.setLayout(.next) == .message("layout tall"), "the layout survived")
   }
 
@@ -151,7 +151,7 @@ struct RestartScenarios {
     let harness = ManagerHarness([1, 2])
     await harness.osFocus(2)
     _ = harness.manager.setFloat(.toggle)
-    let windows = harness.backend.windows
+    let windows = harness.windowSystem.windows
     let successor = harness.successor(saved: harness.manager.handOver(), closing: [2])
     await appear([2], of: windows, in: successor)
     #expect(successor.workspaces() == [1: 1])

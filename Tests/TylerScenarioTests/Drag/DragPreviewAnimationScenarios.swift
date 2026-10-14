@@ -22,7 +22,7 @@ struct DragPreviewAnimationScenarios {
   private let pointer = FakePointer()
   private let clock = TestClock()
   private let harness: ManagerHarness
-  private var backend: FakeWindowSystem { harness.backend }
+  private var windowSystem: FakeWindowSystem { harness.windowSystem }
 
   init() async {
     var config = Config()
@@ -31,13 +31,13 @@ struct DragPreviewAnimationScenarios {
       [1, 2, 3], animator: Animator(frameInterval: .milliseconds(16), clock: clock),
       config: config, pointer: pointer, clock: clock)
     await harness.settle()
-    backend.clearRecordedCalls()
+    windowSystem.clearRecordedCalls()
   }
 
   /// The user drags window 3 by its title bar: the app moves it, keeping its size.
   private func pickUpLowerWindow() async {
     pointer.isPrimaryButtonDown = true
-    await backend.userMoves(3, to: CGRect(x: 600, y: 300, width: 872, height: 565))
+    await windowSystem.userMoves(3, to: CGRect(x: 600, y: 300, width: 872, height: 565))
   }
 
   private func dragPointer(to location: CGPoint) async {
@@ -61,18 +61,18 @@ struct DragPreviewAnimationScenarios {
   }
 
   private func steps(of id: UInt32) -> [CGRect] {
-    backend.frameSteps.filter { $0.id == WindowID(id) }.map(\.frame)
+    windowSystem.frameSteps.filter { $0.id == WindowID(id) }.map(\.frame)
   }
 
   @Test func theWindowUnderThePointerMovesIntoTheDraggedWindowsSlotStepByStep() async {
     await pickUpLowerWindow()
     await dragPointer(to: overMain)
-    #expect(backend.moves.isEmpty, "nothing jumps")
+    #expect(windowSystem.moves.isEmpty, "nothing jumps")
 
     await runAnimations()
     #expect(steps(of: 1).count == 2)
     #expect(steps(of: 1).allSatisfy { main.minX < $0.minX && $0.minX < lower.minX })
-    #expect(backend.frame(of: 1) == lower)
+    #expect(windowSystem.frame(of: 1) == lower)
   }
 
   /// Every move of the pointer asks for the preview again; over the same window, the one under
@@ -87,7 +87,7 @@ struct DragPreviewAnimationScenarios {
 
     await runAnimations()
     #expect(steps(of: 1).count == 2, "48 ms from the first step, not from the last pointer move")
-    #expect(backend.frame(of: 1) == lower)
+    #expect(windowSystem.frame(of: 1) == lower)
   }
 
   @Test func aNewTargetTakesOverWhereTheWindowIs() async throws {
@@ -102,8 +102,8 @@ struct DragPreviewAnimationScenarios {
     #expect(main.minX < back.minX && back.minX < reached.minX, "back from where it got to")
 
     await runAnimations()
-    #expect(backend.frame(of: 1) == main)
-    #expect(backend.frame(of: 2) == lower)
+    #expect(windowSystem.frame(of: 1) == main)
+    #expect(windowSystem.frame(of: 2) == lower)
   }
 
   @Test func aDropDuringThePreviewSwapsTheWindowsIntoTheirSlots() async {
@@ -112,13 +112,13 @@ struct DragPreviewAnimationScenarios {
     await advanceOneFrame()
 
     await release(at: overMain)
-    let stepped = backend.frameSteps.count
+    let stepped = windowSystem.frameSteps.count
     await runAnimations()
-    #expect(backend.frameSteps.count == stepped, "the preview stopped at the drop")
+    #expect(windowSystem.frameSteps.count == stepped, "the preview stopped at the drop")
     #expect(harness.manager.workspaces.current.windows == [3, 2, 1].map(WindowID.init))
-    #expect(backend.frame(of: 3) == main)
-    #expect(backend.frame(of: 2) == upper)
-    #expect(backend.frame(of: 1) == lower)
+    #expect(windowSystem.frame(of: 3) == main)
+    #expect(windowSystem.frame(of: 2) == upper)
+    #expect(windowSystem.frame(of: 1) == lower)
   }
 
   @Test func aReleaseElsewhereDuringThePreviewPutsTheWindowBack() async {
@@ -129,8 +129,8 @@ struct DragPreviewAnimationScenarios {
     await release(at: outside)
     await runAnimations()
     #expect(harness.manager.workspaces.current.windows == [1, 2, 3].map(WindowID.init))
-    #expect(backend.frame(of: 1) == main)
-    #expect(backend.frame(of: 3) == lower)
+    #expect(windowSystem.frame(of: 1) == main)
+    #expect(windowSystem.frame(of: 3) == lower)
   }
 
   /// Window 1 is on its way back from the dragged window's slot when the drag ends.
@@ -143,8 +143,8 @@ struct DragPreviewAnimationScenarios {
 
     await release(at: outside)
     await runAnimations()
-    #expect(backend.frame(of: 1) == main)
-    #expect(backend.frame(of: 2) == upper)
+    #expect(windowSystem.frame(of: 1) == main)
+    #expect(windowSystem.frame(of: 2) == upper)
   }
 
   @Test func aCommandDuringThePreviewPutsTheWindowBack() async {
@@ -154,7 +154,7 @@ struct DragPreviewAnimationScenarios {
 
     _ = harness.manager.retile()
     await runAnimations()
-    #expect(backend.frame(of: 1) == main)
+    #expect(windowSystem.frame(of: 1) == main)
   }
 
   @Test func aZeroDurationMovesTheWindowAtOnce() async {
@@ -162,7 +162,7 @@ struct DragPreviewAnimationScenarios {
     await pickUpLowerWindow()
     await dragPointer(to: overMain)
 
-    #expect(backend.moves == [Placement(id: WindowID(1), frame: lower)])
-    #expect(backend.frameSteps.isEmpty)
+    #expect(windowSystem.moves == [Placement(id: WindowID(1), frame: lower)])
+    #expect(windowSystem.frameSteps.isEmpty)
   }
 }

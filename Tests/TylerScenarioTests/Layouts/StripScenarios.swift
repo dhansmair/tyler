@@ -18,7 +18,7 @@ struct StripScenarios {
     await harness.osFocus(1)
     _ = harness.manager.setLayout(.set(.strip))
     await harness.settle()
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     return harness
   }
 
@@ -38,7 +38,7 @@ struct StripScenarios {
     #expect(harness.isParked(1))
     #expect(harness.frame(of: 2) == halves[0])
     #expect(harness.frame(of: 3) == halves[1])
-    #expect(harness.backend.focusCalls.last == WindowID(3))
+    #expect(harness.windowSystem.focusCalls.last == WindowID(3))
   }
 
   @Test func clickingAWindowOutOfViewScrollsToIt() async {
@@ -54,7 +54,7 @@ struct StripScenarios {
     await harness.settle()
     _ = harness.manager.switchWorkspace(.prev)
     await harness.settle()
-    #expect(!harness.backend.moves.contains { $0.id == WindowID(3) }, "it never moved")
+    #expect(!harness.windowSystem.moves.contains { $0.id == WindowID(3) }, "it never moved")
     #expect(harness.isParked(3))
     #expect(harness.frame(of: 1) == halves[0])
   }
@@ -79,7 +79,7 @@ struct StripScenarios {
     let harness = await strip()
     await harness.osFocus(3)
     let successor = harness.successor(saved: harness.manager.handOver())
-    #expect(successor.backend.moves.isEmpty, "every window is already where it belongs")
+    #expect(successor.windowSystem.moves.isEmpty, "every window is already where it belongs")
     _ = successor.manager.retile()
     #expect(successor.isParked(1))
     #expect(successor.frame(of: 3) == halves[1])
@@ -148,7 +148,7 @@ struct StripScenarios {
     await harness.osFocus(2)
     _ = harness.manager.setLayout(.set(.strip))
     await harness.settle()
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     return harness
   }
 
@@ -167,7 +167,7 @@ struct StripScenarios {
     _ = harness.manager.focus(.next)
     #expect(harness.frame(of: 3)?.origin == parked.origin, "it starts where it is parked")
     await runAnimations(harness, clock)
-    let steps = harness.backend.nudges.filter { $0.id == WindowID(3) }.map(\.origin.x)
+    let steps = harness.windowSystem.nudges.filter { $0.id == WindowID(3) }.map(\.origin.x)
     #expect(steps.count == 2)
     #expect(steps == steps.sorted(by: >), "it comes in from the right")
     #expect(harness.everyPositionIsAllowed())
@@ -191,7 +191,7 @@ struct StripScenarios {
     let harness = await Self.animated(clock)
     await harness.osFocus(3)
     await runAnimations(harness, clock)
-    #expect(harness.backend.nudges.contains { $0.id == WindowID(3) })
+    #expect(harness.windowSystem.nudges.contains { $0.id == WindowID(3) })
     #expect(harness.frame(of: 3) == halves[1])
   }
 }

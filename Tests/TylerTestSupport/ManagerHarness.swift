@@ -5,12 +5,12 @@ import TylerRuntime
 
 @testable import TylerServer
 
-/// A started manager over a fake backend, shared by the server suites.
+/// A started manager over a fake window system, shared by the server suites.
 @MainActor
 package struct ManagerHarness {
   // Held here because the manager's event pumps only keep it weakly.
   package let manager: WindowManager
-  package let backend: FakeWindowSystem
+  package let windowSystem: FakeWindowSystem
   package let display = FakeDisplays.main
   package var area: CGRect { display.visibleFrame }
 
@@ -31,15 +31,16 @@ package struct ManagerHarness {
     restoring saved: SavedState? = nil,
     clearRecordedCalls: Bool = true
   ) {
-    backend = FakeWindowSystem(windows: windows)
-    stacking?.backend = backend
+    windowSystem = FakeWindowSystem(windows: windows)
+    stacking?.windowSystem = windowSystem
     manager = WindowManager(
-      backend: backend, displays: displays, gate: gate, animator: animator, config: config,
+      windowSystem: windowSystem, displays: displays, gate: gate, animator: animator,
+      config: config,
       configSource: configFile?.source, pointer: pointer, stacking: stacking,
       gapCursor: gapCursor, clock: clock,
       logOutput: LogOutput(), restoring: saved)
     manager.startIfPermitted()
-    if clearRecordedCalls { backend.clearRecordedCalls() }
+    if clearRecordedCalls { windowSystem.clearRecordedCalls() }
   }
 
   /// Windows `ids` spread left to right on the primary display (see `spread`), plus `extra`.
@@ -67,7 +68,7 @@ package struct ManagerHarness {
     displays: FakeDisplays = FakeDisplays()
   ) -> ManagerHarness {
     ManagerHarness(
-      windows: backend.windows.filter { !closed.contains($0.id.rawValue) }, displays: displays,
+      windows: windowSystem.windows.filter { !closed.contains($0.id.rawValue) }, displays: displays,
       config: config, restoring: saved, clearRecordedCalls: false)
   }
 
@@ -81,7 +82,7 @@ package struct ManagerHarness {
   }
 
   package func frame(of windowID: UInt32) -> CGRect? {
-    backend.frame(of: windowID)
+    windowSystem.frame(of: windowID)
   }
 
   /// Whether the window waits at the primary display's parking edge, as the manager sees that
@@ -95,7 +96,8 @@ package struct ManagerHarness {
   /// back on screen (see `Parking`).
   package func everyPositionIsAllowed() -> Bool {
     let positions =
-      backend.moves.map { ($0.id, $0.frame.origin) } + backend.nudges.map { ($0.id, $0.origin) }
+      windowSystem.moves.map { ($0.id, $0.frame.origin) }
+      + windowSystem.nudges.map { ($0.id, $0.origin) }
     return positions.allSatisfy { windowID, origin in
       guard let width = frame(of: windowID.rawValue)?.width else { return false }
       return Parking.allowedX(width: width, on: display).contains(origin.x)
@@ -113,7 +115,7 @@ package struct ManagerHarness {
 
   /// Focuses `windowID` the way the OS would, and waits for the manager to see it.
   package func osFocus(_ windowID: UInt32) async {
-    backend.send(.focused(WindowID(windowID)))
+    windowSystem.send(.focused(WindowID(windowID)))
     await settle()
   }
 }

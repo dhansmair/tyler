@@ -28,7 +28,7 @@ struct SwipeScenarios {
       _ = harness.manager.moveToWorkspace(.number(4), follow: false)
     }
     await harness.settle()
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     return harness
   }
 
@@ -45,7 +45,7 @@ struct SwipeScenarios {
   }
 
   private func lastNudge(of windowID: UInt32, in harness: ManagerHarness) -> CGPoint? {
-    harness.backend.nudges.last { $0.id == WindowID(windowID) }?.origin
+    harness.windowSystem.nudges.last { $0.id == WindowID(windowID) }?.origin
   }
 
   @Test func theWindowsFollowTheFingers() async {
@@ -68,7 +68,7 @@ struct SwipeScenarios {
     #expect(harness.frame(of: 2) == harness.area)
     #expect(harness.isParked(1))
     #expect(harness.isParked(3))
-    #expect(harness.backend.focusCalls.last == WindowID(2))
+    #expect(harness.windowSystem.focusCalls.last == WindowID(2))
   }
 
   @Test func aReleaseBeforeHalfwayGoesBack() async {
@@ -113,25 +113,25 @@ struct SwipeScenarios {
     let harness = await makeHarness()
     await swipe(
       .began, .moved(offset: -0.03), .moved(offset: -0.06), .moved(offset: -0.09), in: harness)
-    #expect(harness.backend.nudges.filter { $0.id == WindowID(1) }.count == 1)
+    #expect(harness.windowSystem.nudges.filter { $0.id == WindowID(1) }.count == 1)
     await nextFrame(harness)
     let leaving = Track.leaving(
       WindowID(1), from: harness.area, direction: .next, on: harness.display)
-    let steps = harness.backend.nudges.filter { $0.id == WindowID(1) }
+    let steps = harness.windowSystem.nudges.filter { $0.id == WindowID(1) }
     #expect(steps.count == 2, "the middle offset was never placed")
     #expect(steps.last?.origin == leaving.position(at: 0.3, easing: Easing.linear))
     await nextFrame(harness)
-    #expect(harness.backend.nudges.filter { $0.id == WindowID(1) }.count == 2, "nothing new")
+    #expect(harness.windowSystem.nudges.filter { $0.id == WindowID(1) }.count == 2, "nothing new")
   }
 
   @Test func aSlowStepIsFollowedByTheNextAtOnce() async {
     let harness = await makeHarness()
-    harness.backend.onWrite = { [clock] in clock.advance(by: .milliseconds(5)) }
+    harness.windowSystem.onWrite = { [clock] in clock.advance(by: .milliseconds(5)) }
     await swipe(.began, .moved(offset: -0.03), in: harness)
-    harness.backend.onWrite = nil
+    harness.windowSystem.onWrite = nil
     await swipe(.moved(offset: -0.06), in: harness)
     #expect(
-      harness.backend.nudges.filter { $0.id == WindowID(1) }.count == 2,
+      harness.windowSystem.nudges.filter { $0.id == WindowID(1) }.count == 2,
       "the first step took longer than a frame")
   }
 
@@ -155,7 +155,7 @@ struct SwipeScenarios {
       clock.advance(by: .milliseconds(16))
       await harness.settle()
     }
-    let steps = harness.backend.nudges.filter { $0.id == WindowID(1) }.map(\.origin.x)
+    let steps = harness.windowSystem.nudges.filter { $0.id == WindowID(1) }.map(\.origin.x)
     #expect(steps.count >= 2)
     #expect(steps == steps.sorted(by: >), "it carries on to the left")
     #expect(harness.isParked(1))
@@ -168,12 +168,12 @@ struct SwipeScenarios {
       duration: .milliseconds(48), frameInterval: .milliseconds(16), clock: clock)
     let harness = await makeHarness(animator: animator)
     await swipe(.began, .moved(offset: -0.03), .ended(velocity: 0), in: harness)
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     while clock.hasSleepers {
       clock.advance(by: .milliseconds(16))
       await harness.settle()
     }
-    let steps = harness.backend.nudges.filter { $0.id == WindowID(1) }.map(\.origin.x)
+    let steps = harness.windowSystem.nudges.filter { $0.id == WindowID(1) }.map(\.origin.x)
     #expect(!steps.isEmpty, "a tenth of the way back would otherwise snap in one frame")
     #expect(steps == steps.sorted(), "it moves back to the right")
     #expect(harness.frame(of: 1) == harness.area)
@@ -187,10 +187,10 @@ struct SwipeScenarios {
     if reason == "one workspace" { config.workspaces.count = 1 }
     let harness = await makeHarness(config: config)
     if reason == "tiling off" { _ = harness.manager.setTiling(.off) }
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     await swipe(.began, .moved(offset: -0.18), .ended(velocity: 0), in: harness)
-    #expect(harness.backend.nudges.isEmpty)
-    #expect(harness.backend.moves.isEmpty)
+    #expect(harness.windowSystem.nudges.isEmpty)
+    #expect(harness.windowSystem.moves.isEmpty)
     #expect(harness.manager.workspaces.currentIndex == 0)
   }
 

@@ -87,14 +87,14 @@ package final class FakeWindowSystem: WindowSystem {
 
   package func takeQueuedWrites() -> MotionCost.Queued { MotionCost.Queued() }
 
-  /// Moves the window but, like the real backend, reports nothing back.
+  /// Moves the window but, like the real window system, reports nothing back.
   package func setPosition(_ origin: CGPoint, of windowID: WindowID) throws(WindowSystemError) {
     let index = try movableIndex(of: windowID)
     nudges.append((windowID, origin))
     step(index, to: CGRect(origin: origin, size: windows[index].frame.size))
   }
 
-  /// Moves and resizes the window but, like the real backend, reports nothing back.
+  /// Moves and resizes the window but, like the real window system, reports nothing back.
   package func setFrameStep(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
     let index = try movableIndex(of: windowID)
     frameSteps.append(Placement(id: windowID, frame: frame))

@@ -6,7 +6,7 @@ import TylerTestSupport
 
 @testable import TylerServer
 
-/// The config at startup and `reload`, driven through a fake backend and a fake config file.
+/// The config at startup and `reload`, driven through a fake window system and a fake config file.
 @Suite("Config and reload")
 @MainActor
 struct ConfigReloadScenarios {
@@ -21,7 +21,7 @@ struct ConfigReloadScenarios {
     let harness = ManagerHarness(
       windows: spread([1, 2]), gate: FakeGate(isTrusted: isTrusted), config: config,
       configFile: file)
-    return (harness.manager, harness.backend)
+    return (harness.manager, harness.windowSystem)
   }
 
   /// Where the tall layout puts windows 1 and 2 with these settings.
@@ -36,34 +36,34 @@ struct ConfigReloadScenarios {
     TallLayout().frames(count: 1, in: area, gaps: LayoutGaps(config.gaps)).first
   }
 
-  private func frames(_ backend: FakeWindowSystem) -> [CGRect] {
-    [1, 2].compactMap { backend.frame(of: $0) }
+  private func frames(_ windowSystem: FakeWindowSystem) -> [CGRect] {
+    [1, 2].compactMap { windowSystem.frame(of: $0) }
   }
 
   @Test func theConfigGivenAtStartIsUsedForTheFirstTiling() {
-    let (manager, backend) = makeManager(config: gaps)
+    let (manager, windowSystem) = makeManager(config: gaps)
     #expect(manager.config == gaps)
-    #expect(frames(backend) == expectedFrames(gaps))
+    #expect(frames(windowSystem) == expectedFrames(gaps))
   }
 
   @Test func reloadAppliesNewGapsAndRetilesAtOnce() {
     let file = FakeConfigFile()
-    let (manager, backend) = makeManager(file: file)
+    let (manager, windowSystem) = makeManager(file: file)
     file.write(.config(gaps))
 
     #expect(manager.reload() == .message("reloaded \(FakeConfigFile.path)"))
     #expect(manager.config == gaps)
-    #expect(frames(backend) == expectedFrames(gaps))
+    #expect(frames(windowSystem) == expectedFrames(gaps))
   }
 
   @Test func reloadKeepsTheRatio() {
     let file = FakeConfigFile()
-    let (manager, backend) = makeManager(file: file)
+    let (manager, windowSystem) = makeManager(file: file)
     _ = manager.adjustRatio(by: 0.1)
     file.write(.config(gaps))
 
     _ = manager.reload()
-    #expect(frames(backend) == expectedFrames(gaps, mainRatio: 0.6))
+    #expect(frames(windowSystem) == expectedFrames(gaps, mainRatio: 0.6))
   }
 
   @Test func reloadKeepsTheRowHeights() async {
@@ -73,7 +73,7 @@ struct ConfigReloadScenarios {
     await harness.settle()
     // Drag the divider between the stacked windows down, from 566 points to 700.
     pointer.isPrimaryButtonDown = true
-    await harness.backend.userMoves(2, to: CGRect(x: 928, y: 38, width: 872, height: 700))
+    await harness.windowSystem.userMoves(2, to: CGRect(x: 928, y: 38, width: 872, height: 700))
     pointer.release(at: CGPoint(x: 1000, y: 100))
     await harness.settle()
     file.write(.config(gaps))
@@ -114,53 +114,53 @@ struct ConfigReloadScenarios {
 
   @Test func aBrokenFileChangesNothing() {
     let file = FakeConfigFile()
-    let (manager, backend) = makeManager(config: gaps, file: file)
+    let (manager, windowSystem) = makeManager(config: gaps, file: file)
     file.write(.broken(.invalid("unknown setting 'gap'")))
 
     #expect(
       manager.reload()
         == .error("\(FakeConfigFile.path): unknown setting 'gap' (the current settings stay)"))
     #expect(manager.config == gaps)
-    #expect(backend.moves.isEmpty)
+    #expect(windowSystem.moves.isEmpty)
   }
 
   @Test func aMissingFileMeansTheDefaults() {
-    let (manager, backend) = makeManager(config: gaps, file: FakeConfigFile(.missing))
+    let (manager, windowSystem) = makeManager(config: gaps, file: FakeConfigFile(.missing))
 
     #expect(
       manager.reload()
         == .message("no config file at \(FakeConfigFile.path), using the defaults"))
     #expect(manager.config == Config())
-    #expect(frames(backend) == expectedFrames(Config()))
+    #expect(frames(windowSystem) == expectedFrames(Config()))
   }
 
   @Test func withTilingOffReloadMovesNothingUntilTilingIsBackOn() {
     let file = FakeConfigFile()
-    let (manager, backend) = makeManager(file: file)
+    let (manager, windowSystem) = makeManager(file: file)
     _ = manager.setTiling(.off)
     file.write(.config(gaps))
 
     #expect(manager.reload() == .message("reloaded \(FakeConfigFile.path)"))
-    #expect(backend.moves.isEmpty)
+    #expect(windowSystem.moves.isEmpty)
 
     _ = manager.setTiling(.on)
-    #expect(frames(backend) == expectedFrames(gaps))
+    #expect(frames(windowSystem) == expectedFrames(gaps))
   }
 
   @Test func reloadWorksBeforePermissionIsGranted() {
     let file = FakeConfigFile(.config(gaps))
-    let (manager, backend) = makeManager(file: file, isTrusted: false)
+    let (manager, windowSystem) = makeManager(file: file, isTrusted: false)
 
     #expect(manager.reload() == .message("reloaded \(FakeConfigFile.path)"))
     #expect(manager.config == gaps)
-    #expect(backend.moves.isEmpty)
+    #expect(windowSystem.moves.isEmpty)
   }
 
   @Test func theGapsSurviveAStopAndRestart() {
-    let (manager, backend) = makeManager(config: gaps)
+    let (manager, windowSystem) = makeManager(config: gaps)
     manager.stop()
     manager.startIfPermitted()
-    #expect(frames(backend) == expectedFrames(gaps))
+    #expect(frames(windowSystem) == expectedFrames(gaps))
   }
 
   @Test func reloadWithoutAConfigSourceIsAnError() {

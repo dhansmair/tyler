@@ -1,6 +1,6 @@
 import AppKit
 
-/// Tells the backend when an app launches, comes to the front or quits.
+/// Tells the window system when an app launches, comes to the front or quits.
 @MainActor
 final class RunningAppsObserver {
   struct Handlers {

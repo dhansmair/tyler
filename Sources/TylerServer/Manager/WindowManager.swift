@@ -68,7 +68,7 @@ package final class WindowManager {
   }
   var slideCount = 0
   let animator: Animator
-  let backend: any WindowSystem
+  let windowSystem: any WindowSystem
   let displays: any DisplayProvider
   private let gate: any AccessibilityGate
   /// Where `reload` reads the config from; `nil` when there is nothing to reload.
@@ -96,7 +96,7 @@ package final class WindowManager {
   var pendingRestore: SavedState?
 
   package init(
-    backend: any WindowSystem,
+    windowSystem: any WindowSystem,
     displays: any DisplayProvider,
     gate: any AccessibilityGate,
     animator: Animator = Animator(),
@@ -110,8 +110,8 @@ package final class WindowManager {
     logOutput: LogOutput = .shared,
     restoring saved: SavedState? = nil
   ) {
-    self.backend = backend
-    mover = WindowMover(backend: backend, displays: displays, clock: clock)
+    self.windowSystem = windowSystem
+    mover = WindowMover(windowSystem: windowSystem, displays: displays, clock: clock)
     self.displays = displays
     self.gate = gate
     self.animator = animator
@@ -145,16 +145,16 @@ package final class WindowManager {
     guard gate.isTrusted else { return false }
 
     // Subscribe before starting so no event is lost; the registry tolerates duplicates.
-    let events = backend.events
+    let events = windowSystem.events
     pump = Task { [weak self] in
       for await event in events {
         self?.apply(event)
       }
     }
-    backend.start()
+    windowSystem.start()
     startPointer()
     startDisplays()
-    registry.replaceAll(backend.snapshot())
+    registry.replaceAll(windowSystem.snapshot())
     let restored = restorePending()
     state = .running
     reconcile()

@@ -54,9 +54,9 @@ struct GapResizeScenarios {
   @Test func leavesTheFocusAlone() async {
     let scenario = await Self.scenario()
     await scenario.focus(3)
-    let focusCalls = scenario.harness.backend.focusCalls.count
+    let focusCalls = scenario.harness.windowSystem.focusCalls.count
     await scenario.dragGap(at: Self.besideMain(scenario), by: CGVector(dx: 100, dy: 0))
-    #expect(scenario.harness.backend.focusCalls.count == focusCalls)
+    #expect(scenario.harness.windowSystem.focusCalls.count == focusCalls)
   }
 
   @Test func aWindowInFrontOfTheGapGetsThePress() async {

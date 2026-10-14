@@ -18,7 +18,7 @@ struct MoveToWorkspaceScenarios {
     #expect(harness.isParked(2))
     #expect(harness.frame(of: 1) == harness.area)
     #expect(harness.workspaces() == [1: 1, 2: 2])
-    #expect(harness.backend.focusCalls == [WindowID(1)])
+    #expect(harness.windowSystem.focusCalls == [WindowID(1)])
   }
 
   @Test(arguments: [false, true])
@@ -26,7 +26,7 @@ struct MoveToWorkspaceScenarios {
     let harness = ManagerHarness([1, 2])
     await harness.osFocus(2)
     // Without follow, focus goes to the window left behind; with it, to the window moved.
-    harness.backend.failingFocus = [WindowID(follow ? 2 : 1)]
+    harness.windowSystem.failingFocus = [WindowID(follow ? 2 : 1)]
     #expect(
       harness.manager.moveToWorkspace(.next, follow: follow)
         == .message("moved to workspace 2; cannot focus window \(follow ? 2 : 1): fake refusal"))
@@ -40,7 +40,7 @@ struct MoveToWorkspaceScenarios {
     #expect(harness.frame(of: 2) == harness.area)
     #expect(harness.isParked(1))
     #expect(harness.manager.workspaces.currentIndex == 2)
-    #expect(harness.backend.focusCalls == [WindowID(2)])
+    #expect(harness.windowSystem.focusCalls == [WindowID(2)])
   }
 
   @Test func theMovedWindowIsFocusedWhenYouGetThere() async {
@@ -49,9 +49,9 @@ struct MoveToWorkspaceScenarios {
     _ = harness.manager.moveToWorkspace(.next, follow: false)
     await harness.osFocus(1)
     _ = harness.manager.moveToWorkspace(.next, follow: false)
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     _ = harness.manager.switchWorkspace(.next)
-    #expect(harness.backend.focusCalls == [WindowID(1)])
+    #expect(harness.windowSystem.focusCalls == [WindowID(1)])
   }
 
   @Test func movingTheLastWindowTakesFocusFromItOnceParked() async {
@@ -60,8 +60,8 @@ struct MoveToWorkspaceScenarios {
     _ = harness.manager.moveToWorkspace(.prev, follow: false)
     #expect(harness.workspaces() == [1: 4])
     #expect(harness.isParked(1))
-    #expect(harness.backend.focusCalls.isEmpty)
-    #expect(harness.backend.unfocusCount == 1)
+    #expect(harness.windowSystem.focusCalls.isEmpty)
+    #expect(harness.windowSystem.unfocusCount == 1)
   }
 
   @Test func movingToTheSameWorkspaceDoesNothing() async {
@@ -70,7 +70,7 @@ struct MoveToWorkspaceScenarios {
     #expect(
       harness.manager.moveToWorkspace(.number(1), follow: false)
         == .message("already on workspace 1"))
-    #expect(harness.backend.moves.isEmpty)
+    #expect(harness.windowSystem.moves.isEmpty)
   }
 
   @Test func onlyATiledFocusedWindowCanMove() async {
@@ -99,13 +99,13 @@ struct MoveToWorkspaceScenarios {
     await harness.osFocus(2)
     _ = harness.manager.moveToWorkspace(.number(3), follow: false)
     await harness.osFocus(1)  // the echo of tylerd focusing window 1
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
 
     await harness.osFocus(2)  // the user cmd-tabs to the parked window
     #expect(harness.manager.workspaces.currentIndex == 2)
     #expect(harness.frame(of: 2) == harness.area)
     #expect(harness.isParked(1))
-    #expect(harness.backend.focusCalls.isEmpty, "the OS already focused it")
+    #expect(harness.windowSystem.focusCalls.isEmpty, "the OS already focused it")
   }
 
   @Test func theEchoOfTylerdsOwnFocusDoesNotSwitchBack() async {

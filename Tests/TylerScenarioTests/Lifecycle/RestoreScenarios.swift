@@ -17,7 +17,7 @@ struct RestoreScenarios {
     for index in 0..<3 {
       #expect(harness.frame(of: UInt32(index + 1)) == ManagerHarness.originalFrame(index: index))
     }
-    #expect(harness.backend.stopCount == 1)
+    #expect(harness.windowSystem.stopCount == 1)
   }
 
   @Test func parkedWindowsComeBackToo() {
@@ -31,8 +31,8 @@ struct RestoreScenarios {
   @Test func windowsOpenedLaterAreRestoredToWhereTheyOpened() async {
     let harness = ManagerHarness([1])
     let opened = CGRect(x: 700, y: 300, width: 500, height: 400)
-    harness.backend.windows.append(makeWindow(id: 9, frame: opened))
-    harness.backend.send(.created(makeWindow(id: 9, frame: opened)))
+    harness.windowSystem.windows.append(makeWindow(id: 9, frame: opened))
+    harness.windowSystem.send(.created(makeWindow(id: 9, frame: opened)))
     await harness.settle()
     #expect(harness.frame(of: 9) != opened)
     harness.manager.stop()
@@ -41,26 +41,26 @@ struct RestoreScenarios {
 
   @Test func closedAndFailingWindowsDoNotStopTheRest() async {
     let harness = ManagerHarness([1, 2, 3])
-    harness.backend.windows.removeAll { $0.id == WindowID(2) }
-    harness.backend.send(.destroyed(WindowID(2)))
+    harness.windowSystem.windows.removeAll { $0.id == WindowID(2) }
+    harness.windowSystem.send(.destroyed(WindowID(2)))
     await harness.settle()
-    harness.backend.failingMoves = [WindowID(1)]
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.failingMoves = [WindowID(1)]
+    harness.windowSystem.clearRecordedCalls()
     harness.manager.stop()
-    #expect(harness.backend.moves.map(\.id) == [WindowID(3)])
+    #expect(harness.windowSystem.moves.map(\.id) == [WindowID(3)])
     #expect(harness.frame(of: 3) == ManagerHarness.originalFrame(index: 2))
-    #expect(harness.backend.stopCount == 1)
+    #expect(harness.windowSystem.stopCount == 1)
   }
 
   @Test func aReusedWindowIDGoesBackToWhereTheNewWindowOpened() async {
     let harness = ManagerHarness([1, 2])
-    harness.backend.windows.removeAll { $0.id == WindowID(2) }
-    harness.backend.send(.destroyed(WindowID(2)))
+    harness.windowSystem.windows.removeAll { $0.id == WindowID(2) }
+    harness.windowSystem.send(.destroyed(WindowID(2)))
     await harness.settle()
     // Window ids can be reused; the old window's frame must not come back with the id.
     let opened = CGRect(x: 700, y: 300, width: 500, height: 400)
-    harness.backend.windows.append(makeWindow(id: 2, frame: opened))
-    harness.backend.send(.created(makeWindow(id: 2, frame: opened)))
+    harness.windowSystem.windows.append(makeWindow(id: 2, frame: opened))
+    harness.windowSystem.send(.created(makeWindow(id: 2, frame: opened)))
     await harness.settle()
     #expect(harness.frame(of: 2) != opened)
     harness.manager.stop()
@@ -73,21 +73,21 @@ struct RestoreScenarios {
     // Window 2 closed, and another app's new window took its id before the next tylerd started.
     let opened = CGRect(x: 700, y: 300, width: 500, height: 400)
     let successor = harness.successor(saved: saved, closing: [2])
-    let backend = successor.backend
+    let windowSystem = successor.windowSystem
     var newcomer = makeWindow(id: 2, frame: opened)
     newcomer.processID = 501
-    backend.windows.append(newcomer)
-    backend.send(.created(newcomer))
+    windowSystem.windows.append(newcomer)
+    windowSystem.send(.created(newcomer))
     await settle()
     successor.manager.stop()
-    #expect(backend.frame(of: 2) == opened)
-    #expect(backend.frame(of: 1) == ManagerHarness.originalFrame(index: 0))
+    #expect(windowSystem.frame(of: 2) == opened)
+    #expect(windowSystem.frame(of: 1) == ManagerHarness.originalFrame(index: 0))
   }
 
   @Test func windowsTylerdNeverMovedAreLeftAlone() {
     let harness = ManagerHarness([1], extra: [makeWindow(id: 7, kind: .dialog)])
     harness.manager.stop()
-    #expect(!harness.backend.moves.contains { $0.id == WindowID(7) })
+    #expect(!harness.windowSystem.moves.contains { $0.id == WindowID(7) })
   }
 
   @Test func aSlideInProgressIsAbandonedAndEverythingRestored() async {
@@ -107,11 +107,11 @@ struct RestoreScenarios {
   }
 
   @Test func stoppingBeforeStartingMovesNothing() {
-    let backend = FakeWindowSystem(windows: [makeWindow(id: 1)])
+    let windowSystem = FakeWindowSystem(windows: [makeWindow(id: 1)])
     let manager = WindowManager(
-      backend: backend, displays: FakeDisplays(), gate: FakeGate(isTrusted: false))
+      windowSystem: windowSystem, displays: FakeDisplays(), gate: FakeGate(isTrusted: false))
     manager.stop()
-    #expect(backend.moves.isEmpty)
+    #expect(windowSystem.moves.isEmpty)
   }
 
   // MARK: - After a crash

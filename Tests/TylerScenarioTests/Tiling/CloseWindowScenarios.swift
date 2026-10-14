@@ -13,7 +13,7 @@ struct CloseWindowScenarios {
     let scenario = await Scenario(workspaces: [1: [1, 2, 3]])
     await scenario.focus(2)
     #expect(await scenario.command("window close") == .ok)
-    #expect(scenario.harness.backend.closeCalls == [WindowID(2)])
+    #expect(scenario.harness.windowSystem.closeCalls == [WindowID(2)])
     #expect(scenario.list(1) == [1, 3])
     #expect(scenario.frame(of: 1) == scenario.rect(.leftHalf))
     #expect(scenario.frame(of: 3) == scenario.rect(.rightHalf))
@@ -22,7 +22,7 @@ struct CloseWindowScenarios {
   @Test func withoutAFocusedWindowNothingCloses() async {
     let scenario = await Scenario(workspaces: [1: [1, 2]])
     #expect(await scenario.command("window close") == .error("no focused window"))
-    #expect(scenario.harness.backend.closeCalls.isEmpty)
+    #expect(scenario.harness.windowSystem.closeCalls.isEmpty)
   }
 
   @Test func closingWorksWithTilingOff() async {
@@ -30,12 +30,12 @@ struct CloseWindowScenarios {
     await scenario.command("tiling off")
     await scenario.focus(2)
     #expect(await scenario.command("window close") == .ok)
-    #expect(scenario.harness.backend.closeCalls == [WindowID(2)])
+    #expect(scenario.harness.windowSystem.closeCalls == [WindowID(2)])
   }
 
   @Test func aWindowThatRefusesStaysInItsList() async {
     let scenario = await Scenario(workspaces: [1: [1, 2]])
-    scenario.harness.backend.failingClose = [WindowID(2)]
+    scenario.harness.windowSystem.failingClose = [WindowID(2)]
     await scenario.focus(2)
     #expect(
       await scenario.command("window close")

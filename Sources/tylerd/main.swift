@@ -81,7 +81,7 @@ let indicator = IndicatorGroup([
   TextIndicator(perform: performFromIndicator), MapIndicator(perform: performFromIndicator),
 ])
 let manager = WindowManager(
-  backend: AXBackend(),
+  windowSystem: AXBackend(),
   displays: ScreenDisplayProvider(),
   gate: gate,
   config: configLoad.config,

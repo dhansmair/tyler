@@ -31,11 +31,12 @@ struct DisplayCommandScenarios {
     let harness = harness()
     await harness.osFocus(4)
     await harness.osFocus(1)
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     #expect(harness.manager.switchDisplay(.number(2)) == .message("display 2"))
     #expect(focusedKey(harness) == external.key)
-    #expect(harness.backend.focusCalls == [WindowID(4)], "the window that last had focus there")
-    #expect(harness.backend.moves.isEmpty)
+    #expect(
+      harness.windowSystem.focusCalls == [WindowID(4)], "the window that last had focus there")
+    #expect(harness.windowSystem.moves.isEmpty)
   }
 
   @Test func prevAndNextWrap() async {
@@ -62,11 +63,11 @@ struct DisplayCommandScenarios {
     _ = harness.manager.switchWorkspace(.number(6))
     _ = harness.manager.switchDisplay(.number(1))
     await harness.osFocus(1)
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
 
     #expect(harness.manager.switchDisplay(.number(2)) == .message("display 2"))
-    #expect(harness.backend.focusCalls.isEmpty)
-    #expect(harness.backend.unfocusCount == 1, "keys don't go to the laptop's window")
+    #expect(harness.windowSystem.focusCalls.isEmpty)
+    #expect(harness.windowSystem.unfocusCount == 1, "keys don't go to the laptop's window")
     #expect(focusedKey(harness) == external.key)
   }
 

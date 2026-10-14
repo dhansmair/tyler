@@ -29,12 +29,12 @@ struct ModifierDragScenarios {
       [1, 2, 3], config: config, configFile: configFile, pointer: pointer, stacking: stacking,
       clock: clock)
     await harness.settle()
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     return harness
   }
 
   private func moved(in harness: ManagerHarness) -> Set<UInt32> {
-    Set(harness.backend.moves.map(\.id.rawValue))
+    Set(harness.windowSystem.moves.map(\.id.rawValue))
   }
 
   // MARK: - What can be grabbed
@@ -103,7 +103,7 @@ struct ModifierDragScenarios {
   @Test func grabsNothingDuringAnotherDrag() async {
     let harness = await makeHarness()
     pointer.isPrimaryButtonDown = true
-    await harness.backend.userMoves(1, to: Self.main.offsetBy(dx: 30, dy: 0))
+    await harness.windowSystem.userMoves(1, to: Self.main.offsetBy(dx: 30, dy: 0))
     #expect(!pointer.wouldGrab(at: Self.overWindow2))
   }
 
@@ -114,8 +114,8 @@ struct ModifierDragScenarios {
     pointer.beginGrab(.move, at: Self.overWindow1)
     pointer.moveGrab(to: CGPoint(x: 450, y: 320))
     await harness.settle()
-    #expect(harness.backend.nudges.last?.origin == CGPoint(x: 105, y: 58))
-    #expect(harness.backend.focusCalls == [WindowID(1)])
+    #expect(harness.windowSystem.nudges.last?.origin == CGPoint(x: 105, y: 58))
+    #expect(harness.windowSystem.focusCalls == [WindowID(1)])
   }
 
   @Test func aWindowDroppedOnAnotherSwapsWithIt() async {
@@ -148,11 +148,11 @@ struct ModifierDragScenarios {
     pointer.moveGrab(to: CGPoint(x: 420, y: 300))
     pointer.moveGrab(to: CGPoint(x: 430, y: 300))
     await harness.settle()
-    #expect(harness.backend.nudges.count == 1, "the interval since the first step isn't up")
+    #expect(harness.windowSystem.nudges.count == 1, "the interval since the first step isn't up")
 
     clock.advance(by: .milliseconds(Config.Mouse().followInterval))
     await harness.settle()
-    #expect(harness.backend.nudges.map(\.origin.x) == [65, 85], "420 was skipped")
+    #expect(harness.windowSystem.nudges.map(\.origin.x) == [65, 85], "420 was skipped")
   }
 
   @Test func theReleaseTakesAStepStillWaiting() async {
@@ -163,7 +163,7 @@ struct ModifierDragScenarios {
     pointer.moveGrab(to: CGPoint(x: 600, y: 300))
     pointer.endGrab(at: CGPoint(x: 600, y: 300))
     await harness.settle()
-    #expect(harness.backend.nudges.map(\.origin.x) == [65, 255])
+    #expect(harness.windowSystem.nudges.map(\.origin.x) == [65, 255])
     #expect(harness.frame(of: 1) == Self.main, "dropped over its own slot")
   }
 
@@ -174,7 +174,7 @@ struct ModifierDragScenarios {
     pointer.moveGrab(to: CGPoint(x: 450, y: 300))
     await harness.settle()
     // The app reports a size it chose itself, with one edge where it was.
-    await harness.backend.userMoves(1, to: CGRect(x: 55, y: 38, width: 800, height: 1131))
+    await harness.windowSystem.userMoves(1, to: CGRect(x: 55, y: 38, width: 800, height: 1131))
     #expect(!moved(in: harness).contains(2), "the layout didn't follow it")
   }
 
@@ -215,7 +215,7 @@ struct ModifierDragScenarios {
   /// does: dragging its top edge down still moves the divider above it.
   @Test func aWindowLargerThanItsSlotStillResizes() async {
     let harness = await makeHarness()
-    await harness.backend.userMoves(3, to: CGRect(x: 928, y: 604, width: 872, height: 625))
+    await harness.windowSystem.userMoves(3, to: CGRect(x: 928, y: 604, width: 872, height: 625))
     let start = CGPoint(x: 1600, y: 700)
     pointer.beginGrab(.resize, at: start)
     pointer.moveGrab(to: CGPoint(x: start.x, y: start.y + 66))
@@ -228,12 +228,12 @@ struct ModifierDragScenarios {
 
   /// Floats window 2, which stays where it was, in front of the others.
   private func floatWindow2(in harness: ManagerHarness) async {
-    harness.backend.send(.focused(WindowID(2)))
+    harness.windowSystem.send(.focused(WindowID(2)))
     await harness.settle()
     _ = harness.manager.setFloat(.toggle)
     await harness.settle()
     stacking.front = [2]
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
   }
 
   @Test func aFloatedWindowMovesFreely() async {
@@ -243,8 +243,8 @@ struct ModifierDragScenarios {
     pointer.moveGrab(to: CGPoint(x: 1200, y: 350))
     pointer.endGrab(at: CGPoint(x: 1200, y: 350))
     await harness.settle()
-    #expect(harness.backend.nudges.last?.origin == CGPoint(x: 828, y: 88))
-    #expect(harness.backend.moves.isEmpty, "nothing is tiled or put back")
+    #expect(harness.windowSystem.nudges.last?.origin == CGPoint(x: 828, y: 88))
+    #expect(harness.windowSystem.moves.isEmpty, "nothing is tiled or put back")
   }
 
   @Test func aFloatedWindowResizesFreely() async {
@@ -255,7 +255,7 @@ struct ModifierDragScenarios {
     pointer.moveGrab(to: CGPoint(x: 960, y: 530))
     pointer.endGrab(at: CGPoint(x: 960, y: 530))
     await harness.settle()
-    #expect(harness.backend.moves.map(\.id) == [WindowID(2)])
+    #expect(harness.windowSystem.moves.map(\.id) == [WindowID(2)])
     #expect(harness.frame(of: 2) == CGRect(x: 888, y: 38, width: 912, height: 596))
   }
 
@@ -267,10 +267,10 @@ struct ModifierDragScenarios {
       pointer.moveGrab(to: CGPoint(x: CGFloat(left), y: 500))
       await harness.settle()
     }
-    #expect(harness.backend.moves.count == 1)
+    #expect(harness.windowSystem.moves.count == 1)
     clock.advance(by: .milliseconds(Config.Mouse().followInterval))
     await harness.settle()
-    #expect(harness.backend.moves.count == 2)
+    #expect(harness.windowSystem.moves.count == 2)
     #expect(harness.frame(of: 2)?.minX == 898)
   }
 }

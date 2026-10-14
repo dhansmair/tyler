@@ -8,7 +8,7 @@ import TylerRuntime
 final class WindowMover {
   private static let log = TylerLog(category: "manager")
 
-  private let backend: any WindowSystem
+  private let windowSystem: any WindowSystem
   private let displays: any DisplayProvider
   /// `stop()` puts every window back here, and `tiling off` does it for parked ones.
   private(set) var originalFrames: [WindowID: CGRect] = [:]
@@ -21,10 +21,10 @@ final class WindowMover {
   private var meter: Meter?
 
   init(
-    backend: any WindowSystem, displays: any DisplayProvider,
+    windowSystem: any WindowSystem, displays: any DisplayProvider,
     clock: any Clock<Duration> = ContinuousClock()
   ) {
-    self.backend = backend
+    self.windowSystem = windowSystem
     self.displays = displays
     self.clock = clock
   }
@@ -42,9 +42,9 @@ final class WindowMover {
       do {
         try timed(placement.id) { () throws(WindowSystemError) in
           if inPassing {
-            try backend.setFrameInPassing(placement.frame, of: placement.id)
+            try windowSystem.setFrameInPassing(placement.frame, of: placement.id)
           } else {
-            try backend.setFrame(placement.frame, of: placement.id)
+            try windowSystem.setFrame(placement.frame, of: placement.id)
           }
         }
       } catch {
@@ -65,9 +65,9 @@ final class WindowMover {
     do {
       try timed(windowID) { () throws(WindowSystemError) in
         if let size {
-          try backend.setFrameStep(CGRect(origin: origin, size: size), of: windowID)
+          try windowSystem.setFrameStep(CGRect(origin: origin, size: size), of: windowID)
         } else {
-          try backend.setPosition(origin, of: windowID)
+          try windowSystem.setPosition(origin, of: windowID)
         }
       }
     } catch {
@@ -82,7 +82,7 @@ final class WindowMover {
   func carry(_ windowID: WindowID, to origin: CGPoint, known registry: WindowRegistry) {
     do {
       try timed(windowID) { () throws(WindowSystemError) in
-        try backend.setPosition(origin, of: windowID)
+        try windowSystem.setPosition(origin, of: windowID)
       }
     } catch {
       Self.log.error(
@@ -94,7 +94,7 @@ final class WindowMover {
   func carry(_ windowID: WindowID, toFrame frame: CGRect, known registry: WindowRegistry) {
     do {
       try timed(windowID) { () throws(WindowSystemError) in
-        try backend.setFrame(frame, of: windowID)
+        try windowSystem.setFrame(frame, of: windowID)
       }
     } catch {
       Self.log.error(
@@ -113,17 +113,17 @@ final class WindowMover {
 
   func focus(_ windowID: WindowID, known registry: WindowRegistry) throws(WindowSystemError) {
     Self.log.info("window focusing - \(Self.named(windowID, registry))")
-    try backend.focus(windowID)
+    try windowSystem.focus(windowID)
   }
 
   func close(_ windowID: WindowID, known registry: WindowRegistry) throws(WindowSystemError) {
     Self.log.info("window closing - \(Self.named(windowID, registry))")
-    try backend.close(windowID)
+    try windowSystem.close(windowID)
   }
 
   /// Takes keyboard focus away from every window.
   func unfocus() throws(WindowSystemError) {
-    try backend.unfocus()
+    try windowSystem.unfocus()
   }
 
   /// Lets go of every window still on its way to another display: a move the app refused is
@@ -163,7 +163,7 @@ final class WindowMover {
 
   /// Starts adding up what the writes cost, dropping a measurement still running.
   func startMeasuring() {
-    _ = backend.takeQueuedWrites()
+    _ = windowSystem.takeQueuedWrites()
     let clock = clock  // Swift opens the existential from a local, not from the stored property.
     meter = Meter(elapsed: Self.stopwatch(on: clock))
   }
@@ -171,7 +171,7 @@ final class WindowMover {
   /// Ends the measurement, returning what it found.
   func stopMeasuring() -> MotionCost? {
     defer { meter = nil }
-    meter?.cost.add(backend.takeQueuedWrites())
+    meter?.cost.add(windowSystem.takeQueuedWrites())
     return meter?.cost
   }
 

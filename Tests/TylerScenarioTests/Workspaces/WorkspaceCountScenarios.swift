@@ -95,10 +95,10 @@ struct WorkspaceCountScenarios {
     let saved = harness.manager.handOver()
 
     let successor = harness.successor(saved: saved, config: config(count: 1))
-    let backend = successor.backend
+    let windowSystem = successor.windowSystem
     let halves = TallLayout().frames(count: 2, in: harness.area)
     #expect(
-      [1, 2].map { id in backend.windows.first { $0.id == WindowID(id) }?.frame } == halves,
+      [1, 2].map { id in windowSystem.windows.first { $0.id == WindowID(id) }?.frame } == halves,
       "window 2 was merged into workspace 1, the one on screen, and came out of parking")
   }
 }

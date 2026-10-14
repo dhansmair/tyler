@@ -27,7 +27,7 @@ struct FocusFollowsMouseScenarios {
       ids, animator: animator, config: config, configFile: configFile, pointer: pointer,
       stacking: stacking, clock: clock)
     await harness.osFocus(1)
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     return harness
   }
 
@@ -54,9 +54,9 @@ struct FocusFollowsMouseScenarios {
   @Test func aRestFocusesTheWindowUnderThePointer() async {
     let harness = await makeHarness()
     await move(to: Self.overWindow2, thenWait: 99, in: harness)
-    #expect(harness.backend.focusCalls.isEmpty, "the pointer hasn't rested long enough")
+    #expect(harness.windowSystem.focusCalls.isEmpty, "the pointer hasn't rested long enough")
     await wait(1, in: harness)
-    #expect(harness.backend.focusCalls == [WindowID(2)])
+    #expect(harness.windowSystem.focusCalls == [WindowID(2)])
   }
 
   @Test func theDelayComesFromTheConfig() async {
@@ -64,18 +64,18 @@ struct FocusFollowsMouseScenarios {
     config.mouse.focusDelay = 300
     let harness = await makeHarness(config: config)
     await move(to: Self.overWindow2, thenWait: 299, in: harness)
-    #expect(harness.backend.focusCalls.isEmpty)
+    #expect(harness.windowSystem.focusCalls.isEmpty)
     await wait(1, in: harness)
-    #expect(harness.backend.focusCalls == [WindowID(2)])
+    #expect(harness.windowSystem.focusCalls == [WindowID(2)])
   }
 
   @Test func onlyTheLastMoveCounts() async {
     let harness = await makeHarness()
     await move(to: Self.overWindow2, thenWait: 60, in: harness)
     await move(to: Self.overWindow3, thenWait: 60, in: harness)
-    #expect(harness.backend.focusCalls.isEmpty, "the pointer swept on before resting")
+    #expect(harness.windowSystem.focusCalls.isEmpty, "the pointer swept on before resting")
     await wait(40, in: harness)
-    #expect(harness.backend.focusCalls == [WindowID(3)])
+    #expect(harness.windowSystem.focusCalls == [WindowID(3)])
     #expect(stacking.queries == [Self.overWindow3], "nothing is looked up before a rest")
   }
 
@@ -90,19 +90,19 @@ struct FocusFollowsMouseScenarios {
   @Test func theFocusedWindowIsLeftAlone() async {
     let harness = await makeHarness()
     await move(to: Self.overWindow1, in: harness)
-    #expect(harness.backend.focusCalls.isEmpty)
+    #expect(harness.windowSystem.focusCalls.isEmpty)
   }
 
   @Test func aFloatInFrontOfATiledWindowGetsTheFocus() async {
     let harness = await makeHarness([1, 2, 3, 9])
     await harness.osFocus(9)
     #expect(harness.manager.setFloat(.toggle) == .ok)
-    await harness.backend.userMoves(9, to: CGRect(x: 1200, y: 200, width: 300, height: 200))
+    await harness.windowSystem.userMoves(9, to: CGRect(x: 1200, y: 200, width: 300, height: 200))
     await harness.osFocus(1)
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     stacking.front = [9]
     await move(to: CGPoint(x: 1300, y: 300), in: harness)
-    #expect(harness.backend.focusCalls == [WindowID(9)])
+    #expect(harness.windowSystem.focusCalls == [WindowID(9)])
   }
 
   @Test func aParkedWindowsSliverNeverTakesTheFocus() async {
@@ -113,9 +113,9 @@ struct FocusFollowsMouseScenarios {
     stacking.front = [1]
     let edge = CGPoint(x: (harness.frame(of: 1)?.minX ?? 0) + 0.5, y: 600)
     #expect(stacking.topmostWindow(at: edge) == StackedWindow(id: WindowID(1), layer: 0))
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     await move(to: edge, in: harness)
-    #expect(harness.backend.focusCalls.isEmpty)
+    #expect(harness.windowSystem.focusCalls.isEmpty)
     #expect(harness.manager.workspaces.currentIndex == 0)
   }
 
@@ -126,9 +126,9 @@ struct FocusFollowsMouseScenarios {
     #expect(harness.isParked(3))
     stacking.front = [3]
     let edge = CGPoint(x: (harness.frame(of: 3)?.minX ?? 0) + 0.5, y: 600)
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     await move(to: edge, in: harness)
-    #expect(harness.backend.focusCalls.isEmpty)
+    #expect(harness.windowSystem.focusCalls.isEmpty)
     #expect(harness.isParked(3), "the strip didn't scroll")
   }
 
@@ -138,14 +138,14 @@ struct FocusFollowsMouseScenarios {
     let harness = await makeHarness([1, 2, 9])
     await harness.osFocus(9)
     #expect(harness.manager.setFloat(.toggle) == .ok)
-    await harness.backend.userMoves(9, to: CGRect(x: 0, y: 0, width: 1800, height: 1169))
+    await harness.windowSystem.userMoves(9, to: CGRect(x: 0, y: 0, width: 1800, height: 1169))
     await harness.osFocus(1)
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     stacking.front = [9]
     await move(to: location, in: harness)
-    #expect(harness.backend.focusCalls.isEmpty)
+    #expect(harness.windowSystem.focusCalls.isEmpty)
     await move(to: Self.overWindow2, in: harness)
-    #expect(harness.backend.focusCalls == [WindowID(9)], "inside the visible frame it counts")
+    #expect(harness.windowSystem.focusCalls == [WindowID(9)], "inside the visible frame it counts")
   }
 
   enum Obstacle: CaseIterable, Sendable {
@@ -168,9 +168,9 @@ struct FocusFollowsMouseScenarios {
     case .swipe: pointer.swipe(.began)
     }
     await harness.settle()
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     await wait(100, in: harness)
-    #expect(harness.backend.focusCalls.isEmpty)
+    #expect(harness.windowSystem.focusCalls.isEmpty)
   }
 
   @Test func whenOffMovesAreNotEvenWatched() async {
@@ -183,15 +183,15 @@ struct FocusFollowsMouseScenarios {
   @Test func aStillPointerKeepsTheKeyboardsFocus() async {
     let harness = await makeHarness([1, 2])
     await move(to: Self.overWindow2, in: harness)
-    #expect(harness.backend.focusCalls == [WindowID(2)])
+    #expect(harness.windowSystem.focusCalls == [WindowID(2)])
     await harness.osFocus(2)
     #expect(harness.manager.focus(.prev) == .ok)
     _ = harness.manager.switchWorkspace(.next)
     _ = harness.manager.switchWorkspace(.prev)
     await harness.settle()
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     await wait(1000, in: harness)
-    #expect(harness.backend.focusCalls.isEmpty, "only movement moves the focus")
+    #expect(harness.windowSystem.focusCalls.isEmpty, "only movement moves the focus")
   }
 
   @Test func reloadTurnsItOnAndOff() async {
@@ -208,6 +208,6 @@ struct FocusFollowsMouseScenarios {
     _ = harness.manager.reload()
     #expect(!pointer.watchesMoves)
     await wait(100, in: harness)
-    #expect(harness.backend.focusCalls.isEmpty, "the waiting focus was dropped")
+    #expect(harness.windowSystem.focusCalls.isEmpty, "the waiting focus was dropped")
   }
 }

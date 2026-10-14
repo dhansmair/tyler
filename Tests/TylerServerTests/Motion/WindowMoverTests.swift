@@ -9,14 +9,14 @@ import TylerTestSupport
 @Suite("WindowMover")
 @MainActor
 struct WindowMoverTests {
-  private let backend = FakeWindowSystem(windows: spread([1, 2]))
+  private let windowSystem = FakeWindowSystem(windows: spread([1, 2]))
   private let displays = FakeDisplays(displays: [FakeDisplays.main, FakeDisplays.right])
   private let mover: WindowMover
   private var registry = WindowRegistry()
 
   init() {
-    mover = WindowMover(backend: backend, displays: displays)
-    registry.replaceAll(backend.windows)
+    mover = WindowMover(windowSystem: windowSystem, displays: displays)
+    registry.replaceAll(windowSystem.windows)
   }
 
   private func originalFrame(_ index: Int) -> CGRect { ManagerHarness.originalFrame(index: index) }
@@ -39,8 +39,8 @@ struct WindowMoverTests {
   @Test func aWindowTheUserCarriesIsNotRemembered() {
     mover.carry(WindowID(1), to: CGPoint(x: 70, y: 70), known: registry)
     mover.carry(WindowID(2), toFrame: CGRect(x: 0, y: 0, width: 90, height: 90), known: registry)
-    #expect(backend.nudges.map(\.id) == [WindowID(1)])
-    #expect(backend.moves.map(\.id) == [WindowID(2)])
+    #expect(windowSystem.nudges.map(\.id) == [WindowID(1)])
+    #expect(windowSystem.moves.map(\.id) == [WindowID(2)])
     #expect(mover.originalFrames.isEmpty)
   }
 
@@ -78,7 +78,7 @@ struct WindowMoverTests {
     try harness.manager.requestFocus(WindowID(2))
     #expect(harness.manager.mover.originalFrames[WindowID(2)] != nil)
     #expect(harness.manager.interpreter.expectedFocus == [WindowID(2)])
-    harness.backend.send(.destroyed(WindowID(2)))
+    harness.windowSystem.send(.destroyed(WindowID(2)))
     await harness.settle()
     #expect(harness.manager.mover.originalFrames[WindowID(2)] == nil)
     #expect(harness.manager.interpreter.expectedFocus.isEmpty)

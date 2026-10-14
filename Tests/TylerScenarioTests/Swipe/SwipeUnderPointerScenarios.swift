@@ -32,7 +32,7 @@ struct SwipeUnderPointerScenarios {
       _ = harness.manager.moveToWorkspace(.number(6), follow: false)
     }
     await harness.osFocus(1)
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     return harness
   }
 

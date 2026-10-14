@@ -21,15 +21,15 @@ struct SwapScenarios {
   private let outside = CGPoint(x: 10, y: 10)
 
   private let pointer = FakePointer()
-  private let backend: FakeWindowSystem
+  private let windowSystem: FakeWindowSystem
   // Held here because the manager's event pumps only keep it weakly.
   private let manager: WindowManager
 
   init() async {
     let harness = ManagerHarness([1, 2, 3], pointer: pointer, clock: TestClock())
-    (manager, backend) = (harness.manager, harness.backend)
+    (manager, windowSystem) = (harness.manager, harness.windowSystem)
     await settle()
-    backend.clearRecordedCalls()
+    windowSystem.clearRecordedCalls()
   }
 
   /// The user drags window 3 by its title bar: the app moves it, keeping its size, and reports it.
@@ -39,7 +39,7 @@ struct SwapScenarios {
   }
 
   private func moveWindow(_ id: UInt32, to frame: CGRect) async {
-    await backend.userMoves(id, to: frame)
+    await windowSystem.userMoves(id, to: frame)
   }
 
   private func dragPointer(to location: CGPoint) async {
@@ -52,7 +52,7 @@ struct SwapScenarios {
     await settle()
   }
 
-  private func frame(of id: UInt32) -> CGRect? { backend.frame(of: id) }
+  private func frame(of id: UInt32) -> CGRect? { windowSystem.frame(of: id) }
 
   private var order: [UInt32] {
     manager.workspaces.current.windows.map(\.rawValue)
@@ -64,7 +64,7 @@ struct SwapScenarios {
     await pickUpLowerWindow()
     await dragPointer(to: overMain)
 
-    #expect(backend.moves == [Placement(id: WindowID(1), frame: lower)])
+    #expect(windowSystem.moves == [Placement(id: WindowID(1), frame: lower)])
     #expect(order == [1, 2, 3], "nothing is swapped before the release")
   }
 
@@ -73,7 +73,7 @@ struct SwapScenarios {
     await dragPointer(to: overMain)
     await dragPointer(to: CGPoint(x: 400, y: 700))
 
-    #expect(backend.moves.count == 1)
+    #expect(windowSystem.moves.count == 1)
   }
 
   @Test func movingOnToAnotherWindowPutsTheFirstOneBack() async {
@@ -139,7 +139,7 @@ struct SwapScenarios {
   }
 
   @Test func theDraggedWindowKeepsFocus() async {
-    backend.send(.focused(WindowID(3)))
+    windowSystem.send(.focused(WindowID(3)))
     await settle()
     await pickUpLowerWindow()
     await release(at: overMain)
@@ -153,9 +153,9 @@ struct SwapScenarios {
     pointer.isPrimaryButtonDown = true
     // Window 3's top edge is the divider below window 2.
     await moveWindow(3, to: CGRect(x: 928, y: 504, width: 872, height: 665))
-    backend.clearRecordedCalls()
+    windowSystem.clearRecordedCalls()
     await dragPointer(to: overMain)
-    #expect(backend.moves.isEmpty)
+    #expect(windowSystem.moves.isEmpty)
 
     await release(at: overMain)
     #expect(order == [1, 2, 3])
@@ -163,11 +163,11 @@ struct SwapScenarios {
 
   @Test func inFullNothingSwaps() async {
     #expect(manager.setLayout(.set(.full)) == .message("layout full"))
-    backend.clearRecordedCalls()
+    windowSystem.clearRecordedCalls()
     pointer.isPrimaryButtonDown = true
     await moveWindow(2, to: CGRect(x: 300, y: 200, width: 1745, height: 1131))
     await dragPointer(to: overMain)
-    #expect(backend.moves.isEmpty)
+    #expect(windowSystem.moves.isEmpty)
 
     await release(at: overMain)
     #expect(order == [1, 2, 3])
@@ -177,7 +177,7 @@ struct SwapScenarios {
     await dragPointer(to: overMain)
     await release(at: overMain)
 
-    #expect(backend.moves.isEmpty)
+    #expect(windowSystem.moves.isEmpty)
     #expect(order == [1, 2, 3])
   }
 
@@ -205,13 +205,13 @@ struct SwapScenarios {
     await pickUpLowerWindow()
     await dragPointer(to: overMain)
     // Kept in the fake so that a move of it would succeed and show up.
-    backend.send(.destroyed(WindowID(1)))
+    windowSystem.send(.destroyed(WindowID(1)))
     await settle()
-    backend.clearRecordedCalls()
+    windowSystem.clearRecordedCalls()
     await release(at: outside)
 
     #expect(order == [2, 3])
-    #expect(!backend.moves.contains { $0.id == WindowID(1) })
+    #expect(!windowSystem.moves.contains { $0.id == WindowID(1) })
   }
 
   @Test func droppingTheMainWindowOnTheStackSwapsIt() async {

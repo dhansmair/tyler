@@ -258,7 +258,7 @@ package final class AXBackend: WindowSystem {
   }
 }
 
-/// Moving and resizing windows; here because it reads and updates the backend's private state.
+/// Moving and resizing windows; here because it reads and updates the window system's private state.
 extension AXBackend {
   package func setFrame(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
     let element = try settledElement(windowID)
@@ -333,7 +333,7 @@ extension AXBackend {
   }
 }
 
-/// What an app's notifications change. In this file because it reads the backend's private state.
+/// What an app's notifications change. In this file because it reads the window system's private state.
 extension AXBackend {
   private func handle(_ notification: String, element: AXUIElement, processID: pid_t) {
     switch notification {

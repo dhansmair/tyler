@@ -23,7 +23,7 @@ struct DisplayChangeScenarios {
     await harness.osFocus(9)
     _ = harness.manager.moveToWorkspace(.number(2), follow: false)
     await harness.osFocus(1)
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     return harness
   }
 
@@ -48,8 +48,8 @@ struct DisplayChangeScenarios {
     let harness = await harness()
     await change(to: [FakeDisplays.main], in: harness)
     // macOS moves the external display's window onto the laptop.
-    await harness.backend.userMoves(3, to: CGRect(x: 200, y: 200, width: 800, height: 600))
-    #expect(harness.backend.moves.isEmpty, "nothing moves before the displays settle")
+    await harness.windowSystem.userMoves(3, to: CGRect(x: 200, y: 200, width: 800, height: 600))
+    #expect(harness.windowSystem.moves.isEmpty, "nothing moves before the displays settle")
 
     await waitForTheDisplaysToSettle(harness)
     #expect(harness.manager.rows.keys == [FakeDisplays.main.key])
@@ -110,7 +110,7 @@ struct DisplayChangeScenarios {
     let harness = await harness()
     await change(to: [FakeDisplays.main, external], in: harness)
     // Mid-change, the external display's window shows up on the laptop for a moment.
-    await harness.backend.userMoves(3, to: CGRect(x: 200, y: 200, width: 800, height: 600))
+    await harness.windowSystem.userMoves(3, to: CGRect(x: 200, y: 200, width: 800, height: 600))
     #expect(harness.workspaces()[3] == 5, "it doesn't join the laptop's workspace")
 
     await waitForTheDisplaysToSettle(harness)
@@ -120,7 +120,7 @@ struct DisplayChangeScenarios {
   @Test func aParkedWindowThatMacOSPulledBackIsParkedAgain() async {
     let harness = await harness()
     await change(to: [FakeDisplays.main, external], in: harness)
-    await harness.backend.userMoves(9, to: CGRect(x: 1139, y: 100, width: 300, height: 200))
+    await harness.windowSystem.userMoves(9, to: CGRect(x: 1139, y: 100, width: 300, height: 200))
     await waitForTheDisplaysToSettle(harness)
     #expect(harness.isParked(9))
   }
@@ -148,7 +148,7 @@ struct DisplayChangeScenarios {
     await change(to: [FakeDisplays.main, moved], in: harness)
     clock.advance(by: .milliseconds(600))
     await harness.settle()
-    #expect(harness.backend.moves.isEmpty, "the second change restarted the wait")
+    #expect(harness.windowSystem.moves.isEmpty, "the second change restarted the wait")
 
     clock.advance(by: .milliseconds(400))
     await harness.settle()
@@ -174,10 +174,10 @@ struct DisplayChangeScenarios {
   @Test func withTilingOffTheWorkspacesFollowButNoWindowMoves() async {
     let harness = await harness()
     _ = harness.manager.setTiling(.off)
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     await change(to: [FakeDisplays.main], in: harness)
     await waitForTheDisplaysToSettle(harness)
     #expect(harness.manager.rows.keys == [FakeDisplays.main.key])
-    #expect(harness.backend.moves.isEmpty)
+    #expect(harness.windowSystem.moves.isEmpty)
   }
 }

@@ -5,7 +5,7 @@ import TylerTestSupport
 
 @testable import TylerServer
 
-/// The steps of a slide don't wait for the apps: the real backend queues them per app, and they
+/// The steps of a slide don't wait for the apps: the real window system queues them per app, and they
 /// land late, or not at all when a newer one replaces them. Here the fake holds every step until
 /// the test releases it, so whatever ends a slide runs while its steps are still on their way. A
 /// window must end up where the last placement put it, never where a late step would.
@@ -25,8 +25,8 @@ struct QueuedMovesScenarios {
     await harness.osFocus(2)
     _ = harness.manager.moveToWorkspace(.next, follow: false)
     await runAnimations(harness)
-    harness.backend.holdsMoves = true
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.holdsMoves = true
+    harness.windowSystem.clearRecordedCalls()
     return harness
   }
 
@@ -46,7 +46,7 @@ struct QueuedMovesScenarios {
 
   /// The steps still held land now, as late as an app could take them.
   private func landLateSteps(_ harness: ManagerHarness) async {
-    harness.backend.releaseHeldMoves()
+    harness.windowSystem.releaseHeldMoves()
     await harness.settle()
   }
 
@@ -54,10 +54,10 @@ struct QueuedMovesScenarios {
     let harness = await makeHarness()
     _ = harness.manager.switchWorkspace(.next)
     await nextFrame(harness)
-    #expect(!harness.backend.heldMoves.isEmpty, "the first step is on its way")
+    #expect(!harness.windowSystem.heldMoves.isEmpty, "the first step is on its way")
 
     await runAnimations(harness)
-    #expect(harness.backend.heldMoves.isEmpty, "the final placement dropped what was left")
+    #expect(harness.windowSystem.heldMoves.isEmpty, "the final placement dropped what was left")
     await landLateSteps(harness)
     #expect(harness.frame(of: 2) == harness.area)
     #expect(harness.isParked(1))

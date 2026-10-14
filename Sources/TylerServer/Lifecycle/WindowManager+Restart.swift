@@ -34,7 +34,7 @@ extension WindowManager {
     pointer?.stop()
     stopDisplays()
     endDrag()
-    backend.stop()
+    windowSystem.stop()
     registry = WindowRegistry()
     rows = freshRows()
     bookkeeping = WindowBookkeeping()

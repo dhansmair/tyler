@@ -20,7 +20,7 @@ struct SwapAnimationScenarios {
       config: config, clock: clock)
     await harness.osFocus(1)
     await runAnimations(harness)
-    harness.backend.clearRecordedCalls()
+    harness.windowSystem.clearRecordedCalls()
     return harness
   }
 
@@ -41,7 +41,7 @@ struct SwapAnimationScenarios {
     _ = harness.manager.swap(.next)
     await runAnimations(harness)
 
-    let steps = harness.backend.frameSteps.filter { $0.id == WindowID(2) }.map(\.frame)
+    let steps = harness.windowSystem.frameSteps.filter { $0.id == WindowID(2) }.map(\.frame)
     #expect(steps.count == 2)
     #expect(steps.allSatisfy { main.minX < $0.minX && $0.minX < top.minX }, "between the slots")
     #expect(
@@ -50,8 +50,8 @@ struct SwapAnimationScenarios {
     #expect(harness.frame(of: 1) == top)
     #expect(harness.frame(of: 2) == main)
     #expect(harness.frame(of: 3) == bottom)
-    #expect(!harness.backend.frameSteps.contains { $0.id == WindowID(3) }, "its slot stays")
-    #expect(harness.backend.nudges.isEmpty, "both windows change size")
+    #expect(!harness.windowSystem.frameSteps.contains { $0.id == WindowID(3) }, "its slot stays")
+    #expect(harness.windowSystem.nudges.isEmpty, "both windows change size")
   }
 
   @Test func aZeroDurationSwapsAtOnce() async throws {
@@ -64,6 +64,6 @@ struct SwapAnimationScenarios {
     #expect(harness.frame(of: 1) == top)
     #expect(harness.frame(of: 2) == main)
     await runAnimations(harness)
-    #expect(harness.backend.nudges.isEmpty)
+    #expect(harness.windowSystem.nudges.isEmpty)
   }
 }

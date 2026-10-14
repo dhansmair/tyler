@@ -65,8 +65,8 @@ struct FocusedDisplayScenarios {
     await harness.osFocus(1)
     #expect(harness.manager.switchWorkspace(.number(5)) == .message("workspace 5"))
     #expect(focusedKey(harness) == external.key)
-    #expect(harness.backend.focusCalls.last == WindowID(3))
-    #expect(harness.backend.moves.isEmpty)
+    #expect(harness.windowSystem.focusCalls.last == WindowID(3))
+    #expect(harness.windowSystem.moves.isEmpty)
   }
 
   @Test func layoutCommandsActOnTheFocusedDisplay() async {
@@ -109,7 +109,7 @@ struct FocusedDisplayScenarios {
     #expect(harness.workspaces()[2] == 6)
     #expect(isParkedOnExternal(2, in: harness))
     #expect(harness.frame(of: 1) == harness.area, "window 1 fills the laptop alone")
-    #expect(harness.backend.focusCalls.last == WindowID(1), "focus stays on the laptop")
+    #expect(harness.windowSystem.focusCalls.last == WindowID(1), "focus stays on the laptop")
     #expect(focusedKey(harness) == FakeDisplays.main.key)
   }
 
@@ -129,7 +129,7 @@ struct FocusedDisplayScenarios {
     #expect(focusedKey(harness) == external.key)
     #expect(harness.frame(of: 2) == external.visibleFrame)
     #expect(isParkedOnExternal(3, in: harness))
-    #expect(harness.backend.focusCalls.last == WindowID(2))
+    #expect(harness.windowSystem.focusCalls.last == WindowID(2))
   }
 
   @Test func aFocusedWindowArrivingOnAHiddenWorkspaceOfTheExternalDisplayShowsItThere() async {
@@ -137,8 +137,8 @@ struct FocusedDisplayScenarios {
     var firefox = makeWindow(
       id: 9, frame: CGRect(x: 700, y: 100, width: 300, height: 200), isFocused: true)
     firefox.appName = "Firefox"
-    harness.backend.windows.append(firefox)
-    harness.backend.send(.created(firefox))
+    harness.windowSystem.windows.append(firefox)
+    harness.windowSystem.send(.created(firefox))
     await harness.osFocus(9)
     #expect(focusedKey(harness) == external.key)
     #expect(harness.frame(of: 9) == external.visibleFrame)

@@ -13,7 +13,7 @@ package struct WindowDrift: Codable, Equatable, Sendable {
     case kind
     /// tylerd has the window, but macOS gave nothing for it: it closed, or the read failed.
     case unreadable
-    /// The backend tracks the window, but tylerd's own list doesn't have it.
+    /// The window system tracks the window, but tylerd's own list doesn't have it.
     case unlisted
     /// macOS focuses the window now, but tylerd has another one (or none) as focused: a focus
     /// notification went missing.
@@ -44,7 +44,7 @@ package struct WindowDrift: Codable, Equatable, Sendable {
   }
 
   /// Compares `believed` (tylerd's list) with `fresh`, in the order of `believed`, then the
-  /// windows only the backend has.
+  /// windows only the window system has.
   package static func compare(believed: [WindowInfo], fresh: FreshWindows) -> WindowDrift {
     let actual = Dictionary(fresh.tracked.map { ($0.id, $0) }) { first, _ in first }
     var differences: [Difference] = []
@@ -63,7 +63,7 @@ package struct WindowDrift: Codable, Equatable, Sendable {
       differences.append(
         Difference(
           id: window.id, appName: window.appName, field: .unlisted, believed: "not listed",
-          actual: "tracked by the backend"))
+          actual: "tracked by the window system"))
     }
     if let difference = focusDifference(believed: believed, fresh: fresh, actual: actual) {
       differences.append(difference)

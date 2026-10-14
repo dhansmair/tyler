@@ -84,7 +84,8 @@ struct DragController {
       return [.place(context.moves(toward: session.preview(arrival, in: tiling)))]
     }
     let undo = context.moves(toward: session.undoArrival(in: tiling))
-    return [.place(undo), .place(session.previewSwap(at: location, in: tiling))]
+    let duration = Duration.milliseconds(context.config.animations.dragPreview)
+    return [.place(undo), .preview(session.previewSwap(at: location, in: tiling), over: duration)]
   }
 
   /// The last size the dragged window had counts, then every window, the dragged one included,
@@ -129,13 +130,15 @@ struct DragController {
 
   /// The moves that end a drag: windows the preview moved go back to their slots, so a command
   /// or a workspace switch in the middle of a drag never leaves two windows in each other's
-  /// slots, or a display laid out for a window that never came.
+  /// slots, or a display laid out for a window that never came. The window the preview shows in
+  /// the dragged window's slot goes back whatever the registry says: an animated preview's steps
+  /// aren't reported back at once.
   func endingEffects(_ session: inout DragSession, model: Model) -> [Effect] {
     let tiling = tiling(model.rows)
     let undo: [Effect] = [.place(context.moves(toward: session.undoArrival(in: tiling)))]
-    guard let slot = session.previewTargetSlot(in: tiling), context.isTiling(model),
-      !context.isInPlace(slot)
-    else { return undo }
+    guard let slot = session.previewTargetSlot(in: tiling), context.isTiling(model) else {
+      return undo
+    }
     return undo + [.place([slot])]
   }
 

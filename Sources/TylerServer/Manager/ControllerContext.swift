@@ -40,11 +40,11 @@ struct ControllerContext {
 
   /// What ends whatever moves the windows, worked out against `model` as it is now: a slide jumps
   /// to its end, a swipe's windows go back where they started, and what a drag's preview moved
-  /// goes back to its slot.
+  /// goes back to its slot, once the preview has stopped moving it.
   func endInteractionEffects(_ model: Model) -> [Effect] {
     guard var session = dragSession else { return [.endSlideOrSwipe] }
-    return [.endSlideOrSwipe]
-      + DragController(context: self).endingEffects(&session, model: model) + [.forgetDrag]
+    return [.endSlideOrSwipe, .forgetDrag]
+      + DragController(context: self).endingEffects(&session, model: model)
   }
 
   /// This context once `endInteractionEffects` have run, for a decision that comes after them.

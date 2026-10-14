@@ -20,7 +20,7 @@ extension WindowManager {
     defer { if hasMoved { refreshGapCursor() } }
     for effect in effects {
       switch effect {
-      case .reconcile, .place, .placeInPassing, .nudge, .carry, .carryFrame, .animate,
+      case .reconcile, .place, .placeInPassing, .nudge, .carry, .carryFrame, .animate, .preview,
         .restoreOriginalFrames:
         setbacks.unplaced += move(effect)
         hasMoved = true
@@ -46,6 +46,7 @@ extension WindowManager {
     case .carry(let nudge): carry(nudge)
     case .carryFrame(let placement): carry(placement)
     case .animate(let transition): animate(transition)
+    case .preview(let placements, let duration): preview(placements, over: duration)
     case .restoreOriginalFrames(let windowIDs): restoreOriginalFrames(of: windowIDs)
     case .focus, .focusCurrentWorkspace, .endSlideOrSwipe, .forgetDrag, .releaseCrossings,
       .applyPointerSettings, .rememberOriginalFrames, .close:
@@ -63,7 +64,7 @@ extension WindowManager {
       }
     case .focusCurrentWorkspace:
       if let problem = focusCurrentWorkspace() { setbacks.unfocused = problem }
-    case .reconcile, .place, .placeInPassing, .nudge, .carry, .carryFrame, .animate,
+    case .reconcile, .place, .placeInPassing, .nudge, .carry, .carryFrame, .animate, .preview,
       .restoreOriginalFrames,
       .endSlideOrSwipe, .forgetDrag, .releaseCrossings, .applyPointerSettings,
       .rememberOriginalFrames, .close:
@@ -78,7 +79,7 @@ extension WindowManager {
     case .releaseCrossings(let windowIDs): mover.release(windowIDs)
     case .rememberOriginalFrames(let frames): mover.remember(originalFrames: frames)
     case .applyPointerSettings: applyPointerSettings()
-    case .reconcile, .place, .placeInPassing, .nudge, .carry, .carryFrame, .animate,
+    case .reconcile, .place, .placeInPassing, .nudge, .carry, .carryFrame, .animate, .preview,
       .restoreOriginalFrames,
       .focus, .focusCurrentWorkspace, .close:
       break

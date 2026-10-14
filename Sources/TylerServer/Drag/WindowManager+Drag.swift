@@ -80,6 +80,7 @@ extension WindowManager {
   }
 
   func forgetDrag() {
+    finishPreview()
     drag?.throttle.release()
     drag = nil
   }

@@ -8,6 +8,7 @@ extension WindowManager {
   /// a trackpad swipe may move.
   var animatingWindows: Set<WindowID> {
     Set(slide?.finals.map(\.id) ?? []).union(swipingWindows)
+      .union(drag?.preview?.finals.map(\.id) ?? [])
   }
 
   /// Returns how many windows could not be placed synchronously; failures during the slide are

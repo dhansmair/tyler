@@ -42,7 +42,7 @@ Each step of following a drag moves every other window, and slow apps take a whi
 
 ## Swapping windows by dragging
 
-Drag a tiled window by its title bar over another tiled window, and that window moves into the slot of the one you're dragging, to show what will happen. Let go there, and the two windows swap slots: the dragged window takes the other's place in the tiling list, and each takes the size of its new slot. Move on to a third window and the first goes back; move back over the dragged window's own slot, onto a gap or outside the tiled area, and nothing will swap.
+Drag a tiled window by its title bar over another tiled window, and that window slides into the slot of the one you're dragging, to show what will happen (`animations.drag-preview` sets how long it takes; 0 moves it at once). Let go there, and the two windows swap slots: the dragged window takes the other's place in the tiling list, and each takes the size of its new slot. Move on to a third window and the first goes back; move back over the dragged window's own slot, onto a gap or outside the tiled area, and nothing will swap.
 
 What counts is the window under the mouse pointer, not the one the dragged window covers most. Letting go anywhere without a window under the pointer puts the dragged window back in its slot. The window you drag keeps focus. In `full` every window fills the same area, so dragging never swaps there. Floated windows take no part: you can't drag one into the layout, and a tiled window can't swap with one. A command or a workspace switch in the middle of a drag ends it, and the windows go back to their slots.
 

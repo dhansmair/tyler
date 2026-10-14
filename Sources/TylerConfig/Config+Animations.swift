@@ -5,9 +5,12 @@ extension Config {
 
     /// The windows of `tyler window swap`.
     package var swap: Int
+    /// A window the drag preview moves to where a drop would put it.
+    package var dragPreview: Int
 
-    package init(swap: Int = 250) {
+    package init(swap: Int = 250, dragPreview: Int = 200) {
       self.swap = swap
+      self.dragPreview = dragPreview
     }
   }
 }
@@ -18,11 +21,18 @@ extension Config.Animations {
   }
 
   /// The keys of `[animations]`, and how each is read.
-  static let settings: [Setting<Self>] = [swapSetting]
+  static let settings: [Setting<Self>] = [swapSetting, dragPreviewSetting]
 
   private static let swapSetting = Setting<Self>(
     "swap",
     read: { animations, value, name throws(ConfigError) in
       animations.swap = try Section.integer(value, name, in: durationRange, unit: "milliseconds")
     }, write: { .integer($0.swap) })
+
+  private static let dragPreviewSetting = Setting<Self>(
+    "drag-preview",
+    read: { animations, value, name throws(ConfigError) in
+      animations.dragPreview = try Section.integer(
+        value, name, in: durationRange, unit: "milliseconds")
+    }, write: { .integer($0.dragPreview) })
 }

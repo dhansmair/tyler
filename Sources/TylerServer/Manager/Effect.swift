@@ -26,6 +26,9 @@ enum Effect: Equatable {
   case carry(Nudge)
   case carryFrame(Placement)
   case animate(Transition)
+  /// What the drag preview shows, the windows moving there over the duration; a preview still
+  /// moving windows hands them over where they are.
+  case preview([Placement], over: Duration)
   /// A failure makes the command's reply an error.
   case focus(WindowID)
   case focusCurrentWorkspace

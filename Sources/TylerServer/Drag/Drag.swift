@@ -11,6 +11,10 @@ struct Drag {
   var pendingLocation: CGPoint?
   /// Follows resizes, and the pointer of a grab, at most once per `mouse.follow-interval`.
   var throttle = Throttle()
+  /// The windows the preview is moving, while it moves them.
+  var preview: DragPreview?
+  /// How many previews have moved windows, to tell a finished one from its successor.
+  var previewCount = 0
 
   var windowID: WindowID { session.windowID }
 }

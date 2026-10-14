@@ -68,8 +68,8 @@ it is made, and change it here when it changes.
 - **The animation has a clock.** `Animator` is a struct with an injected `Clock` (the test seam):
   250 ms, frames on an 8 ms grid, progress from elapsed time, so a slow app makes a slide coarser
   but not longer. A snap is an animation with zero steps.
-- **Each animation other than the slide has its own duration** in `[animations]` (`swap`), carried
-  by its `Transition`; 0 makes it a snap through the same code, with no "animations on" switch.
+- **Each animation other than the slide has its own duration** in `[animations]` (`swap`,
+  `drag-preview`), carried by its `Transition` or effect; 0 makes it a snap through the same code, with no "animations on" switch.
   A swap runs as a slide (a command mid-swap jumps it to its end). A swapped window changes size
   along the way, in step with its position: resizing only at the ends (shrink, move, grow) looked
   odd. A resize makes the app lay out again (18–23 ms a write), so these steps go through the
@@ -207,6 +207,11 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
 - **Swap by drag**: the slot under the pointer is the target, previewed live; a drop in a gap or
   outside the tiled area snaps back. The dragged window keeps its size during the preview (resizing
   it without animation felt awkward, and animating it would re-layout the app every frame).
+  The windows the preview moves slide there, resizing on the way (`animations.drag-preview`). The
+  animation belongs to the drag (`DragPreview`), not the slide, so the drag goes on; a new target
+  takes each window over from the frame it was last given. Ending the drag places the preview's
+  finals first, then puts the target back whatever the registry says: queued steps are reported
+  back late, so the registry can't tell where a window the preview moved is.
 - **Moving and resizing with a modifier** (Option by default): an active event tap holds back the
   mouse-down; past 4 points it becomes tyler's move or resize and the rest of the gesture is
   swallowed, otherwise the held click is posted again so it reaches the app. The tap runs on the

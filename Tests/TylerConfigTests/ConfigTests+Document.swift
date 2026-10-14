@@ -10,6 +10,7 @@ struct ConfigDocumentTests {
   private static let everythingChanged = """
     [animations]
     swap = 0
+    drag-preview = 300
 
     [editor]
     command = "open -na Ghostty --args -e nvim"

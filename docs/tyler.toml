@@ -47,7 +47,8 @@ fingers = 3            # fingers for that swipe, 3 or 4
 swipe-distance = 0.3   # trackpad widths to swipe a whole workspace across, 0.1 to 1.0
 
 [animations]
-swap = 250   # milliseconds `tyler window swap` takes to move the windows; 0 is instant
+swap = 250           # milliseconds `tyler window swap` takes to move the windows; 0 is instant
+drag-preview = 200   # milliseconds the drag preview takes to move a window; 0 is instant
 
 [indicators.text]
 enabled = true   # the workspace numbers in the menu bar, like 1 [2] 3 4

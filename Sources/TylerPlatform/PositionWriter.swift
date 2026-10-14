@@ -33,14 +33,14 @@ final class PositionWriter {
   func move(
     _ windowID: WindowID, _ element: AXUIElement, to origin: CGPoint, in processID: pid_t
   ) throws(BackendError) {
-    try skipIfUnresponsive(windowID, in: processID)
+    try skipIfUnresponsive(processID)
     queue(for: processID).submit(Move(element: element, origin: origin), for: windowID)
   }
 
   /// Drops the move still waiting for `windowID` and waits until its app's queue is idle, so a
   /// write on the main thread lands after every move already sent.
   func settle(_ windowID: WindowID, in processID: pid_t) throws(BackendError) {
-    try skipIfUnresponsive(windowID, in: processID)
+    try skipIfUnresponsive(processID)
     guard let queue = queues[processID] else { return }
     queue.discard(windowID)
     queue.waitUntilWritten()
@@ -77,11 +77,9 @@ final class PositionWriter {
     }
   }
 
-  private func skipIfUnresponsive(
-    _ windowID: WindowID, in processID: pid_t
-  ) throws(BackendError) {
+  private func skipIfUnresponsive(_ processID: pid_t) throws(BackendError) {
     guard unresponsive.isSkipped(processID, at: now()) else { return }
-    throw .refused("cannot move window \(windowID): its app didn't answer a moment ago")
+    throw .refused("its app didn't answer a moment ago")
   }
 
   private func queue(for processID: pid_t) -> AppWriteQueue<WindowID, Move> {

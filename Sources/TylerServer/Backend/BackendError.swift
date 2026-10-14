@@ -4,7 +4,8 @@ import TylerCore
 package enum BackendError: Error, Equatable, Sendable, CustomStringConvertible {
   /// The window closed (or its app quit) before the action reached it.
   case windowGone(WindowID)
-  /// The app or the system refused; the text says why.
+  /// The app or the system refused; the text says why, and only that: the caller names the action
+  /// and the window.
   case refused(String)
 
   package var description: String {

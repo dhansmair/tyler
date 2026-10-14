@@ -102,7 +102,7 @@ struct PositionWriterTests {
       now: { now.instant }, write: { windowID, move in apps.write(windowID, move) })
     writer.noteTimeout(of: 100)
 
-    #expect(throws: BackendError.self) {
+    #expect(throws: BackendError.refused("its app didn't answer a moment ago")) {
       try writer.move(WindowID(2), element, to: CGPoint(x: 20, y: 0), in: 100)
     }
     #expect(throws: BackendError.self) { try writer.settle(WindowID(2), in: 100) }

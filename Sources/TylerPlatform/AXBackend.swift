@@ -70,12 +70,12 @@ package final class AXBackend: WindowBackend {
     else {
       throw .windowGone(windowID)
     }
-    try check(AXBridge.raise(window: element, in: processID), for: windowID, action: "focus")
+    try check(AXBridge.raise(window: element, in: processID), for: windowID)
   }
 
   package func close(_ windowID: WindowID) throws(BackendError) {
     guard let element = windows.element(of: windowID) else { throw .windowGone(windowID) }
-    try check(AXBridge.close(window: element), for: windowID, action: "close")
+    try check(AXBridge.close(window: element), for: windowID)
   }
 
   /// Makes tylerd frontmost. It has no windows, so keys go nowhere until the user or a command
@@ -83,16 +83,12 @@ package final class AXBackend: WindowBackend {
   package func unfocus() throws(BackendError) {
     let status = AXBridge.makeFrontmost(processID: ProcessInfo.processInfo.processIdentifier)
     guard status == .success else {
-      throw .refused("cannot take focus away: AX error \(status.rawValue)")
+      throw Self.refusal(status)
     }
     setFocus(nil)
   }
 
-  private func check(
-    _ status: AXError,
-    for windowID: WindowID,
-    action: String
-  ) throws(BackendError) {
+  private func check(_ status: AXError, for windowID: WindowID) throws(BackendError) {
     switch status {
     case .success:
       return
@@ -106,8 +102,14 @@ package final class AXBackend: WindowBackend {
       if status == .cannotComplete, let processID = windows.processID(of: windowID) {
         positions.noteTimeout(of: processID)
       }
-      throw .refused("cannot \(action) window \(windowID): AX error \(status.rawValue)")
+      throw Self.refusal(status)
     }
+  }
+
+  /// Only the reason: the caller says what it asked for, of which window.
+  static func refusal(_ status: AXError) -> BackendError {
+    status == .cannotComplete
+      ? .refused("its app didn't answer") : .refused("AX error \(status.rawValue)")
   }
 
   // MARK: - Apps
@@ -265,7 +267,7 @@ extension AXBackend {
     var current = windows.lastRead(of: windowID)?.frame
     var actual: CGRect?
     if current?.size == frame.size {
-      try check(AXBridge.setPosition(frame.origin, of: element), for: windowID, action: "move")
+      try check(AXBridge.setPosition(frame.origin, of: element), for: windowID)
       actual = AXBridge.frame(of: element)
       current = actual
     }
@@ -273,9 +275,9 @@ extension AXBackend {
       if let current, let origin = frame.clearingOrigin(from: current) {
         Self.log.debug(
           "window moved before resizing - \(named(windowID)) - it reached past its frame")
-        try check(AXBridge.setPosition(origin, of: element), for: windowID, action: "move")
+        try check(AXBridge.setPosition(origin, of: element), for: windowID)
       }
-      try check(AXBridge.setFrame(frame, of: element), for: windowID, action: "move")
+      try check(AXBridge.setFrame(frame, of: element), for: windowID)
       actual = AXBridge.frame(of: element)
     }
     // The app may have clamped the size; tell the manager what it really is.
@@ -313,7 +315,7 @@ extension AXBackend {
       let writes = FrameWrite.inPassing(from: current, to: frame)
     else { return try setFrame(frame, of: windowID) }
     for write in writes {
-      try check(AXBridge.write(write, to: element), for: windowID, action: "move")
+      try check(AXBridge.write(write, to: element), for: windowID)
     }
   }
 }

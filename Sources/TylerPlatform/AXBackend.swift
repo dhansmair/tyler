@@ -103,6 +103,9 @@ package final class AXBackend: WindowBackend {
       forget(windowID)
       throw .windowGone(windowID)
     default:
+      if status == .cannotComplete, let processID = windows.processID(of: windowID) {
+        positions.noteTimeout(of: processID)
+      }
       throw .refused("cannot \(action) window \(windowID): AX error \(status.rawValue)")
     }
   }
@@ -290,7 +293,7 @@ extension AXBackend {
     guard let element = windows.element(of: windowID),
       let processID = windows.processID(of: windowID)
     else { throw .windowGone(windowID) }
-    positions.move(windowID, element, to: origin, in: processID)
+    try positions.move(windowID, element, to: origin, in: processID)
   }
 
   package func takeQueuedWrites() -> MotionCost.Queued { positions.takeStatistics() }
@@ -298,7 +301,9 @@ extension AXBackend {
   /// The window's element, once the moves still queued for it are written.
   private func settledElement(_ windowID: WindowID) throws(BackendError) -> AXUIElement {
     guard let element = windows.element(of: windowID) else { throw .windowGone(windowID) }
-    if let processID = windows.processID(of: windowID) { positions.settle(windowID, in: processID) }
+    if let processID = windows.processID(of: windowID) {
+      try positions.settle(windowID, in: processID)
+    }
     return element
   }
 

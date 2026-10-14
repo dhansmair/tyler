@@ -3,6 +3,7 @@ import Dispatch
 import Foundation
 import Testing
 import TylerCore
+import TylerServer
 
 @testable import TylerPlatform
 
@@ -38,58 +39,80 @@ struct PositionWriterTests {
   private let element = AXUIElementCreateApplication(1)
 
   private func makeWriter(_ apps: Apps) -> PositionWriter {
-    PositionWriter { windowID, move in apps.write(windowID, move) }
+    PositionWriter(write: { windowID, move in apps.write(windowID, move) })
   }
 
   private func openSoon(_ gate: DispatchSemaphore) {
     DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(30)) { gate.signal() }
   }
 
-  @Test func settlingWaitsForTheMoveUnderWayAndDropsTheOneWaiting() {
+  @Test func settlingWaitsForTheMoveUnderWayAndDropsTheOneWaiting() throws {
     let apps = Apps()
     let writer = makeWriter(apps)
-    writer.move(WindowID(1), element, to: CGPoint(x: 10, y: 0), in: 100)
+    try writer.move(WindowID(1), element, to: CGPoint(x: 10, y: 0), in: 100)
     apps.entered.wait()
-    writer.move(WindowID(1), element, to: CGPoint(x: 20, y: 0), in: 100)
-    writer.move(WindowID(2), element, to: CGPoint(x: 30, y: 0), in: 100)
+    try writer.move(WindowID(1), element, to: CGPoint(x: 20, y: 0), in: 100)
+    try writer.move(WindowID(2), element, to: CGPoint(x: 30, y: 0), in: 100)
     openSoon(apps.gate)
 
-    writer.settle(WindowID(1), in: 100)
+    try writer.settle(WindowID(1), in: 100)
     #expect(apps.written == ["1@10", "2@30"], "1@20 was dropped; the app's other window landed")
   }
 
-  @Test func anAppDoesNotWaitForAnother() {
+  @Test func anAppDoesNotWaitForAnother() throws {
     let apps = Apps()
     let writer = makeWriter(apps)
-    writer.move(WindowID(1), element, to: CGPoint(x: 10, y: 0), in: 100)
+    try writer.move(WindowID(1), element, to: CGPoint(x: 10, y: 0), in: 100)
     apps.entered.wait()
-    writer.move(WindowID(2), element, to: CGPoint(x: 30, y: 0), in: 200)
-    writer.settle(WindowID(3), in: 200)
+    try writer.move(WindowID(2), element, to: CGPoint(x: 30, y: 0), in: 200)
+    try writer.settle(WindowID(3), in: 200)
     #expect(apps.written == ["2@30"], "app 100 is still held")
 
     apps.gate.signal()
-    writer.settle(WindowID(1), in: 100)
+    try writer.settle(WindowID(1), in: 100)
     #expect(apps.written == ["2@30", "1@10"])
   }
 
-  @Test func settlingAnAppWithoutMovesReturnsAtOnce() {
+  @Test func settlingAnAppWithoutMovesReturnsAtOnce() throws {
     let writer = makeWriter(Apps())
-    writer.settle(WindowID(1), in: 100)
+    try writer.settle(WindowID(1), in: 100)
   }
 
-  @Test func statisticsAddUpEveryApp() {
+  @Test func statisticsAddUpEveryApp() throws {
     let apps = Apps()
     let writer = makeWriter(apps)
-    writer.move(WindowID(1), element, to: CGPoint(x: 10, y: 0), in: 100)
+    try writer.move(WindowID(1), element, to: CGPoint(x: 10, y: 0), in: 100)
     apps.entered.wait()
-    writer.move(WindowID(1), element, to: CGPoint(x: 20, y: 0), in: 100)
-    writer.move(WindowID(1), element, to: CGPoint(x: 25, y: 0), in: 100)
-    writer.move(WindowID(2), element, to: CGPoint(x: 30, y: 0), in: 200)
+    try writer.move(WindowID(1), element, to: CGPoint(x: 20, y: 0), in: 100)
+    try writer.move(WindowID(1), element, to: CGPoint(x: 25, y: 0), in: 100)
+    try writer.move(WindowID(2), element, to: CGPoint(x: 30, y: 0), in: 200)
     apps.gate.signal()
-    writer.settle(WindowID(3), in: 100)
-    writer.settle(WindowID(3), in: 200)
+    try writer.settle(WindowID(3), in: 100)
+    try writer.settle(WindowID(3), in: 200)
     let statistics = writer.takeStatistics()
     #expect(statistics.written == 3)
     #expect(statistics.skipped == 1)
+  }
+
+  @Test func anAppThatTimedOutIsLeftAloneForThePause() throws {
+    final class Now { var instant = ContinuousClock.now }
+    let now = Now()
+    let apps = Apps()
+    let writer = PositionWriter(
+      now: { now.instant }, write: { windowID, move in apps.write(windowID, move) })
+    writer.noteTimeout(of: 100)
+
+    #expect(throws: BackendError.self) {
+      try writer.move(WindowID(2), element, to: CGPoint(x: 20, y: 0), in: 100)
+    }
+    #expect(throws: BackendError.self) { try writer.settle(WindowID(2), in: 100) }
+    try writer.move(WindowID(3), element, to: CGPoint(x: 30, y: 0), in: 200)
+    try writer.settle(WindowID(4), in: 200)
+    #expect(apps.written == ["3@30"], "another app is still moved")
+
+    now.instant += UnresponsiveApps.pause
+    try writer.move(WindowID(2), element, to: CGPoint(x: 25, y: 0), in: 100)
+    try writer.settle(WindowID(4), in: 100)
+    #expect(apps.written == ["3@30", "2@25"])
   }
 }

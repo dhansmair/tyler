@@ -57,9 +57,11 @@ own issues are in `strip-layout.md`. Remove an item when it is fixed (in the sam
   visible) until the next `tyler start`, which tiles them again.
 - **Native fullscreen windows, windows on other macOS Spaces and apps that aren't regular apps**
   (menu bar apps) are left alone.
-- **An unresponsive app stalls tylerd** for up to the 1 s AX timeout per call on the main thread:
-  the final placement of a switch, a `tyler` command, the event taps. The steps of a slide don't
-  wait for it (`PositionWriter`); its windows skip frames.
+- **An unresponsive app stalls tylerd** for the 1 s AX timeout on the main thread once (the final
+  placement of a switch, a `tyler` command, the event taps): after a move times out, its windows
+  aren't moved for 5 s (`UnresponsiveApps`), then each move tries again. Reads, focusing and
+  closing still wait for it every time. The steps of a slide don't wait for it
+  (`PositionWriter`); its windows skip frames.
 - **Option+drag inside apps** (Finder's copy, block selection in terminals) is lost while
   `[mouse] modifier` is Option.
 - **Terminals and windows with a minimum size** don't fill their slot exactly.

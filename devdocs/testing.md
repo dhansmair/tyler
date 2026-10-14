@@ -152,6 +152,9 @@ Tick an item with the date when it is checked; record what was measured in `maco
 - [ ] `AXBackend`'s attach retries (6 × 500 ms) are enough for slow-launching apps, and an app that ran out of them is attached when it comes to the front
 - [ ] A hung app (`kill -STOP <pid>`) with a window in a slide stalls each AX call for 1 s, not about
   6 s: the system-wide messaging timeout reaches window elements
+- [ ] After a hung app's move times out, switches for the next 5 s don't wait for it (the log says
+  `app skipping started`, and the slide lines show no 1 s placement), and its windows move again
+  after `kill -CONT <pid>` and 5 s
 - [ ] A window closed without a destroyed notification leaves its slot at the next command that
   moves it (an AX call on it fails with `invalidUIElement`)
 - [ ] `NSApplication.run()` is needed rather than `dispatchMain()`

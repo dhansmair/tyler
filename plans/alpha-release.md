@@ -55,10 +55,13 @@ and described the setup, was squashed (D4).
 
 One app that stops answering can stall all of `tylerd`, and with it every click in every app.
 
-- [ ] **Skip an app that doesn't answer for a few seconds** (`devdocs/REFACTORING.md`). Nothing
+- [x] **Skip an app that doesn't answer for a few seconds** (`devdocs/REFACTORING.md`). Nothing
   remembers that an app timed out. The steps of a slide no longer wait for it (each app is written
   on its own queue, `AppWriteQueue`), but the final placement of every switch and every later
   command still wait the full 1 s Accessibility timeout for it again.
+  Done: a move that times out (`cannotComplete`) leaves that app's windows unmoved for 5 s
+  (`UnresponsiveApps`), each counted as not placed. Still to check on real windows
+  (`devdocs/testing.md`).
 - [ ] **Run the mouse button interceptor off the main thread** (`devdocs/REFACTORING.md`). It is
   an active event tap on every mouse down, drag and up, and its callback runs on tylerd's main
   thread: a stall there holds every click on the system for up to about 1 s.

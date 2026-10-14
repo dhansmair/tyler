@@ -4,7 +4,7 @@ Coding agents tend to add features on top of each other and rarely refactor, whi
 
 ## How to work through it
 
-In progress: skip an app that doesn't answer for a few seconds (worktree hung-app).
+In progress: none.
 
 - **Claim an item first:** put it on the "In progress" line above (with who is working on it) and commit, so a parallel agent doesn't take it too; clear it when the item is done. See "Parallel agents" in CLAUDE.md.
 - **One item (or one step of an item) per commit**, like any other increment. Delete it here in the same commit.
@@ -19,7 +19,6 @@ Sizes: XS < 20 lines, S < 60, M < 200, L larger.
 
 - [ ] **Trim comments that restate the code.** Much of the tree carries explanatory doc comments (see "Comments earn their place" in `coding-guidelines.md`). Go one target at a time, smallest first; rename where a better name makes a comment redundant. Comments only, plus renames: S to M per target, low risk.
 - [ ] **[perf] Run the mouse button interceptor off the main thread.** `MouseButtonInterceptor` is an active head-insert session event tap on every mouse down, drag and up, and its callback runs on the main thread. Every click in every app waits for tylerd's main actor, so a stall there (an AX call on a hung app, an attach) stalls all clicks until macOS turns the tap off, about 1 s, and `turnBackOn` arms it for the next one. Run it on a thread of its own with a snapshot of what it needs to decide (the modifier, which windows are tiled), and only hold events while the modifier is down. L, medium risk. **[live]**
-- [ ] **Skip an app that doesn't answer for a few seconds.** Nothing remembers that an app timed out: each slide frame (`nudge`) and each final `place` on its windows waits the full 1 s AX timeout again, on every later switch too. After a `.cannotComplete` from a pid, skip its windows (count them as not placed) for a few seconds. S, low risk. **[live]**
 
 ## Considered and not worth it
 

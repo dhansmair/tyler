@@ -30,7 +30,7 @@ package final class FakeWindowSystem: WindowSystem {
   /// only the newest
   /// move of each window in `heldMoves` until `releaseHeldMoves()`, and a `setFrame` (or
   /// `setFrameInPassing`) first drops its window's held move and lands the others of its app, as
-  /// `StepWriter.settle` does.
+  /// an `AppConnection` does when it settles.
   package var holdsMoves = false
   package private(set) var heldMoves: [WindowID: CGRect] = [:]
   /// Runs at every move, so a test can let time pass while an app moves a window.

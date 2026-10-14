@@ -42,11 +42,27 @@ it is made, and change it here when it changes.
   main thread (an AX call to a busy app, up to the 1 s messaging timeout) also stalls every `tyler`
   command.
 - **The steps of a slide, swipe or move don't wait for the apps.** `setPosition` and
-  `setFrameStep` hand each step to a serial queue per app (`StepWriter`, `AppWriteQueue`), which
+  `setFrameStep` hand each step to a serial queue per app (each `AppConnection`'s `AppWriteQueue`), which
   writes only the newest step of each window: the windows of a frame move side by side, a slow app skips frames instead of
   holding up the others, and the main thread stays free for input. Everything else (a full
   `setFrame`, focusing, reads) stays on the main thread, and a `setFrame` first waits for the
   window's app's queue, so a final placement always lands after the last step.
+- **The window system talks to each app through a connection of its own.** `MacWindowSystem`
+  knows every app: which run, attaching and retrying, which window is in which app, and the
+  focused window across them. An `AppConnection` knows one app: its windows, reading them, its
+  notifications, its step queue, moving, focusing and closing, and whether it answers. It reports
+  to a closure and never learns about workspaces, layouts or other apps. Before, one 400-line
+  class joined six helpers by process ID, and following one app meant joining them in your head.
+- **Accessibility and `NSWorkspace` sit behind dumb seams.** `AXClient` and `WorkspaceClient`
+  forward one to one to the C Accessibility API and to `NSWorkspace`, with no tyler logic, so
+  everything above them (`AXBridge` included) is unit tested against `FakeAXClient`, a small AX
+  emulator, and `FakeWorkspaceClient`. The window system holds `any AXClient`, an existential on
+  the path of every step: each call is a round trip to an app that takes milliseconds, so the
+  dispatch is noise.
+- **Types are named after their responsibility, not their technology.** Only the lowest layer,
+  whose responsibility is a technology, is named after it (`AXBridge`, `AXClient`). A port's real
+  implementation is `Mac<Port>` and its fake `Fake<Port>`; the ports are in `TylerServer/Ports/`,
+  and TylerPlatform has a folder per port. "Backend" said nothing about what was behind it.
 - **One place moves and focuses windows** (`WindowMover`). It remembers what moving needs: each
   window's frame before tylerd first moved it, the windows on their way to another display, and
   the focus events that are tylerd's own echo. A window the user grabs with the modifier goes

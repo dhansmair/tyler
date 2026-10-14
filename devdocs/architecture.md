@@ -43,7 +43,7 @@ flowchart TB
   cli["tyler CLI"]
 
   subgraph platform["TylerPlatform: adapters, the anti-corruption layer"]
-    ax["MacWindowSystem"]
+    ax["MacWindowSystem, an AppConnection per app"]
     listeners["TrackpadGestureListener, PointerMoveListener, MouseButtonInterceptor"]
     screens["MacDisplayProvider"]
     menu["TylerIndicators: menu bar items"]
@@ -175,6 +175,28 @@ it has one) and the feature's input handling and pacing as `extension WindowMana
 `Motion/` the timing types and the mover, `Model/` the model and the registry, `Manager/` the
 manager itself, the controllers' shared types and the effect runner, `Input/` the window
 event interpreter. `Ports/` holds the ports, the protocols in front of macOS that TylerPlatform implements.
+
+TylerPlatform has a folder per port, named after it, with its real implementation `Mac<Port>`
+and what only that implementation uses. Types are named after their responsibility; only the
+lowest layer, whose responsibility is a technology, is named after it. The window system reads
+top-down in layers:
+
+```
+WindowManager, controllers      the domain: windows, apps, workspaces, displays, layouts
+        │  WindowSystem (the port)
+MacWindowSystem                 all apps: which run, attaching and retrying, which window is in
+        │                       which app, the focused window, the event stream
+AppConnection (one per app)     one app: its windows and reading them, its notifications, its
+        │                       step queue, moving, focusing and closing, whether it answers
+AXBridge                        the typed Accessibility vocabulary tylerd speaks
+        │
+AXClient, WorkspaceClient       dumb one-to-one seams over the C Accessibility API and
+                                NSWorkspace (MacAXClient, MacWorkspaceClient; faked in tests)
+```
+
+The window system holds `any AXClient`, on the path of every step of a slide: an exception to
+keeping the hot paths free of existentials, since each call is a round trip to an app that
+takes milliseconds.
 
 ## Rules
 

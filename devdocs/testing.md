@@ -171,7 +171,9 @@ Tick an item with the date when it is checked; record what was measured in `maco
 - [x] After a hung app's move times out, switches for the next 5 s don't wait for it (the log says
   `app skipping started`, and the slide lines show no 1 s placement), and its windows move again
   after `kill -CONT <pid>` and 5 s (2026-10-14: with focusing skipped too, the first switch back to
-  the frozen app's workspace took 1.01 s, the next ones 0.05 s, every slide 31 even frames)
+  the frozen app's workspace took 1.01 s, the next ones 0.05 s, every slide 31 even frames;
+  again 2026-10-15 with a connection per app: 1.04 s once, then 0.03 s, and placed again after
+  the pause)
 - [ ] A window closed without a destroyed notification leaves its slot at the next command that
   moves it (an AX call on it fails with `invalidUIElement`)
 - [ ] `NSApplication.run()` is needed rather than `dispatchMain()`

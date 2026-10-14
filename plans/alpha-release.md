@@ -33,7 +33,7 @@ settled or stale, what was missing).
   findings, the risky ones fixed, the rest filed); a slide and a swipe profiled with a slow app,
   and sped up (one cost line per slide, swipe and drag; writes to each app on a queue of its own).
 - **A hung app** (2026-10-14): after a call to an app times out, its windows aren't moved or
-  focused for 5 s (`UnresponsiveApps`); checked with `kill -STOP` (a switch waits 1 s once, then
+  focused for 5 s; checked with `kill -STOP` (a switch waits 1 s once, then
   0.05 s). Running the mouse button interceptor off the main thread moved out of the alpha (see
   Out of scope).
 - **Features (phase 3):** `[layouts]` in the config (the default cycle is now tall, grid, full;
@@ -71,7 +71,7 @@ Each with a regression test (`devdocs/known-issues.md` has the details).
 
 ### Structure
 
-- [ ] **One connection per app** (`plans/app-connection.md`): the platform's window code in layers
+- [x] **One connection per app** (2026-10-15): the platform's window code in layers
   (all apps, one app, the raw calls), and the ports named after what they are: `WindowSystem`
   and its real `MacWindowSystem` (ex `AXBackend`), `Mac…` for every real implementation, the
   protocols in `TylerServer/Ports/`. No change in behaviour; it is the code a reader of the repository would struggle with most, and it makes the

@@ -4,7 +4,7 @@ Coding agents tend to add features on top of each other and rarely refactor, whi
 
 ## How to work through it
 
-In progress: one connection per app (`plans/app-connection.md`), in the worktree `../tyler-app-connection` on branch `app-connection`.
+In progress: none.
 
 - **Where items come from:** after every feature, the agent that built it re-reads the feature's whole diff for refactorings (see "Review a feature once it works" in CLAUDE.md). Small finds are done at once; larger ones land here.
 - **Claim an item first:** put it on the "In progress" line above (with who is working on it) and commit, so a parallel agent doesn't take it too; clear it when the item is done. See "Parallel agents" in CLAUDE.md.

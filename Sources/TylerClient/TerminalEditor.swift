@@ -12,17 +12,30 @@ package enum TerminalEditor {
         try files.createDirectory(atPath: directory, withIntermediateDirectories: true)
         try Data().write(to: URL(fileURLWithPath: path))
       }
-      let process = try Process.run(
-        URL(fileURLWithPath: "/bin/sh"), arguments: ["-c", editor + #" "$1""#, "sh", path])
-      process.waitUntilExit()
-      guard process.terminationStatus == 0 else {
-        throw EditorError.failed("\(editor) exited with status \(process.terminationStatus)")
-      }
-    } catch let error as EditorError {
-      throw error
     } catch {
-      throw .failed("cannot open \(path): \(error.localizedDescription)")
+      throw .failed("cannot create \(path): \(error.localizedDescription)")
     }
+    let status = try run(["/bin/sh", "-c", editor + #" "$1""#, "sh", path])
+    guard status == 0 else { throw .failed("\(editor) exited with status \(status)") }
+  }
+
+  /// Not `Process`: it starts the child in a process group of its own, which isn't the terminal's
+  /// foreground group, so an editor that reads the terminal is stopped (SIGTTIN) and hangs.
+  /// `posix_spawn` keeps the child in tyler's group.
+  private static func run(_ command: [String]) throws(EditorError) -> Int32 {
+    let arguments = command.map { strdup($0) } + [nil]
+    defer {
+      for argument in arguments { free(argument) }
+    }
+    var pid: pid_t = 0
+    let result = posix_spawn(&pid, command[0], nil, nil, arguments, environ)
+    guard result == 0 else { throw .failed(String(cString: strerror(result))) }
+    var status: Int32 = 0
+    while waitpid(pid, &status, 0) == -1 {
+      guard errno == EINTR else { throw .failed(String(cString: strerror(errno))) }
+    }
+    let signal = status & 0x7f
+    return signal == 0 ? (status >> 8) & 0xff : 128 + signal
   }
 
   package enum EditorError: Error, CustomStringConvertible {

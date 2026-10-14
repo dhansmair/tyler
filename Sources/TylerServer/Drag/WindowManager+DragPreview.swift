@@ -13,17 +13,12 @@ extension WindowManager {
     let running = drag?.preview
     running?.task.cancel()
     drag?.preview = nil
-    let newIDs = Set(placements.map(\.id))
-    let targets = (running?.finals ?? []).filter { !newIDs.contains($0.id) } + placements
-    let current = targets.compactMap { target in
-      (running?.frames[target.id] ?? registry.window(withID: target.id)?.frame).map {
-        Placement(id: target.id, frame: $0)
-      }
-    }
-    let transition = Transition(retiling: current, to: targets, duration: duration)
+    let transition = Transition(
+      handingOver: running?.finals ?? [], to: placements,
+      from: { running?.frames[$0] ?? registry.window(withID: $0)?.frame }, duration: duration)
     let animator = animator.over(duration)
     guard drag != nil, animator.stepCount > 0, !transition.tracks.isEmpty else {
-      return place(targets)
+      return place(transition.finals)
     }
     drag?.previewCount += 1
     let id = drag?.previewCount ?? 0
@@ -37,9 +32,7 @@ extension WindowManager {
       if isComplete { self?.completePreview(id) }
     }
     drag?.preview = DragPreview(
-      id: id, task: task, finals: targets,
-      frames: Dictionary(current.map { ($0.id, $0.frame) }, uniquingKeysWith: { first, _ in first })
-    )
+      id: id, task: task, finals: transition.finals, frames: transition.startFrames)
     return 0
   }
 

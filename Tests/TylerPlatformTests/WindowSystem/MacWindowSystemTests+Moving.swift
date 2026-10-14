@@ -96,6 +96,69 @@ struct MacWindowSystemMovingTests {
       ])
   }
 
+  // MARK: - Steps held up by a busy app
+
+  private func startedWithTwoApps() async -> WindowSystemHarness {
+    harness.addApp(100, windows: [1, 2])
+    harness.addApp(200, windows: [3, 4])
+    await harness.start()
+    _ = await harness.takeEvents()
+    return harness
+  }
+
+  private func step(_ id: UInt32, toX originX: CGFloat) throws {
+    try harness.windowSystem.setPosition(CGPoint(x: originX, y: 50), of: WindowID(id))
+  }
+
+  @Test func aFinalFrameWaitsForTheStepUnderWayAndDropsTheOneWaiting() async throws {
+    let harness = await startedWithTwoApps()
+    harness.accessibility.hold(1)
+    try step(1, toX: 10)
+    harness.accessibility.waitUntilHeld(1)
+    try step(1, toX: 20)
+    try step(2, toX: 30)
+    harness.accessibility.open(1, after: .milliseconds(30))
+
+    try harness.windowSystem.setFrame(
+      CGRect(x: 40, y: 50, width: 400, height: 300), of: WindowID(1))
+    #expect(
+      harness.accessibility.calls(on: 1)
+        == [.position(CGPoint(x: 10, y: 50)), .position(CGPoint(x: 40, y: 50))],
+      "the step to 20 was dropped")
+    #expect(harness.accessibility.calls(on: 2) == [.position(CGPoint(x: 30, y: 50))])
+  }
+
+  @Test func anAppDoesNotWaitForAnother() async throws {
+    let harness = await startedWithTwoApps()
+    harness.accessibility.hold(1)
+    try step(1, toX: 10)
+    harness.accessibility.waitUntilHeld(1)
+    try step(3, toX: 30)
+    try harness.windowSystem.setFrame(WindowSystemHarness.frame(of: 4), of: WindowID(4))
+    #expect(harness.accessibility.calls(on: 3) == [.position(CGPoint(x: 30, y: 50))])
+    #expect(harness.accessibility.calls(on: 1).isEmpty, "app 100 is still held")
+
+    harness.accessibility.open(1)
+    try harness.windowSystem.setFrame(WindowSystemHarness.frame(of: 2), of: WindowID(2))
+    #expect(harness.accessibility.calls(on: 1) == [.position(CGPoint(x: 10, y: 50))])
+  }
+
+  @Test func theQueuedWritesAddUpEveryApp() async throws {
+    let harness = await startedWithTwoApps()
+    harness.accessibility.hold(1)
+    try step(1, toX: 10)
+    harness.accessibility.waitUntilHeld(1)
+    try step(1, toX: 20)
+    try step(1, toX: 25)
+    try step(3, toX: 30)
+    harness.accessibility.open(1)
+    try harness.windowSystem.setFrame(WindowSystemHarness.frame(of: 2), of: WindowID(2))
+    try harness.windowSystem.setFrame(WindowSystemHarness.frame(of: 4), of: WindowID(4))
+    let queued = harness.windowSystem.takeQueuedWrites()
+    #expect(queued.written == 3)
+    #expect(queued.skipped == 1)
+  }
+
   @Test(arguments: [
     (
       CGRect(x: 0, y: 0, width: 500, height: 400),

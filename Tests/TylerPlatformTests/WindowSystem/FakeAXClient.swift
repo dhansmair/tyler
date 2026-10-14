@@ -39,6 +39,13 @@ final class FakeAXClient: AXClient, @unchecked Sendable {
     var registered: Set<Registration> = []
     var calls: [WindowID: [Call]] = [:]
     var frontmostRequests: [pid_t] = []
+    var gates: [WindowID: Gate] = [:]
+  }
+
+  /// A write held until the test opens it; the semaphores are safe from any thread.
+  private final class Gate: Sendable {
+    let entered = DispatchSemaphore(value: 0)
+    let open = DispatchSemaphore(value: 0)
   }
 
   private struct Registration: Hashable {
@@ -100,6 +107,29 @@ final class FakeAXClient: AXClient, @unchecked Sendable {
   /// The app refuses the next `times` attempts to observe it, as a freshly launched app does.
   func refuseObserving(_ app: pid_t, times: Int) {
     lock.withLock { state.observerRefusals[app] = times }
+  }
+
+  /// The next writes to the window wait until `open(_:)`, as a busy app makes them wait.
+  func hold(_ id: UInt32) {
+    lock.withLock { state.gates[WindowID(id)] = Gate() }
+  }
+
+  /// Returns once a write to the held window is waiting.
+  func waitUntilHeld(_ id: UInt32) {
+    lock.withLock { state.gates[WindowID(id)] }?.entered.wait()
+  }
+
+  /// Lets the held writes through, after `delay` on another thread: a test that settles the
+  /// window's app blocks the main thread until then.
+  func open(_ id: UInt32, after delay: DispatchTimeInterval = .never) {
+    guard let gate = lock.withLock({ state.gates.removeValue(forKey: WindowID(id)) }) else {
+      return
+    }
+    if delay == .never {
+      gate.open.signal()
+    } else {
+      DispatchQueue.global().asyncAfter(deadline: .now() + delay) { gate.open.signal() }
+    }
   }
 
   /// The app won't make the window smaller than `size`.
@@ -192,6 +222,10 @@ final class FakeAXClient: AXClient, @unchecked Sendable {
 
   func setAttributeValue(_ name: String, _ value: CFTypeRef, of element: AXUIElement) -> AXError {
     let key = Self.key(of: element)
+    if let id = Self.windowID(of: key), let gate = lock.withLock({ state.gates[id] }) {
+      gate.entered.signal()
+      gate.open.wait()
+    }
     return lock.withLock {
       if let error = error(for: key) { return error }
       if state.appWindows[key] != nil {

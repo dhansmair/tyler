@@ -9,7 +9,7 @@ import TylerServer
 /// moves from a `PointerMoveListener`, drags with the modifier or in a gap from a
 /// `MouseButtonInterceptor`.
 @MainActor
-package final class SystemPointerInput: PointerInput {
+package final class MacPointerInput: PointerInput {
   package let events: AsyncStream<PointerEvent>
 
   private let continuation: AsyncStream<PointerEvent>.Continuation

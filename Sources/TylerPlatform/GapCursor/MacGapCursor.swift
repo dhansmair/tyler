@@ -12,7 +12,7 @@ import TylerServer
 /// mouse events (a tracking area setting the cursor), the resize cursor shows. Whether the
 /// private call is still needed with the window was not settled.
 @MainActor
-package final class GapCursorWindow: GapCursor {
+package final class MacGapCursor: GapCursor {
   private let window: NSWindow
   private let content = CursorView()
 

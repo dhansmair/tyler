@@ -2,7 +2,7 @@ import CoreGraphics
 import TylerCore
 
 /// How the window server stacks the windows on screen, for finding the window under a point. The
-/// real implementation reads the window list (`TylerPlatform.CGWindowStacking`); tests use a fake.
+/// real implementation reads the window list (`TylerPlatform.MacWindowStacking`); tests use a fake.
 @MainActor
 package protocol WindowStacking: AnyObject {
   /// The frontmost on-screen window containing `point` (in Accessibility coordinates), of any

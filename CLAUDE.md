@@ -61,7 +61,7 @@ Sources/
     IPC/           IPCServer, CommandRouter
     Ports/         the protocols in front of macOS (WindowSystem, PointerInput, WindowStacking, …) and the events they speak
   TylerIndicators/ the menu bar items behind the Indicator protocol: pure models (TextTitle, IndicatorMenu, WorkspaceMap), unit tested, and thin AppKit classes (TextIndicator, MapIndicator, IndicatorGroup, the shared MenuBuilder)
-  TylerPlatform/ real macOS code (AX, NSWorkspace, NSScreen, the mouse button monitor, the window that shows the resize cursor over a gap (GapCursorWindow), the event taps: TrackpadGestureListener for swipes, PointerMoveListener for the pointer's moves, MouseButtonInterceptor for drags with the modifier, the window under the pointer in CGWindowStacking); not unit tested, keep it thin
+  TylerPlatform/ real macOS code, a folder per port with its real implementation `Mac<Port>` and what only it uses: WindowSystem/ (MacWindowSystem on AX and NSWorkspace, AXBridge, the per-app step queue), PointerInput/ (MacPointerInput and the event taps: TrackpadGestureListener for swipes, PointerMoveListener for the pointer's moves, MouseButtonInterceptor for drags with the modifier), DisplayProvider/ (NSScreen), WindowStacking/ (the window under the pointer), AccessibilityGate/, GapCursor/ (the window that shows the resize cursor over a gap); not unit tested, keep it thin
   TylerClient/   argv parsing, response formatting, IPC client
   tylerd/        server executable (thin)
   tyler/         CLI executable (thin)

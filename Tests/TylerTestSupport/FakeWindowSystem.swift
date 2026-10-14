@@ -26,7 +26,7 @@ package final class FakeWindowSystem: WindowSystem {
   package private(set) var focusCalls: [WindowID] = []
   /// Windows whose `setFrame` throws.
   package var failingMoves: Set<WindowID> = []
-  /// Whether moves wait, as `AXBackend`'s queues let them: `setPosition` and `setFrameStep` keep
+  /// Whether moves wait, as `MacWindowSystem`'s queues let them: `setPosition` and `setFrameStep` keep
   /// only the newest
   /// move of each window in `heldMoves` until `releaseHeldMoves()`, and a `setFrame` (or
   /// `setFrameInPassing`) first drops its window's held move and lands the others of its app, as

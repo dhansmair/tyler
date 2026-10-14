@@ -43,9 +43,9 @@ flowchart TB
   cli["tyler CLI"]
 
   subgraph platform["TylerPlatform: adapters, the anti-corruption layer"]
-    ax["AXBackend"]
+    ax["MacWindowSystem"]
     listeners["TrackpadGestureListener, PointerMoveListener, MouseButtonInterceptor"]
-    screens["ScreenDisplayProvider"]
+    screens["MacDisplayProvider"]
     menu["TylerIndicators: menu bar items"]
   end
 

@@ -59,7 +59,7 @@ do {
   if case .stale = error { forgetHandedOverState() }
 }
 
-let gate = SystemAccessibilityGate()
+let gate = MacAccessibilityGate()
 // The menu bar items send requests through the router, which only exists once the items do;
 // `indicatorRouter` closes that loop.
 var indicatorRouter: CommandRouter?
@@ -81,15 +81,15 @@ let indicator = IndicatorGroup([
   TextIndicator(perform: performFromIndicator), MapIndicator(perform: performFromIndicator),
 ])
 let manager = WindowManager(
-  windowSystem: AXBackend(),
-  displays: ScreenDisplayProvider(),
+  windowSystem: MacWindowSystem(),
+  displays: MacDisplayProvider(),
   gate: gate,
   config: configLoad.config,
   configSource: configSource,
   indicator: indicator,
-  pointer: SystemPointerInput(),
-  stacking: CGWindowStacking(),
-  gapCursor: GapCursorWindow(),
+  pointer: MacPointerInput(),
+  stacking: MacWindowStacking(),
+  gapCursor: MacGapCursor(),
   restoring: handedOver
 )
 // The binary's modification time at launch lets `tyler status` notice a rebuild since.

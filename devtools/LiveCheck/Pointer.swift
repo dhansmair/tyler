@@ -62,7 +62,7 @@ private final class PointerProbe {
         format: "rest at %@ after %d moves, %d windows listed in %.2f ms", format(location), moves,
         windows.count, elapsed))
     print("  under the pointer: \(topmost?.summary ?? "nothing")")
-    // tylerd's CGWindowStacking skips the overlays that cover a whole display (the Dock's,
+    // tylerd's MacWindowStacking skips the overlays that cover a whole display (the Dock's,
     // Notification Centre's).
     let seen = windows.first {
       $0.frame.contains(location) && !isOverlay(layer: $0.layer, frame: $0.frame)

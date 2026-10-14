@@ -2,7 +2,7 @@ import CoreGraphics
 import TylerCore
 
 /// The mouse and trackpad. The real implementation watches system-wide events
-/// (`TylerPlatform.SystemPointerInput`); tests use a fake.
+/// (`TylerPlatform.MacPointerInput`); tests use a fake.
 @MainActor
 package protocol PointerInput: AnyObject {
   /// Events from the moment `start()` is called. Subscribe before calling `start()`.

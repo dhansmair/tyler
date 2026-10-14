@@ -5,7 +5,7 @@ import TylerServer
 
 /// Reads the connected displays from AppKit and converts them to Accessibility coordinates.
 @MainActor
-package final class ScreenDisplayProvider: DisplayProvider {
+package final class MacDisplayProvider: DisplayProvider {
   package let changes: AsyncStream<Void>
   private let continuation: AsyncStream<Void>.Continuation
   /// The observer of screen changes; it lives as long as the provider, which is tylerd's.

@@ -4,7 +4,7 @@ import TylerCore
 import TylerServer
 
 /// Reading every window again, for `tyler debug windows`.
-extension AXBackend {
+extension MacWindowSystem {
   package func freshWindows() -> FreshWindows {
     let tracked = snapshot()
     let trackedIDs = Set(tracked.map(\.id))

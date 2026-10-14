@@ -3,7 +3,7 @@ import TylerServer
 
 /// Asks macOS whether this process (or the terminal app hosting it) may use Accessibility.
 @MainActor
-package final class SystemAccessibilityGate: AccessibilityGate {
+package final class MacAccessibilityGate: AccessibilityGate {
   package init() {}
 
   package var isTrusted: Bool { AXIsProcessTrusted() }

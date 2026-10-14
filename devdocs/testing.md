@@ -164,7 +164,7 @@ Tick an item with the date when it is checked; record what was measured in `maco
 - [ ] The size-position-size sequence in `AXBridge.setFrame` is needed
 - [ ] The frontmost-app-plus-raise approach in `AXBridge.raise` works for every app
 - [ ] Pressing the close button in `AXBridge.close` closes the window in every app
-- [ ] `AXBackend`'s attach retries (6 × 500 ms) are enough for slow-launching apps, and an app that ran out of them is attached when it comes to the front
+- [ ] `MacWindowSystem`'s attach retries (6 × 500 ms) are enough for slow-launching apps, and an app that ran out of them is attached when it comes to the front
 - [x] A hung app (`kill -STOP <pid>`) with a window in a slide stalls each AX call for 1 s, not about
   6 s: the system-wide messaging timeout reaches window elements (2026-10-14, TextEdit: each
   timeout `AX error -25204` after 1.0 s)

@@ -4,14 +4,14 @@ import TylerServer
 
 @testable import TylerPlatform
 
-@Suite("AXBackend")
+@Suite("MacWindowSystem")
 @MainActor
-struct AXBackendTests {
+struct MacWindowSystemTests {
   @Test(arguments: [
     (AXError.cannotComplete, "its app didn't answer"),
     (AXError.attributeUnsupported, "AX error -25205"),
   ])
   func aRefusalGivesOnlyTheReason(status: AXError, reason: String) {
-    #expect(AXBackend.refusal(status) == .refused(reason))
+    #expect(MacWindowSystem.refusal(status) == .refused(reason))
   }
 }

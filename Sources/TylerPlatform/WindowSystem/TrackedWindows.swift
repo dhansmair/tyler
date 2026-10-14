@@ -1,7 +1,7 @@
 import ApplicationServices
 import TylerCore
 
-/// The windows `AXBackend` tracks: each one's element, its app, and how it was last read, so a
+/// The windows `MacWindowSystem` tracks: each one's element, its app, and how it was last read, so a
 /// move or resize can be reported after reading less of it.
 struct TrackedWindows {
   private struct Entry {

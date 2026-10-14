@@ -27,7 +27,7 @@ macOS version and the setup described in general terms.
   seems not to shrink at all. A window that lies on its display shrinks as asked, and growing it
   stops at the display's edge. So a window that reaches past the edge (moved before it was
   resized, or rounded up by a terminal) can't shrink into a slot at the bottom of the display:
-  `AXBackend.setFrame` first moves it up so it doesn't reach past its new frame. Measured
+  `MacWindowSystem.setFrame` first moves it up so it doesn't reach past its new frame. Measured
   2026-10-12 on a terminal window at the bottom of an external display above the built-in one,
   with `live-check resize`.
 - **Dialogs are accepted anywhere**, even past the edges, and their position isn't reported back.

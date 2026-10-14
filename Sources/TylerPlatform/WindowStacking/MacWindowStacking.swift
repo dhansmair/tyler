@@ -6,7 +6,7 @@ import TylerServer
 /// The list took 0.6 ms with 49 windows (macOS 26.7; see `devdocs/macos-behaviour.md`).
 /// It needs no permission for window numbers, layers and bounds.
 @MainActor
-package final class CGWindowStacking: WindowStacking {
+package final class MacWindowStacking: WindowStacking {
   /// The layer of menus, context menus and pop-ups (`kCGPopUpMenuWindowLevel`).
   private static let menuLayer = Int(CGWindowLevelForKey(.popUpMenuWindow))
 

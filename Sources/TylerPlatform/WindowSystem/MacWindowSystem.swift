@@ -6,7 +6,7 @@ import TylerServer
 
 /// The real `WindowSystem`, on the Accessibility API and `NSWorkspace`'s apps.
 @MainActor
-package final class AXBackend: WindowSystem {
+package final class MacWindowSystem: WindowSystem {
   package let events: AsyncStream<WindowEvent>
 
   private static let log = TylerLog(category: "ax")
@@ -259,7 +259,7 @@ package final class AXBackend: WindowSystem {
 }
 
 /// Moving and resizing windows; here because it reads and updates the window system's private state.
-extension AXBackend {
+extension MacWindowSystem {
   package func setFrame(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
     let element = try settledElement(windowID)
     // A window that already has the size only needs moving: one write instead of three. Should
@@ -334,7 +334,7 @@ extension AXBackend {
 }
 
 /// What an app's notifications change. In this file because it reads the window system's private state.
-extension AXBackend {
+extension MacWindowSystem {
   private func handle(_ notification: String, element: AXUIElement, processID: pid_t) {
     switch notification {
     case kAXWindowCreatedNotification:

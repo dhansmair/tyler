@@ -29,7 +29,7 @@ settled or stale, what was missing).
   about anyone's personal setup"); the history squashed (D4).
 - **Bugs:** `tiling on` before permission, commands reporting success when focusing failed, a failed
   placement hiding the reply's summary, windows left parked by a crash.
-- **Review and profile:** a code review of `AXBackend`, the AX timeout and the state hand-over (10
+- **Review and profile:** a code review of `MacWindowSystem`, the AX timeout and the state hand-over (10
   findings, the risky ones fixed, the rest filed); a slide and a swipe profiled with a slow app,
   and sped up (one cost line per slide, swipe and drag; writes to each app on a queue of its own).
 - **A hung app** (2026-10-14): after a call to an app times out, its windows aren't moved or

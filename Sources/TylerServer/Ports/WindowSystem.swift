@@ -2,7 +2,7 @@ import CoreGraphics
 import TylerCore
 
 /// Source of window information and the means to act on windows. The real implementation talks
-/// to the Accessibility API (`TylerPlatform.AXBackend`); tests use a fake.
+/// to the Accessibility API (`TylerPlatform.MacWindowSystem`); tests use a fake.
 @MainActor
 package protocol WindowSystem: AnyObject {
   /// Events from the moment `start()` is called. Subscribe before calling `start()`.

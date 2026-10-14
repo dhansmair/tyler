@@ -1,7 +1,7 @@
 import CoreGraphics
 
 /// The resize cursor over the gap the pointer is in, showing that dragging it resizes. The real
-/// one is a window of tylerd's over the gap that sets the cursor (`TylerPlatform.GapCursorWindow`);
+/// one is a window of tylerd's over the gap that sets the cursor (`TylerPlatform.MacGapCursor`);
 /// tests use a fake.
 @MainActor
 package protocol GapCursor: AnyObject {

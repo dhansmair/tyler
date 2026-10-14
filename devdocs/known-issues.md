@@ -24,7 +24,7 @@ own issues are in `strip-layout.md`. Remove an item when it is fixed (in the sam
   restart and then minimized was still in tylerd's registry as not minimized, so it kept a slot,
   which showed empty. Minimizing it again fixed it. Not the attribute read (`AXMinimized` is
   already `true` at the notification, see `macos-behaviour.md`), so likely a missed notification,
-  or one dropped because `AXBackend.windowInfo` returned `nil` for a failed read (silently). Not
+  or one dropped because `MacWindowSystem.windowInfo` returned `nil` for a failed read (silently). Not
   reproduced with windows minimized right after they open. Log a dropped update, and re-read
   `AXMinimized` of the tiled windows when a sync runs.
 - **Finder windows made by AppleScript were tiled, and later listed as `dialog`** (seen once,

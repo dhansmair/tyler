@@ -43,7 +43,7 @@ So the fix is in focus follows mouse itself: it must not be what buries a floate
   overlap it, and refuses when one of them is floated. Unit tested with the existing cases plus:
   floated in front and overlapping (refused), floated behind (focused), floated in front but not
   overlapping (focused), the pointer on the floated window itself (focused).
-- `WindowStacking` (the protocol over `CGWindowStacking`) answers which on-screen windows are in
+- `WindowStacking` (the protocol over `MacWindowStacking`) answers which on-screen windows are in
   front of a given one, with their frames, from the same window list call as `topmostWindow(at:)`,
   so a rest of the pointer still costs one call. The server fake in `Tests/TylerServerTests`
   follows.

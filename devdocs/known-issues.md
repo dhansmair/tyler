@@ -32,10 +32,11 @@ own issues are in `strip-layout.md`. Remove an item when it is fixed (in the sam
   `AXMinimized` of the tiled windows when a sync runs.
 - **Finder windows made by AppleScript were tiled, and later listed as `dialog`** (seen once,
   unverified): new ones made the same way were `dialog` from the start.
-- **The first window of a launching app can be read as a `dialog`** and stays untiled (seen once,
-  2026-10-14): TextEdit launched by AppleScript's `make new document`; `tyler debug windows` showed
-  `kind  tylerd: dialog  macOS: standard`, and a second document was tiled. Likely read before
-  the app set its subrole, and nothing reads the kind again.
+- **TextEdit's untitled documents are read as `dialog`** and stay untiled (2026-10-14, AppleScript's
+  `make new document`). The first time, the first window was `dialog` while `tyler debug windows`
+  read it as `standard` a moment later, and a second document was tiled; after a restart, three
+  untitled documents in a row were `dialog` both to tylerd and in a fresh read. A document opened
+  from a file was tiled. What `WindowKind.classify` sees (role, subrole) isn't known yet.
 - **Echo tracking can go stale** (unverified): if an app accepts a focus call but never sends a
   focus event, the window stays on tylerd's list of its own focus calls, and the next real focus
   of it while parked doesn't switch workspaces, once.

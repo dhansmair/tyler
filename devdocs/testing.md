@@ -150,11 +150,14 @@ Tick an item with the date when it is checked; record what was measured in `maco
 - [ ] The frontmost-app-plus-raise approach in `AXBridge.raise` works for every app
 - [ ] Pressing the close button in `AXBridge.close` closes the window in every app
 - [ ] `AXBackend`'s attach retries (6 × 500 ms) are enough for slow-launching apps, and an app that ran out of them is attached when it comes to the front
-- [ ] A hung app (`kill -STOP <pid>`) with a window in a slide stalls each AX call for 1 s, not about
-  6 s: the system-wide messaging timeout reaches window elements
-- [ ] After a hung app's move times out, switches for the next 5 s don't wait for it (the log says
+- [x] A hung app (`kill -STOP <pid>`) with a window in a slide stalls each AX call for 1 s, not about
+  6 s: the system-wide messaging timeout reaches window elements (2026-10-14, TextEdit: each
+  timeout `AX error -25204` after 1.0 s)
+- [x] After a hung app's move times out, switches for the next 5 s don't wait for it (the log says
   `app skipping started`, and the slide lines show no 1 s placement), and its windows move again
-  after `kill -CONT <pid>` and 5 s
+  after `kill -CONT <pid>` and 5 s (2026-10-14: the first switch back took 2.0 s, the next ones
+  1.05 s, every slide 31 even frames; the 1 s left is focusing the hung app's window, which isn't
+  skipped)
 - [ ] A window closed without a destroyed notification leaves its slot at the next command that
   moves it (an AX call on it fails with `invalidUIElement`)
 - [ ] `NSApplication.run()` is needed rather than `dispatchMain()`

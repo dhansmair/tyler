@@ -21,8 +21,7 @@ package final class AXBackend: WindowBackend {
   private var pendingReads = PendingReads()
   private let positions = PositionWriter()
   private var pendingReadsTask: Task<Void, Never>?
-  private var workspaceTokens: [any NSObjectProtocol] = []
-  private var quitObservation: NSKeyValueObservation?
+  private let runningApps = RunningAppsObserver()
   private var isStarted = false
 
   package init() {
@@ -35,7 +34,11 @@ package final class AXBackend: WindowBackend {
     guard !isStarted else { return }
     isStarted = true
     AXBridge.limitMessagingTimeout()
-    subscribeToWorkspace()
+    runningApps.start(
+      .init(
+        launched: { [weak self] in self?.attach(processID: $0, attempt: 1) },
+        activated: { [weak self] in self?.appActivated(processID: $0) },
+        quit: { [weak self] in self?.detachQuitApps() }))
     for app in NSWorkspace.shared.runningApplications {
       attach(processID: app.processIdentifier, attempt: 1)
     }
@@ -44,11 +47,7 @@ package final class AXBackend: WindowBackend {
   package func stop() {
     guard isStarted else { return }
     isStarted = false
-    let center = NSWorkspace.shared.notificationCenter
-    for token in workspaceTokens { center.removeObserver(token) }
-    workspaceTokens = []
-    quitObservation?.invalidate()
-    quitObservation = nil
+    runningApps.stop()
     for retry in retries.values { retry.cancel() }
     retries = [:]
     for observer in observers.values { observer.stop() }
@@ -111,32 +110,6 @@ package final class AXBackend: WindowBackend {
   // MARK: - Apps
 
   var attachedProcessIDs: [pid_t] { observers.keys.sorted() }
-
-  private func subscribeToWorkspace() {
-    let center = NSWorkspace.shared.notificationCenter
-    let names: [(Notification.Name, @MainActor (AXBackend, pid_t) -> Void)] = [
-      (NSWorkspace.didLaunchApplicationNotification, { $0.attach(processID: $1, attempt: 1) }),
-      (NSWorkspace.didActivateApplicationNotification, { $0.appActivated(processID: $1) }),
-    ]
-    for (name, action) in names {
-      let token = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] note in
-        let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
-        guard let processID = app?.processIdentifier else { return }
-        MainActor.assumeIsolated {
-          guard let self else { return }
-          action(self, processID)
-        }
-      }
-      workspaceTokens.append(token)
-    }
-    // Not `didTerminateApplicationNotification`: an app that quits by itself when its last
-    // window closes (Find My) never posts it, but does leave `runningApplications`.
-    // The apps removed say -1 for their process id by then, so what is still running decides.
-    quitObservation = NSWorkspace.shared.observe(\.runningApplications) { [weak self] _, change in
-      guard change.kind == .removal else { return }
-      MainActor.assumeIsolated { self?.detachQuitApps() }
-    }
-  }
 
   private func attach(processID: pid_t, attempt: Int) {
     guard isStarted, observers[processID] == nil,

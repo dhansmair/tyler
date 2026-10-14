@@ -15,6 +15,9 @@ package struct WindowDrift: Codable, Equatable, Sendable {
     case unreadable
     /// The backend tracks the window, but tylerd's own list doesn't have it.
     case unlisted
+    /// macOS focused the window, but its workspace has another one as focused: the one
+    /// `window focus` and `window swap` act on.
+    case focus
   }
 
   package struct Difference: Codable, Equatable, Sendable {
@@ -62,6 +65,17 @@ package struct WindowDrift: Codable, Equatable, Sendable {
     return WindowDrift(
       differences: differences, checkedCount: believed.count, untracked: fresh.untracked,
       unattachedApps: fresh.unattachedApps)
+  }
+
+  /// Adds a difference if `reported`, the tiled window macOS last reported focused, isn't
+  /// `recorded`, its workspace's focused window.
+  package mutating func compareFocus(reported: WindowInfo, recorded: WindowID?) {
+    guard recorded != reported.id else { return }
+    differences.append(
+      Difference(
+        id: reported.id, appName: reported.appName, field: .focus,
+        believed: recorded.map { String($0.rawValue) } ?? "none",
+        actual: String(reported.id.rawValue)))
   }
 
   /// One field as tylerd has it and as macOS reports it.

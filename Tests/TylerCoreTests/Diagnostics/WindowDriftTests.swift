@@ -69,4 +69,20 @@ struct WindowDriftTests {
     #expect(drift.unattachedApps == ["Busy"])
     #expect(!drift.isEmpty)
   }
+
+  @Test func theWorkspaceFocusingTheReportedWindowIsNoDifference() {
+    var drift = WindowDrift.compare(believed: [], fresh: FreshWindows(tracked: []))
+    drift.compareFocus(reported: Self.window(1), recorded: WindowID(1))
+    #expect(drift.isEmpty)
+  }
+
+  @Test(arguments: [WindowID(2), nil])
+  func theWorkspaceFocusingAnotherWindowIsReported(recorded: WindowID?) {
+    var drift = WindowDrift.compare(believed: [], fresh: FreshWindows(tracked: []))
+    drift.compareFocus(reported: Self.window(1), recorded: recorded)
+    #expect(drift.differences.map(\.field) == [.focus])
+    #expect(drift.differences.first?.id == WindowID(1))
+    #expect(drift.differences.first?.believed == (recorded == nil ? "none" : "2"))
+    #expect(drift.differences.first?.actual == "1")
+  }
 }

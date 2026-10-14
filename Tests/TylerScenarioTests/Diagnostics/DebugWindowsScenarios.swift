@@ -44,4 +44,17 @@ struct DebugWindowsScenarios {
     #expect(drift.untracked.map(\.id) == [WindowID(9)])
     #expect(drift.unattachedApps == ["Busy"])
   }
+
+  @Test func aWorkspaceFocusOtherThanMacOSsShows() async throws {
+    let harness = ManagerHarness([1, 2, 3])
+    harness.backend.send(.focused(WindowID(1)))
+    await harness.settle()
+    #expect(try #require(reportedDrift(in: harness)).isEmpty)
+    // The fake backend doesn't report the focus back, so macOS still has window 1 focused.
+    _ = harness.manager.focus(.next)
+    let drift = try #require(reportedDrift(in: harness))
+    #expect(drift.differences.map(\.field) == [.focus])
+    #expect(drift.differences.first?.believed == "2")
+    #expect(drift.differences.first?.actual == "1")
+  }
 }

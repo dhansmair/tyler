@@ -73,6 +73,7 @@ enum AXBridge {
     var subrole: String?
     var isMinimized: Bool?
     var isFullscreen: Bool?
+    var buttons: WindowButtons
   }
 
   static func windowAttributes(of element: AXUIElement) -> WindowAttributes? {
@@ -80,12 +81,18 @@ enum AXBridge {
       [
         kAXPositionAttribute, kAXSizeAttribute, kAXTitleAttribute, kAXRoleAttribute,
         kAXSubroleAttribute, kAXMinimizedAttribute, "AXFullScreen",
+        kAXCloseButtonAttribute, kAXMinimizeButtonAttribute, kAXFullScreenButtonAttribute,
       ], of: element)
     guard let frame = frame(position: values[0], size: values[1]) else { return nil }
+    var buttons: WindowButtons = []
+    for (button, value) in zip([WindowButtons.close, .minimize, .fullScreen], values[7...])
+    where value != nil {
+      buttons.insert(button)
+    }
     return WindowAttributes(
       frame: frame, title: values[2] as? String, role: values[3] as? String,
       subrole: values[4] as? String, isMinimized: values[5] as? Bool,
-      isFullscreen: values[6] as? Bool)
+      isFullscreen: values[6] as? Bool, buttons: buttons)
   }
 
   // MARK: - Writing

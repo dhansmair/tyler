@@ -61,10 +61,13 @@ Each with a regression test (`devdocs/known-issues.md` has the details).
   Done (2026-10-14): `LateHandOver`; the state file names each window's process ID, so another
   app's window that takes a handed-over ID starts afresh. Checked with an app that answers late;
   the locked screen is still to check (`devdocs/testing.md`).
-- [ ] **TextEdit's untitled documents are read as `dialog`** and stay untiled: 3 out of 3 on
+- [x] **TextEdit's untitled documents are read as `dialog`** and stay untiled: 3 out of 3 on
   2026-10-14 (AppleScript's `make new document`), while a document opened from a file was tiled.
   A stock app is what someone tries first. Find out what `WindowKind.classify` sees (role,
   subrole) and whether it changes after the window opens.
+  Done: macOS reports them as `AXDialog` until TextEdit is first active, and its Open panel as
+  `AXStandardWindow` (which tylerd tiled). `classify` now also reads the title bar's buttons;
+  checked on real windows.
 - [ ] **Windows of a busy app are read again.** `AXBridge.windows(of:)` gives `[]` when the read
   fails or times out, which looks like an app without windows, and nothing reads them again. Not
   seen yet, but small: retry the read when it fails, rather than when it returns nothing.

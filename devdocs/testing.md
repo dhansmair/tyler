@@ -31,6 +31,8 @@ Tick an item with the date when it is checked; record what was measured in `maco
 - [x] `window list` flags: `min`, `full`, `focused`, `floated`; sensible `SLOT` values
 - [ ] **release** Opening a new window adds it; quitting an app with several windows removes all
 - [ ] **release** A Save panel shows as `dialog` and floats
+- [x] An untitled document made while its app is in the background tiles, and an Open panel
+  floats (2026-10-14, TextEdit: `make new document` by AppleScript, File > Open)
 - [ ] **release** A terminal (character cells) and a window with a minimum size (System Settings)
   end up where expected, and `window list` shows their real frames
 - [ ] Moving and resizing a window by hand updates its frame in `window list`

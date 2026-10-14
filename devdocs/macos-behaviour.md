@@ -42,6 +42,25 @@ macOS version and the setup described in general terms.
   window server still listed every one (`live-check stacking`). Seen 2026-10-13 on macOS 26.7,
   checked with `ioreg -n Root -d1 | grep IOConsoleLocked`.
 
+## Window kinds
+
+Measured 2026-10-14 on macOS 26.7, with TextEdit and a probe that read each window's role,
+subrole, title-bar buttons and whether its size can be set:
+
+| Window | Subrole | Full screen button | Close, minimize | Size settable |
+|---|---|---|---|---|
+| Untitled document made by AppleScript while TextEdit is in the background | `AXDialog` | yes | yes | yes |
+| The same documents once TextEdit has been frontmost | `AXStandardWindow` | yes | yes | yes |
+| A document opened from a file | `AXStandardWindow` | yes | yes | yes |
+| The About window | `AXDialog` | no | yes | no |
+| The Open panel (File > Open) | `AXStandardWindow` | no | no | yes |
+
+- **The subrole changes when the app first becomes active**, with no notification tylerd hears, so
+  a kind read from the subrole once stays wrong. The buttons are there from the start (read
+  0.3 s after the window appeared).
+- **The normal windows of the other apps checked** (a terminal, an editor, a browser, an Electron
+  app) all have close, minimize and full screen buttons. `WindowKind.classify` relies on that.
+
 ## Speed
 
 - **An AX position write takes 1–3 ms.** A slide is limited by the number of windows and by slow

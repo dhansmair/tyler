@@ -14,8 +14,6 @@ has its own list in [Layouts](layouts.md#strip--experimental).
   (seen once with Firefox).
 - **A minimized window may keep its place in the layout** (seen once), which then shows as an
   empty slot. Restoring and minimizing it again fixes it.
-- **TextEdit's new, untitled documents may be left untiled**, as if they were dialogs. A document
-  opened from a file is tiled.
 - **Closing a window may switch workspaces** if macOS then focuses another window of the same app
   that is parked on another workspace (not confirmed).
 

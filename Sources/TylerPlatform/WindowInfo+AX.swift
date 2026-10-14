@@ -17,7 +17,8 @@ extension WindowInfo {
       bundleID: known?.bundleID ?? app?.bundleIdentifier,
       title: attributes.title ?? "",
       frame: attributes.frame,
-      kind: WindowKind.classify(role: attributes.role, subrole: attributes.subrole),
+      kind: WindowKind.classify(
+        role: attributes.role, subrole: attributes.subrole, buttons: attributes.buttons),
       isMinimized: attributes.isMinimized ?? false,
       isFullscreen: attributes.isFullscreen ?? false,
       isFocused: isFocused

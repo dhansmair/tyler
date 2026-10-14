@@ -24,12 +24,9 @@ own issues are in `strip-layout.md`. Remove an item when it is fixed (in the sam
   reproduced with windows minimized right after they open. Log a dropped update, and re-read
   `AXMinimized` of the tiled windows when a sync runs.
 - **Finder windows made by AppleScript were tiled, and later listed as `dialog`** (seen once,
-  unverified): new ones made the same way were `dialog` from the start.
-- **TextEdit's untitled documents are read as `dialog`** and stay untiled (2026-10-14, AppleScript's
-  `make new document`). The first time, the first window was `dialog` while `tyler debug windows`
-  read it as `standard` a moment later, and a second document was tiled; after a restart, three
-  untitled documents in a row were `dialog` both to tylerd and in a fresh read. A document opened
-  from a file was tiled. What `WindowKind.classify` sees (role, subrole) isn't known yet.
+  unverified): new ones made the same way were `dialog` from the start. Perhaps the subrole
+  changing with the app's activation, as TextEdit's does (`macos-behaviour.md`, Window kinds);
+  `WindowKind.classify` now also looks at the title bar's buttons.
 - **Echo tracking can go stale** (unverified): if an app accepts a focus call but never sends a
   focus event, the window stays on tylerd's list of its own focus calls, and the next real focus
   of it while parked doesn't switch workspaces, once.

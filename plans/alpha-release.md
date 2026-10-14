@@ -62,9 +62,6 @@ One app that stops answering can stall all of `tylerd`, and with it every click 
   Done: a call that times out (`cannotComplete`) leaves that app's windows unmoved and unfocused
   for 5 s (`UnresponsiveApps`), each counted as not placed. Checked on real windows
   (`devdocs/testing.md`).
-- [ ] **Run the mouse button interceptor off the main thread** (`devdocs/REFACTORING.md`). It is
-  an active event tap on every mouse down, drag and up, and its callback runs on tylerd's main
-  thread: a stall there holds every click on the system for up to about 1 s.
 
 ### No lost windows
 
@@ -169,6 +166,10 @@ Not part of 0.1.0; the release says so rather than half-doing them.
   item instead (D8).
 - **A Homebrew package** (a tap or a formula). 0.1.0 ships as source, installed with
   `make install` (D2).
+- **Running the mouse button interceptor off the main thread** (`devdocs/REFACTORING.md`). While
+  tylerd's main thread is busy, every click on the system waits for it. Skipping an app that timed
+  out took away the long stalls; what is left (slow apps that still answer, reads) is to be
+  measured before it is built.
 
 ## Unchecked cases and open issues
 

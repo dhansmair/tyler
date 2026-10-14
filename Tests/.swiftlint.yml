@@ -1,0 +1,5 @@
+# A test file holds its suite and the fakes only it uses, and is named after the type it tests
+# (`make lint` checks the name), not after a type in it.
+disabled_rules:
+  - file_name
+  - one_declaration_per_file

@@ -1,0 +1,198 @@
+import AppKit
+import Foundation
+import TylerConfig
+import TylerCore
+import TylerIndicators
+import TylerPlatform
+import TylerProtocol
+import TylerRuntime
+import TylerServer
+
+/// tylerd's own lines, in the log's format but written whatever `log.level` says: which config,
+/// socket and state it uses, and why it can't go on.
+func announce(_ message: String) {
+  say(message, level: .info, to: .standardOutput)
+}
+
+func warn(_ message: String) {
+  say(message, level: .error, to: .standardError)
+}
+
+func say(_ message: String, level: LogLevel, to handle: FileHandle) {
+  let line = LogOutput.line(message, level: level, category: "tylerd", at: Date())
+  handle.write(Data((line + "\n").utf8))
+}
+
+func die(_ message: String) -> Never {
+  warn(message)
+  exit(1)
+}
+
+// Log lines at or above `log.level` go to stderr: `tyler start` sends it to ~/.tyler/tyler.log.
+LogOutput.shared.setSink { line in FileHandle.standardError.write(Data((line + "\n").utf8)) }
+
+let socketPath = Paths.socketPath()
+let statePath = Paths.statePath(socketPath: socketPath)
+let configSource = ConfigSource.file(at: Paths.configPath())
+let configLoad = configSource.load()
+switch configLoad {
+case .loaded: announce("config loaded - \(configSource.path)")
+case .missing: announce("config missing - \(configSource.path) - using the defaults")
+case .broken(let error): warn("config broken - \(configSource.path) - \(error); using the defaults")
+}
+
+// AX observers, NSWorkspace notifications and the menu bar item all go through the main run
+// loop, so the process runs a real (windowless) AppKit application instead of `dispatchMain()`.
+// The application exists before the menu bar item is created.
+let application = NSApplication.shared
+application.setActivationPolicy(.accessory)
+
+// A tylerd that restarted left its workspaces here, with the windows where it left them; carry on
+// from them instead of tiling everything onto the first workspace.
+var handedOver: SavedState?
+do {
+  handedOver = try SavedState.read(from: statePath)
+  if handedOver != nil { announce("state handed over - \(statePath)") }
+} catch {
+  warn("state reading failed - \(error); starting afresh")
+  // A stale file would only be refused again; a file of another version may suit another build.
+  if case .stale = error { forgetHandedOverState() }
+}
+
+let gate = SystemAccessibilityGate()
+// The menu bar items send requests through the router, which only exists once the items do;
+// `indicatorRouter` closes that loop.
+var indicatorRouter: CommandRouter?
+let performFromIndicator: @MainActor (MenuChoice) -> Void = { choice in
+  switch choice {
+  case .request(let request):
+    guard let response = indicatorRouter?.respond(to: request) else {
+      warn("menu command dropped - \(request) - tylerd isn't ready yet")
+      return
+    }
+    if case .error(let message) = response { warn("menu command failed - \(message)") }
+  case .openConfig:
+    do {
+      try TextEditor.open(configSource.path, command: manager.config.editor.command)
+    } catch {
+      warn("config opening failed - \(configSource.path) - \(error.localizedDescription)")
+    }
+  case .quit:
+    announce("tylerd quitting - chosen in the menu")
+    shutDown(handingOver: false)
+  }
+}
+// Items created later sit further left, so the map goes left of the text.
+let indicator = IndicatorGroup([
+  TextIndicator(perform: performFromIndicator), MapIndicator(perform: performFromIndicator),
+])
+let manager = WindowManager(
+  backend: AXBackend(),
+  displays: ScreenDisplayProvider(),
+  gate: gate,
+  config: configLoad.config,
+  configSource: configSource,
+  indicator: indicator,
+  pointer: SystemPointerInput(),
+  stacking: CGWindowStacking(),
+  gapCursor: GapCursorWindow(),
+  restoring: handedOver
+)
+// The binary's modification time at launch lets `tyler status` notice a rebuild since.
+let executablePath =
+  Bundle.main.executableURL?.resolvingSymlinksInPath().path ?? CommandLine.arguments[0]
+var executableModified: Date?
+do {
+  executableModified =
+    try FileManager.default.attributesOfItem(atPath: executablePath)[.modificationDate] as? Date
+} catch {
+  warn("binary reading failed - \(executablePath) - \(error.localizedDescription)")
+}
+let status = ServerStatus(
+  pid: getpid(),
+  executablePath: executablePath,
+  executableModified: executableModified,
+  startedAt: Date(),
+  configPath: configSource.path,
+  keepsWindowsOnRestart: true,
+  version: TylerVersion.current
+)
+let router = CommandRouter(manager: manager, status: status)
+indicatorRouter = router
+let server = IPCServer(path: socketPath) { [router] request in await router.handle(request) }
+
+do {
+  try server.start()
+} catch IPCServer.Failure.alreadyRunning(let path) {
+  die("socket taken - \(path) - tylerd is already running")
+} catch {
+  die("socket opening failed - \(error)")
+}
+announce("socket listening - \(socketPath)")
+
+/// Once windows are tracked, the handed-over state has been used (or the windows it named are
+/// gone), so the file is removed: a later start must not apply it again.
+func forgetHandedOverState() {
+  guard FileManager.default.fileExists(atPath: statePath) else { return }
+  do {
+    try FileManager.default.removeItem(atPath: statePath)
+  } catch {
+    warn("state removing failed - \(statePath) - \(error.localizedDescription)")
+  }
+}
+
+// Without permission the server still answers; `list` explains what to do. The manager starts
+// by itself once permission is granted.
+var permissionPoll: Task<Void, Never>?
+if manager.startIfPermitted() {
+  announce("windows tracking started")
+  forgetHandedOverState()
+} else {
+  gate.prompt()
+  announce(
+    "permission waiting - Accessibility, in System Settings > Privacy & Security")
+  permissionPoll = Task { @MainActor in
+    guard await manager.startWhenPermitted() else { return }  // Cancelled during shutdown.
+    announce("permission granted - Accessibility; windows tracking started")
+    forgetHandedOverState()
+  }
+}
+
+/// Leaves every window where it is and writes the workspaces down for the next tylerd (`tyler
+/// restart`). If the file can't be written, the next tylerd tiles the windows afresh.
+@MainActor
+func handOver() {
+  guard var saved = manager.handOver() else { return }
+  saved.writtenAt = Date()
+  do {
+    try saved.write(to: statePath)
+  } catch {
+    warn("state saving failed - \(error); the next tylerd will tile the windows afresh")
+  }
+}
+
+/// Shuts down cleanly: `manager.stop()` puts every window (parked ones included) back where it
+/// was before tylerd moved it, and the socket file doesn't linger. Handing over (`tyler restart`)
+/// leaves the windows in place instead.
+@MainActor
+func shutDown(handingOver: Bool) {
+  permissionPoll?.cancel()
+  if handingOver { handOver() } else { manager.stop() }
+  server.stop()
+  exit(0)
+}
+
+// SIGINT/SIGTERM stop, SIGUSR1 (sent by `tyler restart`) hands over. A crash or `kill -9` skips
+// both and leaves parked windows at the edge.
+var signalSources: [DispatchSourceSignal] = []
+for signalNumber in [SIGINT, SIGTERM, SIGUSR1] {
+  signal(signalNumber, SIG_IGN)
+  let source = DispatchSource.makeSignalSource(signal: signalNumber, queue: .main)
+  source.setEventHandler {
+    MainActor.assumeIsolated { shutDown(handingOver: signalNumber == SIGUSR1) }
+  }
+  source.resume()
+  signalSources.append(source)
+}
+
+application.run()

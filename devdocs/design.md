@@ -1,0 +1,307 @@
+# Design decisions
+
+The decisions that shape tyler, each with its reason. What macOS was measured to do is in
+`macos-behaviour.md`; the strip layout's design is in `strip-layout.md`. Add a decision here when
+it is made, and change it here when it changes.
+
+## Scope
+
+- **xmonad-style tiling.** Each workspace is an ordered list of windows: a clear prev and next, and
+  a main window (the first). Layouts only decide where each slot goes, so a new layout is a new
+  type, not a new model.
+- **Workspaces side by side in a row, like pages**, one row per display. Moving between them slides
+  and snaps.
+- **Server plus CLI.** `tylerd` owns all window state; `tyler` sends one command and prints the
+  reply. **No hotkeys in tylerd**: skhd, Karabiner-Elements or Raycast bind keys to `tyler`
+  commands, so tylerd needs no keyboard access and users keep their key tool.
+- **Accessibility API only.** No private WindowServer API, no scripting additions, so SIP stays on.
+  The price: tylerd can't hide a window or move it across Spaces, and every move is one AX call per
+  window.
+
+## Architecture
+
+- **The target architecture** (an input, intent, update, effects loop over a pure core, desired
+  frames reconciled with what macOS reports, TylerCore's bounded contexts) is in
+  `architecture.md`. Chosen over classic MVC because the "view" is other apps' windows, which
+  tyler can only ask to move and which answer back.
+- **Design principles** (feature slices, one owner per piece of state, deciding apart from doing,
+  dependencies pointing one way) are in `CLAUDE.md`; this section records the decisions taken
+  under them.
+- **A target for the running program, folders for the domain.** Logging, the paths of tyler's
+  files and the version are in `TylerRuntime`, which `TylerCore` doesn't depend on: the compiler
+  keeps the pure core from logging or touching files, the rule worth a target. Windows, displays
+  and geometry are the domain's shared vocabulary and live in `TylerCore` as its bottom context,
+  kept apart by a SwiftLint rule like the contexts above them. They were once a `TylerFoundation`
+  target holding both, which no target used without `TylerCore`, under a name that said neither.
+- **Thin executables.** Logic lives in libraries; everything that touches macOS (AX, NSScreen,
+  event taps, timers) sits behind a protocol so tests use fakes. `TylerPlatform` is the only
+  untested layer and stays thin.
+- **One actor owns the state.** `WindowManager` is `@MainActor`. GCD is used only in `IPCServer`
+  (blocking socket I/O), for `tylerd`'s signal sources and in `AppWriteQueue`;
+  `IPCServer.runBlocking` is the single bridge into async code. Its cost: anything that blocks the
+  main thread (an AX call to a busy app, up to the 1 s messaging timeout) also stalls every `tyler`
+  command.
+- **The steps of a slide, swipe or move don't wait for the apps.** `setPosition` hands each move to
+  a serial queue per app (`PositionWriter`, `AppWriteQueue`), which writes only the newest move of
+  each window: the windows of a frame move side by side, a slow app skips frames instead of
+  holding up the others, and the main thread stays free for input. Everything else (a full
+  `setFrame`, focusing, reads) stays on the main thread, and a `setFrame` first waits for the
+  window's app's queue, so a final placement always lands after the last step.
+- **One place moves and focuses windows** (`WindowMover`). It remembers what moving needs: each
+  window's frame before tylerd first moved it, the windows on their way to another display, and
+  the focus events that are tylerd's own echo. A window the user grabs with the modifier goes
+  through it too (`carry`), but isn't remembered as tylerd's move, so `stop` doesn't undo the
+  user's own drag. The rest of the per-window state (`WindowBookkeeping`) stays with the manager,
+  which forgets a closed window in both at once.
+- **IPC:** one newline-delimited JSON request and one response per connection over a Unix socket,
+  `~/.tyler/tyler.sock` (`TYLER_SOCKET` overrides it). A server that can't decode a request answers
+  that it is probably older than the client.
+- **Commands are defined once**, in the command table in `TylerClient/CommandLineParser.swift`, which
+  builds the usage text and the parsing; a test checks that `docs/manual.md` has a heading for each.
+  Commands are grouped by what they act on, `tyler <noun> <verb>` (`window focus next`,
+  `workspace move-to-display 2`): the first word is the thing that changes, so where a new command
+  goes isn't a judgement call, and `tyler window` alone can list what a window can do. Commands
+  about tylerd itself (`start`, `stop`, `restart`, `status`, `ping`) and the global `tiling` mode
+  stay at the top; reading and changing settings is `config get|set|reload`. One spelling per action, no aliases. The CLI and wire format say
+  `master` (the xmonad word); Swift code says `main`
+  (SwiftLint's `inclusive_language`).
+- **The animation has a clock.** `Animator` is a struct with an injected `Clock` (the test seam):
+  250 ms, frames on an 8 ms grid, progress from elapsed time, so a slow app makes a slide coarser
+  but not longer. A snap is an animation with zero steps.
+- **Slide, swipe and drag are one state** (`Interaction`): they never happen at the same time. A
+  command that arrives mid-slide first jumps to the slide's end; one that arrives mid-swipe or
+  mid-drag puts the windows back.
+- **One type per file, and tests that mirror the sources.** Each type is in a file named after
+  it, and its tests in `<Type>Tests.swift` or `<Type>Tests+<Aspect>.swift` at the mirrored path,
+  so a type and its tests are found by file name alone, by people and agents, and small files
+  conflict less when two agents work at once. The folder, not a shared file, groups a family of
+  types; a private helper type is nested in its user, so it stays private. Scenario tests driving
+  `WindowManager` belong to their feature's controller. SwiftLint and `devtools/check-test-paths`
+  keep it so.
+
+## Terminology
+
+*Display* is a physical screen. *Workspace* is one page of a display's row (`WorkspaceRow`), with
+its own list, layout and ratio. *Stack* means only the windows beside the main window in `tall`.
+*Monitor* isn't used (except for AppKit's event monitor API), and *space* is avoided (macOS
+Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
+
+## Tiling
+
+- **New windows tile.** Dialogs and sheets float; `window float` switches any window. A new window
+  goes after the focused one; windows present at startup are ordered left to right.
+- **Tiling reacts to commands and to windows appearing, disappearing or becoming un/tileable**
+  (minimized, fullscreen), not to every move. A move by hand is handled as a mouse resize or a
+  swap by drag, otherwise the window snaps back on release.
+- **Only regular apps** (`activationPolicy == .regular`) and windows on the current Space are
+  tracked; native fullscreen windows are left alone.
+- **`tiling off`** brings every parked window back and keeps the current workspace's list, so
+  `tiling on` restores its order.
+- **Restore on exit.** SIGINT and SIGTERM put every window tylerd moved back to its *original
+  frame*: the frame just before tylerd first moved it. Windows tylerd never moved are left alone. A
+  crash or `kill -9` skips this. The next tylerd tiles the windows it finds parked, and remembers
+  each one's original frame pulled sideways into view (`Parking.isParked`, `Parking.pulledIn`),
+  so `stop` and `tiling off` don't send them back to the parking spot.
+- **Layouts** implement `Layout`: a pure function from the workspace's windows (in list order),
+  the layout's own `State`, the area and `LayoutGaps` to frames, and from a mouse resize to a new
+  state. Each layout's state has a type of its own (`TallLayoutState`, `GridLayoutState`, ...),
+  and a workspace keeps all of them in `LayoutStates`, one field per layout, so a layout's state
+  survives switching away and back. A closed struct rather than a dictionary: every layout lives
+  in this repository, and the compiler asks for the field when a layout is added.
+  `LayoutKind.bound` binds each layout to its field with a key path: the one switch that
+  dispatches. Each layout lives in a folder of its own under `Sources/TylerCore/Layouts/`.
+- **State kept per window** (the strip's sizes) follows the window, not its slot: a state is
+  keyed by `WindowID` and implements `LayoutState`'s two hooks, `remove(_:from:)` when a window
+  leaves the list (a `quarter`'s column mate goes back to `half`) and `adopt(_:from:)` when it
+  arrives from another workspace. So nothing outside the layout knows about it.
+- **Commands for one layout** (`layout ratio`, `window size`) change that layout's state through
+  `Workspace.update(_:_:)`, which refits the view after, whichever layout is active: a strip size
+  set in `tall` waits for the strip. What the user is told stays in the server (the grid refusing
+  a ratio, "used by the strip layout").
+- **A layout that scrolls** adopts `ScrollingLayout` (only the strip). The workspace owns the view,
+  as it owns focus, and stores it as the window at its left edge rather than in points, so it
+  survives display and gap changes. The layout answers where the view can rest, how it fits the
+  focused window, and where a scroll lands, so the workspace and the server know nothing about
+  columns. Layouts that don't scroll leave the view alone; switching to a scrolling layout fits
+  it to the focused window. The frames depend on the view, not just shift with it: columns
+  wholly out of view must lie wholly off the area.
+- **The strip's columns follow each other without gaps**, and a window partly in view shows the
+  part that fits (`DisplayInfo.shows`: any of it on the display). At an edge with a neighbouring
+  display such a window parks instead, since nothing reaches onto another display.
+- **`tall` and `grid` share `ColumnLayout`** ("columns of rows"), which also does mouse resizing and drop targets.
+  It takes the slots' sizes in as `ColumnWeights` and gives them back after a resize; each layout
+  keeps its own (`tall`: the master ratio and its row weights).
+- **`grid`** fills columns two windows high, up to four columns, then three high and so on
+  (`GridLayout.rowCounts`). Up to three windows it is `tall`'s shape. When the windows don't fill
+  every column, the first column holds the leftover, so the master stands alone with an odd count
+  and gets the most room. Four columns at most, because a fifth on a laptop display is under 300
+  points wide. It has no master ratio: at four or six windows no column is the master's. Its
+  column and row weights (`GridLayoutState`) are its own, not `tall`'s: a row slot means
+  different windows in the two layouts, so a drag in one would show up oddly in the other. On a
+  portrait display it is still columns: turning column layouts into rows there is a decision for
+  `tall` and `grid` together. It
+  isn't in the default cycle: up to three windows `layout next` from `tall` would seem to do
+  nothing.
+  The ratio is clamped to 0.1…0.9.
+
+## Workspaces and parking
+
+- **Parking.** A window of an inactive workspace sits just past an edge of its display, at its own
+  height, with 1 point inside the visible frame (macOS pulls it back if it is further out; see
+  `macos-behaviour.md`). The edge is the right one, or the left one if only the right side has a
+  neighbouring display (`DisplayArrangement`).
+- **The slide is horizontal**, because macOS won't let a window leave through the top or bottom.
+  `next` moves the current windows out to the left while the next workspace's come in from the
+  right. Every window moves by the same offset, its x kept within `Parking.allowedX`.
+  `move-to-workspace` without `--follow` slides only the moved window out, towards its workspace.
+- **Nothing slides onto another display.** On a display with a neighbour beside it, switches are
+  instant. Making only the windows that would cross jump was tried and looked worse than switching
+  instantly.
+- **Focus.** Focusing a parked window (cmd-tab, a click on the Dock) switches to its workspace.
+  tylerd ignores the focus events its own focus calls cause, so a quick `next`, `prev` doesn't
+  switch back late. On an empty workspace tylerd makes itself frontmost, so keys never go to a
+  parked window. A floated window keeps the focus.
+- **Floated windows and dialogs** belong to no workspace and stay visible everywhere.
+- `prev` and `next` wrap; numbers are 1-based and range-checked.
+
+## Several displays
+
+- **Workspace numbers are global.** Each workspace belongs to one display; a display's row is its
+  workspaces sorted by number. `workspace 5` switches on the display that holds 5; `prev` and `next`
+  stay in the focused display's row. `apps.<app>.workspace` uses the global numbers.
+- **`displays.<n>.workspaces`** lists a display's workspaces; a display without a list gets
+  `workspaces.count`, numbered on from the previous display.
+- **Display numbers**: the one with the menu bar is 1, the others follow left to right, then top
+  to bottom. Displays are recognised by UUID (`DisplayKey`), which survives replugging, clamshell
+  mode and reboots.
+- **Commands and the menu bar act on the focused display; swipes on the display under the
+  pointer.** Each display's menu bar can't show different content through public API (the other
+  copy is a replicant), so the items show the focused display's row.
+- **Displays that come and go.** tylerd acts 1 s after the last screen-parameters notification.
+  Until then the lists hold still. A display's workspaces join display 1 when it goes away and go
+  home when it returns: home is the configured display, or the one `move-workspace-to-display`
+  pinned. Then every window is placed again, parked ones included, since macOS moves them.
+- **Moving windows between displays.** A window dragged onto another display takes the slot under
+  the pointer, with a preview. One that changes display any other way goes last in that display's
+  current workspace. tylerd notes each window it sends to another display and holds it on its
+  workspace until the move is reported, so several moves at once don't pull windows apart.
+
+## Mouse and trackpad
+
+- **Mouse resizing** moves the layout's dividers live, throttled (`[mouse] follow-interval`, 16 ms)
+  because every resize makes the app lay out again. The interval counts from the end of a step, not
+  its start: the moves echo back as notifications to read, and the dragged window's own updates,
+  which drive the drag, wait behind them (measured: `devdocs/macos-behaviour.md`, Speed). While a resize is in progress
+  the neighbours get two writes without a read back (`FrameWrite.inPassing`); the drop settles
+  them. Stack heights are kept per slot.
+- **Swap by drag**: the slot under the pointer is the target, previewed live; a drop in a gap or
+  outside the tiled area snaps back. The dragged window keeps its size during the preview (resizing
+  it without animation felt awkward, and animating it would re-layout the app every frame).
+- **Moving and resizing with a modifier** (Option by default): an active event tap holds back the
+  mouse-down; past 4 points it becomes tyler's move or resize and the rest of the gesture is
+  swallowed, otherwise the held click is posted again so it reaches the app. The tap runs on the
+  main thread like the other taps; if macOS turns it off for being slow, tylerd turns it back on
+  and drops the held press. A tap on its own thread is the fallback if that happens in practice.
+- **Resizing by dragging a gap** goes through the same active tap: a left press with no keys is held
+  when `GapGrab` finds it between two slots in view and the window server has nothing in front of
+  it there, and a drag then resizes the window before the gap (its right or bottom edge) through
+  the layout, as a resize with the modifier does. Only a press in a gap reads the window list, so
+  every other click costs a pass over the slots. Not chosen: invisible windows in the gaps (a
+  window per gap per display, kept in step with every layout change, slide and swipe, and stacked
+  above the desktop but below every other window, which macOS can't promise across apps), or one
+  window behind all others (it would take every click on the desktop). Neither shows a resize
+  cursor for sure either: an app in the background may not be able to set it.
+- **The gap under the pointer shows the resize cursor**, set by an empty window of tylerd's over
+  the gap, at the normal level (another app's window brought over the gap covers it). It follows
+  the pointer's moves, which are watched while `mouse.gap-resize` is on, and is checked again
+  after anything that moves windows and when a slide, swipe or drag starts or ends (hidden
+  meanwhile; during a gap drag it follows the gap, so the cursor stays). The window list is read
+  only when the pointer comes to another gap. The window server's stacking leaves tylerd's own
+  windows out, or that window would be in front of the gap it marks. The cursor needs the window
+  to take mouse events (so a click in a gap lands on it, not the desktop) and the private
+  `SetsCursorInBackground` call; `NSCursor.set()` alone, from the background, is undone at once
+  (see `macos-behaviour.md`). A white bar drawn in the gap was tried first and dropped: the
+  cursor alone says enough.
+- **Focus follows mouse** (off by default): focus and raise the window the pointer comes to rest
+  over, through the same call as `tyler window focus`. Only pointer movement triggers it, so a keyboard
+  focus is never undone by a still pointer; only windows in view count, and only inside a display's
+  visible frame. No pointer warping.
+- **Swipes**: a listen-only gesture tap feeds a `SwipeRecognizer` (touches to an offset, locked
+  sideways), a `OneEuroFilter` smooths it, the windows follow the fingers, and on release `Snap`
+  picks the neighbour or the way back. The swipe's target is an enum (`SwipeTarget`): the workspace row
+  or a scrolling layout's view. `SwipeSession` (TylerCore) decides each step and the ending as
+  values (`SwipeStep`, `SwipeEnding`); the server only paces the steps and carries them out, so the
+  swipe is unit tested without a manager. A drag works the same way: `DragSession` decides what
+  the preview moves and what a drop does (`DragDrop`), and `+Drag` carries it out.
+
+## Menu bar
+
+- **Indicators get a snapshot.** The server hands every menu bar item an `IndicatorSnapshot`
+  through the `Indicator` protocol whenever it changes; the items live in `TylerIndicators` and
+  redraw only when what they show changed. Menu items send ordinary `Request`s, so the menu behaves
+  exactly like the CLI.
+- **The workspace map** fills the status item's height; the current workspace is bright and the
+  others dimmed, the focused window light blue. Each window shows its app's icon, or an SF Symbol
+  or Nerd Font glyph from `apps.<app>.icon` (app icons are too detailed at this size).
+
+## Configuration and running
+
+- **`~/.config/tyler/tyler.toml`**, optional (`TYLER_CONFIG` overrides it). A small built-in TOML
+  parser supports what the config needs and rejects the rest with an error; no dependency. Unknown
+  keys are errors. A broken file at startup logs the error and uses the defaults; a broken file on
+  `config reload` is an error and keeps the current settings.
+- **`tyler config set` lasts for the running tylerd only.** It is for trying a setting out; the
+  file stays the one place settings are kept, so `config reload`, `stop` and `restart` drop what
+  `set` changed (the handed-over state holds no config). `set` changes the key in the config's
+  TOML document and parses the whole document again, rather than running the one setting's
+  reader, so the checks between settings (an app's workspace against the displays' lists) and the
+  error messages are exactly the file's. A word without quotes is a string, so
+  `layouts.default tall` needs no shell quoting. `tyler status` lists what `set` changed.
+- **One rule for where a setting goes.** Feature sections hold global settings (`[gaps]`,
+  `[mouse]`, one section per menu bar item under `[indicators]`); tables keyed by a thing hold the
+  settings of that thing (`[apps."<app>"]`, `[displays.<n>]`). So every setting has one dotted
+  path (`indicators.map.enabled`), which the file, the manual and `tyler config get|set` share,
+  and a new setting for one item, app or display has an obvious home.
+- **`tyler start`** spawns the `tylerd` next to `tyler`, detached, with its output in
+  `~/.tyler/tyler.log`. The terminal stays the process responsible for Accessibility, so rebuilds
+  need no new grant. A LaunchAgent would need its own grant and a stable code signature, so
+  `service install` is left for later.
+- **`tyler restart` keeps windows in place**: tylerd writes its workspaces to
+  `~/.tyler/tyler.state.json` (version 3: a row per display, and each workspace's `LayoutStates`
+  as one value, so a new layout or a new piece of layout state needs no change to the file's
+  format) and exits without moving anything; the
+  next one matches windows by `CGWindowID` and carries on. A file more than a minute old was left
+  behind and is ignored and removed (window IDs are reused after a reboot or a new login). `status`
+  warns when the binary on disk is newer than the running one.
+
+## Considered and dropped
+
+- **Focusing a workspace after its slide has started.** The focus call runs right after a slide
+  starts and delays its first frame by 6–19 ms (the cost line's "first after"): latency, not
+  stutter. Focusing later would send what is typed right after a switch to the window that just
+  slid away.
+- **Pacing a resize from the start of each step** (as swipes are): with several neighbours, the
+  writes of a step fill the interval, their echoes pile up, and the divider lags the pointer.
+- **One clock for all motion.** In production the `Animator` and the pacing (`Throttle`,
+  `Debounce`) run on the same continuous clock already; the tests give them separate fake clocks
+  so they can drive a slide and a debounce independently, and merging them would rewrite that
+  logic for nothing at run time.
+- **Splitting `Interaction` into sessions and timing.** The enum already makes two motions at
+  once impossible to write, and each case pairs a session with its own pacing on purpose (a
+  swipe's throttle, a drag's pending frame); two parallel enums would have to be kept in step.
+- **Moving every `extension WindowManager` into `Manager/`** so a SwiftLint rule could forbid
+  them elsewhere: what remains in the feature folders is each feature's input handling and
+  pacing, which belongs with its controller. SwiftLint checks the rules that matter instead: one
+  writer to macOS, and controllers that never reach the manager.
+- **`PointerInput` as three protocols** (the events, what to watch, the capture decision): each
+  would have the same two implementations, the system's and the test fake. One protocol with a
+  single `watch(_:)` and a `canCapture` property is narrow enough.
+- **A vertical slide**: macOS clamps windows at the top and bottom of the screen.
+- **A snapshot overlay for slides** (ScreenCaptureKit): needs Screen Recording permission. Still the
+  only way to slide between side-by-side displays, and it would be smoother with many windows; see
+  `known-issues.md`.
+- **Private WindowServer API**: needs SIP off.
+- **A `Scrollable` protocol** for swipes: it would have one implementation per case; an enum is
+  enough (`SwipeTarget`). `ScrollingLayout` is a different thing: what a layout answers about its
+  view.
+- More in `REFACTORING.md` under "Considered and not worth it".

@@ -1,0 +1,63 @@
+# tyler's config file, with every setting at its default.
+#
+# Copy it to ~/.config/tyler/tyler.toml (or set TYLER_CONFIG) and change what you like; you can
+# also delete every line you don't change. Apply changes with `tyler config reload`.
+# The manual's Configuration section (docs/manual.md) explains each setting in full.
+
+[gaps]
+inner = 0   # points between neighbouring tiled windows
+outer = 0   # points between the tiled windows and the edge of the display
+
+[layouts]
+cycle = ["tall", "full"]   # what `tyler layout next` goes through; add "grid", or "strip" (experimental)
+default = "tall"           # the layout new workspaces start with: "tall", "grid", "full" or "strip"
+
+[workspaces]
+count = 4   # workspaces per display, 1 to 10
+
+# Settings for one display, by display number (1 is the one with the menu bar), each in a table
+# of its own. A display without a list of workspaces gets `count` of them, numbered on from the
+# previous display.
+# [displays.1]
+# workspaces = [1, 2, 3, 4]   # the display's workspaces, by number
+#
+# [displays.2]
+# workspaces = [5, 6, 7, 8]
+
+# Settings for one app, by app name (as `tyler window list` shows it) or bundle ID, each in a
+# table of its own. Quote names with spaces or dots.
+# [apps.Firefox]
+# workspace = 3   # the workspace its new windows open on
+# icon = ""      # on the map, instead of its icon: an SF Symbol's name, or one Nerd Font glyph
+#
+# [apps."com.mitchellh.ghostty"]
+# icon = "terminal"
+
+[mouse]
+follow-interval = 16   # least milliseconds between steps of following the mouse
+focus-follows = false  # the window the pointer rests on gets the focus
+focus-delay = 100      # milliseconds the pointer rests before that
+modifier = "option"    # held while dragging a window: left button moves it, right resizes it;
+                       # "none", or ctrl, option, cmd and shift joined by +
+gap-resize = true      # dragging the gap between two windows moves the divider
+
+[gestures]
+swipe = true           # a sideways trackpad swipe moves between workspaces
+fingers = 3            # fingers for that swipe, 3 or 4
+swipe-distance = 0.3   # trackpad widths to swipe a whole workspace across, 0.1 to 1.0
+
+[indicators.text]
+enabled = true   # the workspace numbers in the menu bar, like 1 [2] 3 4
+
+[indicators.map]
+enabled = true                      # the map of every workspace and its windows
+show-icons = true                   # app icons on the map's windows
+icon-font = "Symbols Nerd Font"     # the font of the glyphs that [apps] sets as icons
+
+[editor]
+command = ""   # what the menu's Open config runs, with the file's path appended, such as
+               # "open -na Ghostty --args -e nvim"; "" runs $VISUAL or $EDITOR in Terminal,
+               # or the default text editor without either
+
+[log]
+level = "warning"   # what goes to ~/.tyler/tyler.log: "debug", "info", "warning" or "error"

@@ -1,0 +1,5 @@
+# LiveCheck is a standalone tool with a file per subcommand (Slide.swift, Resize.swift), not a
+# library of types.
+disabled_rules:
+  - file_name
+  - one_declaration_per_file

@@ -1,0 +1,107 @@
+excluded:
+  - .build
+
+# swift-format moves a trailing closure's parameters onto the next line when the call before the
+# brace fills the line (`run(...) {` then `_, origin in ...`), and this rule rejects exactly that,
+# so code the formatter just produced fails the lint. The formatter has the final say on layout.
+disabled_rules:
+  - closure_parameter_position
+
+# One type per file, named after it, so the file tree is an index of the types. A private helper
+# type is nested in the type that uses it. Tests/.swiftlint.yml turns both off for the test suites,
+# whose files are named after the type they test instead (make lint checks that).
+opt_in_rules:
+  - file_name
+  - one_declaration_per_file
+
+# swift-format (the formatter) requires trailing commas in multi-line collections, while
+# SwiftLint forbids them by default. Make SwiftLint agree with the formatter.
+trailing_comma:
+  mandatory_comma: true
+
+# `fd` is the standard name for a file descriptor, `id` is what `Identifiable` requires, and `ok`
+# and `on` are the natural names for a plain success response and the `tiling on` CLI mode.
+# devdocs/coding-guidelines.md allows widely known abbreviations, but SwiftLint's default minimum
+# length of 3 would flag them.
+identifier_name:
+  excluded:
+    - fd
+    - id
+    - ok
+    - on
+
+# The boundaries of devdocs/architecture.md: only TylerPlatform, TylerIndicators and the
+# executables talk to macOS, and inside TylerCore a context uses only the contexts below it (the
+# targets around TylerCore are kept apart by the compiler).
+custom_rules:
+  no_macos_frameworks:
+    name: "No macOS frameworks"
+    included: "Sources/(TylerRuntime|TylerCore|TylerConfig|TylerProtocol|TylerServer|TylerClient)/.*\\.swift"
+    regex: "^\\s*(@\\w+\\s+)*import\\s+(\\w+\\s+)?(AppKit|ApplicationServices|Cocoa)\\b"
+    message: "Only TylerPlatform, TylerIndicators and the executables talk to macOS (devdocs/architecture.md)."
+    severity: error
+  tiling_below_placement:
+    name: "Tiling knows nothing above it"
+    included: "Sources/TylerCore/(Layouts|Workspaces)/.*\\.swift"
+    regex: "\\b(Parking|TilingSnapshot|Reconciler|Track|Easing|Transition|SlidePlan|ScrollPlan|ViewScroll|ViewSnapshot|SwipeSession|DragSession|SwipeRecognizer|ModifierGesture|PointerCheck|SavedState|WindowDrift|PointerDiagnosis)\\b"
+    match_kinds: [identifier, typeidentifier]
+    message: "Tiling knows nothing of placement, motion, input, sessions, persistence or diagnostics (devdocs/architecture.md)."
+    severity: error
+  placement_below_motion:
+    name: "Placement knows nothing above it"
+    included: "Sources/TylerCore/Placement/.*\\.swift"
+    regex: "\\b(Track|Easing|Transition|SlidePlan|ScrollPlan|ViewScroll|ViewSnapshot|SwipeSession|DragSession|SwipeRecognizer|ModifierGesture|PointerCheck|SavedState|WindowDrift|PointerDiagnosis)\\b"
+    match_kinds: [identifier, typeidentifier]
+    message: "Placement knows nothing of motion, input, sessions, persistence or diagnostics (devdocs/architecture.md)."
+    severity: error
+  motion_below_sessions:
+    name: "Motion knows nothing above it"
+    included: "Sources/TylerCore/Motion/.*\\.swift"
+    regex: "\\b(SwipeSession|DragSession|SwipeRecognizer|ModifierGesture|PointerCheck|SavedState|WindowDrift|PointerDiagnosis)\\b"
+    match_kinds: [identifier, typeidentifier]
+    message: "Motion knows nothing of input, sessions, persistence or diagnostics (devdocs/architecture.md)."
+    severity: error
+  windows_and_displays_at_the_bottom:
+    name: "Windows and displays know nothing above them"
+    included: "Sources/TylerCore/(Windows|Displays|Geometry)/.*\\.swift"
+    regex: "\\b(Workspace|WorkspaceRow|DisplayRows|WorkspaceSync|ScrollDirection|ListTarget|WorkspaceTarget|DisplayTarget|LayoutKind|LayoutStates|Parking|TilingSnapshot|Reconciler|Track|Easing|Transition|SlidePlan|ScrollPlan|ViewScroll|ViewSnapshot|SwipeSession|DragSession|SwipeRecognizer|OneEuroFilter|Snap|ModifierGesture|ModifierKeys|PointerCheck|PointerFocus|StackedWindow|SavedState|WindowDrift|PointerDiagnosis)\\b"
+    match_kinds: [identifier, typeidentifier]
+    message: "Windows, displays and geometry are the domain's shared vocabulary and know nothing of the contexts built on them (devdocs/architecture.md)."
+    severity: error
+  input_on_windows_and_displays:
+    name: "Input recognisers build on windows and displays only"
+    included: "Sources/TylerCore/(Pointer/.*|Swipe/(SwipeRecognizer|OneEuroFilter|Snap))\\.swift"
+    regex: "\\b(Workspace|WorkspaceRow|DisplayRows|LayoutKind|LayoutStates|Parking|TilingSnapshot|Reconciler|Track|Transition|SlidePlan|ScrollPlan|ViewScroll|SwipeSession|DragSession|SavedState)\\b"
+    match_kinds: [identifier, typeidentifier]
+    message: "Input recognisers turn raw input into gestures and know nothing of the tiling (devdocs/architecture.md)."
+    severity: error
+  package_not_public:
+    name: "Package, not public"
+    included: "Sources/.*\\.swift"
+    regex: "\\bpublic\\b"
+    match_kinds: [attribute.builtin, keyword]
+    message: "Nothing in tyler is a published API: a declaration other targets use is `package`."
+    severity: error
+  one_writer:
+    name: "One place moves windows"
+    included: "Sources/TylerServer/.*\\.swift"
+    excluded: "Sources/TylerServer/Motion/WindowMover\\.swift"
+    regex: "\\bbackend\\s*\\??\\s*\\.\\s*(setFrame|setPosition|focus|unfocus)\\b"
+    excluded_match_kinds: [comment, doccomment, string]
+    message: "Only WindowMover moves and focuses windows (devdocs/architecture.md)."
+    severity: error
+  focus_through_the_manager:
+    name: "Focus requests are recorded"
+    included: "Sources/TylerServer/.*\\.swift"
+    excluded: "Sources/TylerServer/Motion/WindowManager\\+Placement\\.swift"
+    regex: "\\bmover\\s*\\.\\s*focus\\("
+    excluded_match_kinds: [comment, doccomment, string]
+    message: "Focus a window with requestFocus, which records the focus event that will come back as tylerd's own."
+    severity: error
+  controllers_decide:
+    name: "Controllers decide, the manager acts"
+    included: "Sources/TylerServer/.*Controller\\.swift"
+    regex: "\\b(WindowManager|WindowMover|mover|backend|pointer|animator|Interaction)\\b"
+    match_kinds: [identifier, typeidentifier]
+    message: "A controller returns effects; it never reaches the manager, the mover, the backend, the pointer or the running interaction (devdocs/architecture.md)."
+    severity: error

@@ -1,0 +1,53 @@
+#!/bin/bash
+# Checks that Tests/ mirrors Sources/: Tests/<Target>Tests/<path>/<Type>Tests.swift (or
+# <Type>Tests+<Aspect>.swift) tests a type whose source sits at Sources/<Target>/<path>/, as
+# <Type>.swift or an extension <Type>+<Feature>.swift. Shared helpers at the top of a test target
+# (Support) and Tests/TylerTestSupport, the helpers the server test targets share, are the
+# exception. Scenario tests mirror features instead: Tests/TylerScenarioTests/<Feature>/
+# <Behaviour>Scenarios.swift, where Sources/TylerServer/<Feature>/ exists, with the Scenario
+# helpers and their tests at the top. Run by `make lint` and the pre-commit hook.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+failed=0
+while IFS= read -r test; do
+  relative=${test#Tests/}
+  [[ $relative == TylerTestSupport/* ]] && continue
+  if [[ $relative == TylerScenarioTests/*/* ]]; then
+    feature=$(dirname "${relative#TylerScenarioTests/}")
+    if [[ ! $(basename "$relative") =~ ^[A-Za-z0-9]+Scenarios\.swift$ ]]; then
+      echo "$test: name it <Behaviour>Scenarios.swift"
+      failed=1
+    elif [[ ! -d "Sources/TylerServer/$feature" ]]; then
+      echo "$test: no Sources/TylerServer/$feature for this feature"
+      failed=1
+    fi
+    continue
+  fi
+  [[ $relative == TylerScenarioTests/* ]] && continue
+  target=${relative%%/*}
+  target=${target%Tests}
+  path=${relative#*/}
+  folder=$(dirname "$path")
+  name=$(basename "$path" .swift)
+  if [[ $folder == . ]]; then
+    folder=""
+    case $name in Support) continue ;; esac
+  fi
+  if [[ ! $name =~ ^([A-Za-z0-9]+)Tests(\+[A-Za-z0-9]+)?$ ]]; then
+    echo "$test: name it <Type>Tests.swift or <Type>Tests+<Aspect>.swift"
+    failed=1
+    continue
+  fi
+  type=${BASH_REMATCH[1]}
+  sources="Sources/$target/${folder:+$folder/}"
+  if [[ ! -f "$sources$type.swift" ]] && ! compgen -G "$sources$type+*.swift" >/dev/null; then
+    echo "$test: no $sources$type.swift (or $type+<Feature>.swift) to mirror"
+    failed=1
+  fi
+done < <(find Tests -name '*.swift' | sort)
+
+if [[ $failed == 1 ]]; then
+  echo "Tests/ mirrors Sources/: see devtools/check-test-paths"
+fi
+exit $failed

@@ -1,0 +1,152 @@
+# 『Tyler』
+
+A tiling window manager for macOS, in the spirit of xmonad. Each workspace is an ordered list of
+windows (a main window on the left, the rest stacked beside it), workspaces sit side by side in a
+row like pages that slide into view, and everything is driven by a small command-line client you
+bind keys to.
+
+> [!WARNING]
+> **tyler is alpha software.** It is used daily by its author, but by few people beyond that, so
+> expect bugs, and expect commands and settings to change before 1.0.
+>
+> **It is almost entirely "vibe-coded":** written by [Claude Code](https://claude.com/claude-code),
+> with a human deciding what to build, trying it on real windows and reviewing the result. The code
+> is unit tested and linted, but no human has read every line. [`CLAUDE.md`](CLAUDE.md) and
+> [`devdocs/`](devdocs) show how it is built.
+>
+> **tyler moves your windows.** If anything goes wrong, `tyler tiling off` brings every window back
+> into view, and `tyler stop` puts every window back where it was. See
+> [Troubleshooting](docs/troubleshooting.md).
+
+## Features
+
+- **Tiling** of every window into an ordered list: `tall` (a main window on the left, the others
+  stacked on the right), `grid` (columns two windows high) and `full`. `strip`, a niri-like row of columns that scrolls, is
+  **experimental**. See [Layouts](docs/layouts.md).
+- **Workspaces side by side**, switched with a slide: by command, a three-finger trackpad swipe
+  that follows your fingers, Cmd-Tab to a window on another workspace, or the menu bar.
+- **Several displays**, each with its own row of workspaces. Windows can be dragged across, and
+  displays that come and go are followed.
+- **The mouse:** resize tiled windows and the layout follows; drag a window onto another to swap
+  them; Option-drag anywhere in a window to move or resize it; optional focus follows mouse.
+- **The menu bar** shows the workspaces as numbers, as a small map of every workspace and its
+  windows, or both.
+- **A config file** for gaps, the number of workspaces, layouts, app assignments, gestures and the
+  mouse, applied with `tyler config reload`; `tyler config set` tries a setting out until tylerd
+  stops.
+- **Performance:** slides, swipes and resizes are paced to what the apps can keep up with, and
+  tylerd measures each one; see [Performance](docs/features.md#performance).
+- **No SIP changes.** tyler uses only the public Accessibility API: no private APIs, no scripting
+  additions, System Integrity Protection stays on.
+
+See [Features](docs/features.md) for the details.
+
+## Requirements
+
+- macOS 14 or later. Only macOS 26 on an Apple silicon Mac has been tried so far.
+- The Xcode Command Line Tools with Swift 6 (`xcode-select --install`). Full Xcode works too but
+  isn't needed.
+- Accessibility permission for the terminal you start tyler from.
+
+## Installation
+
+tyler is installed from source:
+
+```bash
+git clone https://github.com/dhansmair/tyler.git
+cd tyler
+make install          # builds a release and copies tyler and tylerd to ~/.local/bin
+```
+
+Add `~/.local/bin` to your `PATH` if it isn't there yet (for zsh, in `~/.zshrc`:
+`export PATH="$HOME/.local/bin:$PATH"`). `make install PREFIX=/some/dir` installs elsewhere.
+
+Then start it:
+
+```bash
+tyler start
+```
+
+`tylerd`, the server, now runs in the background and keeps running when you close the terminal. It
+needs Accessibility permission, which macOS gives to the app that started it: open System Settings >
+Privacy & Security > Accessibility and turn on your terminal. `tylerd` notices within a second and
+tiles your windows. `tyler status` shows that it runs; `tyler window list` shows the windows it
+tiles.
+
+### Updating
+
+```bash
+git pull
+make install
+tyler restart         # windows stay where they are
+```
+
+### Starting at login
+
+There is no login service yet. Run `tyler start` from your terminal after logging in, or let your
+shell do it, for example in `~/.zprofile`:
+
+```bash
+tyler start >/dev/null 2>&1   # does nothing if tylerd already runs
+```
+
+Start it from the terminal app that has the Accessibility permission.
+
+### Uninstalling
+
+```bash
+tyler stop                                   # puts every window back
+rm ~/.local/bin/tyler ~/.local/bin/tylerd
+rm -r ~/.tyler ~/.config/tyler               # the socket, log and config
+```
+
+Then remove your terminal from the Accessibility list if nothing else needs it.
+
+## Keybindings
+
+tyler has no hotkeys of its own: every action is a `tyler` command, and you bind keys to them with
+[skhd](https://github.com/koekeishiya/skhd),
+[Karabiner-Elements](https://karabiner-elements.pqrs.org) or [Raycast](https://www.raycast.com).
+With skhd, for example:
+
+```
+alt - j : ~/.local/bin/tyler window focus next
+alt - k : ~/.local/bin/tyler window focus prev
+alt - return : ~/.local/bin/tyler window swap master
+alt - 1 : ~/.local/bin/tyler workspace focus 1
+alt + shift - 1 : ~/.local/bin/tyler window move-to-workspace 1
+```
+
+[Keybindings](docs/keybindings.md) has a full suggested set for all three tools.
+
+## Configuration
+
+tyler reads `~/.config/tyler/tyler.toml`. The file is optional; every setting has a default. After
+editing it, run `tyler config reload`. [`docs/tyler.toml`](docs/tyler.toml) is a sample with every
+setting at its default and a comment each, to copy and edit; the
+[manual](docs/manual.md#configuration) explains every setting.
+
+```toml
+[gaps]
+inner = 8
+outer = 8
+
+[mouse]
+focus-follows = true
+
+[apps.Firefox]
+workspace = 2
+```
+
+## Documentation
+
+- [Manual](docs/manual.md): concepts, running tylerd, the config file, every command
+- [Layouts](docs/layouts.md) and [Features](docs/features.md)
+- [Keybindings](docs/keybindings.md) and [Troubleshooting](docs/troubleshooting.md)
+- [Known issues](docs/known-issues.md) and the [changelog](CHANGELOG.md)
+- [Contributing](CONTRIBUTING.md), and how tyler is built: [`CLAUDE.md`](CLAUDE.md),
+  [`devdocs/design.md`](devdocs/design.md)
+
+## License
+
+[MIT](LICENSE)

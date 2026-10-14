@@ -1,0 +1,99 @@
+import CoreGraphics
+
+/// Where tylerd's picture of the windows differs from what macOS reports right now. tylerd reads a
+/// window again only when the app notifies it, so a missed notification leaves its picture wrong
+/// until the next one (a minimized window that keeps its slot, for example).
+package struct WindowDrift: Codable, Equatable, Sendable {
+  /// What can differ about one window.
+  package enum Field: String, Codable, CaseIterable, Sendable {
+    case minimized
+    case fullscreen
+    case frame
+    case title
+    case kind
+    /// tylerd has the window, but macOS gave nothing for it: it closed, or the read failed.
+    case unreadable
+    /// The backend tracks the window, but tylerd's own list doesn't have it.
+    case unlisted
+  }
+
+  package struct Difference: Codable, Equatable, Sendable {
+    package var id: WindowID
+    package var appName: String
+    package var field: Field
+    /// What tylerd believes, and what macOS says, as `window list` would show them.
+    package var believed: String
+    package var actual: String
+  }
+
+  package var differences: [Difference]
+  /// How many windows were compared.
+  package var checkedCount: Int
+  package var untracked: [WindowInfo]
+  package var unattachedApps: [String]
+
+  /// Whether tylerd's picture matches macOS's in every respect checked.
+  package var isEmpty: Bool {
+    differences.isEmpty && untracked.isEmpty && unattachedApps.isEmpty
+  }
+
+  /// Compares `believed` (tylerd's list) with `fresh`, in the order of `believed`, then the
+  /// windows only the backend has.
+  package static func compare(believed: [WindowInfo], fresh: FreshWindows) -> WindowDrift {
+    let actual = Dictionary(fresh.tracked.map { ($0.id, $0) }) { first, _ in first }
+    var differences: [Difference] = []
+    for window in believed {
+      guard let now = actual[window.id] else {
+        differences.append(
+          Difference(
+            id: window.id, appName: window.appName, field: .unreadable, believed: "tracked",
+            actual: "nothing"))
+        continue
+      }
+      differences += changes(window, now)
+    }
+    let listed = Set(believed.map(\.id))
+    for window in fresh.tracked where !listed.contains(window.id) {
+      differences.append(
+        Difference(
+          id: window.id, appName: window.appName, field: .unlisted, believed: "not listed",
+          actual: "tracked by the backend"))
+    }
+    return WindowDrift(
+      differences: differences, checkedCount: believed.count, untracked: fresh.untracked,
+      unattachedApps: fresh.unattachedApps)
+  }
+
+  /// One field as tylerd has it and as macOS reports it.
+  private struct Reading {
+    let field: Field
+    let believed: String
+    let actual: String
+  }
+
+  private static func changes(_ believed: WindowInfo, _ actual: WindowInfo) -> [Difference] {
+    let readings = [
+      Reading(
+        field: .minimized, believed: yesNo(believed.isMinimized), actual: yesNo(actual.isMinimized)),
+      Reading(
+        field: .fullscreen, believed: yesNo(believed.isFullscreen),
+        actual: yesNo(actual.isFullscreen)),
+      Reading(field: .frame, believed: frameText(believed.frame), actual: frameText(actual.frame)),
+      Reading(field: .title, believed: believed.title, actual: actual.title),
+      Reading(field: .kind, believed: believed.kind.rawValue, actual: actual.kind.rawValue),
+    ]
+    return readings.filter { $0.believed != $0.actual }.map { reading in
+      Difference(
+        id: believed.id, appName: believed.appName, field: reading.field,
+        believed: reading.believed, actual: reading.actual)
+    }
+  }
+
+  private static func yesNo(_ value: Bool) -> String { value ? "yes" : "no" }
+
+  /// Whole points, as `window list` shows frames: a fraction of a point isn't a difference.
+  private static func frameText(_ frame: CGRect) -> String {
+    "\(Int(frame.minX.rounded())),\(Int(frame.minY.rounded())) "
+      + "\(Int(frame.width.rounded()))x\(Int(frame.height.rounded()))"
+  }
+}

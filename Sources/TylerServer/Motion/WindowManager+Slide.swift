@@ -24,8 +24,7 @@ extension WindowManager {
     let task = Task { [weak self] in
       let frameStarted: () -> Void = { self?.mover.frameStarted() }
       let move: (WindowID, CGPoint, CGSize?) -> Void = { windowID, origin, size in
-        guard let size else { return self?.nudge(windowID, to: origin) ?? () }
-        self?.step(Placement(id: windowID, frame: CGRect(origin: origin, size: size)))
+        self?.nudge(windowID, to: origin, size: size)
       }
       let isComplete =
         animation.startProgress == 0 && animation.endProgress == 1
@@ -59,12 +58,8 @@ extension WindowManager {
     place(running.finals)
   }
 
-  func nudge(_ windowID: WindowID, to origin: CGPoint) {
-    mover.nudge(windowID, to: origin, known: registry)
-  }
-
-  func step(_ placement: Placement) {
-    mover.step(placement, known: registry)
+  func nudge(_ windowID: WindowID, to origin: CGPoint, size: CGSize? = nil) {
+    mover.nudge(windowID, to: origin, size: size, known: registry)
   }
 
   /// Returns 0: a failed carry is logged, and the drop places the window anyway.

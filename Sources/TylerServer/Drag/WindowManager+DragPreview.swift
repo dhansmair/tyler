@@ -46,13 +46,8 @@ extension WindowManager {
 
   private func stepPreview(_ windowID: WindowID, to origin: CGPoint, size: CGSize?) {
     guard let frame = drag?.preview?.frames[windowID] else { return }
-    let next = CGRect(origin: origin, size: size ?? frame.size)
-    if size == nil {
-      nudge(windowID, to: origin)
-    } else {
-      step(Placement(id: windowID, frame: next))
-    }
-    drag?.preview?.frames[windowID] = next
+    nudge(windowID, to: origin, size: size)
+    drag?.preview?.frames[windowID] = CGRect(origin: origin, size: size ?? frame.size)
   }
 
   private func completePreview(_ id: Int) {

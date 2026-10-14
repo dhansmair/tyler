@@ -56,31 +56,24 @@ final class WindowMover {
     return failures
   }
 
-  /// One step of a slide: a move without a resize, in a single call to the app.
-  func nudge(_ windowID: WindowID, to origin: CGPoint, known registry: WindowRegistry) {
+  /// One step of an animation, without waiting for the app: a move in a single call, or with
+  /// `size` a move and a resize.
+  func nudge(
+    _ windowID: WindowID, to origin: CGPoint, size: CGSize? = nil, known registry: WindowRegistry
+  ) {
     rememberOriginalFrame(of: windowID, known: registry)
     do {
       try timed(windowID) { () throws(BackendError) in
-        try backend.setPosition(origin, of: windowID)
+        if let size {
+          try backend.setFrameStep(CGRect(origin: origin, size: size), of: windowID)
+        } else {
+          try backend.setPosition(origin, of: windowID)
+        }
       }
     } catch {
       // One missed frame is invisible; the final placement reports real failures.
       Self.log.debug(
         "window sliding failed - \(Self.named(windowID, registry)) - \(error.description)")
-    }
-  }
-
-  /// One step of an animation that resizes the window: a move and a resize, without waiting.
-  func step(_ placement: Placement, known registry: WindowRegistry) {
-    rememberOriginalFrame(of: placement.id, known: registry)
-    do {
-      try timed(placement.id) { () throws(BackendError) in
-        try backend.setFrameStep(placement.frame, of: placement.id)
-      }
-    } catch {
-      // One missed frame is invisible; the final placement reports real failures.
-      Self.log.debug(
-        "window resizing failed - \(Self.named(placement.id, registry)) - \(error.description)")
     }
   }
 

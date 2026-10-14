@@ -26,8 +26,14 @@ package struct Animator {
     self.clock = clock
   }
 
-  /// An animator that never animates.
+  /// An animator that never animates, whatever duration an animation asks for (see `over`).
   package static var snap: Animator { Animator(duration: .zero) }
+
+  /// This animator, taking `duration` instead; a snap animator stays one.
+  package func over(_ duration: Duration) -> Animator {
+    guard self.duration > .zero else { return self }
+    return Animator(duration: duration, frameInterval: frameInterval, clock: clock)
+  }
 
   /// The most frames an animation has (fewer when moving the windows takes longer than a
   /// frame); 0 means it snaps.
@@ -43,12 +49,13 @@ package struct Animator {
   package func run(
     _ tracks: [Track],
     frameStarted: () -> Void = {},
-    move: (WindowID, CGPoint) -> Void
+    move: (WindowID, CGPoint, CGSize?) -> Void
   ) async -> Bool {
     let clock = clock  // Swift opens the existential from a local, not from the stored property.
     return await run(tracks, over: duration, timedBy: clock, frameStarted: frameStarted) {
       track, fraction in
-      move(track.id, track.position(at: fraction))
+      move(
+        track.id, track.position(at: fraction), track.size(at: fraction, easing: Easing.easeInOut))
     }
   }
 
@@ -62,7 +69,7 @@ package struct Animator {
     to end: Double,
     minimumDuration: Duration = .zero,
     frameStarted: () -> Void = {},
-    move: (WindowID, CGPoint) -> Void
+    move: (WindowID, CGPoint, CGSize?) -> Void
   ) async -> Bool {
     let clock = clock  // Swift opens the existential from a local, not from the stored property.
     let share = start == end ? .zero : max(duration * abs(end - start), minimumDuration)
@@ -70,7 +77,9 @@ package struct Animator {
     return await run(tracks, over: share, timedBy: clock, frameStarted: frameStarted) {
       track, fraction in
       let progress = start + (end - start) * Easing.easeOut(fraction)
-      move(track.id, track.position(at: progress, easing: Easing.linear))
+      move(
+        track.id, track.position(at: progress, easing: Easing.linear),
+        track.size(at: progress, easing: Easing.linear))
     }
   }
 

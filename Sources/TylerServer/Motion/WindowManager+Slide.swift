@@ -15,15 +15,16 @@ extension WindowManager {
   @discardableResult
   func animate(_ animation: Transition) -> Int {
     endSlideOrSwipe()
+    let animator = animation.duration.map(animator.over) ?? animator
     guard animator.stepCount > 0, !animation.tracks.isEmpty else { return place(animation.finals) }
     let failures = place(animation.start)
     slideCount += 1
     let id = slideCount
-    let animator = animator
     let task = Task { [weak self] in
       let frameStarted: () -> Void = { self?.mover.frameStarted() }
-      let move: (WindowID, CGPoint) -> Void = { windowID, origin in
-        self?.nudge(windowID, to: origin)
+      let move: (WindowID, CGPoint, CGSize?) -> Void = { windowID, origin, size in
+        guard let size else { return self?.nudge(windowID, to: origin) ?? () }
+        self?.step(Placement(id: windowID, frame: CGRect(origin: origin, size: size)))
       }
       let isComplete =
         animation.startProgress == 0 && animation.endProgress == 1
@@ -59,6 +60,10 @@ extension WindowManager {
 
   func nudge(_ windowID: WindowID, to origin: CGPoint) {
     mover.nudge(windowID, to: origin, known: registry)
+  }
+
+  func step(_ placement: Placement) {
+    mover.step(placement, known: registry)
   }
 
   /// Returns 0: a failed carry is logged, and the drop places the window anyway.

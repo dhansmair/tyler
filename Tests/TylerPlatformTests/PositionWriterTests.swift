@@ -23,6 +23,11 @@ struct PositionWriterTests {
 
     var written: [String] { lock.withLock { log } }
 
+    private static func originX(of move: PositionWriter.Move) -> CGFloat {
+      for case .position(let origin) in move.writes { return origin.x }
+      return -1
+    }
+
     func write(_ windowID: WindowID, _ move: PositionWriter.Move) {
       let holds = lock.withLock { () -> Bool in
         defer { if windowID == WindowID(1) { isHolding = false } }
@@ -32,7 +37,7 @@ struct PositionWriterTests {
         entered.signal()
         gate.wait()
       }
-      lock.withLock { log.append("\(windowID.rawValue)@\(Int(move.origin.x))") }
+      lock.withLock { log.append("\(windowID.rawValue)@\(Int(Self.originX(of: move)))") }
     }
   }
 
@@ -49,10 +54,10 @@ struct PositionWriterTests {
   @Test func settlingWaitsForTheMoveUnderWayAndDropsTheOneWaiting() throws {
     let apps = Apps()
     let writer = makeWriter(apps)
-    try writer.move(WindowID(1), element, to: CGPoint(x: 10, y: 0), in: 100)
+    try writer.move(WindowID(1), element, by: [.position(CGPoint(x: 10, y: 0))], in: 100)
     apps.entered.wait()
-    try writer.move(WindowID(1), element, to: CGPoint(x: 20, y: 0), in: 100)
-    try writer.move(WindowID(2), element, to: CGPoint(x: 30, y: 0), in: 100)
+    try writer.move(WindowID(1), element, by: [.position(CGPoint(x: 20, y: 0))], in: 100)
+    try writer.move(WindowID(2), element, by: [.position(CGPoint(x: 30, y: 0))], in: 100)
     openSoon(apps.gate)
 
     try writer.settle(WindowID(1), in: 100)
@@ -62,9 +67,9 @@ struct PositionWriterTests {
   @Test func anAppDoesNotWaitForAnother() throws {
     let apps = Apps()
     let writer = makeWriter(apps)
-    try writer.move(WindowID(1), element, to: CGPoint(x: 10, y: 0), in: 100)
+    try writer.move(WindowID(1), element, by: [.position(CGPoint(x: 10, y: 0))], in: 100)
     apps.entered.wait()
-    try writer.move(WindowID(2), element, to: CGPoint(x: 30, y: 0), in: 200)
+    try writer.move(WindowID(2), element, by: [.position(CGPoint(x: 30, y: 0))], in: 200)
     try writer.settle(WindowID(3), in: 200)
     #expect(apps.written == ["2@30"], "app 100 is still held")
 
@@ -81,11 +86,11 @@ struct PositionWriterTests {
   @Test func statisticsAddUpEveryApp() throws {
     let apps = Apps()
     let writer = makeWriter(apps)
-    try writer.move(WindowID(1), element, to: CGPoint(x: 10, y: 0), in: 100)
+    try writer.move(WindowID(1), element, by: [.position(CGPoint(x: 10, y: 0))], in: 100)
     apps.entered.wait()
-    try writer.move(WindowID(1), element, to: CGPoint(x: 20, y: 0), in: 100)
-    try writer.move(WindowID(1), element, to: CGPoint(x: 25, y: 0), in: 100)
-    try writer.move(WindowID(2), element, to: CGPoint(x: 30, y: 0), in: 200)
+    try writer.move(WindowID(1), element, by: [.position(CGPoint(x: 20, y: 0))], in: 100)
+    try writer.move(WindowID(1), element, by: [.position(CGPoint(x: 25, y: 0))], in: 100)
+    try writer.move(WindowID(2), element, by: [.position(CGPoint(x: 30, y: 0))], in: 200)
     apps.gate.signal()
     try writer.settle(WindowID(3), in: 100)
     try writer.settle(WindowID(3), in: 200)
@@ -103,15 +108,15 @@ struct PositionWriterTests {
     writer.noteTimeout(of: 100)
 
     #expect(throws: BackendError.refused("its app didn't answer a moment ago")) {
-      try writer.move(WindowID(2), element, to: CGPoint(x: 20, y: 0), in: 100)
+      try writer.move(WindowID(2), element, by: [.position(CGPoint(x: 20, y: 0))], in: 100)
     }
     #expect(throws: BackendError.self) { try writer.settle(WindowID(2), in: 100) }
-    try writer.move(WindowID(3), element, to: CGPoint(x: 30, y: 0), in: 200)
+    try writer.move(WindowID(3), element, by: [.position(CGPoint(x: 30, y: 0))], in: 200)
     try writer.settle(WindowID(4), in: 200)
     #expect(apps.written == ["3@30"], "another app is still moved")
 
     now.instant += UnresponsiveApps.pause
-    try writer.move(WindowID(2), element, to: CGPoint(x: 25, y: 0), in: 100)
+    try writer.move(WindowID(2), element, by: [.position(CGPoint(x: 25, y: 0))], in: 100)
     try writer.settle(WindowID(4), in: 100)
     #expect(apps.written == ["3@30", "2@25"])
   }

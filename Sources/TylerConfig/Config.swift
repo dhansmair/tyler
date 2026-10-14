@@ -82,6 +82,7 @@ package struct Config: Equatable, Sendable {
     }
   }
 
+  package var animations: Animations
   package var editor: Editor
   package var gaps: Gaps
   package var gestures: Gestures
@@ -98,12 +99,14 @@ package struct Config: Equatable, Sendable {
   package var apps: [String: App]
 
   package init(
-    editor: Editor = Editor(), gaps: Gaps = Gaps(), gestures: Gestures = Gestures(),
+    animations: Animations = Animations(), editor: Editor = Editor(), gaps: Gaps = Gaps(),
+    gestures: Gestures = Gestures(),
     indicators: Indicators = Indicators(),
     layouts: Layouts = Layouts(), log: Log = Log(), mouse: Mouse = Mouse(),
     workspaces: Workspaces = Workspaces(),
     displays: [Int: [Int]] = [:], apps: [String: App] = [:]
   ) {
+    self.animations = animations
     self.editor = editor
     self.gaps = gaps
     self.gestures = gestures
@@ -124,7 +127,8 @@ extension Config {
     func names<Value>(_ section: String, _ settings: [Setting<Value>]) -> [String] {
       settings.map { "\(section).\($0.key)" }
     }
-    return names("editor", Editor.settings) + names("gaps", Gaps.settings)
+    return names("animations", Animations.settings) + names("editor", Editor.settings)
+      + names("gaps", Gaps.settings)
       + names("gestures", Gestures.settings)
       + names("indicators.text", Indicators.Text.settings)
       + names("indicators.map", Indicators.Map.settings) + names("layouts", Layouts.settings)
@@ -160,6 +164,10 @@ extension Config {
 
   /// The tables other than `[apps]` and `[displays]`, each read and written by its own settings.
   static let sections: [Setting<Config>] = [
+    Setting(
+      "animations",
+      read: { config, value, _ throws(ConfigError) in config.animations = try Animations(value) },
+      write: { Section.document($0.animations, Animations.settings) }),
     Setting(
       "editor", read: { config, value, _ throws(ConfigError) in config.editor = try Editor(value) },
       write: { Section.document($0.editor, Editor.settings) }),

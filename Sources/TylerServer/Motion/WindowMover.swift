@@ -70,6 +70,20 @@ final class WindowMover {
     }
   }
 
+  /// One step of an animation that resizes the window: a move and a resize, without waiting.
+  func step(_ placement: Placement, known registry: WindowRegistry) {
+    rememberOriginalFrame(of: placement.id, known: registry)
+    do {
+      try timed(placement.id) { () throws(BackendError) in
+        try backend.setFrameStep(placement.frame, of: placement.id)
+      }
+    } catch {
+      // One missed frame is invisible; the final placement reports real failures.
+      Self.log.debug(
+        "window resizing failed - \(Self.named(placement.id, registry)) - \(error.description)")
+    }
+  }
+
   /// Moves a window the user grabbed with the modifier. The user is moving it, as with a drag by
   /// its title bar, so this isn't remembered as tylerd's move.
   func carry(_ windowID: WindowID, to origin: CGPoint, known registry: WindowRegistry) {

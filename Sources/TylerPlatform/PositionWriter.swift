@@ -10,11 +10,11 @@ import TylerServer
 /// backend asks before focusing one of them too.
 @MainActor
 final class PositionWriter {
-  /// A window and where it goes. An `AXUIElement` is an immutable handle on an element of another
-  /// process, and the Accessibility API may be called from any thread.
+  /// A window and the writes that take it where it goes. An `AXUIElement` is an immutable handle
+  /// on an element of another process, and the Accessibility API may be called from any thread.
   struct Move: @unchecked Sendable {
     let element: AXUIElement
-    let origin: CGPoint
+    let writes: [FrameWrite]
   }
 
   nonisolated private static let log = TylerLog(category: "ax")
@@ -32,10 +32,10 @@ final class PositionWriter {
   }
 
   func move(
-    _ windowID: WindowID, _ element: AXUIElement, to origin: CGPoint, in processID: pid_t
+    _ windowID: WindowID, _ element: AXUIElement, by writes: [FrameWrite], in processID: pid_t
   ) throws(BackendError) {
     try refuseIfUnresponsive(processID)
-    queue(for: processID).submit(Move(element: element, origin: origin), for: windowID)
+    queue(for: processID).submit(Move(element: element, writes: writes), for: windowID)
   }
 
   /// Drops the move still waiting for `windowID` and waits until its app's queue is idle, so a
@@ -92,10 +92,13 @@ final class PositionWriter {
   }
 
   nonisolated private static func moveWindow(_ windowID: WindowID, _ move: Move) {
-    let status = AXBridge.setPosition(move.origin, of: move.element)
-    if status != .success {
-      // One missed frame is invisible; the final placement reports real failures.
-      log.debug("window sliding failed - #\(windowID) - AX error \(status.rawValue)")
+    for write in move.writes {
+      let status = AXBridge.write(write, to: move.element)
+      if status != .success {
+        // One missed frame is invisible; the final placement reports real failures.
+        log.debug("window sliding failed - #\(windowID) - AX error \(status.rawValue)")
+        return
+      }
     }
   }
 }

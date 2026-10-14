@@ -68,6 +68,13 @@ it is made, and change it here when it changes.
 - **The animation has a clock.** `Animator` is a struct with an injected `Clock` (the test seam):
   250 ms, frames on an 8 ms grid, progress from elapsed time, so a slow app makes a slide coarser
   but not longer. A snap is an animation with zero steps.
+- **Each animation other than the slide has its own duration** in `[animations]` (`swap`), carried
+  by its `Transition`; 0 makes it a snap through the same code, with no "animations on" switch.
+  A swap runs as a slide (a command mid-swap jumps it to its end). A swapped window changes size
+  along the way, in step with its position: resizing only at the ends (shrink, move, grow) looked
+  odd. A resize makes the app lay out again (18–23 ms a write), so these steps go through the
+  per-app queues like a slide's moves (`setFrameStep`): a slow app skips frames instead of holding
+  up the main thread, and the 250 ms default leaves enough frames to look smooth.
 - **Slide, swipe and drag are one state** (`Interaction`): they never happen at the same time. A
   command that arrives mid-slide first jumps to the slide's end; one that arrives mid-swipe or
   mid-drag puts the windows back.

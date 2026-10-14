@@ -8,6 +8,9 @@ import TylerCore
 @Suite("Config: as a document")
 struct ConfigDocumentTests {
   private static let everythingChanged = """
+    [animations]
+    swap = 0
+
     [editor]
     command = "open -na Ghostty --args -e nvim"
 

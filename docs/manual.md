@@ -143,6 +143,7 @@ icon = "terminal"                # or an SF Symbol
 | `gestures.swipe` | Whether a sideways trackpad swipe moves between workspaces (`true` or `false`) | `true` |
 | `gestures.fingers` | How many fingers that swipe takes (3 or 4) | `3` |
 | `gestures.swipe-distance` | How far your fingers travel to swipe a whole workspace across, in trackpad widths (0.1 to 1.0): lower is more sensitive | `0.3` |
+| `animations.swap` | How long [`tyler window swap`](#window-swap) takes to move the windows to their new places, in milliseconds (0 to 1000); 0 moves them at once | `250` |
 | `indicators.text.enabled` | Whether the menu bar shows the workspace numbers (`1 [2] 3 4  ▥`) | `true` |
 | `indicators.map.enabled` | Whether the menu bar shows the map of the workspaces | `true` |
 | `indicators.map.show-icons` | Whether the map shows each window's app icon | `true` |
@@ -304,7 +305,7 @@ tyler window swap prev
 tyler window swap master
 ```
 
-Swaps the focused window with its neighbour in the list (wrapping around) or with the master, then re-tiles. The focused window moves and keeps the focus. If the focused window already is the master, `window swap master` swaps it with the second window.
+Swaps the focused window with its neighbour in the list (wrapping around) or with the master, then re-tiles. The two windows slide into each other's slots, changing size on the way, taking `animations.swap` milliseconds (0 swaps them at once). The focused window moves and keeps the focus. If the focused window already is the master, `window swap master` swaps it with the second window.
 
 ### window float
 

@@ -24,7 +24,10 @@ package protocol WindowBackend: AnyObject {
   /// may return before the app has moved the window, and a newer move may replace one still
   /// waiting; a later `setFrame` of the window always lands after it.
   func setPosition(_ origin: CGPoint, of windowID: WindowID) throws(BackendError)
-  /// What `setPosition` wrote without waiting since the last call.
+  /// Moves and resizes a window as `setPosition` moves it: for the steps of an animation that
+  /// changes a window's size, settled by a `setFrame` at the end.
+  func setFrameStep(_ frame: CGRect, of windowID: WindowID) throws(BackendError)
+  /// What `setPosition` and `setFrameStep` wrote without waiting since the last call.
   func takeQueuedWrites() -> MotionCost.Queued
   /// Moves and resizes a window in at most two calls to the app, without reading it back: for the
   /// steps of a resize, which a `setFrame` settles at the end.

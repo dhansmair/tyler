@@ -11,17 +11,22 @@ package struct Track: Equatable, Sendable {
   /// distance, and one that reaches the edge of this range waits there instead of being asked
   /// for a position macOS would pull back on screen.
   package let allowedX: ClosedRange<CGFloat>
+  /// The sizes the window goes between, for a window that changes size along the way; `nil` for
+  /// one that keeps its size.
+  package let sizes: Sizes?
 
   package init(
     id: WindowID,
     start: CGPoint,
     end: CGPoint,
-    allowedX: ClosedRange<CGFloat> = -CGFloat.infinity...CGFloat.infinity
+    allowedX: ClosedRange<CGFloat> = -CGFloat.infinity...CGFloat.infinity,
+    sizes: Sizes? = nil
   ) {
     self.id = id
     self.start = start
     self.end = end
     self.allowedX = allowedX
+    self.sizes = sizes
   }
 
   /// A window leaving the display from `frame`, in the direction the view scrolls.
@@ -61,5 +66,15 @@ package struct Track: Equatable, Sendable {
     return CGPoint(
       x: CGFloat(along).clamped(to: allowedX),
       y: (start.y + (end.y - start.y) * eased).rounded())
+  }
+
+  /// The size at `progress`, eased like the position and rounded to whole points; `nil` for a
+  /// window that keeps its size.
+  package func size(at progress: Double, easing: (Double) -> Double) -> CGSize? {
+    guard let sizes else { return nil }
+    let eased = easing(progress)
+    return CGSize(
+      width: (sizes.start.width + (sizes.end.width - sizes.start.width) * eased).rounded(),
+      height: (sizes.start.height + (sizes.end.height - sizes.start.height) * eased).rounded())
   }
 }

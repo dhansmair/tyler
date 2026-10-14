@@ -25,7 +25,7 @@ struct AnimatorTests {
     let animator = animator
     let track = track
     let task = Task { @MainActor in
-      let record: (WindowID, CGPoint) -> Void = { _, origin in steps.append(origin.x) }
+      let record: (WindowID, CGPoint, CGSize?) -> Void = { _, origin, _ in steps.append(origin.x) }
       return await animator.run(
         [track], from: start, to: end, minimumDuration: minimumDuration, move: record)
     }
@@ -44,7 +44,8 @@ struct AnimatorTests {
     let track = track
     let task = Task { @MainActor in
       await animator.run(
-        [track], frameStarted: { events.append("frame") }, move: { _, _ in events.append("move") })
+        [track], frameStarted: { events.append("frame") },
+        move: { _, _, _ in events.append("move") })
     }
     await Task.yield()
     while !clock.hasSleepers { await Task.yield() }
@@ -88,7 +89,7 @@ struct AnimatorTests {
   }
 
   @Test func nothingLeftToGoFinishesAtOnce() async {
-    let isDone = await animator.run([track], from: 1, to: 1) { _, _ in
+    let isDone = await animator.run([track], from: 1, to: 1) { _, _, _ in
       Issue.record("nothing should move")
     }
     #expect(isDone)

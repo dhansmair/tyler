@@ -26,11 +26,16 @@ struct TilingController {
       throw .error("need at least two tiled windows to swap")
     }
     let before = context.viewSnapshot(of: model.rows)
+    let slots = focusedSlots(model.rows)
     guard model.rows.focused.current.swap(target) else {
       throw .error("no tiled window is focused")
     }
-    let scroll = before?.scroll(to: model.rows.focused.current).map(Effect.animate)
-    return Decision(effects: [scroll ?? .reconcile()])
+    if let scroll = before?.scroll(to: model.rows.focused.current) {
+      return Decision(effects: [.animate(scroll)])
+    }
+    let duration = Duration.milliseconds(context.config.animations.swap)
+    let swap = Transition(retiling: slots, to: focusedSlots(model.rows), duration: duration)
+    return Decision(effects: [swap.tracks.isEmpty ? .reconcile() : .animate(swap)])
   }
 
   /// A floated window leaves the list and stays where it is. Asking for the state the window is
@@ -117,5 +122,12 @@ struct TilingController {
       }
     }
     return [.restoreOriginalFrames(restored)]
+  }
+
+  /// The slots of the focused display's current workspace.
+  private func focusedSlots(_ rows: DisplayRows) -> [Placement] {
+    guard let position = rows.position(of: rows.focusedKey) else { return [] }
+    return TilingSnapshot(rows: rows, displays: context.displays, gaps: context.gaps)
+      .restingPlacements(at: position)
   }
 }

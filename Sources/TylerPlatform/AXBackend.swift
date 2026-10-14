@@ -296,7 +296,19 @@ extension AXBackend {
     guard let element = windows.element(of: windowID),
       let processID = windows.processID(of: windowID)
     else { throw .windowGone(windowID) }
-    try positions.move(windowID, element, to: origin, in: processID)
+    try positions.move(windowID, element, by: [.position(origin)], in: processID)
+  }
+
+  /// Ordered from the frame last read, which lags behind the steps but grows or shrinks the same
+  /// way along a straight track.
+  package func setFrameStep(_ frame: CGRect, of windowID: WindowID) throws(BackendError) {
+    guard let element = windows.element(of: windowID),
+      let processID = windows.processID(of: windowID)
+    else { throw .windowGone(windowID) }
+    let writes =
+      windows.lastRead(of: windowID).flatMap { FrameWrite.inPassing(from: $0.frame, to: frame) }
+      ?? [.position(frame.origin), .size(frame.size)]
+    try positions.move(windowID, element, by: writes, in: processID)
   }
 
   package func takeQueuedWrites() -> MotionCost.Queued { positions.takeStatistics() }

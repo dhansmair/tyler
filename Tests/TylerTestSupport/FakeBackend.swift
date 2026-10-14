@@ -19,17 +19,20 @@ package final class FakeBackend: WindowBackend {
   package private(set) var moves: [Placement] = []
   /// Every successful `setPosition` (animation steps), in order.
   package private(set) var nudges: [(id: WindowID, origin: CGPoint)] = []
+  /// Every successful `setFrameStep` (steps of an animation that resizes), in order.
+  package private(set) var frameSteps: [Placement] = []
   package private(set) var passingMoves: [Placement] = []
   /// Every `focus` call, in order, including ones that failed.
   package private(set) var focusCalls: [WindowID] = []
   /// Windows whose `setFrame` throws.
   package var failingMoves: Set<WindowID> = []
-  /// Whether moves wait, as `AXBackend`'s queues let them: `setPosition` keeps only the newest
+  /// Whether moves wait, as `AXBackend`'s queues let them: `setPosition` and `setFrameStep` keep
+  /// only the newest
   /// move of each window in `heldMoves` until `releaseHeldMoves()`, and a `setFrame` (or
   /// `setFrameInPassing`) first drops its window's held move and lands the others of its app, as
   /// `PositionWriter.settle` does.
   package var holdsMoves = false
-  package private(set) var heldMoves: [WindowID: CGPoint] = [:]
+  package private(set) var heldMoves: [WindowID: CGRect] = [:]
   /// Runs at every move, so a test can let time pass while an app moves a window.
   package var onWrite: (() -> Void)?
   /// Windows whose `focus` throws.
@@ -88,32 +91,43 @@ package final class FakeBackend: WindowBackend {
   package func setPosition(_ origin: CGPoint, of windowID: WindowID) throws(BackendError) {
     let index = try movableIndex(of: windowID)
     nudges.append((windowID, origin))
+    step(index, to: CGRect(origin: origin, size: windows[index].frame.size))
+  }
+
+  /// Moves and resizes the window but, like the real backend, reports nothing back.
+  package func setFrameStep(_ frame: CGRect, of windowID: WindowID) throws(BackendError) {
+    let index = try movableIndex(of: windowID)
+    frameSteps.append(Placement(id: windowID, frame: frame))
+    step(index, to: frame)
+  }
+
+  private func step(_ index: Int, to frame: CGRect) {
     if holdsMoves {
-      heldMoves[windowID] = origin
+      heldMoves[windows[index].id] = frame
     } else {
-      windows[index].frame.origin = origin
+      windows[index].frame = frame
     }
   }
 
   /// Lands every held move: the queued steps an app gets to late.
   package func releaseHeldMoves() {
-    for (windowID, origin) in heldMoves { land(origin, windowID) }
+    for (windowID, frame) in heldMoves { land(frame, windowID) }
     heldMoves = [:]
   }
 
   private func settle(_ windowID: WindowID) {
     heldMoves[windowID] = nil
     let processID = windows.first { $0.id == windowID }?.processID
-    for (heldID, origin) in heldMoves
+    for (heldID, frame) in heldMoves
     where windows.first(where: { $0.id == heldID })?.processID == processID {
-      land(origin, heldID)
+      land(frame, heldID)
       heldMoves[heldID] = nil
     }
   }
 
-  private func land(_ origin: CGPoint, _ windowID: WindowID) {
+  private func land(_ frame: CGRect, _ windowID: WindowID) {
     guard let index = windows.firstIndex(where: { $0.id == windowID }) else { return }
-    windows[index].frame.origin = origin
+    windows[index].frame = frame
   }
 
   /// Where `windowID` is in `windows`, unless moving it fails: it is in `failingMoves` or gone.
@@ -153,6 +167,7 @@ package final class FakeBackend: WindowBackend {
   package func clearRecordedCalls() {
     moves = []
     nudges = []
+    frameSteps = []
     passingMoves = []
     focusCalls = []
     closeCalls = []

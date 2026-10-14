@@ -79,7 +79,9 @@ let package = Package(
       ]),
     .testTarget(
       name: "TylerPlatformTests",
-      dependencies: ["TylerRuntime", "TylerCore", "TylerServer", "TylerPlatform"]),
+      dependencies: [
+        "TylerRuntime", "TylerCore", "TylerServer", "TylerPlatform", "TylerTestSupport",
+      ]),
     .testTarget(
       name: "TylerIndicatorsTests",
       dependencies: [

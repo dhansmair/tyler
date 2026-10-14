@@ -3,7 +3,8 @@
 # <Type>Tests+<Aspect>.swift) tests a type whose source sits at Sources/<Target>/<path>/, as
 # <Type>.swift or an extension <Type>+<Feature>.swift. Shared helpers at the top of a test target
 # (Support) and Tests/TylerTestSupport, the helpers the server test targets share, are the
-# exception. Scenario tests mirror features instead: Tests/TylerScenarioTests/<Feature>/
+# exception. A fake of an internal protocol sits beside its tests as Fake<Protocol>.swift, at the
+# path of <Protocol>.swift. Scenario tests mirror features instead: Tests/TylerScenarioTests/<Feature>/
 # <Behaviour>Scenarios.swift, where Sources/TylerServer/<Feature>/ exists, with the Scenario
 # helpers and their tests at the top. Run by `make lint` and the pre-commit hook.
 set -euo pipefail
@@ -33,6 +34,14 @@ while IFS= read -r test; do
   if [[ $folder == . ]]; then
     folder=""
     case $name in Support) continue ;; esac
+  fi
+  if [[ $name =~ ^Fake([A-Za-z0-9]+)$ ]]; then
+    protocol=${BASH_REMATCH[1]}
+    if [[ ! -f "Sources/$target/${folder:+$folder/}$protocol.swift" ]]; then
+      echo "$test: no Sources/$target/${folder:+$folder/}$protocol.swift for this fake"
+      failed=1
+    fi
+    continue
   fi
   if [[ ! $name =~ ^([A-Za-z0-9]+)Tests(\+[A-Za-z0-9]+)?$ ]]; then
     echo "$test: name it <Type>Tests.swift or <Type>Tests+<Aspect>.swift"

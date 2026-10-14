@@ -39,7 +39,6 @@ package final class AXBackend: WindowBackend {
     for app in NSWorkspace.shared.runningApplications {
       attach(processID: app.processIdentifier, attempt: 1)
     }
-    updateFocusFromFrontmostApp()
   }
 
   package func stop() {
@@ -159,6 +158,10 @@ package final class AXBackend: WindowBackend {
       for window in AXBridge.windows(of: application) {
         register(window: window, processID: processID)
       }
+      // A freshly launched app may have come to the front before its first attempt succeeded.
+      if NSWorkspace.shared.frontmostApplication?.processIdentifier == processID {
+        readFocus(of: processID)
+      }
     } catch {
       let name = app.localizedName ?? String(processID)
       Self.log.info(
@@ -212,18 +215,17 @@ package final class AXBackend: WindowBackend {
     // became a regular app after launching gets another chance whenever it comes to the front.
     if observers[processID] == nil, retries[processID] == nil {
       attach(processID: processID, attempt: 1)
+    } else if observers[processID] != nil {
+      readFocus(of: processID)
     }
-    guard observers[processID] != nil else { return }
+  }
+
+  private func readFocus(of processID: pid_t) {
     let application = AXBridge.applicationElement(processID: processID)
     let windowID = AXBridge.focusedWindow(of: application).flatMap { window in
       register(window: window, processID: processID)
     }
     setFocus(windowID)
-  }
-
-  private func updateFocusFromFrontmostApp() {
-    guard let front = NSWorkspace.shared.frontmostApplication else { return }
-    appActivated(processID: front.processIdentifier)
   }
 
   // MARK: - Windows

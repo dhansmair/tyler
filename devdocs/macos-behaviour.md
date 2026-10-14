@@ -116,6 +116,12 @@ macOS version and the setup described in general terms.
   restart (`tyler debug windows` listed it under "apps tylerd can't observe"); brought to the
   front, it attached and its window tiled. Why it refused isn't known: the reason is only in a
   `Logger` debug line.
+- **A freshly launched app comes to the front before it can be observed** (seen 2026-10-14,
+  macOS 26.7, a terminal whose shortcut starts a new process for each window, twice in a row):
+  the first attach failed registering `kAXWindowCreatedNotification`, while the app's
+  `didActivateApplicationNotification` had already come. The retry attached it and tiled its
+  window, but nothing read its focused window, so tylerd kept the previous window as focused and
+  `window swap` moved that one. Attaching the frontmost app now reads its focus.
 - **An app that quits by itself posts no `didTerminateApplicationNotification`** (measured
   2026-10-14, macOS 26.7): Find My, a Mac Catalyst app, quits when its last window closes, and a
   listener got its launch notification but no terminate notification within 15 s, nor did the

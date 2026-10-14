@@ -10,7 +10,8 @@ extension WindowManager {
     case .reload: reload()
     case .configGet(let name): configValue(name)
     case .configSet(let name, let value): setConfig(name, to: value)
-    case .ping, .status, .list, .tiling, .retile, .focus, .swap, .layout, .size, .ratio, .float,
+    case .ping, .status, .list, .configEdit, .tiling, .retile, .focus, .swap, .layout, .size,
+      .ratio, .float,
       .close, .workspace, .moveToWorkspace, .display, .moveToDisplay, .moveWorkspaceToDisplay,
       .debugAt, .debugWindows:
       .error("not a config request")

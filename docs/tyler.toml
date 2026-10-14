@@ -55,7 +55,8 @@ show-icons = true                   # app icons on the map's windows
 icon-font = "Symbols Nerd Font"     # the font of the glyphs that [apps] sets as icons
 
 [editor]
-command = ""   # what the menu's Open config runs, with the file's path appended, such as
+command = ""   # what the menu's Open config and `tyler config edit` outside a
+               # terminal run, with the file's path appended, such as
                # "open -na Ghostty --args -e nvim"; "" runs $VISUAL or $EDITOR in Terminal,
                # or the default text editor without either
 

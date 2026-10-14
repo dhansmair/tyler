@@ -27,10 +27,7 @@ func show(_ response: Response) {
   }
 }
 
-switch invocation.action {
-case .send(var request):
-  // `debug at` without a point asks about the pointer, which only this side can read.
-  if case .debugAt(nil) = request { request = .debugAt(CGEvent(source: nil)?.location) }
+func send(_ request: Request) {
   do {
     show(try IPCClient().send(request))
   } catch IPCClientError.serverNotRunning(let path) {
@@ -38,6 +35,38 @@ case .send(var request):
       "tyler: tylerd is not running (no server at \(path)); start it with `tyler start`", code: 1)
   } catch {
     fail("tyler: \(error)", code: 1)
+  }
+}
+
+/// Edits tylerd's config file here and reloads it; without tylerd, the file it would read.
+func editInTerminal(with editor: String) {
+  var status: ServerStatus?
+  do {
+    if case .status(let answer) = try IPCClient().send(.status) { status = answer }
+  } catch IPCClientError.serverNotRunning {
+    // Nothing to reload then, and the file is still worth editing.
+  } catch {
+    fail("tyler: \(error)", code: 1)
+  }
+  do {
+    try TerminalEditor.edit(status?.configPath ?? Paths.configPath(), with: editor)
+  } catch {
+    fail("tyler: \(error)", code: 1)
+  }
+  if status != nil { send(.reload) }
+}
+
+switch invocation.action {
+case .send(var request):
+  // `debug at` without a point asks about the pointer, which only this side can read.
+  if case .debugAt(nil) = request { request = .debugAt(CGEvent(source: nil)?.location) }
+  send(request)
+case .editConfig:
+  let isTerminal = isatty(STDIN_FILENO) == 1 && isatty(STDOUT_FILENO) == 1
+  let environment = ProcessInfo.processInfo.environment
+  switch ConfigEditing.choose(isTerminal: isTerminal, environment: environment) {
+  case .inTerminal(let editor): editInTerminal(with: editor)
+  case .byServer: send(.configEdit)
   }
 case .printVersion:
   FileHandle.standardOutput.write(Data("tyler \(TylerVersion.current)\n".utf8))

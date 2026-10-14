@@ -21,7 +21,7 @@ struct IndicatorMenu: Equatable, Sendable {
   private static let tylerdItems: [Item] = [
     .separator,
     .action(title: "Reload config", isChecked: false, choice: .request(.reload)),
-    .action(title: "Open config", isChecked: false, choice: .openConfig),
+    .action(title: "Open config", isChecked: false, choice: .request(.configEdit)),
     .action(title: "Quit tyler", isChecked: false, choice: .quit),
   ]
 

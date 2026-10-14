@@ -7,6 +7,8 @@ package struct Invocation: Equatable, Sendable {
     case send(Request)
     /// Start, stop or inspect the server process.
     case daemon(DaemonCommand)
+    /// Open the config file: in this terminal, or through tylerd (`ConfigEditing`).
+    case editConfig
     /// Print the client's version (`--version`).
     case printVersion
   }

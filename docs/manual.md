@@ -147,7 +147,7 @@ icon = "terminal"                # or an SF Symbol
 | `indicators.map.enabled` | Whether the menu bar shows the map of the workspaces | `true` |
 | `indicators.map.show-icons` | Whether the map shows each window's app icon | `true` |
 | `indicators.map.icon-font` | The font of glyph icons set by `apps.<app>.icon` (family or PostScript name) | `"Symbols Nerd Font"` |
-| `editor.command` | What the menu's Open config runs, with the config file's path appended: a shell command such as `"open -na Ghostty --args -e nvim"` (run by `/bin/sh`, so give a full path if a program isn't found). Empty runs `$VISUAL` or `$EDITOR` in Terminal, read from your login shell if `tylerd` doesn't have them, and the default text editor if neither is set | `""` |
+| `editor.command` | What the menu's Open config and [`tyler config edit`](#config-edit) outside a terminal run, with the config file's path appended: a shell command such as `"open -na Ghostty --args -e nvim"` (run by `/bin/sh`, so give a full path if a program isn't found). Empty runs `$VISUAL` or `$EDITOR` in Terminal, read from your login shell if `tylerd` doesn't have them, and the default text editor if neither is set | `""` |
 | `log.level` | What `tylerd` writes to `~/.tyler/tyler.log`: `"error"`, `"warning"` (what you should know, such as an app it gave up on), `"info"` (each decision: a focus, a press with the modifier passed on to the app, a dropped notification) or `"debug"` (every step, such as each rest of the pointer). See [Troubleshooting](troubleshooting.md#where-to-look) | `"warning"` |
 | `apps.<app>.workspace` | The number of the workspace that new windows of `<app>` open on | none |
 | `apps.<app>.icon` | An SF Symbol's name, or one glyph, that the map shows on `<app>`'s windows instead of its icon | none |
@@ -206,6 +206,7 @@ Commands are grouped by what they act on: `tyler window focus next` focuses a wi
 | `config get [<setting>]` | Show a setting, or every setting |
 | `config set <setting> <value>` | Change a setting until `tylerd` stops or the config is reloaded |
 | `config reload` | Read the config file again and apply it |
+| `config edit` | Open the config file in your editor |
 | `debug at [<x> <y>] [--json]` | Show what `tylerd` sees and does at a point on screen |
 | `debug windows [--json]` | Show where `tylerd`'s picture of the windows differs from what macOS reports |
 
@@ -453,6 +454,16 @@ tyler config reload
 Reads the config file again and applies it, dropping what `config set` changed. Windows on the current workspace move to their new frames at once; the other workspaces use the new settings when you switch to them. With tiling off, nothing moves until you turn it back on.
 
 Prints `reloaded <path>`. If the file has an error, `tyler config reload` prints it with its line number, exits with status 1, and the current settings stay, `config set` changes included. If there is no file, the defaults apply.
+
+### config edit
+
+```bash
+tyler config edit
+```
+
+Opens the config file in an editor, creating an empty one if there is none. In a terminal with `$VISUAL` or `$EDITOR` set, it runs that editor right there and waits for it; when you quit the editor, it runs `tyler config reload` and prints what that prints. If `tylerd` isn't running, it edits the file `tylerd` would read (`TYLER_CONFIG` or `~/.config/tyler/tyler.toml`) and doesn't reload.
+
+Run from a hotkey, without a terminal, or with neither variable set, it asks `tylerd` to open the file as the menu's Open config does: with [`editor.command`](#configuration) if you set it, else in `$VISUAL` or `$EDITOR` in Terminal, else in your default text editor. It prints `opened <path>`, and needs `tylerd` running. Run `tyler config reload` after saving.
 
 ### debug at
 

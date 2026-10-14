@@ -21,6 +21,17 @@ struct CommandRouterTests {
     #expect(router.respond(to: .retile) == manager.handle(.retile))
   }
 
+  @Test func configEditRunsWhatTylerdOpensTheFileWith() async {
+    let router = CommandRouter(openConfig: { .message("opened /c.toml") })
+    #expect(await router.handle(.configEdit) == .message("opened /c.toml"))
+  }
+
+  @Test func configEditWithoutAWayToOpenTheFileIsAnError() async {
+    #expect(
+      await CommandRouter().handle(.configEdit)
+        == .error("opening the config file is not available"))
+  }
+
   @Test func statusWithoutProcessFactsIsAnError() async {
     #expect(await CommandRouter().handle(.status) == .error("status is not available"))
   }

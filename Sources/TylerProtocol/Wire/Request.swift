@@ -14,6 +14,8 @@ package enum Request: Codable, Equatable, Sendable {
   /// Changes one setting until tylerd stops or the config is reloaded. The server parses both
   /// the name and the value, as the config file has them.
   case configSet(name: String, value: String)
+  /// Opens the config file in an editor, as the menu's Open config does.
+  case configEdit
   case retile
   case tiling(TilingMode)
   case focus(ListTarget)

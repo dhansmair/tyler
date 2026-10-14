@@ -206,8 +206,8 @@ package final class WindowManager {
   package func handle(_ request: Request) -> Response {
     switch request {
     case .ping: .pong
-    // The process facts in a status live in `CommandRouter`, which answers it.
-    case .status: .error("status is answered by the router")
+    // `CommandRouter` answers these: it holds the process facts and how tylerd opens an editor.
+    case .status, .configEdit: .error("\(request) is answered by the router")
     case .list: windows()
     case .close: closeWindow()
     case .reload, .configGet, .configSet: handleConfigRequest(request)

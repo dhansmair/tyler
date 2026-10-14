@@ -257,6 +257,13 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   reader, so the checks between settings (an app's workspace against the displays' lists) and the
   error messages are exactly the file's. A word without quotes is a string, so
   `layouts.default tall` needs no shell quoting. `tyler status` lists what `set` changed.
+- **`tyler config edit` edits in the terminal it runs in, or asks tylerd.** A terminal editor
+  (`$VISUAL`, `$EDITOR`) needs a terminal, which only the client has, so in one the client runs it
+  in the foreground on the file tylerd reads (from `status`) and reloads after. From a hotkey there
+  is no terminal, so the client sends `configEdit` and tylerd opens the file as the menu's Open
+  config does; the menu sends the same request, so the two can't drift apart. Opening an editor is
+  platform code, so tylerd hands it to `CommandRouter` as a closure rather than TylerServer
+  reaching for it.
 - **One rule for where a setting goes.** Feature sections hold global settings (`[gaps]`,
   `[mouse]`, one section per menu bar item under `[indicators]`); tables keyed by a thing hold the
   settings of that thing (`[apps."<app>"]`, `[displays.<n>]`). So every setting has one dotted

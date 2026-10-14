@@ -78,7 +78,7 @@ struct TextIndicatorModelTests {
         .action(title: "Tiling: on", isChecked: true, choice: .request(.tiling(.off))),
         .separator,
         .action(title: "Reload config", isChecked: false, choice: .request(.reload)),
-        .action(title: "Open config", isChecked: false, choice: .openConfig),
+        .action(title: "Open config", isChecked: false, choice: .request(.configEdit)),
         .action(title: "Quit tyler", isChecked: false, choice: .quit),
       ])
   }
@@ -114,7 +114,7 @@ struct TextIndicatorModelTests {
       Array(items.suffix(4)) == [
         .separator,
         .action(title: "Reload config", isChecked: false, choice: .request(.reload)),
-        .action(title: "Open config", isChecked: false, choice: .openConfig),
+        .action(title: "Open config", isChecked: false, choice: .request(.configEdit)),
         .action(title: "Quit tyler", isChecked: false, choice: .quit),
       ])
   }

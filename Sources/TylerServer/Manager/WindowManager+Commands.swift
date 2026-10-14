@@ -23,7 +23,8 @@ extension WindowManager {
     case .size(let choice): setSize(choice)
     case .ratio(let delta): adjustRatio(by: delta)
     case .float(let mode): setFloat(mode)
-    case .ping, .status, .list, .reload, .configGet, .configSet, .tiling, .close, .workspace,
+    case .ping, .status, .list, .reload, .configGet, .configSet, .configEdit, .tiling, .close,
+      .workspace,
       .moveToWorkspace, .display, .moveToDisplay, .moveWorkspaceToDisplay, .debugAt,
       .debugWindows:
       .error("not a tiling request")
@@ -76,7 +77,8 @@ extension WindowManager {
     switch request {
     case .workspace(let target): switchWorkspace(target)
     case .moveToWorkspace(let target, let follow): moveToWorkspace(target, follow: follow)
-    case .ping, .status, .list, .reload, .configGet, .configSet, .tiling, .retile, .focus, .swap,
+    case .ping, .status, .list, .reload, .configGet, .configSet, .configEdit, .tiling, .retile,
+      .focus, .swap,
       .layout, .size, .ratio, .float, .close, .display, .moveToDisplay, .moveWorkspaceToDisplay,
       .debugAt,
       .debugWindows:
@@ -103,7 +105,8 @@ extension WindowManager {
     case .display(let target): switchDisplay(target)
     case .moveToDisplay(let target, let follow): moveToDisplay(target, follow: follow)
     case .moveWorkspaceToDisplay(let target): moveWorkspaceToDisplay(target)
-    case .ping, .status, .list, .reload, .configGet, .configSet, .tiling, .retile, .focus, .swap,
+    case .ping, .status, .list, .reload, .configGet, .configSet, .configEdit, .tiling, .retile,
+      .focus, .swap,
       .layout, .size, .ratio, .float, .close, .workspace, .moveToWorkspace, .debugAt,
       .debugWindows:
       .error("not a display request")

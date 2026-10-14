@@ -327,5 +327,11 @@ extension CommandLineParser {
       return Invocation(request: .configSet(name: arguments[0], value: value))
     },
     simple("config reload", .reload, "read the config file again (drops what set changed)"),
+    CommandSpec(
+      name: "config edit", arguments: "", summary: "open the config file in your editor"
+    ) {
+      try requireNoArguments($0, for: "config edit")
+      return Invocation(action: .editConfig)
+    },
   ]
 }

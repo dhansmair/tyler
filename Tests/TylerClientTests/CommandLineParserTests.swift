@@ -139,6 +139,7 @@ struct CommandLineParserTests {
           config get [<setting>]         show a setting, or every setting
           config set <setting> <value>   change a setting until tylerd stops or reloads
           config reload                  read the config file again (drops what set changed)
+          config edit                    open the config file in your editor
 
           debug at [<x> <y>] [--json]    what tylerd sees and does at a point
           debug windows [--json]         where tylerd's picture of the windows differs from macOS's
@@ -156,6 +157,10 @@ struct CommandLineParserTests {
   ])
   func parsesConfigCommands(arguments: [String], request: Request) throws {
     #expect(try CommandLineParser.parse(arguments) == Invocation(request: request))
+  }
+
+  @Test func configEditIsDoneByTheClient() throws {
+    #expect(try CommandLineParser.parse(["config", "edit"]) == Invocation(action: .editConfig))
   }
 
   @Test(arguments: [
@@ -199,6 +204,7 @@ struct CommandLineParserTests {
       ["config", "set", "gaps.inner"],
       "config set takes a setting's name and a value, such as gaps.inner 8"
     ),
+    (["config", "edit", "now"], "config edit takes no arguments"),
   ])
   func configCommandsCheckTheirArgumentCount(arguments: [String], message: String) {
     #expect(throws: CommandLineError.usage(message)) {

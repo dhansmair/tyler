@@ -122,6 +122,7 @@ Tick an item with the date when it is checked; record what was measured in `maco
 - [x] The text item follows workspace switches and layouts; both items' menus work
 - [x] A left click on a map thumbnail switches to it; a right click opens the menu
 - [ ] The menu's Reload config, Open config (also with no config file) and Quit tyler
+- [ ] `tyler config edit`: in a terminal with `$EDITOR` set, the editor runs in place and the config reloads after it; from a hotkey (skhd), the file opens as with Open config
 - [x] `[indicators.text]` and `[indicators.map]` `enabled` with `reload` hide and show each item
 - [ ] Light and dark menu bars
 - [ ] `tiling off` hides the map

@@ -71,12 +71,6 @@ let performFromIndicator: @MainActor (MenuChoice) -> Void = { choice in
       return
     }
     if case .error(let message) = response { warn("menu command failed - \(message)") }
-  case .openConfig:
-    do {
-      try TextEditor.open(configSource.path, command: manager.config.editor.command)
-    } catch {
-      warn("config opening failed - \(configSource.path) - \(error.localizedDescription)")
-    }
   case .quit:
     announce("tylerd quitting - chosen in the menu")
     shutDown(handingOver: false)
@@ -117,7 +111,7 @@ let status = ServerStatus(
   keepsWindowsOnRestart: true,
   version: TylerVersion.current
 )
-let router = CommandRouter(manager: manager, status: status)
+let router = CommandRouter(manager: manager, status: status) { openConfigFile() }
 indicatorRouter = router
 let server = IPCServer(path: socketPath) { [router] request in await router.handle(request) }
 
@@ -129,6 +123,18 @@ do {
   die("socket opening failed - \(error)")
 }
 announce("socket listening - \(socketPath)")
+
+/// The menu's Open config and `tyler config edit` outside a terminal.
+@MainActor
+func openConfigFile() -> Response {
+  do {
+    try TextEditor.open(configSource.path, command: manager.config.editor.command)
+    return .message("opened \(configSource.path)")
+  } catch {
+    warn("config opening failed - \(configSource.path) - \(error.localizedDescription)")
+    return .error("cannot open \(configSource.path): \(error.localizedDescription)")
+  }
+}
 
 /// Once windows are tracked, the handed-over state has been used (or the windows it named are
 /// gone), so the file is removed: a later start must not apply it again.

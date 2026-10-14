@@ -236,6 +236,20 @@ struct UsageError: Error {
   init(_ message: String) { self.message = message }
 }
 
+func modifierFlags(_ name: String) -> CGEventFlags? {
+  var flags: CGEventFlags = []
+  for part in name.split(separator: "+") {
+    switch part {
+    case "option": flags.insert(.maskAlternate)
+    case "ctrl": flags.insert(.maskControl)
+    case "cmd": flags.insert(.maskCommand)
+    case "shift": flags.insert(.maskShift)
+    default: return nil
+    }
+  }
+  return flags.isEmpty ? nil : flags
+}
+
 func point(x horizontal: String, y vertical: String) -> CGPoint? {
   guard let pointX = Double(horizontal), let pointY = Double(vertical) else { return nil }
   return CGPoint(x: pointX, y: pointY)
@@ -265,6 +279,7 @@ let usage = """
     mod-drag <seconds> [modifier] [stall-ms]
                                   hold modifier presses in an active tap: drags are swallowed,
                                   clicks posted again (the mod-drag spike)
+    key <combination>...          press keys as if typed, such as option+shift+j (the demo video)
   """
 
 let arguments = Array(CommandLine.arguments.dropFirst())
@@ -280,6 +295,7 @@ do {
   case "display-events": try displayEvents(Array(arguments.dropFirst()))
   case "pointer": try pointer(Array(arguments.dropFirst()))
   case "mod-drag": try modDrag(Array(arguments.dropFirst()))
+  case "key": try key(Array(arguments.dropFirst()))
   default:
     print(usage)
     exit(arguments.isEmpty ? 0 : 2)

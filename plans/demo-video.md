@@ -32,21 +32,22 @@ for the recording). Pauses are a setting of the script, so the pace can be tuned
 | 4 | Swaps: the focused window moves down the list, then to the master | Option+Shift+J ×2, Option+Return |
 | 5 | The master column widens and narrows | Option+L ×3, Option+H ×3 |
 | 6 | Layouts: grid (the four corners), then full; in full, focus brings each window to the front; back to tall | Option+Space, Option+Space, Option+J ×2, Option+Space |
-| 7 | To workspace `B`: the windows slide out to the left | Option+`B` |
-| 8 | Two terminals open side by side; swap them | Option+Shift+J |
-| 9 | Back and forth between `A` and `B` twice, slowly enough to see the slide | Option+`A`, Option+`B`, … |
-| 10 | The script plays a short sound and stops: the hand-over | |
+| 7 | Terminal is sent to workspace `B`: it slides away to the right, and the other three re-tile | Option+Shift+`B` |
+| 8 | To workspace `B`: the windows slide out to the left, Terminal is there alone | Option+`B` |
+| 9 | A second terminal opens beside it; swap them | Option+Shift+J |
+| 10 | Back and forth between `A` and `B` twice, slowly enough to see the slide | Option+`A`, Option+`B`, … |
+| 11 | The script plays a short sound and stops: the hand-over | |
 
 Then by hand, roughly in this order:
 
 | # | What happens |
 |---|--------------|
-| 11 | Trackpad swipe between `A` and `B`: a slow one that follows the fingers, one let go halfway that springs back, then a flick |
-| 12 | On `A` in tall: drag the gap between the columns (the master ratio follows), then the gap between two stacked windows |
-| 13 | Drag one window by its title bar onto another: the preview, then the swap on release |
-| 14 | Option-drag inside a window to move it onto another (swap), Option-right-drag to resize it (`mouse.modifier`) |
-| 15 | Click a workspace in the menu bar map to switch |
-| 16 | Optional: Cmd-Tab to an app on the other workspace (it slides there), Option+T to float a window |
+| 12 | Trackpad swipe between `A` and `B`: a slow one that follows the fingers, one let go halfway that springs back, then a flick |
+| 13 | On `A` in tall: drag the gap between the columns (the master ratio follows), then the gap between two stacked windows |
+| 14 | Drag one window by its title bar onto another: the preview, then the swap on release |
+| 15 | Option-drag inside a window to move it onto another (swap), Option-right-drag to resize it (`mouse.modifier`) |
+| 16 | Click a workspace in the menu bar map to switch |
+| 17 | Optional: Cmd-Tab to an app on the other workspace (it slides there), Option+T to float a window |
 
 Where the mouse is the point, make it visible: a larger pointer (System Settings >
 Accessibility > Display > Pointer size), OBS capturing the cursor, and KeyCastr's mouse click
@@ -111,13 +112,12 @@ window is then parked and out of the picture).
 
 ## Increments
 
-1. `live-check key <keys>` (posts one key combination), checked with KeyCastr and skhd.
+1. `live-check key <combination>...`. Done (2026-10-15): skhd's tap sees the keys posted at the
+   HID tap (Option+J, Option+K moved the focus and back). Still to check: KeyCastr shows them.
 2. `devtools/demo-video` with the action table, the skhd config, preflight and the storyboard;
    a dry run on real windows.
 3. Recording and the README (by hand), then tick the alpha item and delete this plan.
 
 ## Open questions
 
-- Whether skhd and KeyCastr see events posted at the HID tap (increment 1 answers it).
-- Whether two terminals on `B` are interesting enough, or `B` should show a different layout
-  (grid with three windows) or receive a window sent from `A` (`window move-to-workspace`).
+- Whether KeyCastr shows keys posted at the HID tap, held modifiers included.

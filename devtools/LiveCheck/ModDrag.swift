@@ -146,20 +146,6 @@ private final class ModDragProbe {
   }
 }
 
-private func modifierFlags(_ name: String) -> CGEventFlags? {
-  var flags: CGEventFlags = []
-  for part in name.split(separator: "+") {
-    switch part {
-    case "option": flags.insert(.maskAlternate)
-    case "ctrl": flags.insert(.maskControl)
-    case "cmd": flags.insert(.maskCommand)
-    case "shift": flags.insert(.maskShift)
-    default: return nil
-    }
-  }
-  return flags.isEmpty ? nil : flags
-}
-
 /// `mod-drag <seconds> [modifier] [stall-ms]`: runs the tap for `seconds`. `modifier` is
 /// `option` (default) or a combination such as `ctrl+option`. `stall-ms` blocks the main thread
 /// at each held press, to see what macOS does with a slow tap.

@@ -91,8 +91,8 @@ struct TilingCommandScenarios {
 
   @Test func layoutNextLeavesOutTheStripByDefault() {
     let harness = ManagerHarness([1, 2])
-    #expect(harness.manager.setLayout(.next) == .message("layout full"))
-    #expect(harness.manager.setLayout(.next) == .message("layout tall"))
+    let names = (1...3).map { _ in harness.manager.setLayout(.next) }
+    #expect(names == ["grid", "full", "tall"].map { .message("layout \($0)") })
   }
 
   @Test func layoutNextFollowsTheConfiguredCycle() {

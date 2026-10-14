@@ -3,7 +3,7 @@
 A layout turns a workspace's [tiling list](manual.md#tiling-list) into window frames, within the
 display's visible area (the screen without the menu bar and the Dock). Each workspace has its own
 layout: `tyler layout set` sets it by name, and `tyler layout next` goes to the next layout of
-`layouts.cycle` in the [config file](manual.md#configuration) (by default `tall`, then `full`: the
+`layouts.cycle` in the [config file](manual.md#configuration) (by default `tall`, `grid`, then `full`: the
 experimental `strip` is left out unless you add it). From a layout the cycle doesn't list,
 `layout next` goes to the cycle's first. The menu bar shows the current layout's symbol, and its
 menu follows the cycle too. A new workspace starts in `layouts.default` (`tall` unless you change
@@ -38,8 +38,8 @@ with the mouse](features.md#resizing-with-the-mouse). The grid keeps these sizes
 `tall`'s, so switching between the two doesn't carry a drag over. The grid has no master ratio:
 `tyler layout ratio` says so and changes nothing.
 
-The grid isn't in the default `layouts.cycle`, since up to three windows it looks like `tall`. Add
-it to use it with `layout next`: `cycle = ["tall", "grid", "full"]`.
+Up to three windows the grid looks like `tall`, so `layout next` from `tall` seems to do nothing
+there. Leave it out of `layouts.cycle` if you don't want that step: `cycle = ["tall", "full"]`.
 
 ## full (`▢`)
 

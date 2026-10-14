@@ -74,7 +74,7 @@ struct TextIndicatorModelTests {
           choice: .request(.workspace(.number(2)))),
         .action(title: "Workspace 3", isChecked: false, choice: .request(.workspace(.number(3)))),
         .separator,
-        .action(title: "Layout: tall → full", isChecked: false, choice: .request(.layout(.next))),
+        .action(title: "Layout: tall → grid", isChecked: false, choice: .request(.layout(.next))),
         .action(title: "Tiling: on", isChecked: true, choice: .request(.tiling(.off))),
         .separator,
         .action(title: "Reload config", isChecked: false, choice: .request(.reload)),

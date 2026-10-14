@@ -39,7 +39,7 @@ struct IndicatorScenarios {
     _ = manager.switchWorkspace(.number(3))
     #expect(last?.row.currentIndex == 2)
     _ = manager.setLayout(.next)
-    #expect(last?.row.current.layout == .full)
+    #expect(last?.row.current.layout == .grid)
     _ = manager.setTiling(.off)
     #expect(last?.tiling == .off)
   }

@@ -8,7 +8,8 @@ change commands, the config file and the socket protocol; the entry says how.
 The first alpha release.
 
 - Tiling in the style of xmonad: each workspace is an ordered list of windows, laid out by `tall`
-  (a main window on the left, the rest stacked on the right) or `full`. `strip`, a scrolling row of
+  (a main window on the left, the rest stacked on the right), `grid` (columns two windows high) or
+  `full`. `strip`, a scrolling row of
   columns, is experimental.
 - Workspaces side by side in a row on each display, switched with a horizontal slide, a three-finger
   trackpad swipe, Cmd-Tab or the menu bar.

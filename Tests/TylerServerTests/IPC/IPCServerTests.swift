@@ -193,7 +193,8 @@ struct IPCServerTests {
 
     let response = await withCheckedContinuation { continuation in
       Thread {
-        continuation.resume(returning: Result { try IPCClient(path: path).send(.layout(.next)) })
+        continuation.resume(
+          returning: Result { try IPCClient(path: path).send(.layout(.set(.full))) })
       }.start()
     }
     #expect(try response.get() == .message("layout full"))

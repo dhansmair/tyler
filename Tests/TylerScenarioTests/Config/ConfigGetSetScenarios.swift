@@ -124,7 +124,7 @@ struct ConfigGetSetScenarios {
   @Test(arguments: [
     ("gaps.inner", "8"),
     ("gaps", "[gaps]\ninner = 8\nouter = 0"),
-    ("layouts.cycle", "[\"tall\", \"full\"]"),
+    ("layouts.cycle", "[\"tall\", \"grid\", \"full\"]"),
     ("indicators.map.enabled", "true"),
     ("apps.FIREFOX.icon", "\"globe\""),
     ("apps.firefox", "[apps.firefox]\nicon = \"globe\""),

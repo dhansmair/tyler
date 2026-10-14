@@ -9,8 +9,8 @@ inner = 0   # points between neighbouring tiled windows
 outer = 0   # points between the tiled windows and the edge of the display
 
 [layouts]
-cycle = ["tall", "full"]   # what `tyler layout next` goes through; add "grid", or "strip" (experimental)
-default = "tall"           # the layout new workspaces start with: "tall", "grid", "full" or "strip"
+cycle = ["tall", "grid", "full"]   # what `tyler layout next` goes through; add "strip" (experimental)
+default = "tall"                   # the layout new workspaces start with: "tall", "grid", "full" or "strip"
 
 [workspaces]
 count = 4   # workspaces per display, 1 to 10

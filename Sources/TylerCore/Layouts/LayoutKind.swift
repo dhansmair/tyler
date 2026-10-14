@@ -7,7 +7,7 @@ package enum LayoutKind: String, Codable, CaseIterable, Sendable {
 
   /// The layouts `layout next` goes through unless the config says otherwise. The strip is
   /// left out while it is experimental.
-  package static let defaultCycle: [LayoutKind] = [.tall, .full]
+  package static let defaultCycle: [LayoutKind] = [.tall, .grid, .full]
 
   /// The layout after this one in `cycle`, wrapping around; the first of `cycle` when this one
   /// isn't in it (it was chosen by name), and this one when `cycle` is empty.

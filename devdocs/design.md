@@ -139,9 +139,9 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   column and row weights (`GridLayoutState`) are its own, not `tall`'s: a row slot means
   different windows in the two layouts, so a drag in one would show up oddly in the other. On a
   portrait display it is still columns: turning column layouts into rows there is a decision for
-  `tall` and `grid` together. It
-  isn't in the default cycle: up to three windows `layout next` from `tall` would seem to do
-  nothing.
+  `tall` and `grid` together. It is in the default cycle, between `tall` and `full`, although up
+  to three windows `layout next` from `tall` then seems to do nothing: that costs one more key
+  press, and leaving it out hid a layout that suits more windows than `tall` does.
   The ratio is clamped to 0.1…0.9.
 
 ## Workspaces and parking

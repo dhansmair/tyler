@@ -136,7 +136,7 @@ icon = "terminal"                # or an SF Symbol
 | `mouse.focus-delay` | How long the pointer rests on a window before it gets the focus, in milliseconds (0 to 1000) | `100` |
 | `mouse.modifier` | The keys that, held while dragging anywhere in a window, move it (left button) or resize it (right): `"none"`, or names from `ctrl`, `option`, `cmd` and `shift` joined by `+` (see [Moving and resizing with the modifier](features.md#moving-and-resizing-with-the-modifier)) | `"option"` |
 | `mouse.gap-resize` | Whether dragging the gap between two tiled windows moves the divider between them (`true` or `false`, see [Resizing with the mouse](features.md#resizing-with-the-mouse)); needs `gaps.inner` | `true` |
-| `layouts.cycle` | The layouts `tyler layout next` and the menu go through, in order: a list of `"tall"`, `"grid"`, `"full"` and `"strip"`, each at most once. Any layout can still be set by name | `["tall", "full"]` |
+| `layouts.cycle` | The layouts `tyler layout next` and the menu go through, in order: a list of `"tall"`, `"grid"`, `"full"` and `"strip"`, each at most once. Any layout can still be set by name | `["tall", "grid", "full"]` |
 | `layouts.default` | The layout every workspace starts with: `"tall"`, `"grid"`, `"full"` or `"strip"`. Workspaces that already exist keep theirs on `tyler config reload` and `tyler restart`; only new ones (from a larger `workspaces.count`, a new display) start with the new default. `tyler stop` and `tyler start` apply it everywhere | `"tall"` |
 | `workspaces.count` | How many workspaces each display has (1 to 10) | `4` |
 | `displays.<n>.workspaces` | The numbers of display `<n>`'s workspaces (1 to 99, at most 10 per display) | `count` each, numbered on from the previous display |
@@ -398,7 +398,7 @@ tyler layout set tall
 tyler layout set grid
 tyler layout set full
 tyler layout set strip  # experimental
-tyler layout next       # the next layout of layouts.cycle: tall, full, tall, ...
+tyler layout next       # the next layout of layouts.cycle: tall, grid, full, tall, ...
 ```
 
 Sets the layout of the current workspace and prints its name. `strip` is experimental (see [Layouts](layouts.md#strip--experimental)), so `layout next` leaves it out unless `layouts.cycle` in the [configuration](#configuration) lists it. From a layout the cycle doesn't list, `layout next` goes to the cycle's first.

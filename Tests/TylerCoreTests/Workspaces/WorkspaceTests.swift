@@ -247,7 +247,7 @@ struct WorkspaceTests {
 
   @Test func cyclingTheLayoutChangesPlacements() {
     var workspace = makeWorkspace(5, 6)
-    workspace.cycleLayout()
+    workspace.cycleLayout(through: [.tall, .full])
     #expect(workspace.layout == .full)
     let placements = workspace.arrangement(
       in: CGRect(x: 0, y: 0, width: 1000, height: 600), gaps: LayoutGaps())

@@ -6,7 +6,8 @@ import TylerCore
 @Suite("Config: layouts")
 struct ConfigLayoutsTests {
   @Test func layoutsDefaultToTallAndFullStartingWithTall() throws {
-    #expect(try Config.parse("").layouts == Config.Layouts(cycle: [.tall, .full], initial: .tall))
+    #expect(
+      try Config.parse("").layouts == Config.Layouts(cycle: [.tall, .grid, .full], initial: .tall))
   }
 
   @Test func parsesLayouts() throws {

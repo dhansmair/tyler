@@ -18,7 +18,7 @@ struct LayoutKindTests {
   }
 
   @Test func theDefaultCycleLeavesOutTheExperimentalStrip() {
-    #expect(LayoutKind.defaultCycle == [.tall, .full])
+    #expect(LayoutKind.defaultCycle == [.tall, .grid, .full])
   }
 
   @Test(arguments: LayoutKind.allCases)

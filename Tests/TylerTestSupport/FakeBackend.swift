@@ -56,9 +56,13 @@ package final class FakeBackend: WindowBackend {
   /// apps it couldn't observe.
   package var untracked: [WindowInfo] = []
   package var unattachedApps: [String] = []
+  /// The window `freshWindows` reads as focused, whatever events were sent.
+  package var freshFocus: WindowID?
 
   package func freshWindows() -> FreshWindows {
-    FreshWindows(tracked: windows, untracked: untracked, unattachedApps: unattachedApps)
+    FreshWindows(
+      tracked: windows, untracked: untracked, unattachedApps: unattachedApps,
+      focusedID: freshFocus)
   }
 
   package func setFrame(_ frame: CGRect, of windowID: WindowID) throws(BackendError) {

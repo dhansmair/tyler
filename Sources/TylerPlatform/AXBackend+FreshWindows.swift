@@ -27,6 +27,13 @@ extension AXBackend {
     }
     return FreshWindows(
       tracked: tracked, untracked: untracked,
-      unattachedApps: unattached.map { $0.localizedName ?? "pid \($0.processIdentifier)" }.sorted())
+      unattachedApps: unattached.map { $0.localizedName ?? "pid \($0.processIdentifier)" }.sorted(),
+      focusedID: frontmostFocusedWindow())
+  }
+
+  private func frontmostFocusedWindow() -> WindowID? {
+    guard let front = NSWorkspace.shared.frontmostApplication else { return nil }
+    let application = AXBridge.applicationElement(processID: front.processIdentifier)
+    return AXBridge.focusedWindow(of: application).flatMap(AXBridge.windowID(of:))
   }
 }

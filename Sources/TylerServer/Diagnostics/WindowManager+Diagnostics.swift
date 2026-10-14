@@ -19,16 +19,18 @@ extension WindowManager {
   /// It reads every window again but changes nothing.
   func windowDrift() -> Response {
     guard state == .running else { return .error(Self.permissionMessage) }
-    var drift = WindowDrift.compare(believed: registry.windows, fresh: backend.freshWindows())
-    compareFocus(in: &drift)
+    let fresh = backend.freshWindows()
+    var drift = WindowDrift.compare(believed: registry.windows, fresh: fresh)
+    compareWorkspaceFocus(with: fresh.focusedID ?? registry.focusedID, in: &drift)
     return .drift(drift)
   }
 
-  private func compareFocus(in drift: inout WindowDrift) {
-    guard let focusedID = registry.focusedID, let window = registry.window(withID: focusedID),
+  private func compareWorkspaceFocus(with focusedID: WindowID?, in drift: inout WindowDrift) {
+    guard let focusedID, let window = registry.window(withID: focusedID),
       let location = rows.location(of: focusedID)
     else { return }
-    drift.compareFocus(reported: window, recorded: rows[location.position][location.index].focused)
+    let workspace = rows[location.position][location.index]
+    drift.compareWorkspaceFocus(reported: window, recorded: workspace.focused)
   }
 
   /// What is at `point` and what tylerd would do there (`tyler debug at`).

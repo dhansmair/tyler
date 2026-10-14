@@ -493,7 +493,7 @@ windows tylerd doesn't track:
 apps tylerd can't observe: Busy
 ```
 
-A `focus` line means the window macOS focused (the first column, and `macOS:`) is not the one its workspace has as focused (`tylerd:`), so `window focus` and `window swap` would act on the other one. Right after a `tyler` command moves the focus this can show for a moment, until macOS reports the new focus.
+Two lines are about the focus, both naming the window macOS focuses now in the first column and under `macOS:`. A `focus` line means `tylerd` has another window (or none) as focused: it missed macOS reporting the change, so commands such as `window close` act on that other window. A `workspace-focus` line means the window's workspace has another window as focused, the one `window focus` and `window swap` act on. Right after a `tyler` command moves the focus, either can show for a moment, until macOS reports the new focus. If macOS reports no focused window, the focus isn't compared.
 
 After the differences come the windows of the apps `tylerd` observes that it doesn't track, and the apps it couldn't observe at all, whose windows it therefore leaves alone. Some apps refuse while none of their windows is on screen; `tylerd` tries again when such an app comes to the front. When everything matches it prints `no differences in <n> windows`. It moves nothing and changes nothing; `tyler restart` reads every window again.
 

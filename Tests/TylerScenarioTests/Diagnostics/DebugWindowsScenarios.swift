@@ -53,8 +53,19 @@ struct DebugWindowsScenarios {
     // The fake backend doesn't report the focus back, so macOS still has window 1 focused.
     _ = harness.manager.focus(.next)
     let drift = try #require(reportedDrift(in: harness))
-    #expect(drift.differences.map(\.field) == [.focus])
+    #expect(drift.differences.map(\.field) == [.workspaceFocus])
     #expect(drift.differences.first?.believed == "2")
     #expect(drift.differences.first?.actual == "1")
+  }
+
+  @Test func aFocusTylerdMissedShowsBesideItsWorkspaceFocus() async throws {
+    let harness = ManagerHarness([1, 2, 3])
+    harness.backend.send(.focused(WindowID(1)))
+    await harness.settle()
+    harness.backend.freshFocus = WindowID(3)
+    let drift = try #require(reportedDrift(in: harness))
+    #expect(drift.differences.map(\.field) == [.focus, .workspaceFocus])
+    #expect(drift.differences.map(\.id) == [WindowID(3), WindowID(3)])
+    #expect(drift.differences.map(\.believed) == ["1", "1"])
   }
 }

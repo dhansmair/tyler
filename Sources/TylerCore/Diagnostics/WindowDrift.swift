@@ -15,9 +15,12 @@ package struct WindowDrift: Codable, Equatable, Sendable {
     case unreadable
     /// The backend tracks the window, but tylerd's own list doesn't have it.
     case unlisted
-    /// macOS focused the window, but its workspace has another one as focused: the one
-    /// `window focus` and `window swap` act on.
+    /// macOS focuses the window now, but tylerd has another one (or none) as focused: a focus
+    /// notification went missing.
     case focus
+    /// macOS focuses the window, but its workspace has another one as focused: the one
+    /// `window focus` and `window swap` act on.
+    case workspaceFocus = "workspace-focus"
   }
 
   package struct Difference: Codable, Equatable, Sendable {
@@ -62,18 +65,34 @@ package struct WindowDrift: Codable, Equatable, Sendable {
           id: window.id, appName: window.appName, field: .unlisted, believed: "not listed",
           actual: "tracked by the backend"))
     }
+    if let difference = focusDifference(believed: believed, fresh: fresh, actual: actual) {
+      differences.append(difference)
+    }
     return WindowDrift(
       differences: differences, checkedCount: believed.count, untracked: fresh.untracked,
       unattachedApps: fresh.unattachedApps)
   }
 
+  /// Nothing when macOS reports no focused window: the read may just have failed.
+  private static func focusDifference(
+    believed: [WindowInfo], fresh: FreshWindows, actual: [WindowID: WindowInfo]
+  ) -> Difference? {
+    let believedFocus = believed.first(where: \.isFocused)?.id
+    guard let focused = fresh.focusedID, believedFocus != focused else { return nil }
+    let appName = actual[focused]?.appName ?? believed.first { $0.id == focused }?.appName ?? "?"
+    return Difference(
+      id: focused, appName: appName, field: .focus,
+      believed: believedFocus.map { String($0.rawValue) } ?? "none",
+      actual: String(focused.rawValue))
+  }
+
   /// Adds a difference if `reported`, the tiled window macOS last reported focused, isn't
   /// `recorded`, its workspace's focused window.
-  package mutating func compareFocus(reported: WindowInfo, recorded: WindowID?) {
+  package mutating func compareWorkspaceFocus(reported: WindowInfo, recorded: WindowID?) {
     guard recorded != reported.id else { return }
     differences.append(
       Difference(
-        id: reported.id, appName: reported.appName, field: .focus,
+        id: reported.id, appName: reported.appName, field: .workspaceFocus,
         believed: recorded.map { String($0.rawValue) } ?? "none",
         actual: String(reported.id.rawValue)))
   }

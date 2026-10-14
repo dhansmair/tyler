@@ -280,6 +280,12 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   starts and delays its first frame by 6–19 ms (the cost line's "first after"): latency, not
   stutter. Focusing later would send what is typed right after a switch to the window that just
   slid away.
+- **Reading the focus from macOS before each command**, instead of trusting the focus
+  notifications. It would cover any missed notification, but every command would then wait on
+  the frontmost app (a hung app stalls each command until the Accessibility timeout), the focus
+  would change along two paths that must agree (a read can lag tylerd's own focus call), and it
+  would hide why a notification went missing. `tyler debug windows` reads the focus afresh and
+  shows a missed one instead; revisit if it keeps finding them.
 - **Pacing a resize from the start of each step** (as swipes are): with several neighbours, the
   writes of a step fill the interval, their echoes pile up, and the divider lags the pointer.
 - **One clock for all motion.** In production the `Animator` and the pacing (`Throttle`,

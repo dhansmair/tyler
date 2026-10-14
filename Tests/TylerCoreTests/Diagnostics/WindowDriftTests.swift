@@ -72,17 +72,44 @@ struct WindowDriftTests {
 
   @Test func theWorkspaceFocusingTheReportedWindowIsNoDifference() {
     var drift = WindowDrift.compare(believed: [], fresh: FreshWindows(tracked: []))
-    drift.compareFocus(reported: Self.window(1), recorded: WindowID(1))
+    drift.compareWorkspaceFocus(reported: Self.window(1), recorded: WindowID(1))
     #expect(drift.isEmpty)
   }
 
   @Test(arguments: [WindowID(2), nil])
   func theWorkspaceFocusingAnotherWindowIsReported(recorded: WindowID?) {
     var drift = WindowDrift.compare(believed: [], fresh: FreshWindows(tracked: []))
-    drift.compareFocus(reported: Self.window(1), recorded: recorded)
-    #expect(drift.differences.map(\.field) == [.focus])
+    drift.compareWorkspaceFocus(reported: Self.window(1), recorded: recorded)
+    #expect(drift.differences.map(\.field) == [.workspaceFocus])
     #expect(drift.differences.first?.id == WindowID(1))
     #expect(drift.differences.first?.believed == (recorded == nil ? "none" : "2"))
     #expect(drift.differences.first?.actual == "1")
+  }
+
+  @Test func aFocusMacOSReportsAsTylerdHasItIsNoDifference() {
+    let believed = [Self.window(1) { $0.isFocused = true }, Self.window(2)]
+    let drift = WindowDrift.compare(
+      believed: believed,
+      fresh: FreshWindows(tracked: [Self.window(1), Self.window(2)], focusedID: WindowID(1)))
+    #expect(drift.isEmpty)
+  }
+
+  @Test(arguments: [WindowID(1), nil])
+  func aFocusTylerdMissedIsReported(believedFocus: WindowID?) {
+    let believed = [1, 2].map { id in Self.window(id) { $0.isFocused = $0.id == believedFocus } }
+    let drift = WindowDrift.compare(
+      believed: believed,
+      fresh: FreshWindows(tracked: [Self.window(1), Self.window(2)], focusedID: WindowID(2)))
+    #expect(drift.differences.map(\.field) == [.focus])
+    #expect(drift.differences.first?.id == WindowID(2))
+    #expect(drift.differences.first?.believed == (believedFocus == nil ? "none" : "1"))
+    #expect(drift.differences.first?.actual == "2")
+  }
+
+  @Test func noFocusReadFromMacOSIsNoDifference() {
+    let drift = WindowDrift.compare(
+      believed: [Self.window(1) { $0.isFocused = true }],
+      fresh: FreshWindows(tracked: [Self.window(1)]))
+    #expect(drift.isEmpty)
   }
 }

@@ -6,12 +6,17 @@ package struct FreshWindows: Codable, Equatable, Sendable {
   package var untracked: [WindowInfo]
   /// Regular apps the backend couldn't observe, so none of their windows are tracked.
   package var unattachedApps: [String]
+  /// The frontmost app's focused window, read now rather than taken from the last notification.
+  /// `nil` if there is none or it couldn't be read.
+  package var focusedID: WindowID?
 
   package init(
-    tracked: [WindowInfo], untracked: [WindowInfo] = [], unattachedApps: [String] = []
+    tracked: [WindowInfo], untracked: [WindowInfo] = [], unattachedApps: [String] = [],
+    focusedID: WindowID? = nil
   ) {
     self.tracked = tracked
     self.untracked = untracked
     self.unattachedApps = unattachedApps
+    self.focusedID = focusedID
   }
 }

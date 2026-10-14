@@ -281,6 +281,20 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   behind and is ignored and removed (window IDs are reused after a reboot or a new login). `status`
   warns when the binary on disk is newer than the running one.
 
+## Diagnostics
+
+- **`tyler debug at` and the real code share one decision.** Whether a press with the modifier
+  grabs and whether focus follows the pointer are one pure function (`PointerCheck`) that returns
+  the window or the reason for refusing it, so the diagnosis can't drift from what tylerd does.
+  The client sends the point (the pointer's, from `CGEvent`, if none is given).
+- **`tyler debug windows` only reports.** It reads every window afresh and shows where tylerd's
+  picture differs; fixing drift on each sync waits until it shows what drifts and how often.
+- **The log is the file tylerd already writes**, `~/.tyler/tyler.log`, by level (`log.level`,
+  default `warning`): nothing grows in memory, `tail -f` watches it, and it starts empty at each
+  start. Writes are plain and synchronous (a write to a regular file only copies into the page
+  cache), and lines below the level aren't built (`@autoclosure`). The `debug` commands' output
+  may change in any release.
+
 ## Considered and dropped
 
 - **Focusing a workspace after its slide has started.** The focus call runs right after a slide

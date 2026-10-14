@@ -49,6 +49,9 @@ package struct GapGrab: Equatable, Sendable {
       : CGRect(
         x: across.lowerBound, y: before.end, width: across.upperBound - across.lowerBound,
         height: after - before.end)
+    // In a grid whose columns split at different heights, a point between two rows can have a
+    // window on either side that reaches past a whole column: that is no gap between them.
+    guard !slots.contains(where: { $0.frame.intersects(area) }) else { return nil }
     return GapGrab(windowID: before.id, edge: isSideways ? .right : .bottom, area: area)
   }
 

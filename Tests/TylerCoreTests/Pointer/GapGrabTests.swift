@@ -73,4 +73,23 @@ struct GapGrabTests {
           windowID: WindowID(2), edge: .right, area: CGRect(x: 610, y: 0, width: 10, height: 1000)
         ))
   }
+
+  /// A grid whose columns split at different heights: beside the gap between windows 3 and 4,
+  /// windows 1 and 5 reach that height, but window 3 lies between them, so it isn't a gap
+  /// between columns.
+  @Test func aGapBetweenRowsIsNotTakenForOneBetweenColumns() {
+    let slots = [
+      Placement(id: WindowID(1), frame: CGRect(x: 0, y: 0, width: 330, height: 620)),
+      Placement(id: WindowID(2), frame: CGRect(x: 0, y: 630, width: 330, height: 370)),
+      Placement(id: WindowID(3), frame: CGRect(x: 340, y: 0, width: 320, height: 560)),
+      Placement(id: WindowID(4), frame: CGRect(x: 340, y: 570, width: 320, height: 430)),
+      Placement(id: WindowID(5), frame: CGRect(x: 670, y: 0, width: 330, height: 660)),
+      Placement(id: WindowID(6), frame: CGRect(x: 670, y: 670, width: 330, height: 330)),
+    ]
+    #expect(
+      GapGrab(at: CGPoint(x: 500, y: 565), among: slots)
+        == GapGrab(
+          windowID: WindowID(3), edge: .bottom, area: CGRect(x: 340, y: 560, width: 320, height: 10)
+        ))
+  }
 }

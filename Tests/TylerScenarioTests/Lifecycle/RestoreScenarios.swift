@@ -107,7 +107,7 @@ struct RestoreScenarios {
   }
 
   @Test func stoppingBeforeStartingMovesNothing() {
-    let backend = FakeBackend(windows: [makeWindow(id: 1)])
+    let backend = FakeWindowSystem(windows: [makeWindow(id: 1)])
     let manager = WindowManager(
       backend: backend, displays: FakeDisplays(), gate: FakeGate(isTrusted: false))
     manager.stop()

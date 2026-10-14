@@ -15,7 +15,7 @@ struct CommandRouterTests {
   /// The menu bar items send their requests this way, on the main actor.
   @Test @MainActor func aRequestFromTheMainActorTakesTheSamePath() {
     let manager = WindowManager(
-      backend: FakeBackend(), displays: FakeDisplays(), gate: FakeGate(isTrusted: true))
+      backend: FakeWindowSystem(), displays: FakeDisplays(), gate: FakeGate(isTrusted: true))
     let router = CommandRouter(manager: manager)
     #expect(router.respond(to: .ping) == .pong)
     #expect(router.respond(to: .retile) == manager.handle(.retile))
@@ -41,7 +41,7 @@ struct CommandRouterTests {
       pid: 42, executablePath: "/bin/tylerd", executableModified: nil,
       startedAt: Date(timeIntervalSince1970: 0), configPath: "/c.toml")
     let manager = WindowManager(
-      backend: FakeBackend(), displays: FakeDisplays(), gate: FakeGate(isTrusted: true))
+      backend: FakeWindowSystem(), displays: FakeDisplays(), gate: FakeGate(isTrusted: true))
     let router = CommandRouter(manager: manager, status: base)
 
     var expected = base
@@ -63,7 +63,7 @@ struct CommandRouterTests {
       pid: 42, executablePath: "/bin/tylerd", executableModified: nil,
       startedAt: Date(timeIntervalSince1970: 0), configPath: "/c.toml")
     let manager = WindowManager(
-      backend: FakeBackend(), displays: FakeDisplays(), gate: FakeGate(isTrusted: true))
+      backend: FakeWindowSystem(), displays: FakeDisplays(), gate: FakeGate(isTrusted: true))
     let router = CommandRouter(manager: manager, status: base)
     _ = manager.setConfig("gaps.inner", to: "8")
     guard case .status(let status) = await router.handle(.status) else {
@@ -78,7 +78,7 @@ struct CommandRouterTests {
   }
 
   @Test @MainActor func listIsAnsweredByTheManager() async {
-    let backend = FakeBackend(windows: [makeWindow(id: 1, title: "one")])
+    let backend = FakeWindowSystem(windows: [makeWindow(id: 1, title: "one")])
     let manager = WindowManager(
       backend: backend,
       displays: FakeDisplays(),
@@ -103,7 +103,7 @@ struct CommandRouterTests {
   }
 
   @Test @MainActor func tilingCommandsAreForwardedToTheManager() async {
-    let backend = FakeBackend(windows: [makeWindow(id: 1), makeWindow(id: 2)])
+    let backend = FakeWindowSystem(windows: [makeWindow(id: 1), makeWindow(id: 2)])
     let manager = WindowManager(
       backend: backend, displays: FakeDisplays(), gate: FakeGate(isTrusted: true))
     manager.startIfPermitted()

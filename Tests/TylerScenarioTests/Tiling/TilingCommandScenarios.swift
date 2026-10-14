@@ -270,7 +270,7 @@ struct TilingCommandScenarios {
 
   @Test func commandsWithoutPermissionExplainWhatToDo() {
     let manager = WindowManager(
-      backend: FakeBackend(), displays: FakeDisplays(), gate: FakeGate(isTrusted: false))
+      backend: FakeWindowSystem(), displays: FakeDisplays(), gate: FakeGate(isTrusted: false))
     let expected = Response.error(WindowManager.permissionMessage)
     #expect(manager.retile() == expected)
     #expect(manager.focus(.next) == expected)
@@ -283,7 +283,7 @@ struct TilingCommandScenarios {
   @Test(arguments: [(TilingMode.on, "tiling on"), (.off, "tiling off")])
   func tilingWithoutPermissionSaysItWaits(mode: TilingMode, reply: String) {
     let manager = WindowManager(
-      backend: FakeBackend(), displays: FakeDisplays(), gate: FakeGate(isTrusted: false))
+      backend: FakeWindowSystem(), displays: FakeDisplays(), gate: FakeGate(isTrusted: false))
     let expected =
       "\(reply) once Accessibility permission is granted\n\(WindowManager.permissionMessage)"
     #expect(manager.setTiling(mode) == .message(expected))

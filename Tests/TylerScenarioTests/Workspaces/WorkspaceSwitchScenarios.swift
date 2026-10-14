@@ -115,7 +115,7 @@ struct WorkspaceSwitchScenarios {
         == .error(WindowManager.tilingOffMessage))
 
     let waiting = WindowManager(
-      backend: FakeBackend(), displays: FakeDisplays(), gate: FakeGate(isTrusted: false))
+      backend: FakeWindowSystem(), displays: FakeDisplays(), gate: FakeGate(isTrusted: false))
     #expect(waiting.switchWorkspace(.next) == .error(WindowManager.permissionMessage))
   }
 

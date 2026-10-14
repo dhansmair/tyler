@@ -3,7 +3,7 @@ import TylerCore
 
 @testable import TylerServer
 
-extension FakeBackend {
+extension FakeWindowSystem {
   package func frame(of windowID: UInt32) -> CGRect? {
     windows.first { $0.id.rawValue == windowID }?.frame
   }

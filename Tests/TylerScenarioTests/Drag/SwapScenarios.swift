@@ -21,7 +21,7 @@ struct SwapScenarios {
   private let outside = CGPoint(x: 10, y: 10)
 
   private let pointer = FakePointer()
-  private let backend: FakeBackend
+  private let backend: FakeWindowSystem
   // Held here because the manager's event pumps only keep it weakly.
   private let manager: WindowManager
 

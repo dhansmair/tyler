@@ -10,7 +10,7 @@ import TylerRuntime
 package struct ManagerHarness {
   // Held here because the manager's event pumps only keep it weakly.
   package let manager: WindowManager
-  package let backend: FakeBackend
+  package let backend: FakeWindowSystem
   package let display = FakeDisplays.main
   package var area: CGRect { display.visibleFrame }
 
@@ -31,7 +31,7 @@ package struct ManagerHarness {
     restoring saved: SavedState? = nil,
     clearRecordedCalls: Bool = true
   ) {
-    backend = FakeBackend(windows: windows)
+    backend = FakeWindowSystem(windows: windows)
     stacking?.backend = backend
     manager = WindowManager(
       backend: backend, displays: displays, gate: gate, animator: animator, config: config,

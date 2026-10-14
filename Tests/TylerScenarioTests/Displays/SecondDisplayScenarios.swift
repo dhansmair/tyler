@@ -22,7 +22,7 @@ struct SecondDisplayScenarios {
   @Test func theIndicatorShowsThePrimaryDisplaysArea() {
     let indicator = FakeIndicator()
     let manager = WindowManager(
-      backend: FakeBackend(windows: spread([1, 2])), displays: twoDisplays(),
+      backend: FakeWindowSystem(windows: spread([1, 2])), displays: twoDisplays(),
       gate: FakeGate(isTrusted: true), indicator: indicator)
     manager.startIfPermitted()
     #expect(indicator.shown.last?.area == FakeDisplays.main.visibleFrame)

@@ -4,9 +4,9 @@ import TylerCore
 import TylerRuntime
 import TylerServer
 
-/// The real `WindowBackend`, on the Accessibility API and `NSWorkspace`'s apps.
+/// The real `WindowSystem`, on the Accessibility API and `NSWorkspace`'s apps.
 @MainActor
-package final class AXBackend: WindowBackend {
+package final class AXBackend: WindowSystem {
   package let events: AsyncStream<WindowEvent>
 
   private static let log = TylerLog(category: "ax")
@@ -28,7 +28,7 @@ package final class AXBackend: WindowBackend {
     (events, continuation) = AsyncStream.makeStream(of: WindowEvent.self)
   }
 
-  // MARK: - WindowBackend
+  // MARK: - WindowSystem
 
   package func start() {
     guard !isStarted else { return }
@@ -64,7 +64,7 @@ package final class AXBackend: WindowBackend {
     windows.ids.compactMap { windowInfo(for: $0) }
   }
 
-  package func focus(_ windowID: WindowID) throws(BackendError) {
+  package func focus(_ windowID: WindowID) throws(WindowSystemError) {
     guard let element = windows.element(of: windowID),
       let processID = windows.processID(of: windowID)
     else {
@@ -74,14 +74,14 @@ package final class AXBackend: WindowBackend {
     try check(AXBridge.raise(window: element, in: processID), for: windowID)
   }
 
-  package func close(_ windowID: WindowID) throws(BackendError) {
+  package func close(_ windowID: WindowID) throws(WindowSystemError) {
     guard let element = windows.element(of: windowID) else { throw .windowGone(windowID) }
     try check(AXBridge.close(window: element), for: windowID)
   }
 
   /// Makes tylerd frontmost. It has no windows, so keys go nowhere until the user or a command
   /// focuses a window again.
-  package func unfocus() throws(BackendError) {
+  package func unfocus() throws(WindowSystemError) {
     let status = AXBridge.makeFrontmost(processID: ProcessInfo.processInfo.processIdentifier)
     guard status == .success else {
       throw Self.refusal(status)
@@ -89,7 +89,7 @@ package final class AXBackend: WindowBackend {
     setFocus(nil)
   }
 
-  private func check(_ status: AXError, for windowID: WindowID) throws(BackendError) {
+  private func check(_ status: AXError, for windowID: WindowID) throws(WindowSystemError) {
     switch status {
     case .success:
       return
@@ -108,7 +108,7 @@ package final class AXBackend: WindowBackend {
   }
 
   /// Only the reason: the caller says what it asked for, of which window.
-  static func refusal(_ status: AXError) -> BackendError {
+  static func refusal(_ status: AXError) -> WindowSystemError {
     status == .cannotComplete
       ? .refused("its app didn't answer") : .refused("AX error \(status.rawValue)")
   }
@@ -260,7 +260,7 @@ package final class AXBackend: WindowBackend {
 
 /// Moving and resizing windows; here because it reads and updates the backend's private state.
 extension AXBackend {
-  package func setFrame(_ frame: CGRect, of windowID: WindowID) throws(BackendError) {
+  package func setFrame(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
     let element = try settledElement(windowID)
     // A window that already has the size only needs moving: one write instead of three. Should
     // the size turn out to differ after all (the last read is out of date), the full move
@@ -292,7 +292,7 @@ extension AXBackend {
     windows.note(frame, isFullscreen: isFullscreen, of: windowID, isFocused: windowID == focusedID)
   }
 
-  package func setPosition(_ origin: CGPoint, of windowID: WindowID) throws(BackendError) {
+  package func setPosition(_ origin: CGPoint, of windowID: WindowID) throws(WindowSystemError) {
     guard let element = windows.element(of: windowID),
       let processID = windows.processID(of: windowID)
     else { throw .windowGone(windowID) }
@@ -301,7 +301,7 @@ extension AXBackend {
 
   /// Ordered from the frame last read, which lags behind the steps but grows or shrinks the same
   /// way along a straight track.
-  package func setFrameStep(_ frame: CGRect, of windowID: WindowID) throws(BackendError) {
+  package func setFrameStep(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
     guard let element = windows.element(of: windowID),
       let processID = windows.processID(of: windowID)
     else { throw .windowGone(windowID) }
@@ -314,7 +314,7 @@ extension AXBackend {
   package func takeQueuedWrites() -> MotionCost.Queued { steps.takeStatistics() }
 
   /// The window's element, once the moves still queued for it are written.
-  private func settledElement(_ windowID: WindowID) throws(BackendError) -> AXUIElement {
+  private func settledElement(_ windowID: WindowID) throws(WindowSystemError) -> AXUIElement {
     guard let element = windows.element(of: windowID) else { throw .windowGone(windowID) }
     if let processID = windows.processID(of: windowID) {
       try steps.settle(windowID, in: processID)
@@ -322,7 +322,7 @@ extension AXBackend {
     return element
   }
 
-  package func setFrameInPassing(_ frame: CGRect, of windowID: WindowID) throws(BackendError) {
+  package func setFrameInPassing(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
     let element = try settledElement(windowID)
     guard let current = windows.lastRead(of: windowID)?.frame,
       let writes = FrameWrite.inPassing(from: current, to: frame)

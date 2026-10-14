@@ -2,7 +2,7 @@ import CoreGraphics
 import TylerCore
 
 /// Something the mouse or trackpad did that isn't about one window. Window moves and resizes
-/// arrive through `WindowBackend`; this carries what tylerd can't learn from the windows.
+/// arrive through `WindowSystem`; this carries what tylerd can't learn from the windows.
 package enum PointerEvent: Equatable, Sendable {
   /// The primary (left) button went up, anywhere on screen. `location` is in Accessibility
   /// coordinates.

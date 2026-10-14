@@ -17,7 +17,7 @@ struct ConfigReloadScenarios {
     config: Config = Config(),
     file: FakeConfigFile? = FakeConfigFile(),
     isTrusted: Bool = true
-  ) -> (WindowManager, FakeBackend) {
+  ) -> (WindowManager, FakeWindowSystem) {
     let harness = ManagerHarness(
       windows: spread([1, 2]), gate: FakeGate(isTrusted: isTrusted), config: config,
       configFile: file)
@@ -36,7 +36,7 @@ struct ConfigReloadScenarios {
     TallLayout().frames(count: 1, in: area, gaps: LayoutGaps(config.gaps)).first
   }
 
-  private func frames(_ backend: FakeBackend) -> [CGRect] {
+  private func frames(_ backend: FakeWindowSystem) -> [CGRect] {
     [1, 2].compactMap { backend.frame(of: $0) }
   }
 

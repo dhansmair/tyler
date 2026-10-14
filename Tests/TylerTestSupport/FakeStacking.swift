@@ -3,12 +3,12 @@ import TylerCore
 
 @testable import TylerServer
 
-/// The window server's stacking over a `FakeBackend`: the frontmost window containing a point,
+/// The window server's stacking over a `FakeWindowSystem`: the frontmost window containing a point,
 /// with the backend's windows at the normal layer.
 @MainActor
 package final class FakeStacking: WindowStacking {
   /// Set by `ManagerHarness`, which creates the backend.
-  package var backend: FakeBackend?
+  package var backend: FakeWindowSystem?
   /// Windows in front of all of the backend's, such as a menu or the Dock, with their frames.
   package var overlays: [(window: StackedWindow, frame: CGRect)] = []
   /// The backend's windows from front to back; the others follow in the backend's order.

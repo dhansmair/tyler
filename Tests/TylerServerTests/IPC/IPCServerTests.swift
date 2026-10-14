@@ -144,7 +144,7 @@ struct IPCServerTests {
   }
 
   @Test @MainActor func listWorksEndToEndOverTheSocket() async throws {
-    let backend = FakeBackend(windows: [makeWindow(id: 11, title: "hello", isFocused: true)])
+    let backend = FakeWindowSystem(windows: [makeWindow(id: 11, title: "hello", isFocused: true)])
     let manager = WindowManager(
       backend: backend,
       displays: FakeDisplays(),
@@ -176,7 +176,7 @@ struct IPCServerTests {
   }
 
   @Test @MainActor func anActionCommandWorksEndToEndOverTheSocket() async throws {
-    let backend = FakeBackend(windows: [
+    let backend = FakeWindowSystem(windows: [
       makeWindow(id: 1, frame: CGRect(x: 100, y: 100, width: 300, height: 200)),
       makeWindow(id: 2, frame: CGRect(x: 500, y: 100, width: 300, height: 200)),
     ])

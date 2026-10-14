@@ -22,7 +22,7 @@ struct DragPreviewAnimationScenarios {
   private let pointer = FakePointer()
   private let clock = TestClock()
   private let harness: ManagerHarness
-  private var backend: FakeBackend { harness.backend }
+  private var backend: FakeWindowSystem { harness.backend }
 
   init() async {
     var config = Config()

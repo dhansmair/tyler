@@ -18,7 +18,7 @@ struct MouseResizeScenarios {
 
   private let pointer = FakePointer()
   private let clock = TestClock()
-  private let backend: FakeBackend
+  private let backend: FakeWindowSystem
   // Held here because the manager's event pumps only keep it weakly.
   private let manager: WindowManager
 
@@ -28,7 +28,7 @@ struct MouseResizeScenarios {
 
   private static func makeStarted(
     pointer: FakePointer?, clock: TestClock = TestClock(), config: Config = Config()
-  ) async -> (WindowManager, FakeBackend) {
+  ) async -> (WindowManager, FakeWindowSystem) {
     let harness = ManagerHarness([1, 2, 3], config: config, pointer: pointer, clock: clock)
     await settle()
     harness.backend.clearRecordedCalls()

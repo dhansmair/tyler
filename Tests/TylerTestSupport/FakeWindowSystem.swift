@@ -3,11 +3,11 @@ import TylerCore
 
 @testable import TylerServer
 
-/// A scriptable `WindowBackend`: tests push events into it and read back what was asked of it.
+/// A scriptable `WindowSystem`: tests push events into it and read back what was asked of it.
 /// By default it behaves like an obedient app: a successful `setFrame` moves the window to
 /// exactly the requested frame and reports that back as an `updated` event.
 @MainActor
-package final class FakeBackend: WindowBackend {
+package final class FakeWindowSystem: WindowSystem {
   package let events: AsyncStream<WindowEvent>
   private let continuation: AsyncStream<WindowEvent>.Continuation
 
@@ -68,7 +68,7 @@ package final class FakeBackend: WindowBackend {
       focusedID: freshFocus)
   }
 
-  package func setFrame(_ frame: CGRect, of windowID: WindowID) throws(BackendError) {
+  package func setFrame(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
     settle(windowID)
     let index = try movableIndex(of: windowID)
     moves.append(Placement(id: windowID, frame: frame))
@@ -77,7 +77,7 @@ package final class FakeBackend: WindowBackend {
   }
 
   /// Like `setFrame`, but recorded in `passingMoves`: the app's own notifications report it.
-  package func setFrameInPassing(_ frame: CGRect, of windowID: WindowID) throws(BackendError) {
+  package func setFrameInPassing(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
     settle(windowID)
     let index = try movableIndex(of: windowID)
     passingMoves.append(Placement(id: windowID, frame: frame))
@@ -88,14 +88,14 @@ package final class FakeBackend: WindowBackend {
   package func takeQueuedWrites() -> MotionCost.Queued { MotionCost.Queued() }
 
   /// Moves the window but, like the real backend, reports nothing back.
-  package func setPosition(_ origin: CGPoint, of windowID: WindowID) throws(BackendError) {
+  package func setPosition(_ origin: CGPoint, of windowID: WindowID) throws(WindowSystemError) {
     let index = try movableIndex(of: windowID)
     nudges.append((windowID, origin))
     step(index, to: CGRect(origin: origin, size: windows[index].frame.size))
   }
 
   /// Moves and resizes the window but, like the real backend, reports nothing back.
-  package func setFrameStep(_ frame: CGRect, of windowID: WindowID) throws(BackendError) {
+  package func setFrameStep(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
     let index = try movableIndex(of: windowID)
     frameSteps.append(Placement(id: windowID, frame: frame))
     step(index, to: frame)
@@ -131,7 +131,7 @@ package final class FakeBackend: WindowBackend {
   }
 
   /// Where `windowID` is in `windows`, unless moving it fails: it is in `failingMoves` or gone.
-  private func movableIndex(of windowID: WindowID) throws(BackendError) -> Int {
+  private func movableIndex(of windowID: WindowID) throws(WindowSystemError) -> Int {
     onWrite?()
     if failingMoves.contains(windowID) { throw .refused("fake refusal") }
     guard let index = windows.firstIndex(where: { $0.id == windowID }) else {
@@ -140,13 +140,13 @@ package final class FakeBackend: WindowBackend {
     return index
   }
 
-  package func focus(_ windowID: WindowID) throws(BackendError) {
+  package func focus(_ windowID: WindowID) throws(WindowSystemError) {
     focusCalls.append(windowID)
     if failingFocus.contains(windowID) { throw .refused("fake refusal") }
   }
 
   /// Closes the window as an app that asks nothing would: it is gone, and reported destroyed.
-  package func close(_ windowID: WindowID) throws(BackendError) {
+  package func close(_ windowID: WindowID) throws(WindowSystemError) {
     closeCalls.append(windowID)
     if failingClose.contains(windowID) { throw .refused("fake refusal") }
     guard let index = windows.firstIndex(where: { $0.id == windowID }) else {
@@ -156,7 +156,7 @@ package final class FakeBackend: WindowBackend {
     continuation.yield(.destroyed(windowID))
   }
 
-  package func unfocus() throws(BackendError) {
+  package func unfocus() throws(WindowSystemError) {
     unfocusCount += 1
     if isUnfocusFailing { throw .refused("fake refusal") }
   }

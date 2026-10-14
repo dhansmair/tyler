@@ -9,7 +9,7 @@ import TylerTestSupport
 @Suite("WindowMover: measuring")
 @MainActor
 struct WindowMoverMeasuringTests {
-  private let backend = FakeBackend(windows: spread([1, 2]))
+  private let backend = FakeWindowSystem(windows: spread([1, 2]))
   private let clock = TestClock()
   private let mover: WindowMover
   private var registry = WindowRegistry()

@@ -34,14 +34,14 @@ final class StepWriter {
 
   func move(
     _ windowID: WindowID, _ element: AXUIElement, by writes: [FrameWrite], in processID: pid_t
-  ) throws(BackendError) {
+  ) throws(WindowSystemError) {
     try refuseIfUnresponsive(processID)
     queue(for: processID).submit(Move(element: element, writes: writes), for: windowID)
   }
 
   /// Drops the move still waiting for `windowID` and waits until its app's queue is idle, so a
   /// write on the main thread lands after every move already sent.
-  func settle(_ windowID: WindowID, in processID: pid_t) throws(BackendError) {
+  func settle(_ windowID: WindowID, in processID: pid_t) throws(WindowSystemError) {
     try refuseIfUnresponsive(processID)
     guard let queue = queues[processID] else { return }
     queue.discard(windowID)
@@ -80,7 +80,7 @@ final class StepWriter {
   }
 
   /// Refuses at once while `processID` is skipped, instead of waiting out the timeout again.
-  func refuseIfUnresponsive(_ processID: pid_t) throws(BackendError) {
+  func refuseIfUnresponsive(_ processID: pid_t) throws(WindowSystemError) {
     guard unresponsive.isSkipped(processID, at: now()) else { return }
     throw .refused("its app didn't answer a moment ago")
   }

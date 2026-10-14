@@ -68,7 +68,7 @@ package final class WindowManager {
   }
   var slideCount = 0
   let animator: Animator
-  let backend: any WindowBackend
+  let backend: any WindowSystem
   let displays: any DisplayProvider
   private let gate: any AccessibilityGate
   /// Where `reload` reads the config from; `nil` when there is nothing to reload.
@@ -96,7 +96,7 @@ package final class WindowManager {
   var pendingRestore: SavedState?
 
   package init(
-    backend: any WindowBackend,
+    backend: any WindowSystem,
     displays: any DisplayProvider,
     gate: any AccessibilityGate,
     animator: Animator = Animator(),

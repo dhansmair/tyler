@@ -1,7 +1,7 @@
 import TylerCore
 
 /// Why a backend could not act on a window.
-package enum BackendError: Error, Equatable, Sendable, CustomStringConvertible {
+package enum WindowSystemError: Error, Equatable, Sendable, CustomStringConvertible {
   /// The window closed (or its app quit) before the action reached it.
   case windowGone(WindowID)
   /// The app or the system refused; the text says why, and only that: the caller names the action

@@ -107,10 +107,10 @@ struct StepWriterTests {
       now: { now.instant }, write: { windowID, move in apps.write(windowID, move) })
     writer.noteTimeout(of: 100)
 
-    #expect(throws: BackendError.refused("its app didn't answer a moment ago")) {
+    #expect(throws: WindowSystemError.refused("its app didn't answer a moment ago")) {
       try writer.move(WindowID(2), element, by: [.position(CGPoint(x: 20, y: 0))], in: 100)
     }
-    #expect(throws: BackendError.self) { try writer.settle(WindowID(2), in: 100) }
+    #expect(throws: WindowSystemError.self) { try writer.settle(WindowID(2), in: 100) }
     try writer.move(WindowID(3), element, by: [.position(CGPoint(x: 30, y: 0))], in: 200)
     try writer.settle(WindowID(4), in: 200)
     #expect(apps.written == ["3@30"], "another app is still moved")

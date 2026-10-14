@@ -8,7 +8,7 @@ import TylerRuntime
 final class WindowMover {
   private static let log = TylerLog(category: "manager")
 
-  private let backend: any WindowBackend
+  private let backend: any WindowSystem
   private let displays: any DisplayProvider
   /// `stop()` puts every window back here, and `tiling off` does it for parked ones.
   private(set) var originalFrames: [WindowID: CGRect] = [:]
@@ -21,7 +21,7 @@ final class WindowMover {
   private var meter: Meter?
 
   init(
-    backend: any WindowBackend, displays: any DisplayProvider,
+    backend: any WindowSystem, displays: any DisplayProvider,
     clock: any Clock<Duration> = ContinuousClock()
   ) {
     self.backend = backend
@@ -40,7 +40,7 @@ final class WindowMover {
       rememberOriginalFrame(of: placement.id, known: registry)
       noteCrossing(placement, known: registry)
       do {
-        try timed(placement.id) { () throws(BackendError) in
+        try timed(placement.id) { () throws(WindowSystemError) in
           if inPassing {
             try backend.setFrameInPassing(placement.frame, of: placement.id)
           } else {
@@ -63,7 +63,7 @@ final class WindowMover {
   ) {
     rememberOriginalFrame(of: windowID, known: registry)
     do {
-      try timed(windowID) { () throws(BackendError) in
+      try timed(windowID) { () throws(WindowSystemError) in
         if let size {
           try backend.setFrameStep(CGRect(origin: origin, size: size), of: windowID)
         } else {
@@ -81,7 +81,7 @@ final class WindowMover {
   /// its title bar, so this isn't remembered as tylerd's move.
   func carry(_ windowID: WindowID, to origin: CGPoint, known registry: WindowRegistry) {
     do {
-      try timed(windowID) { () throws(BackendError) in
+      try timed(windowID) { () throws(WindowSystemError) in
         try backend.setPosition(origin, of: windowID)
       }
     } catch {
@@ -93,7 +93,9 @@ final class WindowMover {
   /// Resizes a window the user grabbed with the modifier; see `carry`.
   func carry(_ windowID: WindowID, toFrame frame: CGRect, known registry: WindowRegistry) {
     do {
-      try timed(windowID) { () throws(BackendError) in try backend.setFrame(frame, of: windowID) }
+      try timed(windowID) { () throws(WindowSystemError) in
+        try backend.setFrame(frame, of: windowID)
+      }
     } catch {
       Self.log.error(
         "window resizing failed - \(Self.named(windowID, registry)) - \(error.description)")
@@ -109,18 +111,18 @@ final class WindowMover {
       }, known: registry)
   }
 
-  func focus(_ windowID: WindowID, known registry: WindowRegistry) throws(BackendError) {
+  func focus(_ windowID: WindowID, known registry: WindowRegistry) throws(WindowSystemError) {
     Self.log.info("window focusing - \(Self.named(windowID, registry))")
     try backend.focus(windowID)
   }
 
-  func close(_ windowID: WindowID, known registry: WindowRegistry) throws(BackendError) {
+  func close(_ windowID: WindowID, known registry: WindowRegistry) throws(WindowSystemError) {
     Self.log.info("window closing - \(Self.named(windowID, registry))")
     try backend.close(windowID)
   }
 
   /// Takes keyboard focus away from every window.
-  func unfocus() throws(BackendError) {
+  func unfocus() throws(WindowSystemError) {
     try backend.unfocus()
   }
 
@@ -185,8 +187,8 @@ final class WindowMover {
   }
 
   private func timed(
-    _ windowID: WindowID, _ write: () throws(BackendError) -> Void
-  ) throws(BackendError) {
+    _ windowID: WindowID, _ write: () throws(WindowSystemError) -> Void
+  ) throws(WindowSystemError) {
     guard let elapsed = meter?.elapsed else { return try write() }
     let start = elapsed()
     defer { meter?.cost.wrote(windowID, taking: elapsed() - start) }

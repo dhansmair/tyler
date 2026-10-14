@@ -9,7 +9,7 @@ import TylerTestSupport
 @MainActor
 struct StartupScenarios {
   private func makeManager(
-    backend: FakeBackend = FakeBackend(),
+    backend: FakeWindowSystem = FakeWindowSystem(),
     displays: FakeDisplays = FakeDisplays(),
     gate: FakeGate = FakeGate(isTrusted: true)
   ) -> WindowManager {
@@ -22,7 +22,7 @@ struct StartupScenarios {
   }
 
   @Test func withoutPermissionItWaitsAndExplains() {
-    let backend = FakeBackend()
+    let backend = FakeWindowSystem()
     let manager = makeManager(backend: backend, gate: FakeGate(isTrusted: false))
 
     #expect(manager.startIfPermitted() == false)
@@ -32,7 +32,7 @@ struct StartupScenarios {
   }
 
   @Test func startsOnceAndLoadsTheInitialSnapshot() {
-    let backend = FakeBackend(windows: [makeWindow(id: 1), makeWindow(id: 2)])
+    let backend = FakeWindowSystem(windows: [makeWindow(id: 1), makeWindow(id: 2)])
     let manager = makeManager(backend: backend)
 
     #expect(manager.startIfPermitted())
@@ -46,7 +46,7 @@ struct StartupScenarios {
 
   @Test func startsLaterOnceThePermissionIsGranted() {
     let gate = FakeGate(isTrusted: false)
-    let backend = FakeBackend(windows: [makeWindow(id: 1)])
+    let backend = FakeWindowSystem(windows: [makeWindow(id: 1)])
     let manager = makeManager(backend: backend, gate: gate)
 
     #expect(manager.startIfPermitted() == false)
@@ -56,7 +56,7 @@ struct StartupScenarios {
   }
 
   @Test func backendEventsChangeTheList() async {
-    let backend = FakeBackend()
+    let backend = FakeWindowSystem()
     let manager = makeManager(backend: backend)
     manager.startIfPermitted()
 
@@ -74,7 +74,7 @@ struct StartupScenarios {
 
   @Test func eventsSentBeforeTheSnapshotAreNotDuplicated() async {
     // The backend reports a window both in its snapshot and as a created event.
-    let backend = FakeBackend(windows: [makeWindow(id: 1)])
+    let backend = FakeWindowSystem(windows: [makeWindow(id: 1)])
     let manager = makeManager(backend: backend)
     backend.send(.created(makeWindow(id: 1)))
     manager.startIfPermitted()
@@ -94,7 +94,7 @@ struct StartupScenarios {
       frame: CGRect(x: 1000, y: 0, width: 1000, height: 800),
       visibleFrame: CGRect(x: 1000, y: 0, width: 1000, height: 800)
     )
-    let backend = FakeBackend(windows: [
+    let backend = FakeWindowSystem(windows: [
       makeWindow(id: 1, frame: CGRect(x: 100, y: 100, width: 300, height: 200)),
       makeWindow(id: 2, frame: CGRect(x: 1200, y: 100, width: 300, height: 200)),
     ])
@@ -105,14 +105,14 @@ struct StartupScenarios {
   }
 
   @Test func withoutAnyDisplayTheTagIsNil() {
-    let backend = FakeBackend(windows: [makeWindow(id: 1)])
+    let backend = FakeWindowSystem(windows: [makeWindow(id: 1)])
     let manager = makeManager(backend: backend, displays: FakeDisplays(displays: []))
     manager.startIfPermitted()
     #expect(listedWindows(manager)?.first?.displayID == nil)
   }
 
   @Test func stopClearsStateAndStopsTheBackend() {
-    let backend = FakeBackend(windows: [makeWindow(id: 1)])
+    let backend = FakeWindowSystem(windows: [makeWindow(id: 1)])
     let manager = makeManager(backend: backend)
     manager.startIfPermitted()
 
@@ -123,7 +123,7 @@ struct StartupScenarios {
   }
 
   @Test func theBackendStreamEndingLeavesTheLastKnownList() async {
-    let backend = FakeBackend(windows: [makeWindow(id: 1)])
+    let backend = FakeWindowSystem(windows: [makeWindow(id: 1)])
     let manager = makeManager(backend: backend)
     manager.startIfPermitted()
 
@@ -136,7 +136,7 @@ struct StartupScenarios {
     let gate = FakeGate(isTrusted: false)
     let clock = TestClock()
     let manager = WindowManager(
-      backend: FakeBackend(windows: spread([1])), displays: FakeDisplays(), gate: gate,
+      backend: FakeWindowSystem(windows: spread([1])), displays: FakeDisplays(), gate: gate,
       clock: clock)
     let waiting = Task { await manager.startWhenPermitted(checkingEvery: .seconds(1)) }
     await settle()
@@ -152,7 +152,7 @@ struct StartupScenarios {
   @Test func waitingForThePermissionEndsWhenCancelled() async {
     let clock = TestClock()
     let manager = WindowManager(
-      backend: FakeBackend(), displays: FakeDisplays(), gate: FakeGate(isTrusted: false),
+      backend: FakeWindowSystem(), displays: FakeDisplays(), gate: FakeGate(isTrusted: false),
       clock: clock)
     let waiting = Task { await manager.startWhenPermitted() }
     await settle()

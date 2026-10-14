@@ -10,7 +10,7 @@ import TylerTestSupport
 @Suite("Indicator updates")
 @MainActor
 struct IndicatorScenarios {
-  private let backend = FakeBackend(windows: spread([1, 2]))
+  private let backend = FakeWindowSystem(windows: spread([1, 2]))
   private let indicator = FakeIndicator()
   private let gate = FakeGate(isTrusted: false)
   private let manager: WindowManager

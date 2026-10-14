@@ -1,6 +1,6 @@
 import TylerCore
 
-/// A change in the set of windows, reported by a `WindowBackend`.
+/// A change in the set of windows, reported by a `WindowSystem`.
 package enum WindowEvent: Equatable, Sendable {
   case created(WindowInfo)
   case updated(WindowInfo)

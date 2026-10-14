@@ -9,7 +9,7 @@ import TylerTestSupport
 @Suite("WindowMover")
 @MainActor
 struct WindowMoverTests {
-  private let backend = FakeBackend(windows: spread([1, 2]))
+  private let backend = FakeWindowSystem(windows: spread([1, 2]))
   private let displays = FakeDisplays(displays: [FakeDisplays.main, FakeDisplays.right])
   private let mover: WindowMover
   private var registry = WindowRegistry()

@@ -4,7 +4,7 @@ Coding agents tend to add features on top of each other and rarely refactor, whi
 
 ## How to work through it
 
-In progress: none.
+In progress: run the mouse button interceptor off the main thread (worktree hung-app).
 
 - **Claim an item first:** put it on the "In progress" line above (with who is working on it) and commit, so a parallel agent doesn't take it too; clear it when the item is done. See "Parallel agents" in CLAUDE.md.
 - **One item (or one step of an item) per commit**, like any other increment. Delete it here in the same commit.

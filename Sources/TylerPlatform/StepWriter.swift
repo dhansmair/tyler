@@ -3,13 +3,14 @@ import TylerCore
 import TylerRuntime
 import TylerServer
 
-/// Moves windows without waiting for their apps: each app's moves go to an `AppWriteQueue` of its
+/// Writes the steps of animations (a move, or a move and a resize) without waiting for the apps:
+/// each app's steps go to an `AppWriteQueue` of its
 /// own, so the windows of a frame move side by side, a slow app skips frames instead of holding
 /// up the others, and the main thread stays free for input. An app that timed out is left alone for
 /// a while (`UnresponsiveApps`), so its windows don't hold up every switch and command again; the
 /// backend asks before focusing one of them too.
 @MainActor
-final class PositionWriter {
+final class StepWriter {
   /// A window and the writes that take it where it goes. An `AXUIElement` is an immutable handle
   /// on an element of another process, and the Accessibility API may be called from any thread.
   struct Move: @unchecked Sendable {
@@ -25,7 +26,7 @@ final class PositionWriter {
 
   init(
     now: @escaping () -> ContinuousClock.Instant = { .now },
-    write: @escaping @Sendable (WindowID, Move) -> Void = PositionWriter.moveWindow
+    write: @escaping @Sendable (WindowID, Move) -> Void = StepWriter.writeStep
   ) {
     self.now = now
     self.write = write
@@ -91,12 +92,12 @@ final class PositionWriter {
     return queue
   }
 
-  nonisolated private static func moveWindow(_ windowID: WindowID, _ move: Move) {
+  nonisolated private static func writeStep(_ windowID: WindowID, _ move: Move) {
     for write in move.writes {
       let status = AXBridge.write(write, to: move.element)
       if status != .success {
         // One missed frame is invisible; the final placement reports real failures.
-        log.debug("window sliding failed - #\(windowID) - AX error \(status.rawValue)")
+        log.debug("window stepping failed - #\(windowID) - AX error \(status.rawValue)")
         return
       }
     }

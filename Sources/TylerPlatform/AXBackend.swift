@@ -19,7 +19,7 @@ package final class AXBackend: WindowBackend {
   private var windows = TrackedWindows()
   private var focusedID: WindowID?
   private var pendingReads = PendingReads()
-  private let positions = PositionWriter()
+  private let steps = StepWriter()
   private var pendingReadsTask: Task<Void, Never>?
   private let runningApps = RunningAppsObserver()
   private var isStarted = false
@@ -57,7 +57,7 @@ package final class AXBackend: WindowBackend {
     pendingReadsTask?.cancel()
     pendingReadsTask = nil
     _ = pendingReads.takeAll()
-    positions.forgetAll()
+    steps.forgetAll()
   }
 
   package func snapshot() -> [WindowInfo] {
@@ -70,7 +70,7 @@ package final class AXBackend: WindowBackend {
     else {
       throw .windowGone(windowID)
     }
-    try positions.refuseIfUnresponsive(processID)
+    try steps.refuseIfUnresponsive(processID)
     try check(AXBridge.raise(window: element, in: processID), for: windowID)
   }
 
@@ -101,7 +101,7 @@ package final class AXBackend: WindowBackend {
       throw .windowGone(windowID)
     default:
       if status == .cannotComplete, let processID = windows.processID(of: windowID) {
-        positions.noteTimeout(of: processID)
+        steps.noteTimeout(of: processID)
       }
       throw Self.refusal(status)
     }
@@ -183,7 +183,7 @@ package final class AXBackend: WindowBackend {
     retries[processID] = nil
     observers[processID]?.stop()
     observers[processID] = nil
-    positions.forget(processID)
+    steps.forget(processID)
     let windowIDs = windows.ids(ownedBy: processID)
     Self.log.info("app quit - pid \(processID) - dropping \(windowIDs.count) windows")
     for windowID in windowIDs { forget(windowID) }
@@ -296,7 +296,7 @@ extension AXBackend {
     guard let element = windows.element(of: windowID),
       let processID = windows.processID(of: windowID)
     else { throw .windowGone(windowID) }
-    try positions.move(windowID, element, by: [.position(origin)], in: processID)
+    try steps.move(windowID, element, by: [.position(origin)], in: processID)
   }
 
   /// Ordered from the frame last read, which lags behind the steps but grows or shrinks the same
@@ -308,16 +308,16 @@ extension AXBackend {
     let writes =
       windows.lastRead(of: windowID).flatMap { FrameWrite.inPassing(from: $0.frame, to: frame) }
       ?? [.position(frame.origin), .size(frame.size)]
-    try positions.move(windowID, element, by: writes, in: processID)
+    try steps.move(windowID, element, by: writes, in: processID)
   }
 
-  package func takeQueuedWrites() -> MotionCost.Queued { positions.takeStatistics() }
+  package func takeQueuedWrites() -> MotionCost.Queued { steps.takeStatistics() }
 
   /// The window's element, once the moves still queued for it are written.
   private func settledElement(_ windowID: WindowID) throws(BackendError) -> AXUIElement {
     guard let element = windows.element(of: windowID) else { throw .windowGone(windowID) }
     if let processID = windows.processID(of: windowID) {
-      try positions.settle(windowID, in: processID)
+      try steps.settle(windowID, in: processID)
     }
     return element
   }

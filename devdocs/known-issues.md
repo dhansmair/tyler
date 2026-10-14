@@ -56,7 +56,7 @@ own issues are in `strip-layout.md`. Remove an item when it is fixed (in the sam
   placement of a switch, a `tyler` command, the event taps): after a move times out, its windows
   aren't moved or focused for 5 s (`UnresponsiveApps`), then each call tries again. Reads and
   closing still wait for it every time. The steps of a slide don't wait for it
-  (`PositionWriter`); its windows skip frames.
+  (`StepWriter`); its windows skip frames.
 - **Option+drag inside apps** (Finder's copy, block selection in terminals) is lost while
   `[mouse] modifier` is Option.
 - **Terminals and windows with a minimum size** don't fill their slot exactly.

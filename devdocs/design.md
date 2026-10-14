@@ -41,9 +41,9 @@ it is made, and change it here when it changes.
   `IPCServer.runBlocking` is the single bridge into async code. Its cost: anything that blocks the
   main thread (an AX call to a busy app, up to the 1 s messaging timeout) also stalls every `tyler`
   command.
-- **The steps of a slide, swipe or move don't wait for the apps.** `setPosition` hands each move to
-  a serial queue per app (`PositionWriter`, `AppWriteQueue`), which writes only the newest move of
-  each window: the windows of a frame move side by side, a slow app skips frames instead of
+- **The steps of a slide, swipe or move don't wait for the apps.** `setPosition` and
+  `setFrameStep` hand each step to a serial queue per app (`StepWriter`, `AppWriteQueue`), which
+  writes only the newest step of each window: the windows of a frame move side by side, a slow app skips frames instead of
   holding up the others, and the main thread stays free for input. Everything else (a full
   `setFrame`, focusing, reads) stays on the main thread, and a `setFrame` first waits for the
   window's app's queue, so a final placement always lands after the last step.

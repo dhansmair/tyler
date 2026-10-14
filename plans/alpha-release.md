@@ -69,6 +69,13 @@ Each with a regression test (`devdocs/known-issues.md` has the details).
   `AXStandardWindow` (which tylerd tiled). `classify` now also reads the title bar's buttons;
   checked on real windows.
 
+### Structure
+
+- [ ] **One connection per app** (`plans/app-connection.md`): the platform's window code in layers
+  (all apps, one app, the raw calls), with `AXBackend` renamed `SystemWindowBackend`. No change in
+  behaviour; it is the code a reader of the repository would struggle with most, and it makes the
+  attach and timeout logic unit-testable. Before the release checks, so they run on the new code.
+
 ### Checks on real windows
 
 - [ ] The **release** items of `devdocs/testing.md` (10 open), including the fresh clone on a

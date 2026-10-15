@@ -93,8 +93,9 @@ struct DragController {
 
   /// The last size the dragged window had counts, then every window, the dragged one included,
   /// goes to its slot. A window that was moved, not resized, onto another tiled window's slot
-  /// goes in there, the others making room; over another display, it joins the workspace on screen there, where the
-  /// preview showed it, and that display gets the focus; moved anywhere else, it goes back.
+  /// goes in there, the others making room; over another display, it joins the workspace on
+  /// screen there, where the preview showed it, and that display gets the focus; moved anywhere
+  /// else, it goes back.
   func drop(at location: CGPoint, session: inout DragSession, model: inout Model) -> [Effect] {
     let windowID = session.windowID
     guard canFollow(session, model) else {

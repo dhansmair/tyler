@@ -136,7 +136,7 @@ subrole, title-bar buttons and whether its size can be set:
   `AXIsProcessTrusted()` true and posts no `com.apple.accessibility.api` notification; switching
   it off does both. Never try it with an active tap in place on a Mac in use. With tylerd's
   interceptor disarmed (no active tap; listen-only taps still in place), revoking the terminal's
-  grant left input working, and tylerd noticed and removed its taps (2026-10-15, once).
+  grant left input working, and tylerd noticed and removed its taps (2026-10-15, twice).
 - **Arming the active tap when the modifier goes down** (measured 2026-10-15, macOS 26.7, a probe
   with a listen-only `flagsChanged` tap that creates a `.defaultTap` mouse tap when Option alone is
   held and invalidates it otherwise, on the main run loop, and a listen-only mouse tap as the

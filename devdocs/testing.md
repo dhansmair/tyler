@@ -62,10 +62,10 @@ Tick an item with the date when it is checked; record what was measured in `maco
   `tyler stop` then leaves them in view
 - [ ] **release** A fresh clone on another user account, following the README word for word
 - [ ] The installed `~/.local/bin` build gets every event tap without a new permission prompt
-- [ ] `tyler start` after a restart of the Mac or a new login reports `access sees the windows`;
-  with the terminal's Accessibility entry removed (stop tylerd first, never remove it while
-  tylerd runs) it fails with the fix; started while the screen is locked (`sleep 10; tyler
-  start`, then lock), it waits and tiles once unlocked
+- [x] `tyler start` after a new login reports `access sees the windows`; with the terminal's
+  Accessibility switched off, `tyler restart` logs it and fails with the fix (2026-10-15)
+- [ ] `tyler start` while the screen is locked (`sleep 10; tyler start`, then lock) waits and tiles
+  once unlocked
 
 ## Workspaces
 

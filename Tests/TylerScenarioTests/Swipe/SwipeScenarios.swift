@@ -28,6 +28,10 @@ struct SwipeScenarios {
       _ = harness.manager.moveToWorkspace(.number(4), follow: false)
     }
     await harness.settle()
+    while clock.hasSleepers {
+      clock.advance(by: .milliseconds(16))
+      await harness.settle()
+    }
     harness.windowSystem.clearRecordedCalls()
     return harness
   }

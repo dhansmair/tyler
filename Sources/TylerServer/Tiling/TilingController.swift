@@ -26,7 +26,7 @@ struct TilingController {
       throw .error("need at least two tiled windows to swap")
     }
     let before = context.viewSnapshot(of: model.rows)
-    let slots = focusedSlots(model.rows)
+    let slots = context.focusedSlots(in: model.rows)
     guard model.rows.focused.current.swap(target) else {
       throw .error("no tiled window is focused")
     }
@@ -131,7 +131,7 @@ struct TilingController {
     }
     let duration = Duration.milliseconds(context.config.animations.retile)
     return sync.effects + [.endSlideOrSwipe]
-      + retiled(from: focusedSlots(before), model.rows, over: duration).effects
+      + retiled(from: context.focusedSlots(in: before), model.rows, over: duration).effects
   }
 
   /// Whether the focused display's current workspace is still the one it was and only lost
@@ -165,7 +165,7 @@ struct TilingController {
     from slots: [Placement], _ rows: DisplayRows, over duration: Duration? = nil
   ) -> Decision {
     let duration = duration ?? .milliseconds(context.config.animations.swap)
-    let retile = Transition(retiling: slots, to: focusedSlots(rows), duration: duration)
+    let retile = Transition(retiling: slots, to: context.focusedSlots(in: rows), duration: duration)
     return Decision(effects: [retile.tracks.isEmpty ? .reconcile() : .animate(retile)])
   }
 
@@ -176,13 +176,6 @@ struct TilingController {
       throw .error("only the tall layout has a master section")
     }
     guard workspace.focused != nil else { throw .error("no tiled window is focused") }
-    return focusedSlots(rows)
-  }
-
-  /// The slots of the focused display's current workspace.
-  private func focusedSlots(_ rows: DisplayRows) -> [Placement] {
-    guard let position = rows.position(of: rows.focusedKey) else { return [] }
-    return TilingSnapshot(rows: rows, displays: context.displays, gaps: context.gaps)
-      .restingPlacements(at: position)
+    return context.focusedSlots(in: rows)
   }
 }

@@ -66,6 +66,13 @@ struct ControllerContext {
       })
   }
 
+  /// The slots of the focused display's current workspace.
+  func focusedSlots(in rows: DisplayRows) -> [Placement] {
+    guard let position = rows.position(of: rows.focusedKey) else { return [] }
+    let tiling = TilingSnapshot(rows: rows, displays: displays, gaps: gaps)
+    return tiling.restingPlacements(at: position)
+  }
+
   func display(for key: DisplayKey) -> DisplayInfo? {
     displays.first { $0.key == key }
   }

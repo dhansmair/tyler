@@ -50,16 +50,40 @@ struct WorkspaceController {
     }
     let current = model.rows.focused.currentIndex
     let direction = target.direction(from: source, to: index)
+    let slots = context.focusedSlots(in: model.rows)
     model.rows.focused.move(windowID, to: index)
     var effects: [Effect]
     if follow && index != current {
       effects = show(index, direction: direction, model: &model) + [.focusCurrentWorkspace]
+    } else if source == current {
+      effects = sendOff(windowID, towards: direction, leaving: slots, rows: model.rows)
+      effects.append(.focusCurrentWorkspace)
     } else {
-      effects = source == current ? slideOut(windowID, towards: direction, rows: model.rows) : []
-      effects.append(.reconcile())
-      if source == current { effects.append(.focusCurrentWorkspace) }
+      effects = [.reconcile()]
     }
     return Decision("moved to workspace \(model.rows.focused.number(at: index))", effects: effects)
+  }
+
+  /// The window sent away slides off while the others slide from `slots` into their new ones
+  /// over `animations.retile`, as one transition: only one runs at a time. With a zero
+  /// `animations.retile`, or in a scrolling layout, the others jump once the window is off.
+  private func sendOff(
+    _ windowID: WindowID, towards direction: ScrollDirection, leaving slots: [Placement],
+    rows: DisplayRows
+  ) -> [Effect] {
+    guard let departure = slideOut(windowID, towards: direction, rows: rows) else {
+      return [.reconcile()]
+    }
+    let duration = Duration.milliseconds(context.config.animations.retile)
+    let retile = Transition(
+      retiling: slots, to: context.focusedSlots(in: rows), duration: duration)
+    guard duration > .zero, !rows.focused.current.scrolls, !retile.tracks.isEmpty else {
+      return [.animate(departure), .reconcile()]
+    }
+    let together = Transition(
+      tracks: departure.tracks + retile.tracks, finals: departure.finals + retile.finals,
+      duration: duration)
+    return [.animate(together)]
   }
 
   /// Sends a window to workspace `number` on another display. If that workspace is on screen
@@ -153,15 +177,15 @@ struct WorkspaceController {
   /// `SlidePlan`).
   private func slideOut(
     _ windowID: WindowID, towards direction: ScrollDirection, rows: DisplayRows
-  ) -> [Effect] {
+  ) -> Transition? {
     guard let display = context.display(for: rows.focusedKey),
       let frame = context.registry.window(withID: windowID)?.frame
-    else { return [] }
+    else { return nil }
     let parked = [Placement(id: windowID, frame: Parking.frame(for: frame, on: display))]
     let tracks: [Track] =
       display.neighbours.isEmpty
       ? [.leaving(windowID, from: frame, direction: direction.opposite, on: display)] : []
-    return [.animate(Transition(tracks: tracks, finals: parked))]
+    return Transition(tracks: tracks, finals: parked)
   }
 
   private func isOnOtherDisplay(_ number: Int, in rows: DisplayRows) -> Bool {

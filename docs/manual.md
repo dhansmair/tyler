@@ -147,7 +147,7 @@ icon = "terminal"                # or an SF Symbol
 | `gestures.swipe-distance` | How far your fingers travel to swipe a whole workspace across, in trackpad widths (0.1 to 1.0): lower is more sensitive | `0.3` |
 | `animations.swap` | How long [`tyler window swap`](#window-swap) takes to move the windows to their new places, in milliseconds (0 to 1000); 0 moves them at once | `250` |
 | `animations.drag-preview` | How long the preview of a [drag](features.md#moving-windows-by-dragging) takes to move a window to where a drop would put it, in milliseconds (0 to 1000); 0 moves it at once | `200` |
-| `animations.retile` | How long the windows that stay on a workspace take to slide into their new slots when one leaves it (closed, minimized, floated, its app quit), in milliseconds (0 to 1000); 0 moves them at once. In the `strip` layout they always move at once | `250` |
+| `animations.retile` | How long the windows that stay on a workspace take to slide into their new slots when one leaves it (sent to another workspace, closed, minimized, floated, its app quit), in milliseconds (0 to 1000); 0 moves them at once. In the `strip` layout they always move at once | `250` |
 | `indicators.text.enabled` | Whether the menu bar shows the workspace numbers (`1 [2] 3 4  ▥`) | `true` |
 | `indicators.map.enabled` | Whether the menu bar shows the map of the workspaces | `true` |
 | `indicators.map.show-icons` | Whether the map shows each window's app icon | `true` |
@@ -372,7 +372,7 @@ tyler window move-to-workspace 2
 tyler window move-to-workspace prev --follow
 ```
 
-Sends the focused window to another workspace, where it becomes the focused window. Without `--follow` the window slides away towards its new workspace (to the right for `next`, to the left for `prev`), the remaining windows re-tile, and you stay on the current workspace. With `--follow` you switch to the target workspace along with the window. Sending away the last window of the current workspace leaves no window focused, as on any empty workspace.
+Sends the focused window to another workspace, where it becomes the focused window. Without `--follow` the window slides away towards its new workspace (to the right for `next`, to the left for `prev`), while the remaining windows slide into their new slots (taking `animations.retile` milliseconds), and you stay on the current workspace. With `--follow` you switch to the target workspace along with the window. Sending away the last window of the current workspace leaves no window focused, as on any empty workspace.
 
 Only tiled windows can be moved.
 

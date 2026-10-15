@@ -6,7 +6,8 @@ import TylerTestSupport
 @testable import TylerServer
 
 /// Moving a tiled window by dragging it onto another one's slot: it goes in there and the
-/// windows in between shift by one place. The three windows tile as in
+/// windows in between shift by one place; in `tall`, dropped on the other column, it changes
+/// section. The three windows tile as in
 /// `MouseResizeScenarios`: window 1 at (55, 38, 873, 1131); window 2 at (928, 38, 872, 566) above
 /// window 3 at (928, 604, 872, 565).
 @Suite("Move by drag")
@@ -15,6 +16,9 @@ struct MoveByDragScenarios {
   private let main = CGRect(x: 55, y: 38, width: 873, height: 1131)
   private let upper = CGRect(x: 928, y: 38, width: 872, height: 566)
   private let lower = CGRect(x: 928, y: 604, width: 872, height: 565)
+  private let mainUpper = CGRect(x: 55, y: 38, width: 873, height: 566)
+  private let mainLower = CGRect(x: 55, y: 604, width: 873, height: 565)
+  private let stackAlone = CGRect(x: 928, y: 38, width: 872, height: 1131)
 
   private let overMain = CGPoint(x: 300, y: 500)
   private let overUpper = CGPoint(x: 1300, y: 300)
@@ -61,13 +65,14 @@ struct MoveByDragScenarios {
 
   // MARK: - Preview
 
-  @Test func theWindowsMakeRoomAtTheSlotUnderThePointer() async {
+  @Test func theMainSectionMakesRoomForAStackedWindow() async {
     await pickUpLowerWindow()
     await dragPointer(to: overMain)
 
     #expect(
       windowSystem.moves == [
-        Placement(id: WindowID(1), frame: upper), Placement(id: WindowID(2), frame: lower),
+        Placement(id: WindowID(1), frame: mainLower),
+        Placement(id: WindowID(2), frame: stackAlone),
       ])
     #expect(order == [1, 2, 3], "nothing moves in the list before the release")
   }
@@ -75,7 +80,7 @@ struct MoveByDragScenarios {
   @Test func eachStepOverTheSameWindowMovesNothingMore() async {
     await pickUpLowerWindow()
     await dragPointer(to: overMain)
-    await dragPointer(to: CGPoint(x: 400, y: 700))
+    await dragPointer(to: CGPoint(x: 400, y: 450))
 
     #expect(windowSystem.moves.count == 2)
   }
@@ -100,15 +105,15 @@ struct MoveByDragScenarios {
 
   // MARK: - Release
 
-  @Test func releasingOverAnotherWindowPutsItInThere() async {
+  @Test func releasingOverTheMainColumnPutsItInTheMainSection() async {
     await pickUpLowerWindow()
     await dragPointer(to: overMain)
     await release(at: overMain)
 
     #expect(order == [3, 1, 2])
-    #expect(frame(of: 3) == main)
-    #expect(frame(of: 1) == upper)
-    #expect(frame(of: 2) == lower)
+    #expect(frame(of: 3) == mainUpper)
+    #expect(frame(of: 1) == mainLower)
+    #expect(frame(of: 2) == stackAlone)
   }
 
   @Test func theReleaseLocationDecidesEvenWithoutAPreview() async {

@@ -53,8 +53,8 @@ struct WorkspaceDropTests {
     let workspace = makeGappedWorkspace()
     #expect(
       workspace.dropPlace(
-        for: WindowID(dragged), at: point, on: Self.dropDisplay, gaps: LayoutGaps(inner: 20))
-        == index.map(ListPlace.init(index:)))
+        for: WindowID(dragged), at: point, on: Self.dropDisplay, gaps: LayoutGaps(inner: 20)
+      )?.index == index)
   }
 
   @Test func inFullAWindowKeepsItsPlace() {
@@ -80,6 +80,67 @@ struct WorkspaceDropTests {
     let moved = workspace.move(WindowID(window), to: ListPlace(index: index))
     #expect(!moved)
     #expect(workspace.windows == ids(1, 2, 3))
+  }
+
+  // MARK: - Tall's sections
+
+  /// Windows 1 to `count` in `tall` with `mains` in the master section, in 1000 × 600 without
+  /// gaps.
+  private func sectioned(_ count: Int, mains: Int) -> Workspace {
+    var workspace = Workspace()
+    for id in windowIDs(count: count) { workspace.insert(id) }
+    workspace.update(\.tall) { state, _ in state = TallLayoutState(mainCount: mains) }
+    return workspace
+  }
+
+  private func dropPlace(
+    of window: UInt32, at point: CGPoint, in workspace: Workspace
+  ) -> ListPlace? {
+    workspace.dropPlace(
+      for: WindowID(window), at: point, on: Self.dropDisplay, gaps: LayoutGaps())
+  }
+
+  @Test func aStackedWindowOverTheMainColumnJoinsTheMainSection() {
+    let workspace = sectioned(4, mains: 2)
+    let place = dropPlace(of: 4, at: CGPoint(x: 100, y: 100), in: workspace)
+    #expect(place == ListPlace(index: 0, isInMainSection: true))
+    let moved = workspace.moving(WindowID(4), to: place!)
+    #expect(moved.windows == ids(4, 1, 2, 3))
+    #expect(moved.mainSectionCount == 3)
+  }
+
+  @Test func aMainOverTheStackJoinsTheStack() {
+    let workspace = sectioned(4, mains: 2)
+    let place = dropPlace(of: 1, at: CGPoint(x: 700, y: 500), in: workspace)
+    #expect(place == ListPlace(index: 3, isInMainSection: false))
+    let moved = workspace.moving(WindowID(1), to: place!)
+    #expect(moved.windows == ids(2, 3, 4, 1))
+    #expect(moved.mainSectionCount == 1)
+  }
+
+  @Test func aMainMovedWithinTheMainSectionKeepsItsSize() {
+    let workspace = sectioned(4, mains: 2)
+    let place = dropPlace(of: 2, at: CGPoint(x: 100, y: 100), in: workspace)
+    #expect(place == ListPlace(index: 0, isInMainSection: true))
+    let moved = workspace.moving(WindowID(2), to: place!)
+    #expect(moved.windows == ids(2, 1, 3, 4))
+    #expect(moved.mainSectionCount == 2)
+  }
+
+  /// Every window a master gives one column; the right half is where a new stack would go.
+  @Test func fromOneColumnAWindowCanStartAStack() {
+    let workspace = sectioned(2, mains: 2)
+    let place = dropPlace(of: 2, at: CGPoint(x: 700, y: 100), in: workspace)
+    #expect(place == ListPlace(index: 1, isInMainSection: false))
+    #expect(workspace.moving(WindowID(2), to: place!).mainSectionCount == 1)
+  }
+
+  @Test func outsideTallTheMainSectionStaysAsItIs() {
+    var workspace = sectioned(3, mains: 2)
+    workspace.layout = .grid
+    workspace.move(WindowID(3), to: ListPlace(index: 0, isInMainSection: true))
+    #expect(workspace.windows == ids(3, 1, 2))
+    #expect(workspace.layoutStates.tall.mainCount == 2)
   }
 
   // MARK: - Arrivals from another display

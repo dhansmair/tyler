@@ -224,6 +224,19 @@ struct ModifierDragScenarios {
     #expect(harness.frame(of: 3) == CGRect(x: 928, y: 670, width: 872, height: 499))
   }
 
+  /// Window 3's bottom and right edges are on the display's border. Grabbed in its lower right
+  /// quarter, it moves its top and left edges, the ones between windows, so it can grow.
+  @Test func grabbedBesideTheDisplaysBorderTheEdgesBetweenWindowsMove() async {
+    let harness = await makeHarness()
+    let start = CGPoint(x: 1600, y: 1000)
+    pointer.beginGrab(.resize, at: start)
+    pointer.moveGrab(to: CGPoint(x: start.x - 100, y: start.y - 66))
+    await harness.settle()
+    #expect(harness.frame(of: 2) == CGRect(x: 828, y: 38, width: 972, height: 500))
+    #expect(harness.frame(of: 3) == CGRect(x: 828, y: 538, width: 972, height: 631))
+    #expect(harness.frame(of: 1) == CGRect(x: 55, y: 38, width: 773, height: 1131))
+  }
+
   // MARK: - Floated windows
 
   /// Floats window 2, which stays where it was, in front of the others.

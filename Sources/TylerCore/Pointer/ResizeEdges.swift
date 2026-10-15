@@ -22,6 +22,41 @@ package struct ResizeEdges: OptionSet, Hashable, Sendable {
   package init(grabbedAt point: CGPoint, in frame: CGRect) {
     self = [point.x < frame.midX ? .left : .right, point.y < frame.midY ? .top : .bottom]
   }
+
+  /// For a tiled window at `frame` among the frames of the other windows in view: each of these
+  /// edges with no window beyond it, swapped for the opposite edge if that one has a window
+  /// beyond it. An edge on the display's border stays where it is, so grabbing the half beside
+  /// it could only ever shrink the window.
+  package func towardNeighbours(of frame: CGRect, among others: [CGRect]) -> Self {
+    var edges = self
+    let opposites: [(Self, Self)] = [
+      (.left, .right), (.right, .left), (.top, .bottom), (.bottom, .top),
+    ]
+    for (edge, opposite) in opposites where contains(edge) {
+      guard !frame.hasWindow(beyond: edge, among: others),
+        frame.hasWindow(beyond: opposite, among: others)
+      else { continue }
+      edges.remove(edge)
+      edges.insert(opposite)
+    }
+    return edges
+  }
+}
+
+extension CGRect {
+  fileprivate func hasWindow(beyond edge: ResizeEdges, among others: [CGRect]) -> Bool {
+    others.contains { other in
+      let besideVertically = other.minY < maxY && other.maxY > minY
+      let besideHorizontally = other.minX < maxX && other.maxX > minX
+      switch edge {
+      case .left: return besideVertically && other.maxX <= minX
+      case .right: return besideVertically && other.minX >= maxX
+      case .top: return besideHorizontally && other.maxY <= minY
+      case .bottom: return besideHorizontally && other.minY >= maxY
+      default: return false
+      }
+    }
+  }
 }
 
 extension CGRect {

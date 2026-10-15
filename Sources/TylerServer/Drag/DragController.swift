@@ -156,10 +156,17 @@ struct DragController {
     // isn't quite in it (one macOS wouldn't shrink, say) would otherwise seem to have moved both
     // edges, and the layout would ignore every step.
     let slotFrame = kind == .resize && !isFloated ? tiling.slot(of: windowID)?.frame : nil
+    var edges = ResizeEdges(grabbedAt: start, in: frame)
+    let position = tiling.onScreenPosition(of: windowID)
+    if let slotFrame, let position {
+      let offView = tiling.offViewWindows
+      let others = tiling.restingPlacements(at: position)
+        .filter { $0.id != windowID && !offView.contains($0.id) }.map(\.frame)
+      edges = edges.towardNeighbours(of: slotFrame, among: others)
+    }
     session.grab = ModifierGrab(
-      kind: kind, start: start, frame: slotFrame ?? frame,
-      edges: ResizeEdges(grabbedAt: start, in: frame), isFloated: isFloated)
-    if let position = tiling.onScreenPosition(of: windowID) {
+      kind: kind, start: start, frame: slotFrame ?? frame, edges: edges, isFloated: isFloated)
+    if let position {
       model.rows.focus(model.rows.entries[position].key)
     }
     Self.log.info(

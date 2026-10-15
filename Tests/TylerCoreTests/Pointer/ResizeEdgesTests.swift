@@ -51,4 +51,40 @@ struct ResizeEdgesTests {
     #expect(
       small.resizing(ResizeEdges([.right, .bottom]), by: CGVector(dx: -100, dy: -100)) == small)
   }
+
+  // `tall` with three windows: the main window on the left, `upper` above `lower` on the right.
+  static let main = CGRect(x: 55, y: 38, width: 873, height: 1131)
+  static let upper = CGRect(x: 928, y: 38, width: 872, height: 566)
+  static let lower = CGRect(x: 928, y: 604, width: 872, height: 565)
+
+  struct NeighbourCase: CustomTestStringConvertible, Sendable {
+    let name: String
+    let frame: CGRect
+    let others: [CGRect]
+    let grabbed: ResizeEdges
+    let moved: ResizeEdges
+
+    var testDescription: String { name }
+  }
+
+  @Test(arguments: [
+    NeighbourCase(
+      name: "the lower window grabbed by its outer corner moves its inner edges", frame: lower,
+      others: [main, upper], grabbed: [.right, .bottom], moved: [.left, .top]),
+    NeighbourCase(
+      name: "the upper window grabbed by its outer corner moves its inner edges", frame: upper,
+      others: [main, lower], grabbed: [.right, .top], moved: [.left, .bottom]),
+    NeighbourCase(
+      name: "inner edges grabbed stay", frame: lower, others: [main, upper],
+      grabbed: [.left, .top], moved: [.left, .top]),
+    NeighbourCase(
+      name: "an axis with nothing beyond either edge keeps the grabbed one", frame: main,
+      others: [upper, lower], grabbed: [.left, .bottom], moved: [.right, .bottom]),
+    NeighbourCase(
+      name: "a window alone keeps the grabbed edges", frame: main, others: [],
+      grabbed: [.left, .top], moved: [.left, .top]),
+  ])
+  func aTiledWindowMovesTheEdgesBetweenWindows(_ test: NeighbourCase) {
+    #expect(test.grabbed.towardNeighbours(of: test.frame, among: test.others) == test.moved)
+  }
 }

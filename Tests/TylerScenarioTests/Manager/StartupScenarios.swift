@@ -139,26 +139,37 @@ struct StartupScenarios {
     let manager = WindowManager(
       windowSystem: FakeWindowSystem(windows: spread([1])), displays: FakeDisplays(), gate: gate,
       clock: clock)
-    let waiting = Task { await manager.startWhenPermitted(checkingEvery: .seconds(1)) }
+    let starts = Starts()
+    let following = Task {
+      await manager.followPermission(checkingEvery: .seconds(1)) { starts.count += 1 }
+    }
     await settle()
     clock.advance(by: .seconds(1))
     await settle()
     #expect(manager.state == .waitingForPermission)
     gate.isTrusted = true
     clock.advance(by: .seconds(1))
-    #expect(await waiting.value)
+    await settle()
     #expect(manager.state == .running)
+    #expect(starts.count == 1)
+    following.cancel()
+    await following.value
   }
 
-  @Test func waitingForThePermissionEndsWhenCancelled() async {
+  @Test func followingThePermissionEndsWhenCancelled() async {
     let clock = TestClock()
     let manager = WindowManager(
       windowSystem: FakeWindowSystem(), displays: FakeDisplays(), gate: FakeGate(isTrusted: false),
       clock: clock)
-    let waiting = Task { await manager.startWhenPermitted() }
+    let following = Task { await manager.followPermission {} }
     await settle()
-    waiting.cancel()
-    #expect(await waiting.value == false)
+    following.cancel()
+    await following.value
     #expect(manager.state == .waitingForPermission)
+  }
+
+  @MainActor
+  private final class Starts {
+    var count = 0
   }
 }

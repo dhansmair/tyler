@@ -148,8 +148,7 @@ func forgetHandedOverState() {
 }
 
 // Without permission the server still answers; `list` explains what to do. The manager starts
-// by itself once permission is granted.
-var permissionPoll: Task<Void, Never>?
+// by itself once permission is granted, and lets go of everything if it is taken away.
 if manager.startIfPermitted() {
   announce("windows tracking started")
   forgetHandedOverState()
@@ -157,8 +156,9 @@ if manager.startIfPermitted() {
   gate.prompt()
   announce(
     "permission waiting - Accessibility, in System Settings > Privacy & Security")
-  permissionPoll = Task { @MainActor in
-    guard await manager.startWhenPermitted() else { return }  // Cancelled during shutdown.
+}
+let permissionPoll = Task { @MainActor in
+  await manager.followPermission {
     announce("permission granted - Accessibility; windows tracking started")
     forgetHandedOverState()
   }
@@ -182,7 +182,7 @@ func handOver() {
 /// leaves the windows in place instead.
 @MainActor
 func shutDown(handingOver: Bool) {
-  permissionPoll?.cancel()
+  permissionPoll.cancel()
   if handingOver { handOver() } else { manager.stop() }
   server.stop()
   exit(0)

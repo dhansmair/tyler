@@ -8,9 +8,12 @@ own issues are in `strip-layout.md`. Remove an item when it is fixed (in the sam
 
 - **Revoking Accessibility while tylerd runs can stop all input until a forced restart**
   (reported by others, seen once here; see "Events and taps" in `macos-behaviour.md`): the
-  `MouseButtonInterceptor`'s active tap is alive the whole time tylerd runs. The users' docs say
-  to `tyler stop` first; `plans/freeze-safe-event-taps.md` removes the tap at rest and drops it
-  when permission goes.
+  `MouseButtonInterceptor`'s active tap is alive the whole time tylerd runs. tylerd drops every
+  tap when it notices the permission gone (`followPermission`: at the
+  `com.apple.accessibility.api` notification, or within a second), but the entry being removed
+  goes unnoticed, and whether dropping the tap brings input back once it has stopped is unknown.
+  The users' docs say to `tyler stop` first; `plans/freeze-safe-event-taps.md` removes the tap at
+  rest.
 - **A Firefox window of a parked workspace was seen on screen at x = 0**, behind the current
   windows, instead of at the left parking spot (displays side by side). Unknown whether Firefox
   refuses the spot (`live-check positions`).

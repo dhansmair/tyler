@@ -68,7 +68,7 @@ You can also run `tylerd` yourself in a terminal, which keeps its output there; 
 
 `tylerd` needs Accessibility permission. macOS grants it to the app that starts `tylerd`, so grant it in System Settings > Privacy & Security > Accessibility to the terminal you run `tyler start` (or `tylerd`) in. Without it, `tylerd` still runs and answers `tyler ping`, and the other commands print what to do. Once you grant the permission, `tylerd` picks it up within a second; you don't have to restart it.
 
-Run `tyler stop` before you switch off or remove that permission: taking it away while `tylerd` runs can stop all keyboard and mouse input until a forced restart (see [Troubleshooting](troubleshooting.md#nothing-is-tiled-or-commands-say-there-is-no-permission)).
+Run `tyler stop` before you switch off or remove that permission: taking it away while `tylerd` runs can stop all keyboard and mouse input until a forced restart (see [Troubleshooting](troubleshooting.md#nothing-is-tiled-or-commands-say-there-is-no-permission)). If the permission is switched off anyway, `tylerd` stops watching the mouse at once, leaves every window where it is and waits for the permission; once it is back, `tylerd` carries on with its workspaces.
 
 As soon as it has permission, `tylerd` tiles the windows on the main display, ordered left to right as they were on screen.
 

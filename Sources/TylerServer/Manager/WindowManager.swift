@@ -168,19 +168,37 @@ package final class WindowManager {
     return true
   }
 
-  /// Starts as soon as Accessibility permission is granted, checking every `interval`, so the
-  /// user doesn't have to restart tylerd after granting it. Returns whether it started: `false`
-  /// only when the waiting task was cancelled.
-  package func startWhenPermitted(checkingEvery interval: Duration = .seconds(1)) async -> Bool {
+  /// Follows the Accessibility permission until cancelled, checking every `interval` and at each
+  /// hint from the gate: starts once it is granted, so the user doesn't have to restart tylerd,
+  /// and calls `started`. When it goes away, every event tap is removed at once, since macOS can
+  /// stop all input when a process with an active tap loses the permission (see "Events and
+  /// taps" in `devdocs/macos-behaviour.md`); the windows stay where they are, and tylerd carries
+  /// on with its workspaces once the permission is back.
+  package func followPermission(
+    checkingEvery interval: Duration = .seconds(1),
+    started: @escaping @MainActor @Sendable () -> Void
+  ) async {
     let clock = clock  // Swift opens the existential from a local, not from the stored property.
-    while !startIfPermitted() {
-      do {
-        try await clock.sleep(for: interval)
-      } catch {
-        return false
-      }
+    let hints = gate.changes
+    let following = Task { @MainActor [weak self] in
+      for await _ in hints { self?.checkPermission(started: started) }
     }
-    return true
+    defer { following.cancel() }
+    while true {
+      checkPermission(started: started)
+      do { try await clock.sleep(for: interval) } catch { return }
+    }
+  }
+
+  private func checkPermission(started: () -> Void) {
+    switch state {
+    case .waitingForPermission:
+      if startIfPermitted() { started() }
+    case .running:
+      guard !gate.isTrusted else { return }
+      Self.log.warning("permission lost - Accessibility - event taps removed, waiting for it again")
+      pendingRestore = handOver()
+    }
   }
 
   /// Puts every window back where it was before tylerd first moved it (parked windows included),

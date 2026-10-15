@@ -22,6 +22,7 @@ every app; pick another modifier, such as Ctrl+Option, if you type them.
 | Option+Shift+J / Option+Shift+K | `tyler window swap next` / `tyler window swap prev` |
 | Option+Return | `tyler window swap master` |
 | Option+H / Option+L | `tyler layout ratio -0.05` / `tyler layout ratio +0.05` |
+| Option+Shift+H / Option+Shift+L | `tyler window promote` / `tyler window demote` |
 | Option+Space | `tyler layout next` |
 | Option+T | `tyler window float toggle` |
 | Option+Shift+Q | `tyler window close` |
@@ -44,6 +45,8 @@ alt + shift - k : ~/.local/bin/tyler window swap prev
 alt - return : ~/.local/bin/tyler window swap master
 alt - h : ~/.local/bin/tyler layout ratio -0.05
 alt - l : ~/.local/bin/tyler layout ratio +0.05
+alt + shift - h : ~/.local/bin/tyler window promote
+alt + shift - l : ~/.local/bin/tyler window demote
 alt - space : ~/.local/bin/tyler layout next
 alt - t : ~/.local/bin/tyler window float toggle
 alt + shift - q : ~/.local/bin/tyler window close

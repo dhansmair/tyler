@@ -9,7 +9,7 @@ extension WindowManager {
     case .debugAt(let point): pointerDiagnosis(at: point)
     case .debugWindows: windowDrift()
     case .ping, .status, .list, .reload, .configGet, .configSet, .configEdit, .tiling, .retile,
-      .focus, .swap,
+      .focus, .swap, .promote, .demote,
       .layout, .size, .ratio, .float, .close, .workspace, .moveToWorkspace, .display,
       .moveToDisplay, .moveWorkspaceToDisplay:
       .error("not a debug request")

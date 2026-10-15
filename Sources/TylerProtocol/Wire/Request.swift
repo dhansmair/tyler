@@ -20,6 +20,10 @@ package enum Request: Codable, Equatable, Sendable {
   case tiling(TilingMode)
   case focus(ListTarget)
   case swap(ListTarget)
+  /// Moves the focused window from the stack into the master section of `tall`.
+  case promote
+  /// Moves the focused window from the master section of `tall` to the stack.
+  case demote
   case layout(LayoutChoice)
   /// Sets the focused window's size in the strip layout.
   case size(SizeChoice)

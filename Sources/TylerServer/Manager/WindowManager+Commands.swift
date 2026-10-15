@@ -19,6 +19,8 @@ extension WindowManager {
     case .retile: retile()
     case .focus(let target): focus(target)
     case .swap(let target): swap(target)
+    case .promote: promote()
+    case .demote: demote()
     case .layout(let choice): setLayout(choice)
     case .size(let choice): setSize(choice)
     case .ratio(let delta): adjustRatio(by: delta)
@@ -44,6 +46,16 @@ extension WindowManager {
   package func swap(_ target: ListTarget) -> Response {
     if let failure = beginCommand() { return failure }
     return respond { () throws(Refusal) in try tilingController.swap(target, model: &model) }
+  }
+
+  package func promote() -> Response {
+    if let failure = beginCommand() { return failure }
+    return respond { () throws(Refusal) in try tilingController.promote(model: &model) }
+  }
+
+  package func demote() -> Response {
+    if let failure = beginCommand() { return failure }
+    return respond { () throws(Refusal) in try tilingController.demote(model: &model) }
   }
 
   package func setFloat(_ mode: FloatMode) -> Response {
@@ -78,7 +90,7 @@ extension WindowManager {
     case .workspace(let target): switchWorkspace(target)
     case .moveToWorkspace(let target, let follow): moveToWorkspace(target, follow: follow)
     case .ping, .status, .list, .reload, .configGet, .configSet, .configEdit, .tiling, .retile,
-      .focus, .swap,
+      .focus, .swap, .promote, .demote,
       .layout, .size, .ratio, .float, .close, .display, .moveToDisplay, .moveWorkspaceToDisplay,
       .debugAt,
       .debugWindows:
@@ -106,7 +118,7 @@ extension WindowManager {
     case .moveToDisplay(let target, let follow): moveToDisplay(target, follow: follow)
     case .moveWorkspaceToDisplay(let target): moveWorkspaceToDisplay(target)
     case .ping, .status, .list, .reload, .configGet, .configSet, .configEdit, .tiling, .retile,
-      .focus, .swap,
+      .focus, .swap, .promote, .demote,
       .layout, .size, .ratio, .float, .close, .workspace, .moveToWorkspace, .debugAt,
       .debugWindows:
       .error("not a display request")

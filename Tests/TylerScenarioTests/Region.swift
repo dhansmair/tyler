@@ -9,6 +9,10 @@ struct Region: Sendable {
   static let full = Region(across: 0...1, down: 0...1)
   static let leftHalf = Region(across: 0...0.5, down: 0...1)
   static let rightHalf = Region(across: 0.5...1, down: 0...1)
+  static let leftTop = Region(across: 0...0.5, down: 0...0.5)
+  static let leftBottom = Region(across: 0...0.5, down: 0.5...1)
+  static let top = Region(across: 0...1, down: 0...0.5)
+  static let bottom = Region(across: 0...1, down: 0.5...1)
   static let rightTop = Region(across: 0.5...1, down: 0...0.5)
   static let rightBottom = Region(across: 0.5...1, down: 0.5...1)
 

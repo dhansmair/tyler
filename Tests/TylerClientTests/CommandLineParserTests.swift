@@ -59,7 +59,7 @@ struct CommandLineParserTests {
   @Test(arguments: [
     (
       ["window"],
-      "missing window command (use list, focus, swap, float, close, size, "
+      "missing window command (use list, focus, swap, promote, demote, float, close, size, "
         + "move-to-workspace, move-to-display)"
     ),
     (["workspace", "3"], "unknown workspace command '3' (use focus, move-to-display, retile)"),
@@ -115,6 +115,8 @@ struct CommandLineParserTests {
           window list [--json]           show the windows tylerd is tracking
           window focus next|prev|master  move focus within the tiling list
           window swap next|prev|master   swap the focused window with another slot
+          window promote                 move the focused window into the master section
+          window demote                  move the focused window out of the master section
           window float on|off|toggle     float the focused window, or tile it again
           window close                   close the focused window
           window size half|full|quarter|next

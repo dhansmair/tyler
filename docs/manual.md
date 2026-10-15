@@ -43,7 +43,7 @@ tyler sorts every window into one of three kinds:
 
 Floated and never-tiled windows belong to no workspace, so they stay visible whichever workspace is on screen. Minimized windows and windows in native fullscreen leave the tiling list. When they come back, they are tiled on the current workspace.
 
-New windows are tiled on the current workspace, right after the focused window, unless the [config file](#configuration) assigns their app to another workspace ([`apps.<app>.workspace`](features.md#app-assignments)).
+New windows are tiled on the current workspace, right after the focused window (in `tall`, never in the master section: a window opened while a master has the focus goes to the top of the stack), unless the [config file](#configuration) assigns their app to another workspace ([`apps.<app>.workspace`](features.md#app-assignments)).
 
 ### Tiling list
 
@@ -51,7 +51,7 @@ Each workspace keeps its tiled windows in an ordered list. The first window is t
 
 ### Layout
 
-A layout turns the tiling list into window frames, within the display's visible area (the screen without the menu bar and the Dock). Each workspace has its own layout (`tyler layout set`): `tall` (the master on the left, the others stacked on the right), `grid` (columns two windows high), `full` (every window fills the area) or the experimental `strip` (a row of columns that scrolls). The *master ratio* is the master column's share of the width in `tall` (`tyler layout ratio`). *Gaps* are the space between neighbouring windows and around them. See [Layouts](layouts.md).
+A layout turns the tiling list into window frames, within the display's visible area (the screen without the menu bar and the Dock). Each workspace has its own layout (`tyler layout set`): `tall` (the master section on the left, the others stacked on the right), `grid` (columns two windows high), `full` (every window fills the area) or the experimental `strip` (a row of columns that scrolls). The *master section* of `tall` is the first windows of the list, stacked in the left column: the master alone, unless `tyler window promote` moves more windows there. The *master ratio* is the master column's share of the width in `tall` (`tyler layout ratio`). *Gaps* are the space between neighbouring windows and around them. See [Layouts](layouts.md).
 
 ## Running tylerd
 
@@ -195,6 +195,8 @@ Commands are grouped by what they act on: `tyler window focus next` focuses a wi
 | `window list [--json]` | Show the windows `tylerd` is tracking |
 | `window focus next\|prev\|master` | Move focus within the tiling list |
 | `window swap next\|prev\|master` | Swap the focused window with another one |
+| `window promote` | Move the focused window into the master section of `tall` |
+| `window demote` | Move the focused window out of the master section of `tall` |
 | `window float on\|off\|toggle` | Float the focused window, or tile it again |
 | `window close` | Close the focused window |
 | `window size half\|full\|quarter\|next` | Size the focused window in the strip layout |
@@ -320,6 +322,15 @@ tyler window swap master
 ```
 
 Swaps the focused window with its neighbour in the list (wrapping around) or with the master, then re-tiles. The two windows slide into each other's slots, changing size on the way, taking `animations.swap` milliseconds (0 swaps them at once). The focused window moves and keeps the focus. If the focused window already is the master, `window swap master` swaps it with the second window.
+
+### window promote, window demote
+
+```bash
+tyler window promote
+tyler window demote
+```
+
+Move the focused window between the master section and the stack of the `tall` layout. `window promote` moves a window from the stack to the bottom of the master section, which then holds one more window, stacked in the left column; promoting the last window of the stack leaves one column. `window demote` moves a window from the master section to the top of the stack. Demoting the only master gives its place to the window after it. The windows slide to their new slots as in [`window swap`](#window-swap), taking `animations.swap` milliseconds. A window that already is in that section stays where it is and `tyler` says so; in another layout `tyler` says that only `tall` has a master section. Each workspace keeps its own master section; when a master closes, the section shrinks with it.
 
 ### window float
 

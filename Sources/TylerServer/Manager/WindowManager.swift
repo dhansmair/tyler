@@ -259,7 +259,7 @@ package final class WindowManager {
     case .close: closeWindow()
     case .reload, .configGet, .configSet: handleConfigRequest(request)
     case .tiling(let mode): setTiling(mode)
-    case .retile, .focus, .swap, .layout, .size, .ratio, .float:
+    case .retile, .focus, .swap, .promote, .demote, .layout, .size, .ratio, .float:
       handleTilingRequest(request)
     case .workspace, .moveToWorkspace: handleWorkspaceRequest(request)
     case .display, .moveToDisplay, .moveWorkspaceToDisplay: handleDisplayRequest(request)

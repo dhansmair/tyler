@@ -33,9 +33,27 @@ struct TilingController {
     if let scroll = before?.scroll(to: model.rows.focused.current) {
       return Decision(effects: [.animate(scroll)])
     }
-    let duration = Duration.milliseconds(context.config.animations.swap)
-    let swap = Transition(retiling: slots, to: focusedSlots(model.rows), duration: duration)
-    return Decision(effects: [swap.tracks.isEmpty ? .reconcile() : .animate(swap)])
+    return retiled(from: slots, model.rows)
+  }
+
+  /// The focused window leaves the stack of `tall` for its master section. The windows move as
+  /// in a swap.
+  func promote(model: inout Model) throws(Refusal) -> Decision {
+    let slots = try mainSectionSlots(model.rows)
+    guard model.rows.focused.current.promote() else {
+      throw .message("already in the master section")
+    }
+    return retiled(from: slots, model.rows)
+  }
+
+  /// The focused window leaves the master section of `tall` for the top of its stack.
+  func demote(model: inout Model) throws(Refusal) -> Decision {
+    let slots = try mainSectionSlots(model.rows)
+    guard model.rows.focused.current.count >= 2 else {
+      throw .message("no other window to take the master's place")
+    }
+    guard model.rows.focused.current.demote() else { throw .message("already in the stack") }
+    return retiled(from: slots, model.rows)
   }
 
   /// A floated window leaves the list and stays where it is. Asking for the state the window is
@@ -125,6 +143,23 @@ struct TilingController {
   }
 
   /// The slots of the focused display's current workspace.
+  /// The windows slide from `slots` into their slots now, taking `animations.swap`.
+  private func retiled(from slots: [Placement], _ rows: DisplayRows) -> Decision {
+    let duration = Duration.milliseconds(context.config.animations.swap)
+    let retile = Transition(retiling: slots, to: focusedSlots(rows), duration: duration)
+    return Decision(effects: [retile.tracks.isEmpty ? .reconcile() : .animate(retile)])
+  }
+
+  /// The slots before a window changes section, once it is clear the focused workspace has one.
+  private func mainSectionSlots(_ rows: DisplayRows) throws(Refusal) -> [Placement] {
+    let workspace = rows.focused.current
+    guard workspace.layout == .tall else {
+      throw .error("only the tall layout has a master section")
+    }
+    guard workspace.focused != nil else { throw .error("no tiled window is focused") }
+    return focusedSlots(rows)
+  }
+
   private func focusedSlots(_ rows: DisplayRows) -> [Placement] {
     guard let position = rows.position(of: rows.focusedKey) else { return [] }
     return TilingSnapshot(rows: rows, displays: context.displays, gaps: context.gaps)

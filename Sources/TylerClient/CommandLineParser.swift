@@ -234,6 +234,8 @@ extension CommandLineParser {
       name: "window swap", arguments: choices(ListTarget.allCases),
       summary: "swap the focused window with another slot"
     ) { Invocation(request: .swap(try parseChoice($0, for: "window swap"))) },
+    simple("window promote", .promote, "move the focused window into the master section"),
+    simple("window demote", .demote, "move the focused window out of the master section"),
     CommandSpec(
       name: "window float", arguments: choices(FloatMode.allCases),
       summary: "float the focused window, or tile it again"

@@ -15,10 +15,15 @@ The master (the first window in the list) fills the left column, and the other w
 in the right column. One window fills the area; two sit side by side; three give one on the left
 and two on the right.
 
+The left column can hold more than one window: `tyler window promote` moves the focused window
+from the stack into the *master section*, below the windows already there, and `tyler window
+demote` moves it back to the top of the stack (see [window promote](manual.md#window-promote-window-demote)). With
+every window promoted, there is one column. New windows always open in the stack.
+
 The *master ratio* is the master column's share of the width, 0.5 to start with and between 0.1 and
 0.9. Each workspace has its own: `tyler layout ratio +0.05` widens the master column, and dragging
 the edge between the columns with the mouse sets it too. Dragging the edge between two stacked
-windows sets their heights; see [Resizing with the mouse](features.md#resizing-with-the-mouse).
+windows, in either column, sets their heights; see [Resizing with the mouse](features.md#resizing-with-the-mouse).
 
 ## grid (`▦`)
 

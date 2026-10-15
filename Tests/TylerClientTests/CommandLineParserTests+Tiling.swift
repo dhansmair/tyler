@@ -13,6 +13,8 @@ struct CommandLineParserTilingTests {
     (["window", "swap", "next"], Request.swap(.next)),
     (["window", "swap", "prev"], Request.swap(.prev)),
     (["window", "swap", "master"], Request.swap(.main)),
+    (["window", "promote"], Request.promote),
+    (["window", "demote"], Request.demote),
     (["layout", "set", "tall"], Request.layout(.set(.tall))),
     (["layout", "set", "full"], Request.layout(.set(.full))),
     (["layout", "set", "strip"], Request.layout(.set(.strip))),

@@ -87,6 +87,14 @@ struct AXBridgeTests {
     #expect(bridge.observe(window: element, processID: 100).isEmpty)
   }
 
+  @Test(arguments: [
+    (AXBridge.ObservingFailure.create(.apiDisabled), "observer: AX error -25211"),
+    (.register("AXMoved", .cannotComplete), "AXMoved: AX error -25204"),
+  ])
+  func anObservingFailureNamesItsErrorCode(failure: AXBridge.ObservingFailure, text: String) {
+    #expect(String(describing: failure) == text)
+  }
+
   @Test func aWindowIsKnownByItsNumber() {
     let element = window()
     #expect(bridge.windowID(of: element) == WindowID(1))

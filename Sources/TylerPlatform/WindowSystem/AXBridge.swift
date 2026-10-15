@@ -249,3 +249,12 @@ struct AXBridge: Sendable {
     return CGRect(origin: origin, size: extent)
   }
 }
+
+extension AXBridge.ObservingFailure: CustomStringConvertible {
+  var description: String {
+    switch self {
+    case .create(let status): "observer: AX error \(status.rawValue)"
+    case .register(let name, let status): "\(name): AX error \(status.rawValue)"
+    }
+  }
+}

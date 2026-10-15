@@ -68,7 +68,7 @@ shows), `screenLocked`, `pending` (apps still attaching).
 
 Each builds, is tested and documented on its own.
 
-1. **Log `AXError` codes**: `register("AXMoved", -25211)` instead of `__C.AXError`. Small, and
+1. **Log `AXError` codes** (done, 2026-10-15): `register("AXMoved", -25211)` instead of `__C.AXError`. Small, and
    useful on its own the next time it happens.
 2. **`AccessibilityHealth` in TylerCore**: the facts in, the verdict out; unit tests per verdict,
    including "window server shows windows of an app still attaching" (`pending`, not `refused`).

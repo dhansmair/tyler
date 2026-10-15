@@ -33,7 +33,7 @@ struct TilingController {
     if let scroll = before?.scroll(to: model.rows.focused.current) {
       return Decision(effects: [.animate(scroll)])
     }
-    return retiled(from: slots, model.rows)
+    return retiled(from: slots, model.rows, over: swapDuration)
   }
 
   /// The focused window leaves the stack of `tall` for its master section. The windows move as
@@ -43,7 +43,7 @@ struct TilingController {
     guard model.rows.focused.current.promote() else {
       throw .message("already in the master section")
     }
-    return retiled(from: slots, model.rows)
+    return retiled(from: slots, model.rows, over: swapDuration)
   }
 
   /// The focused window leaves the master section of `tall` for the top of its stack.
@@ -53,7 +53,7 @@ struct TilingController {
       throw .message("no other window to take the master's place")
     }
     guard model.rows.focused.current.demote() else { throw .message("already in the stack") }
-    return retiled(from: slots, model.rows)
+    return retiled(from: slots, model.rows, over: swapDuration)
   }
 
   /// A floated window leaves the list and stays where it is. Asking for the state the window is
@@ -126,21 +126,13 @@ struct TilingController {
         + WorkspaceController(context: context).show(index, direction: direction, model: &model)
     }
     guard sync.changedCurrent else { return sync.effects }
-    guard Self.windowsOnlyLeft(before, model.rows) else {
-      return sync.effects + [.endSlideOrSwipe, .reconcile()]
-    }
+    // In a scrolling layout the view moves, so the windows jump there.
+    guard model.rows.focusedWorkspaceOnlyLostWindows(since: before),
+      !model.rows.focused.current.scrolls
+    else { return sync.effects + [.endSlideOrSwipe, .reconcile()] }
     let duration = Duration.milliseconds(context.config.animations.retile)
     return sync.effects + [.endSlideOrSwipe]
       + retiled(from: context.focusedSlots(in: before), model.rows, over: duration).effects
-  }
-
-  /// Whether the focused display's current workspace is still the one it was and only lost
-  /// windows. A window arriving has no slot to slide from, and a scrolling layout's view moves.
-  private static func windowsOnlyLeft(_ before: DisplayRows, _ after: DisplayRows) -> Bool {
-    before.focusedKey == after.focusedKey
-      && before.focused.currentIndex == after.focused.currentIndex
-      && !after.focused.current.scrolls
-      && Set(after.focused.current.windows).isSubset(of: before.focused.current.windows)
   }
 
   /// The current workspace keeps its list (so `tiling on` restores its order), and its windows
@@ -159,12 +151,12 @@ struct TilingController {
     return [.restoreOriginalFrames(restored)]
   }
 
-  /// The windows slide from `slots` into their slots now, taking `duration`, or
-  /// `animations.swap` if not given.
+  private var swapDuration: Duration { .milliseconds(context.config.animations.swap) }
+
+  /// The windows slide from `slots` into their slots now, taking `duration`.
   private func retiled(
-    from slots: [Placement], _ rows: DisplayRows, over duration: Duration? = nil
+    from slots: [Placement], _ rows: DisplayRows, over duration: Duration
   ) -> Decision {
-    let duration = duration ?? .milliseconds(context.config.animations.swap)
     let retile = Transition(retiling: slots, to: context.focusedSlots(in: rows), duration: duration)
     return Decision(effects: [retile.tracks.isEmpty ? .reconcile() : .animate(retile)])
   }

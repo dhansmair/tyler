@@ -48,6 +48,9 @@ itself instead of its windows) is a separate piece of work.
    - the cost of arming repeatedly, as when typing characters that need the modifier.
    The results go into `devdocs/macos-behaviour.md`. If too many fast presses are missed, rethink
    increment 4 for the modifier (gap arming stays).
+   **Done** ("Arming the active tap when the modifier goes down"): the tap is live about 1 ms after
+   Option with the main thread idle, and only clicks made within that time are missed. With the
+   main thread busy, arming waits for it, and clicks made meanwhile go to the app.
 4. **The interceptor armed on demand.**
    - **Decision:** `PressTakeover` in `TylerCore/Pointer/` decides when the tap is needed, and its
      mutators report when that changes. Unit tested.

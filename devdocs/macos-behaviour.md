@@ -135,6 +135,21 @@ subrole, title-bar buttons and whether its size can be set:
   restart. Listen-only taps are not affected. Per the reports, removing the entry with `−` leaves
   `AXIsProcessTrusted()` true and posts no `com.apple.accessibility.api` notification; switching
   it off does both. Never try it on a Mac in use.
+- **Arming the active tap when the modifier goes down** (measured 2026-10-15, macOS 26.7, a probe
+  with a listen-only `flagsChanged` tap that creates a `.defaultTap` mouse tap when Option alone is
+  held and invalidates it otherwise, on the main run loop, and a listen-only mouse tap as the
+  reference; nothing swallowed):
+  - Creating, adding and enabling the tap costs 0.04 ms (median of 1000; rarely about 30 ms),
+    removing it 0.02 ms, so arming at every Option press while typing costs nothing to speak of.
+  - Idle main thread: the `flagsChanged` callback runs 0.56 ms after the event (median, max
+    1.05 ms) and the tap is live 0.89 ms after it (p90 1.17 ms). 49 of 51 Option-clicks were
+    caught. One missed click came 0.87 ms after Option, about as good as pressing both at once.
+    The other missed click wasn't armed, for no reason the probe recorded.
+  - Main thread blocked 300 ms every 500 ms: the callback waits for the main thread (median 67 ms,
+    max 305 ms), and 8 of 24 Option-clicks came before the tap was live and went to the app.
+    Every press after the tap was live was caught. With an always-on tap, that busy main thread
+    would instead have held every click in the system as long.
+  - Option-to-click gaps of quick, deliberate presses: median 106–137 ms, the fastest 5 ms.
 - **No new permission prompt** was needed for any of these taps from a terminal that already had
   Accessibility.
 

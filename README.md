@@ -16,8 +16,7 @@ and supports animations, mouse events and trackpad gestures.
 ## Features
 
 - **Tiling** of every window into an ordered list. Provides basic layouts out of the box: `tall`, `grid`, `full`.
-  `strip`, a niri-like row of columns that scrolls, is
-  experimental. See [Layouts](docs/layouts.md).
+  See [Layouts](docs/layouts.md).
 - **Several displays**, each with its own row of workspaces. Windows can be dragged across, and
   displays that come and go are followed.
 - **Mouse Support** resize tiled windows and the layout follows; drag a window onto another to swap
@@ -36,6 +35,10 @@ and supports animations, mouse events and trackpad gestures.
 
 See [Features](docs/features.md) for the details.
 
+### Workspace Indicators
+<img width="310" height="34" alt="image" src="https://github.com/user-attachments/assets/c031ff86-a4e3-4fa3-9488-6656dc0749dd" />
+
+### Demo Video
 https://github.com/user-attachments/assets/5a3979a9-e80c-4d72-8321-f3b1b17f5d9e
 
 ## Requirements

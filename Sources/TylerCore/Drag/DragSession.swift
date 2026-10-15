@@ -7,6 +7,8 @@ package struct DragSession: Equatable, Sendable {
   package let windowID: WindowID
   /// Whether the window changed size, not only place. A resize never swaps.
   package var isResize = false
+  /// Where a window dragged by its title bar or its edges was when the drag began.
+  package let startFrame: CGRect?
   /// For a drag with the modifier, where it started; `nil` for a window dragged by its title bar
   /// or its edges.
   package var grab: ModifierGrab?
@@ -16,8 +18,9 @@ package struct DragSession: Equatable, Sendable {
   /// has made room for it there.
   package private(set) var arrival: Arrival?
 
-  package init(windowID: WindowID) {
+  package init(windowID: WindowID, startFrame: CGRect? = nil) {
     self.windowID = windowID
+    self.startFrame = startFrame
   }
 
   /// The place where the window would go in on another display if released at `location`: the

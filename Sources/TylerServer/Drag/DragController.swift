@@ -25,8 +25,11 @@ struct DragController {
   /// The drag works on the dragged window's own display, whichever display has focus: the focus
   /// event of a window the user starts dragging can arrive after its first moves. Starting a
   /// drag focuses that display. `nil` when the update means nothing to a drag.
+  ///
+  /// A drag that changes the window's size from what it was before the drag is a resize. Not
+  /// its slot's: an app may keep a window smaller than its slot (System Settings keeps its width).
   func windowUpdated(
-    _ window: WindowInfo, session: DragSession?, model: inout Model
+    _ window: WindowInfo, from previous: CGRect?, session: DragSession?, model: inout Model
   ) -> Step? {
     let tiling = tiling(model.rows)
     guard context.isPrimaryButtonDown, context.isTiling(model), context.allowsDrag,
@@ -40,13 +43,13 @@ struct DragController {
       step = Step(session: session)
     } else {
       guard !window.frame.isClose(to: slot.frame) else { return nil }
-      step = Step(session: DragSession(windowID: window.id))
+      step = Step(session: DragSession(windowID: window.id, startFrame: previous ?? slot.frame))
       model.rows.focus(model.rows.entries[position].key)
       Self.log.info("window dragging started - \(named(window.id)) - on display \(position + 1)")
     }
     // Over another display, a window can change size on its own (another scale, terminals
     // snapping to cells): that is still a move, not a resize.
-    guard window.frame.hasOtherSize(than: slot.frame),
+    guard window.frame.hasOtherSize(than: step.session.startFrame ?? slot.frame),
       !isOverAnotherDisplay(window, than: position, in: model.rows)
     else { return step }
     if !step.session.isResize {

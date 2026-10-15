@@ -147,6 +147,23 @@ struct SwapScenarios {
     #expect(manager.workspaces.current.focused == WindowID(3))
   }
 
+  /// A window that keeps its size (System Settings keeps its width) is narrower than its slot
+  /// before the drag: moving it is still a move, not a resize.
+  @Test func aWindowSmallerThanItsSlotSwapsToo() async {
+    let size = CGSize(width: 700, height: 471)
+    windowSystem.fixedSizes[WindowID(3)] = size
+    await moveWindow(3, to: CGRect(origin: lower.origin, size: size))
+    windowSystem.clearRecordedCalls()
+
+    pointer.isPrimaryButtonDown = true
+    await moveWindow(3, to: CGRect(origin: CGPoint(x: 600, y: 300), size: size))
+    await dragPointer(to: overMain)
+    #expect(windowSystem.moves == [Placement(id: WindowID(1), frame: lower)])
+
+    await release(at: overMain)
+    #expect(order == [3, 2, 1])
+  }
+
   // MARK: - No swap
 
   @Test func aResizeNeverPreviewsOrSwaps() async {

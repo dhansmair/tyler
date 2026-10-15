@@ -5,8 +5,8 @@ import TylerCore
 /// user's.
 struct WindowEventInterpreter {
   enum Intent: Equatable {
-    /// A window moved or was resized: a drag may have started or gone on.
-    case moved(WindowInfo)
+    /// A window moved or was resized from `from`: a drag may have started or gone on.
+    case moved(WindowInfo, from: CGRect?)
     case listsMayHaveChanged
     case focused(WindowID, isEcho: Bool)
     case closed(WindowID)
@@ -30,7 +30,7 @@ struct WindowEventInterpreter {
       // The move comes first: a drag starts before any re-sync, so a window dragged onto another
       // display is held on its workspace until it is dropped.
       let changesLists = Self.mayChangeLists(from: known, to: window, displays: displays)
-      return [.moved(window)] + (changesLists ? [.listsMayHaveChanged] : [])
+      return [.moved(window, from: known.frame)] + (changesLists ? [.listsMayHaveChanged] : [])
     }
     var intents: [Intent] = []
     switch event {
@@ -43,7 +43,7 @@ struct WindowEventInterpreter {
       break
     }
     intents.append(.listsMayHaveChanged)
-    if case .updated(let window) = event { intents.append(.moved(window)) }
+    if case .updated(let window) = event { intents.append(.moved(window, from: nil)) }
     return intents
   }
 

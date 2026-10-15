@@ -30,7 +30,7 @@ struct WindowEventInterpreterTests {
     let after = makeWindow(id: 1, frame: CGRect(x: 140, y: 100, width: 300, height: 200))
     #expect(
       interpreter.intents(for: .updated(after), known: before, displays: Self.displays)
-        == [.moved(after)])
+        == [.moved(after, from: before.frame)])
   }
 
   @Test func aMoveOntoAnotherDisplayMayChangeTheLists() {
@@ -39,7 +39,7 @@ struct WindowEventInterpreterTests {
     let after = makeWindow(id: 1, frame: CGRect(x: 1100, y: 100, width: 300, height: 200))
     #expect(
       interpreter.intents(for: .updated(after), known: before, displays: Self.displays)
-        == [.moved(after), .listsMayHaveChanged])
+        == [.moved(after, from: before.frame), .listsMayHaveChanged])
   }
 
   @Test func aClosedWindowIsNoLongerExpectedToTakeFocus() {

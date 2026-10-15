@@ -33,13 +33,14 @@ struct DragControllerTests {
   @Test func aWindowMovedWithoutTheButtonIsNoDrag() {
     var (controller, model) = setUp(buttonDown: false)
     let moved = makeWindow(id: 1, frame: Self.left.offsetBy(dx: 40, dy: 0))
-    #expect(controller.windowUpdated(moved, session: nil, model: &model) == nil)
+    #expect(controller.windowUpdated(moved, from: Self.left, session: nil, model: &model) == nil)
   }
 
   @Test func aWindowLeavingItsSlotStartsADragThatIsNoResize() throws {
     var (controller, model) = setUp()
     let moved = makeWindow(id: 1, frame: Self.left.offsetBy(dx: 40, dy: 0))
-    let step = try #require(controller.windowUpdated(moved, session: nil, model: &model))
+    let step = try #require(
+      controller.windowUpdated(moved, from: Self.left, session: nil, model: &model))
     #expect(step.session.windowID == WindowID(1))
     #expect(!step.session.isResize)
     #expect(step.pendingFrame == nil)
@@ -48,8 +49,18 @@ struct DragControllerTests {
   @Test func aWindowChangingSizeIsAResizeForTheLayoutToFollow() throws {
     var (controller, model) = setUp()
     let resized = makeWindow(id: 1, frame: CGRect(x: 0, y: 0, width: 600, height: 600))
-    let step = try #require(controller.windowUpdated(resized, session: nil, model: &model))
+    let step = try #require(
+      controller.windowUpdated(resized, from: Self.left, session: nil, model: &model))
     #expect(step.session.isResize)
     #expect(step.pendingFrame == resized.frame)
+  }
+
+  @Test func aWindowSmallerThanItsSlotMovedKeepingItsSizeIsNoResize() throws {
+    var (controller, model) = setUp()
+    let before = CGRect(origin: Self.left.origin, size: CGSize(width: 500, height: 400))
+    let moved = makeWindow(id: 1, frame: before.offsetBy(dx: 40, dy: 0))
+    let step = try #require(
+      controller.windowUpdated(moved, from: before, session: nil, model: &model))
+    #expect(!step.session.isResize)
   }
 }

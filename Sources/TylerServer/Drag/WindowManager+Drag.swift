@@ -9,10 +9,10 @@ import TylerCore
 /// `mouse.follow-interval` from the config: frames arriving in between replace each other, and
 /// only the newest is followed.
 extension WindowManager {
-  func followDrag(of window: WindowInfo) {
+  func followDrag(of window: WindowInfo, from previous: CGRect?) {
     guard pointer?.isPrimaryButtonDown == true,
       let step = DragController(context: context).windowUpdated(
-        window, session: drag?.session, model: &model)
+        window, from: previous, session: drag?.session, model: &model)
     else { return }
     if drag == nil {
       drag = Drag(session: step.session)

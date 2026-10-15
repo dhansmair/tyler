@@ -283,8 +283,8 @@ package final class WindowManager {
 
   private func apply(_ intent: WindowEventInterpreter.Intent) {
     switch intent {
-    case .moved(let window):
-      followDrag(of: window)
+    case .moved(let window, let previous):
+      followDrag(of: window, from: previous)
     case .listsMayHaveChanged:
       reconcile()
     case .focused(let windowID, let isEcho):

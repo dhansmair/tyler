@@ -26,6 +26,8 @@ package final class FakeWindowSystem: WindowSystem {
   package private(set) var focusCalls: [WindowID] = []
   /// Windows whose `setFrame` throws.
   package var failingMoves: Set<WindowID> = []
+  /// Windows that keep their size whatever `setFrame` asks, as System Settings keeps its width.
+  package var fixedSizes: [WindowID: CGSize] = [:]
   /// Whether moves wait, as `MacWindowSystem`'s queues let them: `setPosition` and `setFrameStep` keep
   /// only the newest
   /// move of each window in `heldMoves` until `releaseHeldMoves()`, and a `setFrame` (or
@@ -73,7 +75,7 @@ package final class FakeWindowSystem: WindowSystem {
     settle(windowID)
     let index = try movableIndex(of: windowID)
     moves.append(Placement(id: windowID, frame: frame))
-    windows[index].frame = frame
+    windows[index].frame = CGRect(origin: frame.origin, size: fixedSizes[windowID] ?? frame.size)
     continuation.yield(.updated(windows[index]))
   }
 

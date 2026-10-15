@@ -158,28 +158,6 @@ package struct Workspace: Equatable, Sendable {
     return true
   }
 
-  /// Where `windowID`, coming from another workspace, goes in if it is dropped at `point`: the
-  /// place in the list whose slot, with the window in it there, is under the point. So the slot
-  /// a preview leaves open (see `arriving(_:at:)`) is always the one under the pointer. `nil` in
-  /// a gap or outside the tiled area.
-  package func arrivalIndex(
-    of windowID: WindowID, at point: CGPoint, on display: DisplayInfo, gaps: LayoutGaps
-  ) -> Int? {
-    (0...count).first { index in
-      arriving(windowID, at: index).placements(on: display, gaps: gaps).contains {
-        $0.id == windowID && $0.frame.contains(point)
-      }
-    }
-  }
-
-  /// This workspace with `windowID` gone in at `index` of the list (the window there and those
-  /// after it move one later), or last if `index` is past the end.
-  package func arriving(_ windowID: WindowID, at index: Int) -> Workspace {
-    var copy = self
-    copy.insert(windowID, before: windows.indices.contains(index) ? windows[index] : nil)
-    return copy
-  }
-
   // MARK: - Layout
 
   /// Changes one layout's state, then fits the view to it, since the change may have moved the

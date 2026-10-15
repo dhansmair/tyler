@@ -111,7 +111,7 @@ struct DragSessionTests {
   @Test func aDropOverAnotherDisplayArrives() {
     #expect(
       session.drop(at: overExternal, frame: slot(of: 1), in: tiling)
-        == .arrive(Arrival(position: 1, index: 1)))
+        == .arrive(Arrival(position: 1, place: ListPlace(index: 1))))
   }
 
   @Test func aMoveDroppedOnAnotherSlotGoesInThere() {

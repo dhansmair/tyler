@@ -145,42 +145,60 @@ struct WorkspaceDropTests {
 
   // MARK: - Arrivals from another display
 
+  private func arrivalIndex(
+    at point: CGPoint, in workspace: Workspace, gaps: LayoutGaps = LayoutGaps()
+  ) -> Int? {
+    workspace.arrivalPlace(of: WindowID(9), at: point, on: Self.dropDisplay, gaps: gaps)?.index
+  }
+
   /// Window 9 arrives at windows 1 and 2 in `tall`, in 1000 × 600 with a 20-point inner gap: the
-  /// slot it would take is the left half as the master, the upper right after window 1, or the
-  /// lower right last.
+  /// slot it would take is the upper right after window 1, the lower right last, or, over the
+  /// left half, in the master section, above or below window 1.
   @Test(arguments: [
     (CGPoint(x: 100, y: 100), Int?(0)),
+    (CGPoint(x: 100, y: 500), 1),
     (CGPoint(x: 700, y: 100), 1),
     (CGPoint(x: 700, y: 500), 2),
     (CGPoint(x: 500, y: 100), nil),  // the gap between the columns
     (CGPoint(x: 1200, y: 100), nil),  // outside the area
   ])
   func anArrivalGoesInWhereItsSlotIsUnderThePoint(point: CGPoint, index: Int?) {
+    #expect(arrivalIndex(at: point, in: makeWorkspace(1, 2), gaps: LayoutGaps(inner: 20)) == index)
+  }
+
+  @Test func anArrivalOverTheMainColumnJoinsTheMainSection() throws {
     let workspace = makeWorkspace(1, 2)
-    #expect(
-      workspace.arrivalIndex(
-        of: WindowID(9), at: point, on: Self.dropDisplay, gaps: LayoutGaps(inner: 20)) == index)
+    let place = try #require(
+      workspace.arrivalPlace(
+        of: WindowID(9), at: CGPoint(x: 100, y: 100), on: Self.dropDisplay, gaps: LayoutGaps()))
+    #expect(place == ListPlace(index: 0, isInMainSection: true))
+    let arrived = workspace.arriving(WindowID(9), at: place)
+    #expect(arrived.windows == ids(9, 1, 2))
+    #expect(arrived.mainSectionCount == 2)
+  }
+
+  @Test func anArrivalOverTheStackLeavesTheMainSection() {
+    let arrived = makeWorkspace(1, 2).arriving(WindowID(9), at: ListPlace(index: 1))
+    #expect(arrived.windows == ids(1, 9, 2))
+    #expect(arrived.mainSectionCount == 1)
   }
 
   @Test(arguments: [(CGPoint(x: 100, y: 100), 0), (CGPoint(x: 700, y: 500), 1)])
   func anArrivalBesideASingleWindowTakesTheHalfUnderThePoint(point: CGPoint, index: Int) {
-    #expect(
-      makeWorkspace(1).arrivalIndex(
-        of: WindowID(9), at: point, on: Self.dropDisplay, gaps: LayoutGaps())
-        == index)
+    var grid = makeWorkspace(1)
+    grid.layout = .grid
+    #expect(arrivalIndex(at: point, in: grid) == index)
+    #expect(arrivalIndex(at: point, in: makeWorkspace(1)) == index)
   }
 
   @Test func anArrivalOnAnEmptyWorkspaceGoesFirst() {
-    #expect(
-      Workspace().arrivalIndex(
-        of: WindowID(9), at: CGPoint(x: 700, y: 500), on: Self.dropDisplay, gaps: LayoutGaps()) == 0
-    )
+    #expect(arrivalIndex(at: CGPoint(x: 700, y: 500), in: Workspace()) == 0)
   }
 
   @Test(arguments: [(0, ids(9, 1, 2)), (1, ids(1, 9, 2)), (2, ids(1, 2, 9)), (7, ids(1, 2, 9))])
   func arrivingPutsTheWindowInAtTheIndex(index: Int, windows: [WindowID]) {
     let workspace = makeWorkspace(1, 2)
-    #expect(workspace.arriving(WindowID(9), at: index).windows == windows)
+    #expect(workspace.arriving(WindowID(9), at: ListPlace(index: index)).windows == windows)
     #expect(workspace.windows == ids(1, 2), "the workspace itself stays as it was")
   }
 }

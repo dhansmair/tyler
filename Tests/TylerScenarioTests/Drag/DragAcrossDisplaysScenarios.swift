@@ -68,10 +68,25 @@ struct DragAcrossDisplaysScenarios {
     pointer.drag(to: lowerRight)
     await harness.settle()
     #expect(harness.frame(of: 4) == externalSlots[1], "the lower right is open now")
+    // The lower half of the left column: window 2 would join the master section below window 3.
     pointer.drag(to: CGPoint(x: 0, y: -700))
     await harness.settle()
-    #expect(harness.frame(of: 3) == externalSlots[1], "the master slot is open now")
-    #expect(harness.frame(of: 4) == externalSlots[2])
+    let twoMains = TallLayout().frames(
+      count: 3, in: external.visibleFrame, state: TallLayoutState(mainCount: 2))
+    #expect(harness.frame(of: 3) == twoMains[0], "the master section makes room below it")
+    #expect(harness.frame(of: 4) == twoMains[2], "alone in the stack")
+  }
+
+  @Test func droppedOnTheMainColumnItJoinsTheMainSectionThere() async {
+    let harness = await harness()
+    let lowerLeft = CGPoint(x: 0, y: -700)
+    await drag(in: harness, to: lowerLeft)
+    await release(in: harness, at: lowerLeft)
+    let twoMains = TallLayout().frames(
+      count: 3, in: external.visibleFrame, state: TallLayoutState(mainCount: 2))
+    #expect(harness.frame(of: 3) == twoMains[0])
+    #expect(harness.frame(of: 2) == twoMains[1])
+    #expect(harness.frame(of: 4) == twoMains[2])
   }
 
   @Test func backOverTheLaptopEverythingIsAsItWas() async {

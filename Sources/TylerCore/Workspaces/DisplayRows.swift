@@ -249,19 +249,18 @@ package struct DisplayRows: Equatable, Sendable {
     return true
   }
 
-  /// Moves a window to the workspace numbered `number`, on any display, just before `target`
-  /// (which moves one later) or last when `target` is `nil`, and focuses it there: a window
-  /// dropped with the mouse. Returns false if the window is on no workspace, there is no such
-  /// workspace, or the window is already there.
+  /// Moves a window to `place` in the workspace numbered `number`, on any display, and focuses it
+  /// there: a window dropped with the mouse. Returns false if the window is on no workspace,
+  /// there is no such workspace, or the window is already there.
   @discardableResult
   package mutating func dropWindow(
-    _ windowID: WindowID, toNumber number: Int, before target: WindowID?
+    _ windowID: WindowID, toNumber number: Int, at place: ListPlace
   ) -> Bool {
     guard let source = location(of: windowID), let destination = location(ofNumber: number),
       source.position != destination.position || source.index != destination.index
     else { return false }
     entries[source.position].row[source.index].remove(windowID)
-    entries[destination.position].row[destination.index].insert(windowID, before: target)
+    entries[destination.position].row[destination.index].arrive(windowID, at: place)
     entries[destination.position].row[destination.index].setFocus(windowID)
     return true
   }

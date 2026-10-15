@@ -111,10 +111,8 @@ struct DragController {
       session.forgetArrival()
       let end = endingEffects(&session, model: model)
       let row = model.rows[arrival.position]
-      let windows = row.current.windows
       model.rows.dropWindow(
-        windowID, toNumber: row.number(at: row.currentIndex),
-        before: windows.indices.contains(arrival.index) ? windows[arrival.index] : nil)
+        windowID, toNumber: row.number(at: row.currentIndex), at: arrival.place)
       model.rows.focus(model.rows.entries[arrival.position].key)
       return end + [.reconcile()]
     case .resize(let position, let frame):

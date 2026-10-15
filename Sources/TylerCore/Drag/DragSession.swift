@@ -25,7 +25,7 @@ package struct DragSession: Equatable, Sendable {
   }
 
   /// The place where the window would go in on another display if released at `location`: the
-  /// one whose slot is under the pointer (see `Workspace.arrivalIndex`). In a gap, it is the place
+  /// one whose slot is under the pointer (see `Workspace.arrivalPlace`). In a gap, it is the place
   /// the preview shows already, or last. `nil` while the pointer isn't over another display.
   package func arrival(at location: CGPoint, in tiling: TilingSnapshot) -> Arrival? {
     guard let position = tiling.position(under: location),
@@ -33,11 +33,11 @@ package struct DragSession: Equatable, Sendable {
       let display = tiling.display(at: position)
     else { return nil }
     let workspace = tiling.rows[position].current
-    let shown = arrival.flatMap { $0.position == position ? $0.index : nil }
-    let index =
-      workspace.arrivalIndex(of: windowID, at: location, on: display, gaps: tiling.gaps)
-      ?? shown ?? workspace.count
-    return Arrival(position: position, index: index)
+    let shown = arrival.flatMap { $0.position == position ? $0.place : nil }
+    let place =
+      workspace.arrivalPlace(of: windowID, at: location, on: display, gaps: tiling.gaps)
+      ?? shown ?? ListPlace(index: workspace.count)
+    return Arrival(position: position, place: place)
   }
 
   /// Where on its own display the window goes in if released at `location`: the place whose
@@ -113,7 +113,7 @@ package struct DragSession: Equatable, Sendable {
       placements += tiling.restingPlacements(at: shown.position)
     }
     if let display = tiling.display(at: arrival.position) {
-      placements += tiling.rows[arrival.position].current.arriving(windowID, at: arrival.index)
+      placements += tiling.rows[arrival.position].current.arriving(windowID, at: arrival.place)
         .restingPlacements(on: display, gaps: tiling.gaps).filter { $0.id != windowID }
     }
     previewPlace = nil

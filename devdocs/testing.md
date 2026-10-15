@@ -111,6 +111,8 @@ Tick an item with the date when it is checked; record what was measured in `maco
 
 - [x] Mouse resizing moves the dividers live; `restart` keeps stack heights
 - [x] Swap by drag: preview, swap on release, snap back in a gap, `full`
+- [x] Swap by drag of a window an app keeps smaller than its slot (System Settings), dragged by its
+  sidebar: preview and swap (2026-10-15)
 - [x] The drag preview animates (`animations.drag-preview`): the window slides and resizes into the
   dragged window's slot; sweeping across windows hands each over where it is (2026-10-14, `tall`
   with three terminal windows)

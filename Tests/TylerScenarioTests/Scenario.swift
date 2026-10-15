@@ -128,14 +128,17 @@ struct Scenario {
     await runUntilQuiet()
   }
 
-  /// The user drags `window` by its title bar by `offset` and lets go. The app moves the window
-  /// along, keeping its size, as apps do.
-  func drag(_ window: UInt32, by offset: CGVector) async {
+  /// The user drags `window` by its title bar until the pointer is in the middle of `region` of
+  /// display `number`, and lets go. The app moves the window along, keeping its size, as apps do.
+  func drag(_ window: UInt32, to region: Region, display number: Int = 1) async {
     guard let frame = frame(of: window) else {
       Issue.record("no window \(window)")
       return
     }
-    let end = CGPoint(x: frame.midX + offset.dx, y: frame.minY + 10 + offset.dy)
+    let target = rect(region, display: number)
+    let start = CGPoint(x: frame.midX, y: frame.minY + 10)
+    let end = CGPoint(x: target.midX, y: target.midY)
+    let offset = CGVector(dx: end.x - start.x, dy: end.y - start.y)
     pointer.isPrimaryButtonDown = true
     await harness.windowSystem.userMoves(window, to: frame.offsetBy(dx: offset.dx, dy: offset.dy))
     pointer.drag(to: end)

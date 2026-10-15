@@ -243,7 +243,7 @@ struct MoveByDragScenarios {
 
   @Test func droppingTheMainWindowOnTheStackPutsItThere() async {
     let scenario = await Scenario(workspaces: [1: [1, 2, 3]], layout: .tall)
-    await scenario.drag(1, by: CGVector(dx: 900, dy: 300))
+    await scenario.drag(1, to: .rightTop)
     #expect(scenario.list(1) == [2, 1, 3])
     #expect(scenario.frame(of: 2) == scenario.rect(.leftHalf))
     #expect(scenario.frame(of: 1) == scenario.rect(.rightTop))
@@ -254,7 +254,7 @@ struct MoveByDragScenarios {
   /// move one slot on, rather than the first trading places with it.
   @Test func inAGridTheWindowsInBetweenShift() async {
     let scenario = await Scenario(workspaces: [1: [1, 2, 3, 4]], layout: .grid)
-    await scenario.drag(4, by: CGVector(dx: -1000, dy: -400))
+    await scenario.drag(4, to: .leftTop)
     #expect(scenario.list(1) == [4, 1, 2, 3])
     #expect(scenario.frame(of: 4) == scenario.rect(.leftTop))
     #expect(scenario.frame(of: 1) == scenario.rect(.leftBottom))
@@ -264,7 +264,7 @@ struct MoveByDragScenarios {
 
   @Test func droppingAWindowOnItsOwnSlotPutsItBack() async {
     let scenario = await Scenario(workspaces: [1: [1, 2, 3]], layout: .tall)
-    await scenario.drag(1, by: CGVector(dx: 100, dy: 100))
+    await scenario.drag(1, to: .leftHalf)
     #expect(scenario.list(1) == [1, 2, 3])
     #expect(scenario.frame(of: 1) == scenario.rect(.leftHalf))
   }

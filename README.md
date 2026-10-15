@@ -67,11 +67,12 @@ Then start it:
 tyler start
 ```
 
-`tylerd`, the server, now runs in the background and keeps running when you close the terminal. It
-needs Accessibility permission, which macOS gives to the app that started it: open System Settings >
-Privacy & Security > Accessibility and turn on your terminal. `tylerd` notices within a second and
-tiles your windows. `tyler status` shows that it runs; `tyler window list` shows the windows it
-tiles.
+> [!IMPORTANT]
+> `tylerd`, the server, now runs in the background and keeps running when you close the terminal. It
+> needs Accessibility permission, which macOS gives to the app that started it: open System Settings >
+> Privacy & Security > Accessibility and turn on your terminal. `tylerd` notices within a second and
+> tiles your windows. `tyler status` shows that it runs; `tyler window list` shows the windows it
+> tiles.
 
 ### Updating
 

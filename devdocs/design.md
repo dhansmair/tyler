@@ -144,6 +144,16 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   `Workspace.update(_:_:)`, which refits the view after, whichever layout is active: a strip size
   set in `tall` waits for the strip. What the user is told stays in the server (the grid refusing
   a ratio, "used by the strip layout").
+- **`tall`'s master section is a count over the list**, as xmonad's `nmaster`: the first
+  `mainCount` windows (`TallLayoutState`, 1 by default) are stacked in the left column. A
+  workspace stays one ordered list, so `focus`, `swap` and the other layouts are unchanged, and
+  `window promote` and `demote` are a move in the list plus one more or one fewer. An extension
+  of `tall` rather than a second layout: that would have duplicated the layout, its resizing and
+  its docs for one number, and `mainCount` 1 is exactly the old `tall`. The count follows the
+  windows, unlike xmonad's: a closing master takes its place with it (`remove(_:from:)`), at
+  least one window stays a master, and new windows open in the stack, so the section only
+  changes when the user changes it. The cost of a count: reordering the list in another layout
+  changes which windows are masters back in `tall`.
 - **A layout that scrolls** adopts `ScrollingLayout` (only the strip). The workspace owns the view,
   as it owns focus, and stores it as the window at its left edge rather than in points, so it
   survives display and gap changes. The layout answers where the view can rest, how it fits the

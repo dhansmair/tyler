@@ -46,6 +46,10 @@ Tick an item with the date when it is checked; record what was measured in `maco
 - [x] `grid`: resizing with the modifier and focus follows mouse on both displays (2026-10-12; on
   the built-in display only once Notification Centre's overlay was skipped)
 - [ ] `grid`: move by drag, the map in the menu bar
+- [ ] `tall`'s master section: `window promote` and `demote` slide the windows into place; three
+  and four windows with two masters; promoting every window gives one column; a new window opens
+  in the stack; closing a master shrinks the section; dragging a window across the column divider
+  moves it between the sections, onto another display too; `restart` keeps the section
 
 ## Running tylerd
 

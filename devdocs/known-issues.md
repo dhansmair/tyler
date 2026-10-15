@@ -43,6 +43,13 @@ own issues are in `strip-layout.md`. Remove an item when it is fixed (in the sam
   unverified): new ones made the same way were `dialog` from the start. Perhaps the subrole
   changing with the app's activation, as TextEdit's does (`macos-behaviour.md`, Window kinds);
   `WindowKind.classify` now also looks at the title bar's buttons.
+- **What a stale Accessibility entry looks like to tylerd is unverified**: after a restart of the
+  Mac or a new login, a tylerd once tracked no windows although the terminal was listed and on.
+  `tyler start` now catches it (`WindowAccess`), but not which form it took: `AXIsProcessTrusted()`
+  false, calls refused although trusted, or calls that work but find no windows. The next time,
+  before fixing the entry, note the `access` line of `tyler status` and the error codes of the
+  `app observing failed` lines in the log, and record the case in `macos-behaviour.md`. Whether
+  re-adding the entry makes Accessibility work for a tylerd already running is unmeasured too.
 - **Echo tracking can go stale** (unverified): if an app accepts a focus call but never sends a
   focus event, the window stays on tylerd's list of its own focus calls, and the next real focus
   of it while parked doesn't switch workspaces, once.

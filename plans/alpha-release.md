@@ -68,6 +68,11 @@ Each with a regression test (`devdocs/known-issues.md` has the details).
   Done: macOS reports them as `AXDialog` until TextEdit is first active, and its Open panel as
   `AXStandardWindow` (which tylerd tiled). `classify` now also reads the title bar's buttons;
   checked on real windows.
+- [x] **`tyler start` reported success while tylerd saw no windows** (after a restart of the Mac or
+  a new login, most likely a stale Accessibility entry). Done (2026-10-15): tylerd waits while
+  Accessibility calls are refused or the screen is locked, `status` shows `access`, and `start`
+  and `restart` fail with the fix (`WindowAccess`, `devdocs/design.md`). The check on real windows
+  is in `devdocs/testing.md`.
 
 ### Structure
 

@@ -62,11 +62,11 @@ tyler restart  # after rebuilding or installing a new version; windows stay put
 tyler stop
 ```
 
-`tyler start` runs the `tylerd` that sits in the same folder as `tyler` (after following symlinks), detached from the terminal: closing the terminal doesn't stop it. Its output goes to `~/.tyler/tyler.log`, which starts empty on every start. `tyler start` waits until `tylerd` answers, at most 10 seconds, and shows the end of the log if `tylerd` exits right away.
+`tyler start` runs the `tylerd` that sits in the same folder as `tyler` (after following symlinks), detached from the terminal: closing the terminal doesn't stop it. Its output goes to `~/.tyler/tyler.log`, which starts empty on every start. `tyler start` waits until `tylerd` answers, at most 10 seconds, and shows the end of the log if `tylerd` exits right away. It then checks that `tylerd` can reach your windows (see `access` under [status](#status)), waiting up to 4 seconds for apps that haven't answered yet, and fails with the reason and the fix if it can't. `tylerd` keeps running then.
 
 You can also run `tylerd` yourself in a terminal, which keeps its output there; that's handy for debugging.
 
-`tylerd` needs Accessibility permission. macOS grants it to the app that starts `tylerd`, so grant it in System Settings > Privacy & Security > Accessibility to the terminal you run `tyler start` (or `tylerd`) in. Without it, `tylerd` still runs and answers `tyler ping`, and the other commands print what to do. Once you grant the permission, `tylerd` picks it up within a second; you don't have to restart it.
+`tylerd` needs Accessibility permission. macOS grants it to the app that starts `tylerd`, so grant it in System Settings > Privacy & Security > Accessibility to the terminal you run `tyler start` (or `tylerd`) in. Without it, `tylerd` still runs and answers `tyler ping`, and the other commands print what to do. Once you grant the permission, `tylerd` picks it up within a second; you don't have to restart it. It also waits, and says so, while macOS refuses its Accessibility calls although the permission is on (a stale entry; see [Troubleshooting](troubleshooting.md#nothing-is-tiled-or-commands-say-there-is-no-permission)), and while the screen is locked, when macOS shows it no windows.
 
 Run `tyler stop` before you switch off or remove that permission: taking it away while `tylerd` runs can stop all keyboard and mouse input until a forced restart (see [Troubleshooting](troubleshooting.md#nothing-is-tiled-or-commands-say-there-is-no-permission)). If the permission is switched off anyway, `tylerd` stops watching the mouse at once, leaves every window where it is and waits for the permission; once it is back, `tylerd` carries on with its workspaces.
 
@@ -224,7 +224,7 @@ tyler stop
 tyler restart
 ```
 
-`start` starts `tylerd` in the background (see [Running tylerd](#running-tylerd)) and prints its pid. If `tylerd` is already running, it says so and does nothing.
+`start` starts `tylerd` in the background (see [Running tylerd](#running-tylerd)) and prints its pid. If `tylerd` is already running, it says so and does nothing. Either way it checks that `tylerd` can reach the windows: if `access` (see [status](#status)) needs fixing, `start` prints the fix and exits with status 1, leaving `tylerd` running; a locked screen gets a note. `restart` checks the new `tylerd` the same way.
 
 `stop` asks `tylerd` to quit, which puts every window back where it was, and waits until it has. It is not an error if `tylerd` isn't running.
 
@@ -244,9 +244,20 @@ tylerd is running (pid 4711, up 2h 5m)
   binary  /Users/you/.local/bin/tylerd
   config  /Users/you/.config/tyler/tyler.toml
   tiling  on
+  access  sees the windows
 ```
 
-`tiling` is `on`, `off` or `waiting for Accessibility permission`. If the `tylerd` binary has changed since it started, or `tylerd` is another version than `tyler`, a warning suggests `tyler restart`. Exits with status 1 if `tylerd` isn't running.
+`tiling` is `on`, `off` or `waiting for Accessibility permission`. `access` says whether `tylerd` can reach the windows:
+
+| `access` | Meaning |
+| --- | --- |
+| `sees the windows` | All is well. |
+| `no Accessibility permission` | Grant it; `tylerd` starts by itself once it's there. |
+| `Accessibility calls refused although the permission is on` | The permission's entry is probably stale; a warning says how to fix it. |
+| `sees none of the windows on screen` | `tylerd` tracks windows but none of those on screen: the same fix. |
+| `waiting for the screen to be unlocked` | macOS shows no windows while the screen is locked; `tylerd` starts once it is unlocked. |
+| `some apps haven't answered yet` | Right after a start; `tylerd` is still trying them. |
+ If the `tylerd` binary has changed since it started, or `tylerd` is another version than `tyler`, a warning suggests `tyler restart`. Exits with status 1 if `tylerd` isn't running.
 
 ### ping
 
@@ -517,7 +528,7 @@ After the differences come the windows of the apps `tylerd` observes that it doe
 | Exit status | Meaning |
 | --- | --- |
 | 0 | The command succeeded. Any message is printed to standard output. |
-| 1 | `tylerd` refused or failed (for example `no tiled windows`), isn't running, or has no Accessibility permission. The reason is printed to standard error. |
+| 1 | `tylerd` refused or failed (for example `no tiled windows`), isn't running, or has no Accessibility permission; for `start` and `restart`, also when `tylerd` can't reach the windows. The reason is printed to standard error. |
 | 2 | The command line is wrong. `tyler` prints what's wrong, followed by the usage summary. |
 
 If some windows couldn't be moved (an app refused, or a window closed meanwhile), or the window that should get the focus refused it, the command still succeeds and prints what it did followed by what went wrong, for example `workspace focus 2; 1 window could not be placed` or `workspace focus 2; cannot focus window 4242: …`.

@@ -318,6 +318,19 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   `~/.tyler/tyler.log`. The terminal stays the process responsible for Accessibility, so rebuilds
   need no new grant. A LaunchAgent would need its own grant and a stable code signature, so
   `service install` is left for later.
+- **`tyler start` checks that tylerd can reach the windows** (`WindowAccess`). A grant can look
+  fine and not work: after a restart of the Mac or a new login, a stale entry left tylerd
+  tracking no windows while `status` said `tiling on`. Before tracking, tylerd needs
+  `AXIsProcessTrusted()`, an unlocked screen, and one Accessibility read (the focused app,
+  through the system-wide element) that macOS doesn't refuse; until then it waits, as for a
+  missing permission, and starts on its own once all three hold, so no event tap is alive while
+  the grant is broken. Once tracking, it compares its windows with the window server's
+  (`CGWindowListCopyWindowInfo`, which needs no permission): seeing none of the on-screen windows
+  of regular apps is reported, not acted on, since stopping would only start again at the next
+  check. `status` carries the verdict; `start` and `restart` wait for apps still being retried
+  (up to 4 s) and exit 1 with the fix for a verdict that needs one, leaving tylerd running. A
+  locked screen is a note: tylerd starts once it is unlocked. The check runs in tylerd, not in
+  the client before it spawns tylerd: what matters is what the running tylerd sees.
 - **`tyler restart` keeps windows in place**: tylerd writes its workspaces to
   `~/.tyler/tyler.state.json` (version 3: a row per display, and each workspace's `LayoutStates`
   as one value, so a new layout or a new piece of layout state needs no change to the file's

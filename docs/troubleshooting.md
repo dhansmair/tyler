@@ -31,8 +31,13 @@ restart needed. If you start `tylerd` from another terminal app later, that one 
 permission too.
 
 If the terminal is listed and on but nothing happens, macOS may have kept a stale entry (after an
-app updates, or after logging in again). Run `tyler stop` first, then remove the terminal with `−`,
-add it again, and run `tyler start`.
+app updates, or after restarting the Mac or logging in again). `tyler start` and `tyler status`
+then say `Accessibility calls refused although the permission is on` or `sees none of the windows
+on screen`. Run `tyler stop` first, then remove the terminal with `−`, add it again, and run
+`tyler start`.
+
+If `tyler status` says `waiting for the screen to be unlocked`, nothing is wrong: macOS shows no
+windows while the screen is locked, and `tylerd` starts once it is unlocked.
 
 **Always stop `tylerd` before you switch off or remove its terminal's Accessibility permission.**
 macOS can stop all keyboard and mouse input when that permission is taken away from a process

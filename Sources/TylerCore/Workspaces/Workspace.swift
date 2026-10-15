@@ -158,25 +158,6 @@ package struct Workspace: Equatable, Sendable {
     return true
   }
 
-  /// The window that `windowID` would swap with if it were dropped at `point`: the one whose
-  /// slot is under the point. Nothing while the point is still in `windowID`'s own slot (in
-  /// `full`, that is everywhere), in a gap, or outside the tiled area.
-  package func dropTarget(
-    for windowID: WindowID, at point: CGPoint, on display: DisplayInfo, gaps: LayoutGaps
-  ) -> WindowID? {
-    Self.dropTarget(for: windowID, at: point, among: placements(on: display, gaps: gaps))
-  }
-
-  /// `dropTarget(for:at:on:gaps:)` for placements already worked out, so a caller that needs them
-  /// anyway lays the workspace out once.
-  package static func dropTarget(
-    for windowID: WindowID, at point: CGPoint, among placements: [Placement]
-  ) -> WindowID? {
-    guard let own = placements.first(where: { $0.id == windowID }), !own.frame.contains(point)
-    else { return nil }
-    return placements.first { $0.id != windowID && $0.frame.contains(point) }?.id
-  }
-
   /// Where `windowID`, coming from another workspace, goes in if it is dropped at `point`: the
   /// place in the list whose slot, with the window in it there, is under the point. So the slot
   /// a preview leaves open (see `arriving(_:at:)`) is always the one under the pointer. `nil` in

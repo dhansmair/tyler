@@ -20,7 +20,7 @@ At the lowest layer where the bug could show.
 - **Unit** for a single decision: where a layout puts its windows, where a swipe settles, what a
   controller returns for an input. Decisions in TylerCore are tested without fakes.
 - **Scenario** for a behaviour `docs/` promises, seen from outside the server (*with three
-  windows in `tall`, dragging the main window onto the stack swaps them*), and for bugs in the
+  windows in `tall`, dragging the main window onto the stack puts it there*), and for bugs in the
   plumbing between parts: an event that reached the wrong controller, an echo that wasn't
   filtered, effects run in the wrong order. A scenario sets up its context, gives one input and
   checks what comes out. It doesn't reach into a controller.

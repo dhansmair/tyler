@@ -48,9 +48,9 @@ extension WindowManager {
     run(effects)
   }
 
-  /// Forgets the preview target without moving it, for a window that is gone.
-  func forgetPreviewTarget(_ windowID: WindowID) {
-    drag?.session.forgetPreviewTarget(windowID)
+  /// Forgets the move preview without moving its windows, as a window is gone.
+  func forgetMovePreview() {
+    drag?.session.forgetMovePreview()
   }
 
   /// When the interval is up, a frame that arrived meanwhile is followed the same way; with

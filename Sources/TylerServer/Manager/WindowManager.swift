@@ -291,7 +291,7 @@ package final class WindowManager {
       run(workspaceController.focusChanged(to: windowID, isEcho: isEcho, model: &model))
     case .closed(let windowID):
       if drag?.windowID == windowID { endDrag() }
-      forgetPreviewTarget(windowID)
+      forgetMovePreview()
       bookkeeping.forget(windowID)
       mover.forget(windowID)
     }

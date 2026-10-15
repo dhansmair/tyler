@@ -45,7 +45,7 @@ Tick an item with the date when it is checked; record what was measured in `maco
   external display (2026-10-12)
 - [x] `grid`: resizing with the modifier and focus follows mouse on both displays (2026-10-12; on
   the built-in display only once Notification Centre's overlay was skipped)
-- [ ] `grid`: swap by drag, the map in the menu bar
+- [ ] `grid`: move by drag, the map in the menu bar
 
 ## Running tylerd
 
@@ -110,7 +110,8 @@ Tick an item with the date when it is checked; record what was measured in `maco
 ## Mouse
 
 - [x] Mouse resizing moves the dividers live; `restart` keeps stack heights
-- [x] Swap by drag: preview, swap on release, snap back in a gap, `full`
+- [ ] Move by drag (it replaced the swap): the windows make room at the slot under the pointer and
+  the ones in between shift on release, in `tall` and `grid`; a gap keeps the preview; `full`
 - [x] Swap by drag of a window an app keeps smaller than its slot (System Settings), dragged by its
   sidebar: preview and swap (2026-10-15)
 - [x] The drag preview animates (`animations.drag-preview`): the window slides and resizes into the
@@ -132,7 +133,7 @@ Tick an item with the date when it is checked; record what was measured in `maco
 - [x] Revoking the terminal's Accessibility grant with the interceptor disarmed leaves input
   working, and tylerd logs `permission lost` (2026-10-15, once). With it armed, it is unchecked:
   try that only in a macOS virtual machine, since a freeze needs a forced restart
-- [ ] Modifier drag: Option-drag swaps, also onto another display; Option-right-drag in each quarter
+- [ ] Modifier drag: Option-drag moves, also onto another display; Option-right-drag in each quarter
   of a window in `tall` and the strip; a floated window moves and resizes freely; Option+click and
   Option+right-click still reach the app; Option+double-click; nothing grabbed over the desktop or
   the menu bar; letting go of Option mid-drag; a press during a slide

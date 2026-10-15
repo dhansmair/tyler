@@ -6,8 +6,8 @@ package enum DragDrop: Equatable, Sendable {
   case arrive(Arrival)
   /// The layout of the display at `position` follows the window's new size.
   case resize(position: Int, frame: CGRect)
-  /// The window and `target` swap places in the list of the display at `position`.
-  case swap(position: Int, target: WindowID)
+  /// The window moves to `place` in the list of the display at `position`.
+  case move(position: Int, place: ListPlace)
   /// Nothing changes: the window goes back to its slot.
   case back
 }

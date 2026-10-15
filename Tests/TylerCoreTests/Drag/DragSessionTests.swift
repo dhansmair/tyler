@@ -37,16 +37,52 @@ struct DragSessionTests {
     #expect(arrival.position == 1)
   }
 
-  @Test func theSwapPreviewShowsTheTargetInTheDraggedWindowsSlot() {
+  @Test func theMovePreviewMakesRoomAtTheSlotUnderThePointer() {
     var session = session
-    let shown = session.previewSwap(at: overWindow2, in: tiling)
+    let shown = session.previewMove(at: overWindow2, in: tiling)
     #expect(shown == [Placement(id: WindowID(2), frame: slot(of: 1))])
-    #expect(session.previewTarget == WindowID(2))
-    let again = session.previewSwap(at: overWindow2, in: tiling)
-    #expect(again.isEmpty, "the same target moves nothing")
-    let back = session.previewSwap(at: overWindow1, in: tiling)
+    #expect(session.previewPlace == ListPlace(index: 1))
+    let again = session.previewMove(at: overWindow2, in: tiling)
+    #expect(again.isEmpty, "the same place moves nothing")
+    let back = session.previewMove(at: overWindow1, in: tiling)
     #expect(back == [Placement(id: WindowID(2), frame: slot(of: 2))])
-    #expect(session.previewTarget == nil)
+    #expect(session.previewPlace == nil)
+  }
+
+  /// Window 1 of three in tall, dropped on window 3's slot (the lower right): window 2 moves up
+  /// into the master's slot and window 3 into the upper right, rather than 3 trading with 1.
+  @Test func aMoveShiftsTheWindowsInBetween() {
+    var rows = DisplayRows(keys: [laptop.key], configured: [[1]])
+    rows[0][0].sync(eligible: ids(1, 2, 3))
+    let tiling = TilingSnapshot(rows: rows, displays: [laptop], gaps: LayoutGaps())
+    var session = session
+    let shown = session.previewMove(at: CGPoint(x: 750, y: 500), in: tiling)
+    #expect(
+      shown == [
+        Placement(id: WindowID(2), frame: CGRect(x: 0, y: 0, width: 500, height: 600)),
+        Placement(id: WindowID(3), frame: CGRect(x: 500, y: 0, width: 500, height: 300)),
+      ])
+    #expect(
+      session.drop(at: CGPoint(x: 750, y: 500), frame: nil, in: tiling) == .back,
+      "no frame, no drop")
+    #expect(
+      session.drop(
+        at: CGPoint(x: 750, y: 500), frame: CGRect(x: 0, y: 0, width: 500, height: 600),
+        in: tiling) == .move(position: 0, place: ListPlace(index: 2)))
+    let undone = session.undoMovePreview(in: tiling)
+    #expect(Set(undone.map(\.id)) == Set(ids(2, 3)))
+    #expect(session.previewPlace == nil)
+  }
+
+  @Test func inAGapThePreviewKeepsItsPlace() {
+    var rows = DisplayRows(keys: [laptop.key], configured: [[1]])
+    rows[0][0].sync(eligible: ids(1, 2))
+    let tiling = TilingSnapshot(rows: rows, displays: [laptop], gaps: LayoutGaps(inner: 20))
+    var session = session
+    _ = session.previewMove(at: overWindow2, in: tiling)
+    let inTheGap = CGPoint(x: 500, y: 300)
+    #expect(session.previewMove(at: inTheGap, in: tiling).isEmpty)
+    #expect(session.place(at: inTheGap, in: tiling) == ListPlace(index: 1))
   }
 
   @Test func theArrivalPreviewMakesRoomThereAndClosesUpHere() throws {
@@ -78,10 +114,10 @@ struct DragSessionTests {
         == .arrive(Arrival(position: 1, index: 1)))
   }
 
-  @Test func aMoveDroppedOnAnotherSlotSwaps() {
+  @Test func aMoveDroppedOnAnotherSlotGoesInThere() {
     #expect(
       session.drop(at: overWindow2, frame: slot(of: 1), in: tiling)
-        == .swap(position: 0, target: WindowID(2)))
+        == .move(position: 0, place: ListPlace(index: 1)))
     #expect(session.drop(at: overWindow1, frame: slot(of: 1), in: tiling) == .back)
   }
 
@@ -96,11 +132,11 @@ struct DragSessionTests {
     #expect(session.drop(at: overWindow2, frame: wider, in: tiling) == .back, "followed as it went")
   }
 
-  @Test func theSlotOfAGoneTargetIsForgotten() {
+  @Test func aForgottenMovePreviewHasNothingToUndo() {
     var session = session
-    _ = session.previewSwap(at: overWindow2, in: tiling)
-    #expect(session.previewTargetSlot(in: tiling)?.frame == slot(of: 2))
-    session.forgetPreviewTarget(WindowID(2))
-    #expect(session.previewTargetSlot(in: tiling) == nil)
+    _ = session.previewMove(at: overWindow2, in: tiling)
+    session.forgetMovePreview()
+    #expect(session.previewPlace == nil)
+    #expect(session.undoMovePreview(in: tiling).isEmpty)
   }
 }

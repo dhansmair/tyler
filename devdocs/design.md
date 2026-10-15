@@ -118,7 +118,7 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   both ways (`macos-behaviour.md`, Window kinds).
 - **Tiling reacts to commands and to windows appearing, disappearing or becoming un/tileable**
   (minimized, fullscreen), not to every move. A move by hand is handled as a mouse resize or a
-  swap by drag, otherwise the window snaps back on release.
+  move by drag, otherwise the window snaps back on release.
 - **Only regular apps** (`activationPolicy == .regular`) and windows on the current Space are
   tracked; native fullscreen windows are left alone.
 - **`tiling off`** brings every parked window back and keeps the current workspace's list, so
@@ -154,7 +154,7 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
 - **The strip's columns follow each other without gaps**, and a window partly in view shows the
   part that fits (`DisplayInfo.shows`: any of it on the display). At an edge with a neighbouring
   display such a window parks instead, since nothing reaches onto another display.
-- **`tall` and `grid` share `ColumnLayout`** ("columns of rows"), which also does mouse resizing and drop targets.
+- **`tall` and `grid` share `ColumnLayout`** ("columns of rows"), which also does mouse resizing.
   It takes the slots' sizes in as `ColumnWeights` and gives them back after a resize; each layout
   keeps its own (`tall`: the master ratio and its row weights).
 - **`grid`** fills columns two windows high, up to four columns, then three high and so on
@@ -220,14 +220,20 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   which drive the drag, wait behind them (measured: `devdocs/macos-behaviour.md`, Speed). While a resize is in progress
   the neighbours get two writes without a read back (`FrameWrite.inPassing`); the drop settles
   them. Stack heights are kept per slot.
-- **Swap by drag**: the slot under the pointer is the target, previewed live; a drop in a gap or
-  outside the tiled area snaps back. The dragged window keeps its size during the preview (resizing
-  it without animation felt awkward, and animating it would re-layout the app every frame).
-  The windows the preview moves slide there, resizing on the way (`animations.drag-preview`). The
-  animation belongs to the drag (`DragPreview`), not the slide, so the drag goes on; a new target
-  takes each window over from the frame it was last given. Ending the drag places the preview's
-  finals first, then puts the target back whatever the registry says: queued steps are reported
-  back late, so the registry can't tell where a window the preview moved is.
+- **Move by drag**, not swap: the dragged window goes in at the place in the list whose slot is
+  under the pointer (`Workspace.dropPlace`, the same rule as an arrival from another display), and
+  the windows in between shift by one. A swap moved a window the user never touched to the far
+  end of the layout; making room keeps the others in order, and is what a drop onto another
+  display already did. The window's own place is tried first, so over its own slot (in `full`,
+  everywhere) nothing moves. Previewed live; a drop in a gap keeps what the preview shows, one
+  outside the visible area or over its own slot snaps back. The dragged window keeps its size
+  during the preview (resizing it without animation felt awkward, and animating it would
+  re-layout the app every frame). The windows the preview moves slide there, resizing on the way
+  (`animations.drag-preview`). The animation belongs to the drag (`DragPreview`), not the slide,
+  so the drag goes on; a new place takes each window over from the frame it was last given.
+  Ending the drag places the preview's finals first, then puts the moved windows back whatever
+  the registry says: queued steps are reported back late, so the registry can't tell where a
+  window the preview moved is.
 - **Moving and resizing with a modifier** (Option by default): an active event tap holds back the
   mouse-down; past 4 points it becomes tyler's move or resize and the rest of the gesture is
   swallowed, otherwise the held click is posted again so it reaches the app. The tap runs on the

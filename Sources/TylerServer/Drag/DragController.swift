@@ -88,12 +88,12 @@ struct DragController {
     }
     let undo = context.moves(toward: session.undoArrival(in: tiling))
     let duration = Duration.milliseconds(context.config.animations.dragPreview)
-    return [.place(undo), .preview(session.previewSwap(at: location, in: tiling), over: duration)]
+    return [.place(undo), .preview(session.previewMove(at: location, in: tiling), over: duration)]
   }
 
   /// The last size the dragged window had counts, then every window, the dragged one included,
   /// goes to its slot. A window that was moved, not resized, onto another tiled window's slot
-  /// swaps with it; over another display, it joins the workspace on screen there, where the
+  /// goes in there, the others making room; over another display, it joins the workspace on screen there, where the
   /// preview showed it, and that display gets the focus; moved anywhere else, it goes back.
   func drop(at location: CGPoint, session: inout DragSession, model: inout Model) -> [Effect] {
     let windowID = session.windowID
@@ -122,9 +122,11 @@ struct DragController {
       if let area = context.display(for: model.rows.entries[position].key)?.visibleFrame {
         model.rows[position].current.resize(windowID, to: frame, in: area, gaps: context.gaps)
       }
-    case .swap(let position, let target):
+    case .move(let position, let place):
       logDroppedOnItsOwnDisplay(windowID)
-      model.rows[position].current.swap(windowID, with: target)
+      // The windows are where the preview put them, if it showed this place: they stay.
+      session.forgetMovePreview()
+      model.rows[position].current.move(windowID, to: place)
     case .back:
       logDroppedOnItsOwnDisplay(windowID)
     }
@@ -132,17 +134,15 @@ struct DragController {
   }
 
   /// The moves that end a drag: windows the preview moved go back to their slots, so a command
-  /// or a workspace switch in the middle of a drag never leaves two windows in each other's
-  /// slots, or a display laid out for a window that never came. The window the preview shows in
-  /// the dragged window's slot goes back whatever the registry says: an animated preview's steps
-  /// aren't reported back at once.
+  /// or a workspace switch in the middle of a drag never leaves windows in other windows' slots,
+  /// or a display laid out for a window that never came. The windows the move preview moved go
+  /// back whatever the registry says: an animated preview's steps aren't reported back at once.
   func endingEffects(_ session: inout DragSession, model: Model) -> [Effect] {
     let tiling = tiling(model.rows)
     let undo: [Effect] = [.place(context.moves(toward: session.undoArrival(in: tiling)))]
-    guard let slot = session.previewTargetSlot(in: tiling), context.isTiling(model) else {
-      return undo
-    }
-    return undo + [.place([slot])]
+    let unmoved = session.undoMovePreview(in: tiling)
+    guard !unmoved.isEmpty, context.isTiling(model) else { return undo }
+    return undo + [.place(unmoved)]
   }
 
   // MARK: - With the modifier

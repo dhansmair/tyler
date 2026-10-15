@@ -64,15 +64,15 @@ struct DragPreviewAnimationScenarios {
     windowSystem.frameSteps.filter { $0.id == WindowID(id) }.map(\.frame)
   }
 
-  @Test func theWindowUnderThePointerMovesIntoTheDraggedWindowsSlotStepByStep() async {
+  @Test func theWindowsMakeRoomStepByStep() async {
     await pickUpLowerWindow()
     await dragPointer(to: overMain)
     #expect(windowSystem.moves.isEmpty, "nothing jumps")
 
     await runAnimations()
     #expect(steps(of: 1).count == 2)
-    #expect(steps(of: 1).allSatisfy { main.minX < $0.minX && $0.minX < lower.minX })
-    #expect(windowSystem.frame(of: 1) == lower)
+    #expect(steps(of: 1).allSatisfy { main.minX < $0.minX && $0.minX < upper.minX })
+    #expect(windowSystem.frame(of: 1) == upper)
   }
 
   /// Every move of the pointer asks for the preview again; over the same window, the one under
@@ -87,7 +87,7 @@ struct DragPreviewAnimationScenarios {
 
     await runAnimations()
     #expect(steps(of: 1).count == 2, "48 ms from the first step, not from the last pointer move")
-    #expect(windowSystem.frame(of: 1) == lower)
+    #expect(windowSystem.frame(of: 1) == upper)
   }
 
   @Test func aNewTargetTakesOverWhereTheWindowIs() async throws {
@@ -106,7 +106,7 @@ struct DragPreviewAnimationScenarios {
     #expect(windowSystem.frame(of: 2) == lower)
   }
 
-  @Test func aDropDuringThePreviewSwapsTheWindowsIntoTheirSlots() async {
+  @Test func aDropDuringThePreviewPutsTheWindowsIntoTheirSlots() async {
     await pickUpLowerWindow()
     await dragPointer(to: overMain)
     await advanceOneFrame()
@@ -115,10 +115,10 @@ struct DragPreviewAnimationScenarios {
     let stepped = windowSystem.frameSteps.count
     await runAnimations()
     #expect(windowSystem.frameSteps.count == stepped, "the preview stopped at the drop")
-    #expect(harness.manager.workspaces.current.windows == [3, 2, 1].map(WindowID.init))
+    #expect(harness.manager.workspaces.current.windows == [3, 1, 2].map(WindowID.init))
     #expect(windowSystem.frame(of: 3) == main)
-    #expect(windowSystem.frame(of: 2) == upper)
-    #expect(windowSystem.frame(of: 1) == lower)
+    #expect(windowSystem.frame(of: 1) == upper)
+    #expect(windowSystem.frame(of: 2) == lower)
   }
 
   @Test func aReleaseElsewhereDuringThePreviewPutsTheWindowBack() async {
@@ -162,7 +162,10 @@ struct DragPreviewAnimationScenarios {
     await pickUpLowerWindow()
     await dragPointer(to: overMain)
 
-    #expect(windowSystem.moves == [Placement(id: WindowID(1), frame: lower)])
+    #expect(
+      windowSystem.moves == [
+        Placement(id: WindowID(1), frame: upper), Placement(id: WindowID(2), frame: lower),
+      ])
     #expect(windowSystem.frameSteps.isEmpty)
   }
 }

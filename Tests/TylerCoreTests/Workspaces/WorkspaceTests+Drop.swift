@@ -3,9 +3,9 @@ import Testing
 
 @testable import TylerCore
 
-/// The parts of `Workspace` that swap by drag and drop builds on.
-@Suite("Workspace: drop targets")
-struct WorkspaceDropTargetTests {
+/// The parts of `Workspace` that dragging a window and dropping it builds on.
+@Suite("Workspace: dropping")
+struct WorkspaceDropTests {
   // MARK: - Swapping by ID
 
   @Test func swappingTwoWindowsByIDKeepsFocusAndTheOthersInOrder() {
@@ -37,39 +37,49 @@ struct WorkspaceDropTargetTests {
     return workspace
   }
 
+  /// Window 3 on the master's slot goes first, on window 2's goes second; window 1 on window 3's
+  /// goes last. Over its own slot a window keeps its place.
   @Test(arguments: [
-    (UInt32(3), CGPoint(x: 100, y: 100), UInt32?(1)),
-    (3, CGPoint(x: 700, y: 100), 2),
-    (1, CGPoint(x: 700, y: 500), 3),
-    (3, CGPoint(x: 700, y: 500), nil),  // its own slot
+    (UInt32(3), CGPoint(x: 100, y: 100), Int?(0)),
+    (3, CGPoint(x: 700, y: 100), 1),
+    (1, CGPoint(x: 700, y: 500), 2),
+    (3, CGPoint(x: 700, y: 500), 2),  // its own slot
     (3, CGPoint(x: 500, y: 100), nil),  // the gap between the columns
     (3, CGPoint(x: 700, y: 300), nil),  // the gap between the stacked windows
     (3, CGPoint(x: 1200, y: 100), nil),  // outside the area
     (9, CGPoint(x: 100, y: 100), nil),  // not tiled here
   ])
-  func theDropTargetIsTheSlotUnderThePoint(dragged: UInt32, point: CGPoint, target: UInt32?) {
+  func theDropPlaceIsTheSlotUnderThePoint(dragged: UInt32, point: CGPoint, index: Int?) {
     let workspace = makeGappedWorkspace()
     #expect(
-      workspace.dropTarget(
+      workspace.dropPlace(
         for: WindowID(dragged), at: point, on: Self.dropDisplay, gaps: LayoutGaps(inner: 20))
-        == target.map(WindowID.init))
+        == index.map(ListPlace.init(index:)))
   }
 
-  @Test func inFullNothingIsADropTarget() {
+  @Test func inFullAWindowKeepsItsPlace() {
     var workspace = makeWorkspace(1, 2)
     workspace.layout = .full
     #expect(
-      workspace.dropTarget(
+      workspace.dropPlace(
         for: WindowID(2), at: CGPoint(x: 100, y: 100), on: Self.dropDisplay, gaps: LayoutGaps())
-        == nil)
+        == ListPlace(index: 1))
   }
 
-  @Test func aSingleWindowHasNoDropTarget() {
-    let workspace = makeWorkspace(1)
-    #expect(
-      workspace.dropTarget(
-        for: WindowID(1), at: CGPoint(x: 100, y: 100), on: Self.dropDisplay, gaps: LayoutGaps())
-        == nil)
+  @Test(arguments: [(UInt32(1), 2, ids(2, 3, 1)), (3, 0, ids(3, 1, 2)), (2, 1, ids(1, 2, 3))])
+  func movingShiftsTheWindowsInBetween(window: UInt32, index: Int, windows: [WindowID]) {
+    var workspace = makeWorkspace(1, 2, 3, focus: 2)
+    workspace.move(WindowID(window), to: ListPlace(index: index))
+    #expect(workspace.windows == windows)
+    #expect(workspace.focused == WindowID(2))
+  }
+
+  @Test(arguments: [(UInt32(9), 0), (1, 3)])
+  func movingNeedsATiledWindowAndAPlaceInTheList(window: UInt32, index: Int) {
+    var workspace = makeWorkspace(1, 2, 3)
+    let moved = workspace.move(WindowID(window), to: ListPlace(index: index))
+    #expect(!moved)
+    #expect(workspace.windows == ids(1, 2, 3))
   }
 
   // MARK: - Arrivals from another display

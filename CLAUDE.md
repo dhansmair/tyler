@@ -38,7 +38,7 @@ Sources/
     Workspaces/    Workspace (the ordered tiling list; the view of a scrolling layout in Workspace+View), WorkspaceRow, DisplayRows (a row per display, workspace homes, the focused display), WorkspaceSync (which windows each workspace holds), ScrollDirection, the command arguments (what commands talk about: ListTarget, WorkspaceTarget, DisplayTarget and the like, which the wire protocol carries)
     Placement/     where tiling puts each window on its display: Parking, TilingSnapshot (slots, windows in view, parking spots), Workspace+Parking, Reconciler (which windows are off from where they should be)
     Swipe/         the trackpad swipe: SwipeRecognizer (touches to travel), SwipeSession (where the windows go and where the swipe settles), OneEuroFilter, Snap
-    Drag/          DragSession: what dragging a tiled window previews and what dropping it does (an arrival on another display, a resize, a swap)
+    Drag/          DragSession: what dragging a tiled window previews and what dropping it does (an arrival on another display, a resize, a move to another place)
     Pointer/       what the pointer is over and may do: PointerCheck, PointerFocus, a modifier+click or drag (ModifierKeys, ModifierGesture, ResizeEdges), a press in a gap (GapGrab)
     Motion/        animation tracks and easing, and the motion decided ahead: SlidePlan (a workspace switch), ScrollPlan, ViewScroll and ViewSnapshot (a scrolling layout's view), all giving a Transition
     Diagnostics/, Lifecycle/ (SavedState, the restart handover)

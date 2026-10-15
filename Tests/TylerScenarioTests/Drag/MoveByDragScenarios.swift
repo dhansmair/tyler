@@ -5,12 +5,13 @@ import TylerTestSupport
 
 @testable import TylerServer
 
-/// Swapping tiled windows by dragging one onto another. The three windows tile as in
+/// Moving a tiled window by dragging it onto another one's slot: it goes in there and the
+/// windows in between shift by one place. The three windows tile as in
 /// `MouseResizeScenarios`: window 1 at (55, 38, 873, 1131); window 2 at (928, 38, 872, 566) above
 /// window 3 at (928, 604, 872, 565).
-@Suite("Swap by drag")
+@Suite("Move by drag")
 @MainActor
-struct SwapScenarios {
+struct MoveByDragScenarios {
   private let main = CGRect(x: 55, y: 38, width: 873, height: 1131)
   private let upper = CGRect(x: 928, y: 38, width: 872, height: 566)
   private let lower = CGRect(x: 928, y: 604, width: 872, height: 565)
@@ -60,12 +61,15 @@ struct SwapScenarios {
 
   // MARK: - Preview
 
-  @Test func theWindowUnderThePointerMovesIntoTheDraggedWindowsSlot() async {
+  @Test func theWindowsMakeRoomAtTheSlotUnderThePointer() async {
     await pickUpLowerWindow()
     await dragPointer(to: overMain)
 
-    #expect(windowSystem.moves == [Placement(id: WindowID(1), frame: lower)])
-    #expect(order == [1, 2, 3], "nothing is swapped before the release")
+    #expect(
+      windowSystem.moves == [
+        Placement(id: WindowID(1), frame: upper), Placement(id: WindowID(2), frame: lower),
+      ])
+    #expect(order == [1, 2, 3], "nothing moves in the list before the release")
   }
 
   @Test func eachStepOverTheSameWindowMovesNothingMore() async {
@@ -73,7 +77,7 @@ struct SwapScenarios {
     await dragPointer(to: overMain)
     await dragPointer(to: CGPoint(x: 400, y: 700))
 
-    #expect(windowSystem.moves.count == 1)
+    #expect(windowSystem.moves.count == 2)
   }
 
   @Test func movingOnToAnotherWindowPutsTheFirstOneBack() async {
@@ -96,15 +100,15 @@ struct SwapScenarios {
 
   // MARK: - Release
 
-  @Test func releasingOverAnotherWindowSwapsTheTwo() async {
+  @Test func releasingOverAnotherWindowPutsItInThere() async {
     await pickUpLowerWindow()
     await dragPointer(to: overMain)
     await release(at: overMain)
 
-    #expect(order == [3, 2, 1])
+    #expect(order == [3, 1, 2])
     #expect(frame(of: 3) == main)
-    #expect(frame(of: 1) == lower)
-    #expect(frame(of: 2) == upper)
+    #expect(frame(of: 1) == upper)
+    #expect(frame(of: 2) == lower)
   }
 
   @Test func theReleaseLocationDecidesEvenWithoutAPreview() async {
@@ -116,7 +120,7 @@ struct SwapScenarios {
     #expect(frame(of: 2) == lower)
   }
 
-  @Test func releasingOverAnotherTargetThanThePreviewSwapsWithThatOne() async {
+  @Test func releasingOverAnotherSlotThanThePreviewsGoesInThere() async {
     await pickUpLowerWindow()
     await dragPointer(to: overMain)
     await release(at: overUpper)
@@ -149,7 +153,7 @@ struct SwapScenarios {
 
   /// A window that keeps its size (System Settings keeps its width) is narrower than its slot
   /// before the drag: moving it is still a move, not a resize.
-  @Test func aWindowSmallerThanItsSlotSwapsToo() async {
+  @Test func aWindowSmallerThanItsSlotMovesToo() async {
     let size = CGSize(width: 700, height: 471)
     windowSystem.fixedSizes[WindowID(3)] = size
     await moveWindow(3, to: CGRect(origin: lower.origin, size: size))
@@ -158,15 +162,15 @@ struct SwapScenarios {
     pointer.isPrimaryButtonDown = true
     await moveWindow(3, to: CGRect(origin: CGPoint(x: 600, y: 300), size: size))
     await dragPointer(to: overMain)
-    #expect(windowSystem.moves == [Placement(id: WindowID(1), frame: lower)])
+    #expect(windowSystem.moves.map(\.id) == [1, 2].map(WindowID.init))
 
     await release(at: overMain)
-    #expect(order == [3, 2, 1])
+    #expect(order == [3, 1, 2])
   }
 
-  // MARK: - No swap
+  // MARK: - No move
 
-  @Test func aResizeNeverPreviewsOrSwaps() async {
+  @Test func aResizeNeverPreviewsOrMoves() async {
     pointer.isPrimaryButtonDown = true
     // Window 3's top edge is the divider below window 2.
     await moveWindow(3, to: CGRect(x: 928, y: 504, width: 872, height: 665))
@@ -178,7 +182,7 @@ struct SwapScenarios {
     #expect(order == [1, 2, 3])
   }
 
-  @Test func inFullNothingSwaps() async {
+  @Test func inFullNothingMoves() async {
     #expect(manager.setLayout(.set(.full)) == .message("layout full"))
     windowSystem.clearRecordedCalls()
     pointer.isPrimaryButtonDown = true
@@ -206,6 +210,7 @@ struct SwapScenarios {
     #expect(manager.focus(.next) == .ok)
 
     #expect(frame(of: 1) == main)
+    #expect(frame(of: 2) == upper)
     await release(at: overMain)
     #expect(order == [1, 2, 3], "the command ended the drag")
   }
@@ -218,7 +223,7 @@ struct SwapScenarios {
     #expect(frame(of: 1) == main)
   }
 
-  @Test func aPreviewTargetThatClosesIsForgotten() async {
+  @Test func aPreviewedWindowThatClosesIsForgotten() async {
     await pickUpLowerWindow()
     await dragPointer(to: overMain)
     // Kept in the fake so that a move of it would succeed and show up.
@@ -231,12 +236,24 @@ struct SwapScenarios {
     #expect(!windowSystem.moves.contains { $0.id == WindowID(1) })
   }
 
-  @Test func droppingTheMainWindowOnTheStackSwapsIt() async {
+  @Test func droppingTheMainWindowOnTheStackPutsItThere() async {
     let scenario = await Scenario(workspaces: [1: [1, 2, 3]], layout: .tall)
     await scenario.drag(1, by: CGVector(dx: 900, dy: 300))
     #expect(scenario.list(1) == [2, 1, 3])
     #expect(scenario.frame(of: 2) == scenario.rect(.leftHalf))
     #expect(scenario.frame(of: 1) == scenario.rect(.rightTop))
+    #expect(scenario.frame(of: 3) == scenario.rect(.rightBottom))
+  }
+
+  /// In a grid of four, the last window dropped on the first one's slot: the first three each
+  /// move one slot on, rather than the first trading places with it.
+  @Test func inAGridTheWindowsInBetweenShift() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2, 3, 4]], layout: .grid)
+    await scenario.drag(4, by: CGVector(dx: -1000, dy: -400))
+    #expect(scenario.list(1) == [4, 1, 2, 3])
+    #expect(scenario.frame(of: 4) == scenario.rect(.leftTop))
+    #expect(scenario.frame(of: 1) == scenario.rect(.leftBottom))
+    #expect(scenario.frame(of: 2) == scenario.rect(.rightTop))
     #expect(scenario.frame(of: 3) == scenario.rect(.rightBottom))
   }
 

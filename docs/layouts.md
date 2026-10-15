@@ -50,7 +50,7 @@ there. Leave it out of `layouts.cycle` if you don't want that step: `cycle = ["t
 
 Every window fills the whole area, stacked one behind the other; the focused one is in front. `tyler
 window focus next` brings the next one forward. Dragging a window's edges doesn't change the layout
-(the window snaps back), and dragging one window onto another never swaps, since they all share one
+(the window snaps back), and dragging one window onto another never moves it, since they all share one
 place.
 
 ## strip (`↔`, experimental)
@@ -78,8 +78,8 @@ Not handled yet:
 
 - `quarter` pairs follow from the list order, so `window swap`, or a new window opening between the
   two, splits a pair (each half then shows like `half`).
-- Resizing with the mouse: dragging an edge snaps back. Swapping by dragging only works between
-  windows in view.
+- Resizing with the mouse: dragging an edge snaps back. Moving a window by dragging only works
+  onto windows in view.
 - No rubber band at the ends of the strip: the content just stops.
 - On a display with another display beside it, windows scrolling out may pass over the other
   display, and windows coming in from the right side may first jump from the left edge.

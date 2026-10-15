@@ -27,6 +27,9 @@ Tick an item with the date when it is checked; record what was measured in `maco
   other's slots, also master and stack; quick presses in a row (2026-10-14, `tall` with three
   terminal windows)
 - [ ] `window float on` and `off`, each pressed twice
+- [ ] The windows that stay slide into their new slots (`animations.retile`) when a window is
+  closed (with `window close` and with its own close button), minimized, floated, and sent to
+  another workspace without `--follow`; with `animations.retile = 0` they jump
 - [ ] `window close` on a tiled and a floated window, with tiling off, and in an app that asks to
   save first
 - [x] The menu bar and the Dock are left out of the tiled area

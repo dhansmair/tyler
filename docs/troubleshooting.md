@@ -30,8 +30,14 @@ turn that terminal on (add it with `+` if it isn't listed). `tylerd` notices wit
 restart needed. If you start `tylerd` from another terminal app later, that one needs the
 permission too.
 
-If the terminal is listed and on but nothing happens, remove it with `−`, add it again, and run
-`tyler restart`. macOS sometimes keeps a stale entry after an app updates.
+If the terminal is listed and on but nothing happens, macOS may have kept a stale entry (after an
+app updates, or after logging in again). Run `tyler stop` first, then remove the terminal with `−`,
+add it again, and run `tyler start`.
+
+**Always stop `tylerd` before you switch off or remove its terminal's Accessibility permission.**
+macOS can stop all keyboard and mouse input when that permission is taken away from a process
+watching the mouse buttons, as `tylerd` does. The pointer still moves, but nothing can be clicked
+or typed, and only a forced restart (holding the power button) gets out of it.
 
 ## `tylerd is not running`
 

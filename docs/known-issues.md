@@ -6,6 +6,9 @@ has its own list in [Layouts](layouts.md#strip--experimental).
 
 ## Bugs
 
+- **Switching off or removing the Accessibility permission while `tylerd` runs can freeze the
+  Mac**: the pointer moves, but nothing can be clicked or typed until a forced restart. This is a
+  macOS bug that hits any app watching the mouse buttons. Run `tyler stop` first.
 - **A window of a slow or busy app may be missed** when `tylerd` starts or restarts while the app
   is busy (an IDE indexing, for example). It is picked up once you focus it, and after a restart
   it goes back to its own workspace.

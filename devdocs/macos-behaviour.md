@@ -127,6 +127,14 @@ subrole, title-bar buttons and whether its size can be set:
   restored from the Dock, three times): `AXMinimized` already reads `true` when
   `kAXWindowMiniaturizedNotification` arrives, and `false` when `kAXWindowDeminiaturizedNotification`
   does, and stays so 100 and 500 ms later. Reading the attribute at the notification is reliable.
+- **Revoking Accessibility with an active tap alive can stop all input** (reported on Apple's
+  developer forums, threads 844416 and 735204, FB24619068, macOS 15 to 27; seen once here on
+  macOS 26.7, not reproduced on purpose): with a `.defaultTap` session tap in place, even one
+  passing every event through and getting no `tapDisabled…` event, switching off or removing the
+  responsible app's grant leaves the pointer moving but clicks and keys undelivered, until a forced
+  restart. Listen-only taps are not affected. Per the reports, removing the entry with `−` leaves
+  `AXIsProcessTrusted()` true and posts no `com.apple.accessibility.api` notification; switching
+  it off does both. Never try it on a Mac in use.
 - **No new permission prompt** was needed for any of these taps from a terminal that already had
   Accessibility.
 

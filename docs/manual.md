@@ -147,6 +147,7 @@ icon = "terminal"                # or an SF Symbol
 | `gestures.swipe-distance` | How far your fingers travel to swipe a whole workspace across, in trackpad widths (0.1 to 1.0): lower is more sensitive | `0.3` |
 | `animations.swap` | How long [`tyler window swap`](#window-swap) takes to move the windows to their new places, in milliseconds (0 to 1000); 0 moves them at once | `250` |
 | `animations.drag-preview` | How long the preview of a [drag](features.md#moving-windows-by-dragging) takes to move a window to where a drop would put it, in milliseconds (0 to 1000); 0 moves it at once | `200` |
+| `animations.retile` | How long the windows that stay on a workspace take to slide into their new slots when one leaves it (closed, minimized, floated, its app quit), in milliseconds (0 to 1000); 0 moves them at once. In the `strip` layout they always move at once | `250` |
 | `indicators.text.enabled` | Whether the menu bar shows the workspace numbers (`1 [2] 3 4  ▥`) | `true` |
 | `indicators.map.enabled` | Whether the menu bar shows the map of the workspaces | `true` |
 | `indicators.map.show-icons` | Whether the map shows each window's app icon | `true` |
@@ -348,7 +349,7 @@ tyler window float toggle  # float it if it is tiled, tile it if it floats
 tyler window close
 ```
 
-Closes the focused window, as its close button does: the app keeps running, and an app with unsaved changes may first ask whether to save them. The rest of the workspace re-tiles once the window is gone, and macOS decides which window gets the focus next. It closes any focused window, tiled, floated or never tiled, and works with tiling off. A window without a close button (some panels) can't be closed this way.
+Closes the focused window, as its close button does: the app keeps running, and an app with unsaved changes may first ask whether to save them. The rest of the workspace re-tiles once the window is gone, the windows sliding into their new slots over `animations.retile` milliseconds, and macOS decides which window gets the focus next. It closes any focused window, tiled, floated or never tiled, and works with tiling off. A window without a close button (some panels) can't be closed this way.
 
 ### window size
 

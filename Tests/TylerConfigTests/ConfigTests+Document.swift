@@ -11,6 +11,7 @@ struct ConfigDocumentTests {
     [animations]
     swap = 0
     drag-preview = 300
+    retile = 100
 
     [editor]
     command = "open -na Ghostty --args -e nvim"

@@ -85,12 +85,19 @@ it is made, and change it here when it changes.
   250 ms, frames on an 8 ms grid, progress from elapsed time, so a slow app makes a slide coarser
   but not longer. A snap is an animation with zero steps.
 - **Each animation other than the slide has its own duration** in `[animations]` (`swap`,
-  `drag-preview`), carried by its `Transition` or effect; 0 makes it a snap through the same code, with no "animations on" switch.
+  `drag-preview`, `retile`), carried by its `Transition` or effect; 0 makes it a snap through the same code, with no "animations on" switch.
   A swap runs as a slide (a command mid-swap jumps it to its end). A swapped window changes size
   along the way, in step with its position: resizing only at the ends (shrink, move, grow) looked
   odd. A resize makes the app lay out again (18–23 ms a write), so these steps go through the
   per-app queues like a slide's moves (`setFrameStep`): a slow app skips frames instead of holding
   up the main thread, and the 250 ms default leaves enough frames to look smooth.
+- **A window leaving re-tiles the others with an animation, a window arriving doesn't.** When
+  the sync after a window event finds that the focused workspace only lost windows, the others
+  go from the slots they had before the sync to their new ones as in a swap (`animations.retile`).
+  They start from those slots, not from the frames macOS reported: those lag behind the events,
+  and a window leaving mid-animation would start the next one from a frame on the way. A window
+  arriving has no slot to come from, so the others jump, and in a scrolling layout the view
+  moves, so they jump there too.
 - **Slide, swipe and drag are one state** (`Interaction`): they never happen at the same time. A
   command that arrives mid-slide first jumps to the slide's end; one that arrives mid-swipe or
   mid-drag puts the windows back.

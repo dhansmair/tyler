@@ -34,7 +34,8 @@ struct Scenario {
   /// `workspaces` maps a workspace number to its windows, in list order; each starts focused on
   /// its first window. `showing` lists the workspaces on screen; by default each display shows
   /// its first. Numbers belong to displays as the config's defaults say (1 to 4 on display 1, 5
-  /// to 8 on display 2).
+  /// to 8 on display 2). With `animates`, animations step frame by frame on `clock` instead of
+  /// snapping, so a test can see the windows on their way.
   ///
   /// tylerd starts from these workspaces as after a restart: it takes them over from a hand-over
   /// state and finds each window where the previous tylerd left it, on its workspace's display,
@@ -44,7 +45,8 @@ struct Scenario {
     workspaces: [Int: [UInt32]],
     showing: [Int] = [],
     layout: LayoutKind = .tall,
-    config: Config = Config()
+    config: Config = Config(),
+    animates: Bool = false
   ) async {
     self.displays = FakeDisplays(displays: displays)
     let probe = ManagerHarness(windows: [], displays: self.displays, config: config)
@@ -56,8 +58,9 @@ struct Scenario {
     saved.displays = rows
     saved.seen = workspaces.values.flatMap { $0 }.map(WindowID.init)
     harness = ManagerHarness(
-      windows: Self.windows(in: rows, on: arranged), displays: self.displays, config: config,
-      pointer: pointer, stacking: stacking, gapCursor: gapCursor, clock: clock,
+      windows: Self.windows(in: rows, on: arranged), displays: self.displays,
+      animator: animates ? Animator(clock: clock) : .snap, config: config, pointer: pointer,
+      stacking: stacking, gapCursor: gapCursor, clock: clock,
       restoring: saved)
     await runUntilQuiet()
   }

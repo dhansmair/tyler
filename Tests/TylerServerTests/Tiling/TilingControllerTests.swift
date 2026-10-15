@@ -25,12 +25,17 @@ struct TilingControllerTests {
     return (TilingController(context: context), model)
   }
 
-  @Test func floatingTakesTheWindowOutOfTheListAndLaysTheRestOut() throws {
+  @Test func floatingTakesTheWindowOutOfTheListAndSlidesTheRestIntoPlace() throws {
     var (controller, model) = setUp()
     let decision = try controller.setFloat(.on, model: &model)
     #expect(model.bookkeeping.floated == [WindowID(1)])
     #expect(model.rows.focused.current.windows == [WindowID(2)])
-    #expect(decision.effects.suffix(2) == [.endSlideOrSwipe, .reconcile()])
+    let fullScreen = Placement(id: WindowID(2), frame: Self.display.visibleFrame)
+    guard case .animate(let retile) = decision.effects.last else {
+      Issue.record("the window left re-tiles with an animation: \(decision.effects)")
+      return
+    }
+    #expect(retile.finals == [fullScreen])
   }
 
   @Test func askingForTheStateAWindowIsInChangesNothing() {

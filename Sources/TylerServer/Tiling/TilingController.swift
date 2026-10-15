@@ -112,10 +112,12 @@ struct TilingController {
   }
 
   /// Brings the workspaces' lists in line with the windows that exist, and lays out the current
-  /// workspace only if its membership changed. A focused window that was just assigned to a
+  /// workspace only if its membership changed: when windows only left it, the others slide into
+  /// their new slots over `animations.retile`. A focused window that was just assigned to a
   /// parked workspace brings that workspace into view, so keys don't go to a parked window.
   func reconcile(model: inout Model) -> [Effect] {
     guard context.isTiling(model) else { return [] }
+    let before = model.rows
     let sync = SyncController(context: context).sync(model: &model)
     if let (key, index) = sync.focusedArrival {
       model.rows.focus(key)
@@ -123,7 +125,22 @@ struct TilingController {
       return sync.effects
         + WorkspaceController(context: context).show(index, direction: direction, model: &model)
     }
-    return sync.effects + (sync.changedCurrent ? [.endSlideOrSwipe, .reconcile()] : [])
+    guard sync.changedCurrent else { return sync.effects }
+    guard Self.windowsOnlyLeft(before, model.rows) else {
+      return sync.effects + [.endSlideOrSwipe, .reconcile()]
+    }
+    let duration = Duration.milliseconds(context.config.animations.retile)
+    return sync.effects + [.endSlideOrSwipe]
+      + retiled(from: focusedSlots(before), model.rows, over: duration).effects
+  }
+
+  /// Whether the focused display's current workspace is still the one it was and only lost
+  /// windows. A window arriving has no slot to slide from, and a scrolling layout's view moves.
+  private static func windowsOnlyLeft(_ before: DisplayRows, _ after: DisplayRows) -> Bool {
+    before.focusedKey == after.focusedKey
+      && before.focused.currentIndex == after.focused.currentIndex
+      && !after.focused.current.scrolls
+      && Set(after.focused.current.windows).isSubset(of: before.focused.current.windows)
   }
 
   /// The current workspace keeps its list (so `tiling on` restores its order), and its windows
@@ -142,9 +159,12 @@ struct TilingController {
     return [.restoreOriginalFrames(restored)]
   }
 
-  /// The windows slide from `slots` into their slots now, taking `animations.swap`.
-  private func retiled(from slots: [Placement], _ rows: DisplayRows) -> Decision {
-    let duration = Duration.milliseconds(context.config.animations.swap)
+  /// The windows slide from `slots` into their slots now, taking `duration`, or
+  /// `animations.swap` if not given.
+  private func retiled(
+    from slots: [Placement], _ rows: DisplayRows, over duration: Duration? = nil
+  ) -> Decision {
+    let duration = duration ?? .milliseconds(context.config.animations.swap)
     let retile = Transition(retiling: slots, to: focusedSlots(rows), duration: duration)
     return Decision(effects: [retile.tracks.isEmpty ? .reconcile() : .animate(retile)])
   }

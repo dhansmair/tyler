@@ -10,8 +10,9 @@ struct ConfigAnimationsTests {
       [animations]
       swap = 0
       drag-preview = 120
+      retile = 400
       """)
-    #expect(config.animations == Config.Animations(swap: 0, dragPreview: 120))
+    #expect(config.animations == Config.Animations(swap: 0, dragPreview: 120, retile: 400))
   }
 
   @Test(arguments: [
@@ -21,6 +22,10 @@ struct ConfigAnimationsTests {
     (
       "[animations]\ndrag-preview = 1001",
       "animations.drag-preview must be a whole number of milliseconds, 0 to 1000"
+    ),
+    (
+      "[animations]\nretile = 1001",
+      "animations.retile must be a whole number of milliseconds, 0 to 1000"
     ),
   ])
   func rejectsDurationsOutOfRange(text: String, message: String) {

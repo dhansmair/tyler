@@ -7,10 +7,13 @@ extension Config {
     package var swap: Int
     /// A window the drag preview moves to where a drop would put it.
     package var dragPreview: Int
+    /// The windows that stay when one leaves the workspace.
+    package var retile: Int
 
-    package init(swap: Int = 250, dragPreview: Int = 200) {
+    package init(swap: Int = 250, dragPreview: Int = 200, retile: Int = 250) {
       self.swap = swap
       self.dragPreview = dragPreview
+      self.retile = retile
     }
   }
 }
@@ -21,7 +24,7 @@ extension Config.Animations {
   }
 
   /// The keys of `[animations]`, and how each is read.
-  static let settings: [Setting<Self>] = [swapSetting, dragPreviewSetting]
+  static let settings: [Setting<Self>] = [swapSetting, dragPreviewSetting, retileSetting]
 
   private static let swapSetting = Setting<Self>(
     "swap",
@@ -35,4 +38,10 @@ extension Config.Animations {
       animations.dragPreview = try Section.integer(
         value, name, in: durationRange, unit: "milliseconds")
     }, write: { .integer($0.dragPreview) })
+
+  private static let retileSetting = Setting<Self>(
+    "retile",
+    read: { animations, value, name throws(ConfigError) in
+      animations.retile = try Section.integer(value, name, in: durationRange, unit: "milliseconds")
+    }, write: { .integer($0.retile) })
 }

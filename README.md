@@ -36,6 +36,8 @@ and supports animations, mouse events and trackpad gestures.
 
 See [Features](docs/features.md) for the details.
 
+https://github.com/user-attachments/assets/5a3979a9-e80c-4d72-8321-f3b1b17f5d9e
+
 ## Requirements
 
 - macOS 14 or later. Only macOS 26 on an Apple silicon Mac has been tried so far.

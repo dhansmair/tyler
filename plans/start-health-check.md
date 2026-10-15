@@ -78,7 +78,8 @@ Each builds, is tested and documented on its own.
 4. **tylerd acts on it** (H3, done): `WindowManager`'s permission state follows the verdict;
    `ServerStatus` gains an optional `health` (an older tylerd decodes as `nil`, and `start` then
    says nothing). Scenario tests: refused at start, refused then fixed, locked screen.
-5. **`start`, `restart` and `status` report it** (H2, H4, H5): `DaemonController` waits for a
+5. **`start`, `restart` and `status` report it** (H2, H4, H5, done; H6 needs nothing more: the
+   `access` line of `status` already tells the three cases apart): `DaemonController` waits for a
    verdict and turns a bad one into a `DaemonError` (exit 1) with the fix; tested with the fake
    `DaemonSystem`.
 6. **Docs**: `docs/manual.md` (`start`, `status`), `docs/troubleshooting.md` (the message points

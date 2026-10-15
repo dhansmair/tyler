@@ -10,6 +10,8 @@ package enum DaemonError: Error, Equatable, Sendable, CustomStringConvertible {
   case noAnswer(pid: Int32, logPath: String)
   case cannotSignal(Int32)
   case stillRunning(Int32)
+  /// tylerd runs (`report` says so) but can't reach the windows.
+  case cannotReachWindows(report: String, problem: String)
 
   package var description: String {
     switch self {
@@ -33,6 +35,8 @@ package enum DaemonError: Error, Equatable, Sendable, CustomStringConvertible {
     case .stillRunning(let pid):
       "tylerd (pid \(pid)) is still running; it may be stuck putting windows back "
         + "(`kill -9 \(pid)` stops it, but leaves parked windows at the right edge)"
+    case .cannotReachWindows(let report, let problem):
+      report + "\n" + problem
     }
   }
 }

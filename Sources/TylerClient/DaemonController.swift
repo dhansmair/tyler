@@ -1,4 +1,5 @@
 import Foundation
+import TylerCore
 import TylerProtocol
 import TylerRuntime
 
@@ -32,6 +33,9 @@ package struct DaemonController {
   package let logPath: String
   var startTimeout: Duration = .seconds(10)
   var stopTimeout: Duration = .seconds(10)
+  /// How long `start` waits for apps that haven't answered tylerd yet: it tries each again for
+  /// about 2.5 s.
+  var accessTimeout: Duration = .seconds(4)
   var pollInterval: Duration = .milliseconds(100)
 
   package init(system: any DaemonSystem, serverPath: String, logPath: String) {
@@ -65,9 +69,10 @@ package struct DaemonController {
   private func startMessage() throws(DaemonError) -> String {
     switch try start() {
     case .alreadyRunning(let status):
-      "tylerd is already running (pid \(status.pid))" + staleWarning(status)
+      try withAccess(
+        "tylerd is already running (pid \(status.pid))" + staleWarning(status), of: status)
     case .started(let status):
-      "started tylerd (pid \(status.pid)), output in \(logPath)"
+      try withAccess("started tylerd (pid \(status.pid)), output in \(logPath)", of: status)
     }
   }
 
@@ -84,14 +89,18 @@ package struct DaemonController {
     let stopped = try stop(keepingWindows: true)
     switch (stopped, try start()) {
     case (_, .alreadyRunning(let status)):
-      return "tylerd is already running (pid \(status.pid))" + staleWarning(status)
+      return try withAccess(
+        "tylerd is already running (pid \(status.pid))" + staleWarning(status), of: status)
     case (.notRunning, .started(let status)):
-      return "tylerd was not running; started it (pid \(status.pid)), output in \(logPath)"
+      return try withAccess(
+        "tylerd was not running; started it (pid \(status.pid)), output in \(logPath)",
+        of: status)
     case (.stopped(let old, let keptWindows), .started(let status)):
       let note =
         keptWindows
         ? "" : "\n(the old tylerd could not hand over, so its windows went back where they were)"
-      return "restarted tylerd (pid \(old) → \(status.pid)), output in \(logPath)" + note
+      return try withAccess(
+        "restarted tylerd (pid \(old) → \(status.pid)), output in \(logPath)" + note, of: status)
     }
   }
 
@@ -108,7 +117,33 @@ package struct DaemonController {
       lines.append("          changed by `config set`: \(changes.joined(separator: ", "))")
     }
     lines.append("  tiling  \(Self.describe(status.tiling))")
+    if let access = status.access {
+      lines.append("  access  \(access.summary)")
+      if let problem = access.problem { lines.append("warning: " + problem) }
+    }
     return lines.joined(separator: "\n") + staleWarning(status)
+  }
+
+  /// `report` with what tylerd's access to the windows adds to it, once it is settled: a note,
+  /// or an error when it needs fixing. tylerd keeps running either way.
+  private func withAccess(_ report: String, of status: ServerStatus) throws(DaemonError) -> String {
+    guard let access = settledAccess(status) else { return report }
+    if let problem = access.problem { throw .cannotReachWindows(report: report, problem: problem) }
+    return access.note.map { report + "\nnote: " + $0 } ?? report
+  }
+
+  /// The server's access to the windows, after waiting while apps haven't answered it yet; `nil`
+  /// from a server older than the check.
+  private func settledAccess(_ status: ServerStatus) -> WindowAccess? {
+    var access = status.access
+    var waited = Duration.zero
+    while access == .checking, waited < accessTimeout {
+      system.pause(pollInterval)
+      waited += pollInterval
+      guard case .running(let fresh) = probe() else { break }
+      access = fresh.access
+    }
+    return access
   }
 
   // MARK: - Steps

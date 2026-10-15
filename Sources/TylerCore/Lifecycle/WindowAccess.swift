@@ -21,7 +21,7 @@ package enum WindowAccess: String, Codable, Equatable, Sendable {
     return .ok
   }
 
-  /// Whether tracking sees the windows: `onScreen` are the window server's windows of apps that
+  /// Whether tracking sees the windows: `onScreen` are the window server's windows of the apps
   /// tylerd observes, `known` the windows it tracks. One window in both is enough; with nothing on
   /// screen there is nothing to compare.
   package static func whileRunning(

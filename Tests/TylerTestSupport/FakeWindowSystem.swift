@@ -53,6 +53,7 @@ package final class FakeWindowSystem: WindowSystem {
 
   package func start() { startCount += 1 }
   package func stop() { stopCount += 1 }
+  package var isAttaching = false
   package func snapshot() -> [WindowInfo] { windows }
 
   /// What `freshWindows` adds to the windows: those macOS has and the fake doesn't track, and the

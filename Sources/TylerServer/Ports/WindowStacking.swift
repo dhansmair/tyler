@@ -10,4 +10,7 @@ package protocol WindowStacking: AnyObject {
   func topmostWindow(at point: CGPoint) -> StackedWindow?
   /// Whether a menu is open: an app's menu, a context menu or a pop-up.
   var isMenuOpen: Bool { get }
+  /// The on-screen windows of regular apps at the normal layer, tylerd's own left out: what
+  /// tylerd should be able to see through Accessibility.
+  var appWindowsOnScreen: Set<WindowID> { get }
 }

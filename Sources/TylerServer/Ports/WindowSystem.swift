@@ -15,6 +15,8 @@ package protocol WindowSystem: AnyObject {
   /// couldn't observe: for `tyler debug windows`, which compares them with tylerd's picture.
   func freshWindows() -> FreshWindows
   func stop()
+  /// Whether an app that refused to be observed is still being tried again.
+  var isAttaching: Bool { get }
 
   /// Moves and resizes a window. The frame is in Accessibility coordinates. Apps may clamp the
   /// size, so the result is reported back through `events`, not assumed.

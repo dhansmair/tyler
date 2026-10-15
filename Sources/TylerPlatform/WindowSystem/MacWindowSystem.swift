@@ -65,6 +65,8 @@ package final class MacWindowSystem: WindowSystem {
     focusedID = nil
   }
 
+  package var isAttaching: Bool { !retries.isEmpty }
+
   package func snapshot() -> [WindowInfo] {
     owners.keys.sorted().compactMap { windowInfo(for: $0) }
   }

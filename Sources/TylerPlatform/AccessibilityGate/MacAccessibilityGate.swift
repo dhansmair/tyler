@@ -1,11 +1,14 @@
 import ApplicationServices
 import Foundation
+import TylerCore
+import TylerRuntime
 import TylerServer
 
 /// Asks macOS whether this process (or the terminal app hosting it) may use Accessibility.
 @MainActor
 package final class MacAccessibilityGate: AccessibilityGate {
   package let changes: AsyncStream<Void>
+  private static let log = TylerLog(category: "ax")
   private let observer: any NSObjectProtocol
 
   package init() {
@@ -23,6 +26,35 @@ package final class MacAccessibilityGate: AccessibilityGate {
   }
 
   package var isTrusted: Bool { AXIsProcessTrusted() }
+
+  package var facts: AccessFacts {
+    AccessFacts(isTrusted: isTrusted, probe: Self.probe(), isScreenLocked: Self.isScreenLocked)
+  }
+
+  /// Asks for the focused app, which every grant allows: a stale grant was seen to report itself
+  /// trusted while tylerd saw no windows.
+  private static func probe() -> AccessFacts.Probe {
+    let systemWide = AXUIElementCreateSystemWide()
+    // The frontmost app answers; one that hangs mustn't hold up the main thread for long.
+    _ = AXUIElementSetMessagingTimeout(systemWide, 0.5)
+    var value: CFTypeRef?
+    let status = AXUIElementCopyAttributeValue(
+      systemWide, kAXFocusedApplicationAttribute as CFString, &value)
+    switch status {
+    case .success, .noValue: return .allowed
+    case .apiDisabled:
+      log.debug("permission probing failed - AX error \(status.rawValue)")
+      return .refused
+    default:
+      log.debug("permission probing failed - AX error \(status.rawValue)")
+      return .noAnswer
+    }
+  }
+
+  private static var isScreenLocked: Bool {
+    guard let session = CGSessionCopyCurrentDictionary() as? [String: Any] else { return false }
+    return session["CGSSessionScreenIsLocked"] as? Bool ?? false
+  }
 
   package func prompt() {
     // The literal is the value of `kAXTrustedCheckOptionPrompt`; the constant itself is a

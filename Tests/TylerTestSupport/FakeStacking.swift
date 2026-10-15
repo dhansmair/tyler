@@ -14,10 +14,16 @@ package final class FakeStacking: WindowStacking {
   /// The window system's windows from front to back; the others follow in the window system's order.
   package var front: [UInt32] = []
   package var isMenuOpen = false
+  /// The windows the window server shows; the window system's that aren't minimized when `nil`.
+  package var listedWindows: Set<WindowID>?
   /// Every point asked about.
   package private(set) var queries: [CGPoint] = []
 
   package init() {}
+
+  package var appWindowsOnScreen: Set<WindowID> {
+    listedWindows ?? Set((windowSystem?.windows ?? []).filter { !$0.isMinimized }.map(\.id))
+  }
 
   package func topmostWindow(at point: CGPoint) -> StackedWindow? {
     queries.append(point)

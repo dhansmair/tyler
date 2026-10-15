@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import TylerCore
 import TylerServer
@@ -22,9 +23,21 @@ package final class MacWindowStacking: WindowStacking {
     Self.onScreen().contains { $0.window.layer == Self.menuLayer }
   }
 
+  package var appWindowsOnScreen: Set<WindowID> {
+    let regularApps = Set(
+      NSWorkspace.shared.runningApplications.filter { $0.activationPolicy == .regular }
+        .map(\.processIdentifier))
+    return Set(
+      Self.onScreen().filter { listed in
+        !listed.isOwn && listed.window.layer == PointerFocus.normalLayer
+          && regularApps.contains(listed.ownerID)
+      }.map(\.window.id))
+  }
+
   private struct Listed {
     let window: StackedWindow
     let frame: CGRect
+    let ownerID: pid_t
     let isOwn: Bool
   }
 
@@ -46,8 +59,8 @@ package final class MacWindowStacking: WindowStacking {
       if PointerFocus.isOverlay(layer: layer, frame: frame, displayFrames: displays) { return nil }
       let owner = entry[kCGWindowOwnerName as String] as? String
       let window = StackedWindow(id: WindowID(number), layer: layer, owner: owner)
-      let isOwn = entry[kCGWindowOwnerPID as String] as? Int == ownID
-      return Listed(window: window, frame: frame, isOwn: isOwn)
+      let ownerID = entry[kCGWindowOwnerPID as String] as? Int ?? 0
+      return Listed(window: window, frame: frame, ownerID: pid_t(ownerID), isOwn: ownerID == ownID)
     }
   }
 

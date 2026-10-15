@@ -72,7 +72,7 @@ Each builds, is tested and documented on its own.
    useful on its own the next time it happens.
 2. **`WindowAccess` in TylerCore** (done): the facts in, the verdict out; unit tests per verdict,
    including "window server shows windows of an app still attaching" (`pending`, not `refused`).
-3. **The facts in TylerPlatform**: the probe behind the `AccessibilityGate` port (it grows a
+3. **The facts in TylerPlatform** (done): the probe behind the `AccessibilityGate` port (it grows a
    `probe()`), the window server listing through the existing stacking code, the lock state.
    `FakeAccessibilityGate` returns given facts.
 4. **tylerd acts on it** (H3): `WindowManager`'s permission state follows the verdict;

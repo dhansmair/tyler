@@ -53,6 +53,24 @@ struct MacWindowSystemAttachTests {
     #expect(await harness.takeEvents().created == [1])
   }
 
+  @Test func itIsAttachingWhileAnAppIsTriedAgain() async {
+    harness.addApp(100, windows: [1])
+    harness.addApp(200, windows: [2])
+    harness.accessibility.refuseObserving(100, times: 1)
+    harness.accessibility.refuseObserving(200, times: 6)
+    await harness.start()
+    #expect(harness.windowSystem.isAttaching)
+
+    harness.clock.advance(by: .milliseconds(500))
+    await settle()
+    #expect(harness.windowSystem.isAttaching, "the second app is still refusing")
+    for _ in 2..<6 {
+      harness.clock.advance(by: .milliseconds(500))
+      await settle()
+    }
+    #expect(!harness.windowSystem.isAttaching, "given up on")
+  }
+
   @Test func anAppGivenUpOnIsAttachedWhenItComesToTheFront() async {
     harness.addApp(100, windows: [1])
     harness.accessibility.refuseObserving(100, times: 6)

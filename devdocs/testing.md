@@ -120,6 +120,12 @@ Tick an item with the date when it is checked; record what was measured in `maco
   floated window over a gap gets the press; nothing where gaps cross; the resize cursor follows
   the pointer into and out of gaps on every display and Space, goes during a slide and stays on
   the gap during a drag
+- [x] The mouse button interceptor is armed only while Option is held or the gap cursor shows, and
+  disarmed after (2026-10-15, two displays, the log at `debug`): Option-drag moves, Option-right-drag
+  resizes, a gap drag moves the divider, holding Option through several resizes keeps it armed
+- [ ] Switching off the terminal's Accessibility grant with the interceptor disarmed leaves input
+  working, and tylerd says it waits for the permission. Only in a macOS virtual machine: on a Mac
+  in use a freeze needs a forced restart
 - [ ] Modifier drag: Option-drag swaps, also onto another display; Option-right-drag in each quarter
   of a window in `tall` and the strip; a floated window moves and resizes freely; Option+click and
   Option+right-click still reach the app; Option+double-click; nothing grabbed over the desktop or

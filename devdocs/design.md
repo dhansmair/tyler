@@ -233,11 +233,25 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   swallowed, otherwise the held click is posted again so it reaches the app. The tap runs on the
   main thread like the other taps; if macOS turns it off for being slow, tylerd turns it back on
   and drops the held press. A tap on its own thread is the fallback if that happens in practice.
+- **The active tap exists only while a press may be tyler's** (`PressTakeover`): while exactly the
+  modifier is held (a listen-only `flagsChanged` tap tells), while the gap cursor shows, and until
+  a gesture's button comes up. Removing the Accessibility grant from a process with an active tap
+  in place can stop all input until a forced restart (reported, seen once), and listen-only taps
+  are not affected; most of the time there is now no active tap to freeze on, and ordinary clicks
+  don't wait for tylerd's main thread. Arming costs 0.04 ms and is live about 1 ms after the key
+  (measured); a modifier-click made before then, or while the main thread is busy, goes to the
+  app. Arming on a thread of its own would close that gap, if it shows in daily use. The tap is
+  invalidated, not just disabled, since whether a disabled active tap is safe is unknown.
+- **tylerd follows the Accessibility permission for as long as it runs**, not only until it is
+  first granted: at the `com.apple.accessibility.api` notification and every second, and once it
+  is gone it hands over to itself (every tap and observer goes, the windows stay where they are)
+  and carries on with the workspaces when it is back. Removing the entry from the list posts
+  nothing and leaves `AXIsProcessTrusted()` true, so only the docs (`tyler stop` first) guard that.
 - **Resizing by dragging a gap** goes through the same active tap: a left press with no keys is held
   when `GapGrab` finds it between two slots in view and the window server has nothing in front of
   it there, and a drag then resizes the window before the gap (its right or bottom edge) through
-  the layout, as a resize with the modifier does. Only a press in a gap reads the window list, so
-  every other click costs a pass over the slots. Not chosen: invisible windows in the gaps (a
+  the layout, as a resize with the modifier does. The tap is armed only while the gap cursor shows,
+  the same decision as the press's, so other clicks never reach tylerd. Not chosen: invisible windows in the gaps (a
   window per gap per display, kept in step with every layout change, slide and swipe, and stacked
   above the desktop but below every other window, which macOS can't promise across apps), or one
   window behind all others (it would take every click on the desktop). Neither shows a resize

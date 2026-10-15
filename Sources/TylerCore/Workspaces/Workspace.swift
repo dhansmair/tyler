@@ -268,8 +268,16 @@ package struct Workspace: Equatable, Sendable {
     focused.flatMap { windows.firstIndex(of: $0) }
   }
 
-  /// Where a window joining the list goes: right after the focused one, or at the end.
+  /// Moves the window at `index` to `destination`, the others closing up behind it.
+  mutating func moveWindow(at index: Int, to destination: Int) {
+    windows.insert(windows.remove(at: index), at: destination)
+    refitView()
+  }
+
+  /// Where a window joining the list goes: right after the focused one, or at the end. In `tall`
+  /// it goes into the stack, never into the master section.
   private var insertionIndex: Int {
-    focusedIndex.map { $0 + 1 } ?? windows.count
+    let afterFocused = focusedIndex.map { $0 + 1 } ?? windows.count
+    return layout == .tall ? max(afterFocused, mainSectionCount) : afterFocused
   }
 }

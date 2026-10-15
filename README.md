@@ -8,7 +8,7 @@ and supports animations, mouse events and trackpad gestures.
 > **tyler is alpha software.**
 > Expect bugs, and expect commands and settings to change before 1.0.
 >
-> **It is almost entirely written by [Claude Code](https://claude.com/claude-code),
+> **It is almost entirely written by [Claude Code](https://claude.com/claude-code)**,
 > with a human deciding what to build, trying it on real windows and reviewing the result. The code
 > is unit tested and linted, but no human has read every line. [`CLAUDE.md`](CLAUDE.md) and
 > [`devdocs/`](devdocs) show how it is built.

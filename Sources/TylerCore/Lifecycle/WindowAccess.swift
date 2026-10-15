@@ -30,12 +30,4 @@ package enum WindowAccess: String, Codable, Equatable, Sendable {
     if onScreen.isEmpty || !onScreen.isDisjoint(with: known) { return .ok }
     return isAttaching ? .checking : .blind
   }
-
-  /// Whether tylerd works as it should, or will once the screen is unlocked or the apps answer.
-  package var isHealthy: Bool {
-    switch self {
-    case .ok, .screenLocked, .checking: true
-    case .notTrusted, .refused, .blind: false
-    }
-  }
 }

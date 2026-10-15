@@ -31,24 +31,19 @@ package final class MacAccessibilityGate: AccessibilityGate {
     AccessFacts(isTrusted: isTrusted, probe: Self.probe(), isScreenLocked: Self.isScreenLocked)
   }
 
-  /// Asks for the focused app, which every grant allows: a stale grant was seen to report itself
-  /// trusted while tylerd saw no windows.
+  /// Asks for the focused app, which any working grant allows: a stale grant may report itself
+  /// trusted and still have its calls refused (unverified; see `devdocs/known-issues.md`).
   private static func probe() -> AccessFacts.Probe {
     let systemWide = AXUIElementCreateSystemWide()
-    // The frontmost app answers; one that hangs mustn't hold up the main thread for long.
-    _ = AXUIElementSetMessagingTimeout(systemWide, 0.5)
+    // The frontmost app answers, so one that hangs would hold up the main thread. On the
+    // system-wide element the timeout applies to every element, so it is the window system's.
+    _ = AXUIElementSetMessagingTimeout(systemWide, AXBridge.messagingTimeout)
     var value: CFTypeRef?
     let status = AXUIElementCopyAttributeValue(
       systemWide, kAXFocusedApplicationAttribute as CFString, &value)
-    switch status {
-    case .success, .noValue: return .allowed
-    case .apiDisabled:
-      log.debug("permission probing failed - AX error \(status.rawValue)")
-      return .refused
-    default:
-      log.debug("permission probing failed - AX error \(status.rawValue)")
-      return .noAnswer
-    }
+    if status == .success || status == .noValue { return .allowed }
+    log.debug("permission probing failed - AX error \(status.rawValue)")
+    return status == .apiDisabled ? .refused : .noAnswer
   }
 
   private static var isScreenLocked: Bool {

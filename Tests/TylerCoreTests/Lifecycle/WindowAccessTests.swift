@@ -49,12 +49,4 @@ struct WindowAccessTests {
       onScreen: running.onScreen, known: running.known, isAttaching: running.isAttaching)
     #expect(verdict == access)
   }
-
-  @Test(arguments: [
-    (WindowAccess.ok, true), (.screenLocked, true), (.checking, true),
-    (.notTrusted, false), (.refused, false), (.blind, false),
-  ])
-  func onlyWhatTheUserMustFixIsUnhealthy(access: WindowAccess, isHealthy: Bool) {
-    #expect(access.isHealthy == isHealthy)
-  }
 }

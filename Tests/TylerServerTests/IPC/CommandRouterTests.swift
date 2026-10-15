@@ -47,10 +47,12 @@ struct CommandRouterTests {
     var expected = base
     expected.tiling = .waitingForPermission
     expected.configChanges = []
+    expected.access = .notTrusted
     #expect(await router.handle(.status) == .status(expected))
 
     manager.startIfPermitted()
     expected.tiling = .on
+    expected.access = .ok
     #expect(await router.handle(.status) == .status(expected))
 
     _ = manager.setTiling(.off)

@@ -75,7 +75,7 @@ Each builds, is tested and documented on its own.
 3. **The facts in TylerPlatform** (done): the probe behind the `AccessibilityGate` port (it grows a
    `probe()`), the window server listing through the existing stacking code, the lock state.
    `FakeAccessibilityGate` returns given facts.
-4. **tylerd acts on it** (H3): `WindowManager`'s permission state follows the verdict;
+4. **tylerd acts on it** (H3, done): `WindowManager`'s permission state follows the verdict;
    `ServerStatus` gains an optional `health` (an older tylerd decodes as `nil`, and `start` then
    says nothing). Scenario tests: refused at start, refused then fixed, locked screen.
 5. **`start`, `restart` and `status` report it** (H2, H4, H5): `DaemonController` waits for a

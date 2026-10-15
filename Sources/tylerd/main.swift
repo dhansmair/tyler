@@ -153,13 +153,21 @@ if manager.startIfPermitted() {
   announce("windows tracking started")
   forgetHandedOverState()
 } else {
-  gate.prompt()
-  announce(
-    "permission waiting - Accessibility, in System Settings > Privacy & Security")
+  switch manager.access {
+  case .screenLocked:
+    announce("screen locked - windows tracking starts once it is unlocked")
+  case .refused:
+    warn(
+      "permission refused - Accessibility calls fail although the permission is on; its entry "
+        + "in System Settings > Privacy & Security may be stale (see docs/troubleshooting.md)")
+  case .notTrusted, .ok, .checking, .blind:
+    gate.prompt()
+    announce("permission waiting - Accessibility, in System Settings > Privacy & Security")
+  }
 }
 let permissionPoll = Task { @MainActor in
   await manager.followPermission {
-    announce("permission granted - Accessibility; windows tracking started")
+    announce("windows tracking started - Accessibility works now")
     forgetHandedOverState()
   }
 }

@@ -71,6 +71,8 @@ package final class WindowManager {
   let windowSystem: any WindowSystem
   let displays: any DisplayProvider
   private let gate: any AccessibilityGate
+  /// What the last check before tracking windows found; `nil` before the first.
+  private var accessBeforeStart: WindowAccess?
   /// Where `reload` reads the config from; `nil` when there is nothing to reload.
   let configSource: ConfigSource?
   var pump: Task<Void, Never>?
@@ -142,7 +144,7 @@ package final class WindowManager {
   @discardableResult
   package func startIfPermitted() -> Bool {
     if state == .running { return true }
-    guard gate.isTrusted else { return false }
+    guard checkAccess() == .ok else { return false }
 
     // Subscribe before starting so no event is lost; the registry tolerates duplicates.
     let events = windowSystem.events
@@ -190,6 +192,23 @@ package final class WindowManager {
     }
   }
 
+  /// Whether tylerd may start tracking windows, logging when the reason it may not changes. The
+  /// first check is logged by tylerd's start instead.
+  private func checkAccess() -> WindowAccess {
+    let access = WindowAccess.beforeStart(gate.facts)
+    defer { accessBeforeStart = access }
+    guard let previous = accessBeforeStart, previous != access else { return access }
+    switch access {
+    case .refused:
+      Self.log.warning(
+        "permission refused - Accessibility calls fail although the permission is on")
+    case .screenLocked: Self.log.info("screen locked - windows tracking waits for it")
+    case .notTrusted: Self.log.info("permission waiting - Accessibility")
+    case .ok, .checking, .blind: break
+    }
+    return access
+  }
+
   private func checkPermission(started: () -> Void) {
     switch state {
     case .waitingForPermission:
@@ -198,6 +217,7 @@ package final class WindowManager {
       guard !gate.isTrusted else { return }
       Self.log.warning("permission lost - Accessibility - event taps removed, waiting for it again")
       pendingRestore = handOver()
+      accessBeforeStart = .notTrusted
     }
   }
 
@@ -214,6 +234,15 @@ package final class WindowManager {
   package var tilingStatus: ServerStatus.Tiling {
     guard state == .running else { return .waitingForPermission }
     return tilingEnabled ? .on : .off
+  }
+
+  /// Whether tylerd can reach the windows, for `tyler status`: before it tracks them, why it
+  /// doesn't; once it does, whether it sees the windows the window server shows.
+  package var access: WindowAccess {
+    guard state == .running else { return accessBeforeStart ?? .notTrusted }
+    return WindowAccess.whileRunning(
+      onScreen: stacking?.appWindowsOnScreen ?? [], known: Set(registry.windows.map(\.id)),
+      isAttaching: windowSystem.isAttaching)
   }
 
   // MARK: - Requests

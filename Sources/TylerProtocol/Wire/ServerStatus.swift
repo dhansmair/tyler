@@ -1,4 +1,5 @@
 import Foundation
+import TylerCore
 import TylerRuntime
 
 /// What `tylerd` reports about itself for `tyler status`, `stop` and `restart`.
@@ -27,6 +28,8 @@ package struct ServerStatus: Codable, Equatable, Sendable {
   /// The settings `tyler config set` changed since the config was last read; `nil` from a server
   /// without `config set`.
   package var configChanges: [String]?
+  /// Whether tylerd can reach the windows; `nil` from a server older than this check.
+  package var access: WindowAccess?
 
   package init(
     pid: Int32,
@@ -37,7 +40,8 @@ package struct ServerStatus: Codable, Equatable, Sendable {
     tiling: Tiling = .waitingForPermission,
     keepsWindowsOnRestart: Bool? = nil,
     version: String? = nil,
-    configChanges: [String]? = nil
+    configChanges: [String]? = nil,
+    access: WindowAccess? = nil
   ) {
     self.pid = pid
     self.executablePath = executablePath
@@ -48,5 +52,6 @@ package struct ServerStatus: Codable, Equatable, Sendable {
     self.keepsWindowsOnRestart = keepsWindowsOnRestart
     self.version = version
     self.configChanges = configChanges
+    self.access = access
   }
 }

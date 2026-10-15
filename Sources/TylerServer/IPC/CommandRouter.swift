@@ -39,6 +39,7 @@ package struct CommandRouter: Sendable {
       if let manager {
         status.tiling = manager.tilingStatus
         status.configChanges = manager.configChanges
+        status.access = manager.access
       }
       return .status(status)
     case .configEdit:

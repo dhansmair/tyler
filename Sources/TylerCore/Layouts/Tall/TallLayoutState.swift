@@ -5,6 +5,9 @@ package struct TallLayoutState: LayoutState {
   package static let ratioRange: ClosedRange<Double> = 0.1...0.9
 
   package private(set) var mainRatio: Double
+  /// How many windows, from the start of the list, the master section holds. Kept as the user
+  /// set it; `mainCount(for:)` fits it to the windows there are.
+  package private(set) var mainCount: Int
   /// Only the rows are used: `mainRatio` sets the column widths.
   var weights: ColumnWeights
 
@@ -15,9 +18,32 @@ package struct TallLayoutState: LayoutState {
     self.init(mainRatio: 0.5)
   }
 
-  package init(mainRatio: Double = 0.5, rowWeights: [[Double]] = []) {
+  package init(mainRatio: Double = 0.5, rowWeights: [[Double]] = [], mainCount: Int = 1) {
     self.mainRatio = Self.clamp(mainRatio)
     self.weights = ColumnWeights(rows: rowWeights)
+    self.mainCount = max(mainCount, 1)
+  }
+
+  /// The master section of a list of `count` windows: at least the first window, at most all.
+  package func mainCount(for count: Int) -> Int {
+    min(mainCount, count)
+  }
+
+  /// The master section takes one more window, the one that was first in the stack.
+  mutating func growMainSection(of count: Int) {
+    mainCount = mainCount(for: count) + 1
+  }
+
+  /// The master section gives its last window to the stack. It keeps at least one.
+  mutating func shrinkMainSection(of count: Int) {
+    mainCount = max(mainCount(for: count) - 1, 1)
+  }
+
+  /// A master that closes takes its place in the master section with it.
+  package mutating func remove(_ windowID: WindowID, from windows: [WindowID]) {
+    guard let index = windows.firstIndex(of: windowID), index < mainCount(for: windows.count)
+    else { return }
+    shrinkMainSection(of: windows.count)
   }
 
   /// Returns whether the ratio changed.
@@ -55,19 +81,23 @@ extension TallLayoutState: Codable {
   private enum CodingKeys: String, CodingKey {
     case mainRatio
     case rowWeights
+    case mainCount
   }
 
-  /// Decoded through `init(mainRatio:rowWeights:)`, so a ratio from a file is clamped too.
+  /// Decoded through `init(mainRatio:rowWeights:mainCount:)`, so a ratio from a file is clamped
+  /// too.
   package init(from decoder: any Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     self.init(
       mainRatio: try container.decode(Double.self, forKey: .mainRatio),
-      rowWeights: try container.decodeIfPresent([[Double]].self, forKey: .rowWeights) ?? [])
+      rowWeights: try container.decodeIfPresent([[Double]].self, forKey: .rowWeights) ?? [],
+      mainCount: try container.decodeIfPresent(Int.self, forKey: .mainCount) ?? 1)
   }
 
   package func encode(to encoder: any Encoder) throws {
     var container = encoder.container(keyedBy: CodingKeys.self)
     try container.encode(mainRatio, forKey: .mainRatio)
     try container.encode(rowWeights, forKey: .rowWeights)
+    try container.encode(mainCount, forKey: .mainCount)
   }
 }

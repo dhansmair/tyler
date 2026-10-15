@@ -108,10 +108,16 @@ Not part of 0.1.0; the release says so rather than half-doing them.
 - **Starting at login** (`tyler service install`, a LaunchAgent). It needs a stable code
   signature for the Accessibility grant (D8).
 - **A Homebrew package** (a tap or a formula). 0.1.0 ships as source (D2).
-- **Running the mouse button interceptor off the main thread** (`devdocs/REFACTORING.md`). While
-  tylerd's main thread is busy, every click on the system waits for it. Skipping an app that timed
-  out took away the long stalls; what is left (slow apps that still answer, reads) is to be
-  measured before it is built.
+- **Running the mouse button interceptor off the main thread** (`devdocs/REFACTORING.md`). The
+  interceptor is armed only while the modifier is held or the pointer is over a gap, so ordinary
+  clicks no longer wait for tylerd's main thread; a modifier-click or gap press while it is busy
+  still does, or goes to the app. To be measured in daily use before it is built.
+- **A cursor that shows a window can be dragged** while the modifier is held over it (an open
+  hand, a closed one during the drag). macOS undoes a cursor set from the background; the gap
+  cursor's way around that, a window of tylerd's that takes mouse events, would catch the
+  modifier-click the interceptor passes on to the app, and the app under the pointer sets its own
+  cursor on every move. It would need a spike first (a window that lets clicks through: does the
+  cursor still show?), with a badge beside the pointer as the fallback.
 - **A minimized window that keeps its slot** (seen once). A dropped update is logged now, and
   `tyler debug windows` shows the drift; re-reading every tiled window at each sync costs AX calls
   on a busy path, so it waits until the drift is seen again. It stays in `known-issues.md`.

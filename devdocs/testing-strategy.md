@@ -2,8 +2,7 @@
 
 tyler is tested in three layers, a pyramid: many fast unit tests, fewer scenario tests of the
 whole server on fakes, and a small end-to-end suite on real windows that runs before every
-release. This file says what each layer covers and where a new test goes. `plans/testing.md` is
-the work still to do to get there.
+release. This file says what each layer covers and where a new test goes.
 
 ## The layers
 

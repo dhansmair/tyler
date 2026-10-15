@@ -25,7 +25,7 @@ Where things are written down:
 - `devdocs/known-issues.md`: bugs, limitations and what isn't built. Remove an item in the commit that fixes it, also from its user-facing twin `docs/known-issues.md`.
 - `devdocs/REFACTORING.md`: the ranked refactoring and performance backlog.
 - `docs/`: for users. `docs/manual.md` is the manual (concepts, running tylerd, the config file and the command reference); `layouts.md`, `features.md`, `keybindings.md`, `troubleshooting.md` and `known-issues.md` sit beside it. Keep them in step when behaviour, settings or commands change.
-- `plans/`: the plan for each piece of work still to do; delete a plan once its work is done and its lasting decisions are in `devdocs/design.md`. Keep plans there, not in `~/.claude`.
+- `plans/`: the plan for each piece of work still to do, git-ignored (local working notes, not published); delete a plan once its work is done and its lasting decisions are in `devdocs/design.md`. Keep plans there, not in `~/.claude`.
 
 ## Layout
 

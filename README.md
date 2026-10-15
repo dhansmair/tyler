@@ -1,41 +1,36 @@
-# 『Tyler』
+# Tyler
 
-A tiling window manager for macOS, in the spirit of xmonad. Each workspace is an ordered list of
-windows (a main window on the left, the rest stacked beside it), workspaces sit side by side in a
-row like pages that slide into view, and everything is driven by a small command-line client you
-bind keys to.
+A dynamic tiling window manager for macOS with an XMonad-style layout system.
+Windows are ordered in a flat list. Tyler offers basic layouts (tall, grid, full)
+and supports animations, mouse events and trackpad gestures.
 
 > [!WARNING]
-> **tyler is alpha software.** It is used daily by its author, but by few people beyond that, so
-> expect bugs, and expect commands and settings to change before 1.0.
+> **tyler is alpha software.**
+> Expect bugs, and expect commands and settings to change before 1.0.
 >
-> **It is almost entirely "vibe-coded":** written by [Claude Code](https://claude.com/claude-code),
+> **It is almost entirely written by [Claude Code](https://claude.com/claude-code),
 > with a human deciding what to build, trying it on real windows and reviewing the result. The code
 > is unit tested and linted, but no human has read every line. [`CLAUDE.md`](CLAUDE.md) and
 > [`devdocs/`](devdocs) show how it is built.
->
-> **tyler moves your windows.** If anything goes wrong, `tyler tiling off` brings every window back
-> into view, and `tyler stop` puts every window back where it was. See
-> [Troubleshooting](docs/troubleshooting.md).
 
 ## Features
 
-- **Tiling** of every window into an ordered list: `tall` (a main window on the left, the others
-  stacked on the right), `grid` (columns two windows high) and `full`. `strip`, a niri-like row of columns that scrolls, is
-  **experimental**. See [Layouts](docs/layouts.md).
-- **Workspaces side by side**, switched with a slide: by command, a three-finger trackpad swipe
-  that follows your fingers, Cmd-Tab to a window on another workspace, or the menu bar.
+- **Tiling** of every window into an ordered list. Provides basic layouts out of the box: `tall`, `grid`, `full`.
+  `strip`, a niri-like row of columns that scrolls, is
+  experimental. See [Layouts](docs/layouts.md).
 - **Several displays**, each with its own row of workspaces. Windows can be dragged across, and
   displays that come and go are followed.
-- **The mouse:** resize tiled windows and the layout follows; drag a window onto another to swap
-  them; Option-drag anywhere in a window to move or resize it; optional focus follows mouse.
-- **The menu bar** shows the workspaces as numbers, as a small map of every workspace and its
-  windows, or both.
+- **Mouse Support** resize tiled windows and the layout follows; drag a window onto another to swap
+  them; Option-drag anywhere in a window to move or resize it.
+- **Swipe Gestures** swipe with three fingers to switch between workspaces
+- **Menu bar indicators** shows the workspaces as numbers or as a small map of every workspace and its
+  windows.
 - **A config file** for gaps, the number of workspaces, layouts, app assignments, gestures and the
   mouse, applied with `tyler config reload`; `tyler config set` tries a setting out until tylerd
   stops.
-- **Performance:** slides, swipes and resizes are paced to what the apps can keep up with, and
-  tylerd measures each one; see [Performance](docs/features.md#performance).
+- **Rich CLI Commands** Tyler doesn't integrate keybindings natively, but provides various commands 
+  that can be bound to keyboard shortcuts, e.g. via `skhd`.
+- **Animations** window swapping, resizing, closing or moving between workspaces can be animated.
 - **No SIP changes.** tyler uses only the public Accessibility API: no private APIs, no scripting
   additions, System Integrity Protection stays on.
 
@@ -50,7 +45,7 @@ See [Features](docs/features.md) for the details.
 
 ## Installation
 
-tyler is installed from source:
+There is no `brew` package or similar yet; tyler must be installed from source:
 
 ```bash
 git clone https://github.com/dhansmair/tyler.git

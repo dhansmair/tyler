@@ -101,4 +101,39 @@ struct GapCursorScenarios {
     await scenario.movePointer(to: CGPoint(x: main.maxX, y: 300))
     #expect(scenario.gapCursor.showCount == 0)
   }
+
+  // A press in a gap is taken over only while the cursor shows there, since the interceptor's
+  // active tap exists only then (`PressTakeover`).
+
+  @Test func thePointerIsToldWhileTheCursorShows() async {
+    let scenario = await Self.scenario()
+    await scenario.movePointer(to: Self.middle(of: Self.besideMain(scenario)))
+    #expect(scenario.pointer.isOverGap)
+    await scenario.movePointer(to: CGPoint(x: 300, y: 300))
+    #expect(!scenario.pointer.isOverGap)
+  }
+
+  @Test func aWindowInFrontOfTheGapTellsThePointerNothing() async {
+    let scenario = await Self.scenario()
+    let point = Self.middle(of: Self.besideMain(scenario))
+    let floating = StackedWindow(id: WindowID(99), layer: PointerFocus.normalLayer, owner: "Notes")
+    scenario.stacking.overlays = [
+      (floating, CGRect(x: point.x - 50, y: point.y - 50, width: 100, height: 100))
+    ]
+    await scenario.movePointer(to: point)
+    #expect(!scenario.pointer.isOverGap)
+  }
+
+  @Test func aLayoutChangeUnderTheStillPointerTellsThePointerItLeft() async {
+    let scenario = await Self.scenario()
+    await scenario.movePointer(to: Self.middle(of: Self.besideMain(scenario)))
+    await scenario.command("layout set full")
+    #expect(!scenario.pointer.isOverGap)
+  }
+
+  @Test func turnedOffTellsThePointerNothing() async {
+    let scenario = await Self.scenario(gapResize: false)
+    await scenario.movePointer(to: Self.middle(of: Self.besideMain(scenario)))
+    #expect(!scenario.pointer.isOverGap)
+  }
 }

@@ -29,6 +29,11 @@ package final class FakePointer: PointerInput {
     takesGaps = watch.gapPresses
   }
 
+  /// Whether the pointer is over a gap a press would grab, as tylerd last said.
+  package private(set) var isOverGap = false
+
+  package func gapHovered(_ isOverGap: Bool) { self.isOverGap = isOverGap }
+
   /// Whether moves are reported, as `watch` last set it.
   package private(set) var watchesMoves = false
 
@@ -70,10 +75,11 @@ package final class FakePointer: PointerInput {
   }
 
   /// A press at `start` that the pointer then drags, as the interceptor reports it: nothing
-  /// unless `wouldCapture(_:at:)`. Returns whether it was taken over.
+  /// unless `wouldCapture(_:at:)`, and for a gap unless tylerd said the pointer is over one (the
+  /// interceptor only exists then). Returns whether it was taken over.
   @discardableResult
   package func beginGrab(_ kind: ModifierGesture.Kind, at start: CGPoint) -> Bool {
-    guard wouldCapture(kind, at: start) else { return false }
+    guard kind != .gap || isOverGap, wouldCapture(kind, at: start) else { return false }
     continuation.yield(.modifierDragBegan(kind, location: start))
     return true
   }

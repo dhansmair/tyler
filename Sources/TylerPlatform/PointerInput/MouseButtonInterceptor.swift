@@ -9,6 +9,9 @@ import TylerServer
 /// click is posted again, marked so the tap lets it through (measured; see "Events and taps" in
 /// `devdocs/macos-behaviour.md`).
 ///
+/// It exists only while a press may be tyler's (`PressTakeover`): macOS can stop all input when
+/// a process with an active tap loses Accessibility.
+///
 /// The tap runs on the main thread, as the listeners' taps do. If the main thread is busy for
 /// about a second (an app slow to answer an Accessibility call), macOS turns the tap off and lets
 /// that gesture through to the app; the interceptor turns it back on and drops the press.
@@ -18,29 +21,29 @@ final class MouseButtonInterceptor {
   /// Marks the events the tap posts itself: "tylr".
   private static let replayMarker: Int64 = 0x7479_6C72
 
-  let keys: ModifierKeys
-  let takesGaps: Bool
   private var gesture: ModifierGesture
   private let canCapture: @MainActor (CGPoint, ModifierGesture.Kind) -> Bool
   private let report: (PointerEvent) -> Void
+  private let gestureChanged: (Bool) -> Void
   /// The press held back, while the gesture is undecided or tyler's.
   private var held: CGEvent?
   private var tap: CFMachPort?
   private var source: CFRunLoopSource?
 
   /// Starts taking over presses made with exactly `keys`, and left presses with no keys in a gap
-  /// if `takesGaps`. `canCapture` is asked at each such press; `report` gets the drags. Without
-  /// permission to tap events, it logs that and lets every press through.
-  init(
+  /// if `takesGaps`. `canCapture` is asked at each such press; `report` gets the drags, and
+  /// `gestureChanged` whether a press is held or a drag under way, from within the tap. `nil`
+  /// without permission to tap events.
+  init?(
     keys: ModifierKeys, takesGaps: Bool,
     canCapture: @escaping @MainActor (CGPoint, ModifierGesture.Kind) -> Bool,
-    report: @escaping (PointerEvent) -> Void
+    report: @escaping (PointerEvent) -> Void,
+    gestureChanged: @escaping (Bool) -> Void
   ) {
-    self.keys = keys
-    self.takesGaps = takesGaps
     gesture = ModifierGesture(modifier: keys, takesGaps: takesGaps)
     self.canCapture = canCapture
     self.report = report
+    self.gestureChanged = gestureChanged
     let types: [CGEventType] = [
       .leftMouseDown, .leftMouseDragged, .leftMouseUp,
       .rightMouseDown, .rightMouseDragged, .rightMouseUp,
@@ -51,21 +54,13 @@ final class MouseButtonInterceptor {
         tap: .cgSessionEventTap, place: .headInsertEventTap, options: .defaultTap,
         eventsOfInterest: mask, callback: mouseButtonCallback,
         userInfo: Unmanaged.passUnretained(self).toOpaque())
-    else {
-      Self.log.error(
-        "mouse button interceptor refused - moving windows with the modifier and resizing by the"
-          + " gaps are off")
-      return
-    }
+    else { return nil }
     let source = CFMachPortCreateRunLoopSource(nil, tap, 0)
     // On the main run loop, so the callback runs on the main thread.
     CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
     CGEvent.tapEnable(tap: tap, enable: true)
     self.tap = tap
     self.source = source
-    // The first read of the window list in a process takes 20–40 ms (measured in the spike).
-    // Paying it now keeps it out of the tap at the first press.
-    _ = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID)
   }
 
   /// Stops taking over presses. The tap holds an unretained pointer to this object, so this must
@@ -80,6 +75,13 @@ final class MouseButtonInterceptor {
 
   /// Returns whether to swallow the event.
   fileprivate func handle(_ type: CGEventType, _ event: CGEvent) -> Bool {
+    let wasActive = gesture.isActive
+    let swallows = decide(type, event)
+    if gesture.isActive != wasActive { gestureChanged(gesture.isActive) }
+    return swallows
+  }
+
+  private func decide(_ type: CGEventType, _ event: CGEvent) -> Bool {
     if event.getIntegerValueField(.eventSourceUserData) == Self.replayMarker { return false }
     // Event locations are global display coordinates with a top-left origin: the same as
     // Accessibility's.
@@ -88,7 +90,8 @@ final class MouseButtonInterceptor {
     case .leftMouseDown, .rightMouseDown:
       let wasActive = gesture.isActive
       let verdict = gesture.pressed(
-        type == .leftMouseDown ? .left : .right, at: location, keys: Self.keys(of: event.flags)
+        type == .leftMouseDown ? .left : .right, at: location,
+        keys: ModifierKeys(flags: event.flags)
       ) { canCapture(location, $0) }
       if !wasActive && gesture.isActive { held = event.copy() }
       return verdict == .swallow
@@ -114,8 +117,10 @@ final class MouseButtonInterceptor {
     if gesture.isActive {
       Self.log.warning("mouse button interceptor turned off - mid-gesture; the press is dropped")
     }
+    let wasActive = gesture.isActive
     perform(gesture.tapTurnedOff(), release: nil)
     held = nil
+    if wasActive { gestureChanged(false) }
   }
 
   private func perform(_ actions: [ModifierGesture.Action], release: CGEvent?) {
@@ -141,14 +146,6 @@ final class MouseButtonInterceptor {
     release.post(tap: .cgSessionEventTap)
   }
 
-  private static func keys(of flags: CGEventFlags) -> ModifierKeys {
-    var keys: ModifierKeys = []
-    if flags.contains(.maskAlternate) { keys.insert(.option) }
-    if flags.contains(.maskControl) { keys.insert(.control) }
-    if flags.contains(.maskCommand) { keys.insert(.command) }
-    if flags.contains(.maskShift) { keys.insert(.shift) }
-    return keys
-  }
 }
 
 private let mouseButtonCallback: CGEventTapCallBack = { _, type, event, userInfo in

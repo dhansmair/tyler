@@ -150,10 +150,11 @@ struct Scenario {
     await runUntilQuiet()
   }
 
-  /// The user presses in the gap at `point`, drags it by `offset` and lets go. Returns whether
-  /// tylerd took the press; if not, it went to whatever is there.
+  /// The user moves the pointer to the gap at `point`, presses there, drags it by `offset` and
+  /// lets go. Returns whether tylerd took the press; if not, it went to whatever is there.
   @discardableResult
   func dragGap(at point: CGPoint, by offset: CGVector) async -> Bool {
+    await movePointer(to: point)
     guard pointer.beginGrab(.gap, at: point) else { return false }
     let end = CGPoint(x: point.x + offset.dx, y: point.y + offset.dy)
     pointer.moveGrab(to: end)

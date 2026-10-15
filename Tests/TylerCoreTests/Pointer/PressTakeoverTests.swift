@@ -8,6 +8,7 @@ struct PressTakeoverTests {
     case keys(ModifierKeys)
     case gap(Bool)
     case gesture(Bool)
+    case settings(ModifierKeys, takesGaps: Bool)
   }
 
   struct Case: CustomTestStringConvertible, Sendable {
@@ -48,6 +49,16 @@ struct PressTakeoverTests {
     Case(
       name: "the modifier still held after a gesture keeps it",
       changes: [.keys(.option), .gesture(true), .gesture(false)], needs: [true, true, true]),
+    Case(
+      name: "new settings keep the gap under the pointer",
+      changes: [.gap(true), .settings(.command, takesGaps: true)], needs: [true, true]),
+    Case(
+      name: "new settings drop the gesture",
+      changes: [.gap(true), .gesture(true), .gap(false), .settings(.option, takesGaps: true)],
+      needs: [true, true, true, false]),
+    Case(
+      name: "a new modifier counts the keys already held",
+      changes: [.keys(.command), .settings(.command, takesGaps: true)], needs: [false, true]),
   ])
   func needsTheTap(_ test: Case) {
     var takeover = PressTakeover(modifier: test.modifier, takesGaps: test.takesGaps)
@@ -59,6 +70,8 @@ struct PressTakeoverTests {
       case .keys(let keys): changed = takeover.keysChanged(to: keys)
       case .gap(let isOverGap): changed = takeover.gapHovered(isOverGap)
       case .gesture(let isActive): changed = takeover.gestureChanged(isActive: isActive)
+      case .settings(let modifier, let takesGaps):
+        changed = takeover.configure(modifier: modifier, takesGaps: takesGaps)
       }
       #expect(changed == (takeover.needsTap != before), "reports exactly the flips")
       needs.append(takeover.needsTap)

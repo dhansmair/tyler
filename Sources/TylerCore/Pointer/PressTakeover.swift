@@ -6,8 +6,8 @@
 /// A press may be tyler's while exactly the modifier keys are held, while the pointer is over a
 /// gap a press would grab, and until the button of a gesture under way comes up.
 package struct PressTakeover: Equatable, Sendable {
-  package let modifier: ModifierKeys
-  package let takesGaps: Bool
+  package private(set) var modifier: ModifierKeys
+  package private(set) var takesGaps: Bool
   private var keysHeld: ModifierKeys = []
   private var isOverGap = false
   private var isGestureActive = false
@@ -19,6 +19,16 @@ package struct PressTakeover: Equatable, Sendable {
 
   package var needsTap: Bool {
     isGestureActive || (!modifier.isEmpty && keysHeld == modifier) || (takesGaps && isOverGap)
+  }
+
+  /// New settings. The keys held and the gap under the pointer still count; a gesture under way
+  /// is dropped, as the interceptor that tracked it is. Returns whether `needsTap` changed.
+  package mutating func configure(modifier: ModifierKeys, takesGaps: Bool) -> Bool {
+    changing {
+      $0.modifier = modifier
+      $0.takesGaps = takesGaps
+      $0.isGestureActive = false
+    }
   }
 
   /// Returns whether `needsTap` changed.

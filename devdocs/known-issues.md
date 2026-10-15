@@ -6,14 +6,18 @@ own issues are in `strip-layout.md`. Remove an item when it is fixed (in the sam
 
 ## Bugs
 
-- **Revoking Accessibility while tylerd runs can stop all input until a forced restart**
-  (reported by others, seen once here; see "Events and taps" in `macos-behaviour.md`): the
-  `MouseButtonInterceptor`'s active tap is alive the whole time tylerd runs. tylerd drops every
-  tap when it notices the permission gone (`followPermission`: at the
-  `com.apple.accessibility.api` notification, or within a second), but the entry being removed
-  goes unnoticed, and whether dropping the tap brings input back once it has stopped is unknown.
-  The users' docs say to `tyler stop` first; `plans/freeze-safe-event-taps.md` removes the tap at
-  rest.
+- **Revoking Accessibility while the mouse button interceptor is armed can stop all input until
+  a forced restart** (reported by others, seen once here; see "Events and taps" in
+  `macos-behaviour.md`). Its active tap exists only while `PressTakeover` says a press may be
+  tyler's: the modifier held, the pointer over a gap, a gesture under way. tylerd also drops every
+  tap when it notices the permission gone (`followPermission`: at the `com.apple.accessibility.api`
+  notification, or within a second). Removing the entry goes unnoticed, though, and whether
+  dropping the tap brings input back once it has stopped is unknown. The users' docs say to
+  `tyler stop` first.
+- **An Option-click made before the interceptor is armed goes to the app**: the tap is armed at
+  the `flagsChanged` event, on the main thread, about 1 ms after the key when the thread is idle
+  but only once it is free when busy (measured; see "Arming the active tap when the modifier goes
+  down" in `macos-behaviour.md`). Arming on a thread of its own would close that gap.
 - **A Firefox window of a parked workspace was seen on screen at x = 0**, behind the current
   windows, instead of at the left parking spot (displays side by side). Unknown whether Firefox
   refuses the spot (`live-check positions`).

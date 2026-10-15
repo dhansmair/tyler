@@ -9,10 +9,14 @@ extension WindowManager {
   }
 
   /// Shows the resize cursor over the gap at the pointer's last place, or hides it: after the
-  /// pointer moved, and after anything that may have moved the windows around it.
+  /// pointer moved, and after anything that may have moved the windows around it. The pointer
+  /// takes over presses in a gap only while the cursor shows.
   func refreshGapCursor() {
     guard let gapHover else { return }
+    let wasShown = gapHover.shown != nil
     gapHover.show(over: hoveredGap(at: gapHover.location, shown: gapHover.shown))
+    let isShown = gapHover.shown != nil
+    if isShown != wasShown { pointer?.gapHovered(isShown) }
   }
 
   /// The gap at `location` that a press would grab, or the one being dragged. The window list

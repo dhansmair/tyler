@@ -39,7 +39,8 @@ See [Features](docs/features.md) for the details.
 <img width="310" height="34" alt="image" src="https://github.com/user-attachments/assets/c031ff86-a4e3-4fa3-9488-6656dc0749dd" />
 
 ### Demo Video
-https://github.com/user-attachments/assets/5a3979a9-e80c-4d72-8321-f3b1b17f5d9e
+
+https://github.com/user-attachments/assets/d168cf84-ab63-4a10-8923-fb79e0c58f3d
 
 ## Requirements
 

@@ -6,7 +6,7 @@ import TylerProtocol
 
 @Suite("CommandLineParser: tiling commands")
 struct CommandLineParserTilingTests {
-  @Test(arguments: [
+  private static let tilingCommands: [([String], Request)] = [
     (["window", "focus", "next"], Request.focus(.next)),
     (["window", "focus", "prev"], Request.focus(.prev)),
     (["window", "focus", "master"], Request.focus(.main)),
@@ -56,7 +56,9 @@ struct CommandLineParserTilingTests {
     ),
     (["workspace", "move-to-display", "next"], Request.moveWorkspaceToDisplay(.next)),
     (["workspace", "move-to-display", "2"], Request.moveWorkspaceToDisplay(.number(2))),
-  ])
+  ]
+
+  @Test(arguments: tilingCommands)
   func parsesEveryTilingCommand(arguments: [String], expected: Request) throws {
     #expect(try CommandLineParser.parse(arguments) == Invocation(request: expected))
   }

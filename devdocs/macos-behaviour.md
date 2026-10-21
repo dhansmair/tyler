@@ -122,7 +122,13 @@ subrole, title-bar buttons and whether its size can be set:
   `eventSourceUserData` so the tap lets it through) works, click count included.
 - **A slow tap is turned off** (`tapDisabledByTimeout`, seen with the main thread blocked 1.5 s).
   Turning it back on works, but the press in progress is lost: the app gets the drags and the
-  mouse-up without the mouse-down.
+  mouse-up without the mouse-down. The callback is told late: in a probe (2026-10-21, macOS 26.7,
+  a listen-only `flagsChanged` tap sleeping 1.5 s per event, events posted every 0.5 s),
+  `CGEvent.tapIsEnabled` read `false` 2.5 s in, and the `tapDisabledByTimeout` event reached the
+  callback about 5 s after that, once the queued events had drained. A tylerd whose callback
+  turned its gesture tap back on at that event was found, after a wake from sleep, with the
+  gesture tap off and nothing more in the log: swipes stayed dead until a restart. tylerd now
+  checks its taps every 2 s with `tapIsEnabled` instead of waiting to be told.
 - **Minimizing** (measured 2026-10-12, macOS 26.7, a terminal window minimized with Cmd-M and
   restored from the Dock, three times): `AXMinimized` already reads `true` when
   `kAXWindowMiniaturizedNotification` arrives, and `false` when `kAXWindowDeminiaturizedNotification`

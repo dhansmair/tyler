@@ -110,10 +110,11 @@ final class MouseButtonInterceptor {
     }
   }
 
-  /// macOS turns a tap off when its callback is slow: turn it back on. The gesture under way went
-  /// to the app meanwhile, so the held press is dropped.
-  fileprivate func turnBackOn() {
-    if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
+  /// Turns the tap back on if macOS turned it off, and says whether it had. The gesture under way
+  /// went to the app meanwhile, so the held press is dropped.
+  func turnBackOnIfOff() -> Bool {
+    guard let tap, !CGEvent.tapIsEnabled(tap: tap) else { return false }
+    CGEvent.tapEnable(tap: tap, enable: true)
     if gesture.isActive {
       Self.log.warning("mouse button interceptor turned off - mid-gesture; the press is dropped")
     }
@@ -121,6 +122,7 @@ final class MouseButtonInterceptor {
     perform(gesture.tapTurnedOff(), release: nil)
     held = nil
     if wasActive { gestureChanged(false) }
+    return true
   }
 
   private func perform(_ actions: [ModifierGesture.Action], release: CGEvent?) {
@@ -151,7 +153,6 @@ final class MouseButtonInterceptor {
 private let mouseButtonCallback: CGEventTapCallBack = { _, type, event, userInfo in
   guard let userInfo else { return Unmanaged.passUnretained(event) }
   let address = UInt(bitPattern: userInfo)
-  let isTurnedOff = type == .tapDisabledByTimeout || type == .tapDisabledByUserInput
   // `CGEvent` isn't Sendable, but it never leaves this thread: `assumeIsolated` runs the closure
   // synchronously, here, and the tap returns the event only after it.
   nonisolated(unsafe) let event = event
@@ -159,10 +160,6 @@ private let mouseButtonCallback: CGEventTapCallBack = { _, type, event, userInfo
   let swallows = MainActor.assumeIsolated {
     guard let pointer = UnsafeMutableRawPointer(bitPattern: address) else { return false }
     let tap = Unmanaged<MouseButtonInterceptor>.fromOpaque(pointer).takeUnretainedValue()
-    if isTurnedOff {
-      tap.turnBackOn()
-      return false
-    }
     return tap.handle(type, event)
   }
   return swallows ? nil : Unmanaged.passUnretained(event)

@@ -48,9 +48,11 @@ final class PointerMoveListener {
     report(location)
   }
 
-  /// macOS turns a tap off when its callback is slow; turn it back on.
-  fileprivate func turnBackOn() {
-    if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
+  /// Turns the tap back on if macOS turned it off, and says whether it had.
+  func turnBackOnIfOff() -> Bool {
+    guard let tap, !CGEvent.tapIsEnabled(tap: tap) else { return false }
+    CGEvent.tapEnable(tap: tap, enable: true)
+    return true
   }
 }
 
@@ -58,7 +60,6 @@ private let pointerMoveCallback: CGEventTapCallBack = { _, type, event, userInfo
   guard let userInfo else { return Unmanaged.passUnretained(event) }
   // Only Sendable values cross into the main actor: the location, and the object's address.
   let address = UInt(bitPattern: userInfo)
-  let isTurnedOff = type == .tapDisabledByTimeout || type == .tapDisabledByUserInput
   // Event locations are global display coordinates with a top-left origin: the same as
   // Accessibility's.
   let location: CGPoint? = type == .mouseMoved ? event.location : nil
@@ -66,7 +67,6 @@ private let pointerMoveCallback: CGEventTapCallBack = { _, type, event, userInfo
   MainActor.assumeIsolated {
     guard let pointer = UnsafeMutableRawPointer(bitPattern: address) else { return }
     let tap = Unmanaged<PointerMoveListener>.fromOpaque(pointer).takeUnretainedValue()
-    if isTurnedOff { tap.turnBackOn() }
     if let location { tap.handle(location) }
   }
   return Unmanaged.passUnretained(event)

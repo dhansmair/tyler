@@ -57,9 +57,11 @@ final class TrackpadGestureListener {
     }
   }
 
-  /// macOS turns a tap off when its callback is slow; turn it back on.
-  fileprivate func turnBackOn() {
-    if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
+  /// Turns the tap back on if macOS turned it off, and says whether it had.
+  func turnBackOnIfOff() -> Bool {
+    guard let tap, !CGEvent.tapIsEnabled(tap: tap) else { return false }
+    CGEvent.tapEnable(tap: tap, enable: true)
+    return true
   }
 }
 
@@ -67,9 +69,9 @@ private let trackpadGestureCallback: CGEventTapCallBack = { _, type, event, user
   guard let userInfo else { return Unmanaged.passUnretained(event) }
   // Only Sendable values cross into the main actor: the touches, and the object's address.
   let address = UInt(bitPattern: userInfo)
-  let isTurnedOff = type == .tapDisabledByTimeout || type == .tapDisabledByUserInput
   var frame: TouchFrame?
-  if let gesture = NSEvent(cgEvent: event), gesture.type == .gesture {
+  // `NSEvent(cgEvent:)` logs "unrecognized type" for the event that says the tap was turned off.
+  if type.rawValue == NSEvent.EventType.gesture.rawValue, let gesture = NSEvent(cgEvent: event) {
     let positions = gesture.touches(matching: .touching, in: nil).map(\.normalizedPosition)
     frame = TouchFrame(time: gesture.timestamp, positions: positions)
   }
@@ -78,7 +80,6 @@ private let trackpadGestureCallback: CGEventTapCallBack = { _, type, event, user
   MainActor.assumeIsolated {
     guard let pointer = UnsafeMutableRawPointer(bitPattern: address) else { return }
     let tap = Unmanaged<TrackpadGestureListener>.fromOpaque(pointer).takeUnretainedValue()
-    if isTurnedOff { tap.turnBackOn() }
     if let touches { tap.handle(touches) }
   }
   return Unmanaged.passUnretained(event)

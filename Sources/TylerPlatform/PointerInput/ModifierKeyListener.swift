@@ -54,11 +54,13 @@ final class ModifierKeyListener {
     report(keys)
   }
 
-  /// macOS turns a tap off when its callback is slow; turn it back on. A change missed meanwhile
-  /// is read from the keys held now.
-  fileprivate func turnBackOn() {
-    if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
+  /// Turns the tap back on if macOS turned it off, and says whether it had. A change missed
+  /// meanwhile is read from the keys held now.
+  func turnBackOnIfOff() -> Bool {
+    guard let tap, !CGEvent.tapIsEnabled(tap: tap) else { return false }
+    CGEvent.tapEnable(tap: tap, enable: true)
     report(Self.keysHeld)
+    return true
   }
 }
 
@@ -66,13 +68,11 @@ private let modifierKeyCallback: CGEventTapCallBack = { _, type, event, userInfo
   guard let userInfo else { return Unmanaged.passUnretained(event) }
   // Only Sendable values cross into the main actor: the keys, and the object's address.
   let address = UInt(bitPattern: userInfo)
-  let isTurnedOff = type == .tapDisabledByTimeout || type == .tapDisabledByUserInput
   let keys: ModifierKeys? = type == .flagsChanged ? ModifierKeys(flags: event.flags) : nil
   // The tap's run loop source is on the main run loop, so this runs on the main thread.
   MainActor.assumeIsolated {
     guard let pointer = UnsafeMutableRawPointer(bitPattern: address) else { return }
     let listener = Unmanaged<ModifierKeyListener>.fromOpaque(pointer).takeUnretainedValue()
-    if isTurnedOff { listener.turnBackOn() }
     if let keys { listener.handle(keys) }
   }
   return Unmanaged.passUnretained(event)

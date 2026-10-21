@@ -19,6 +19,7 @@ package final class MacPointerInput: PointerInput {
 
   private let continuation: AsyncStream<PointerEvent>.Continuation
   private var monitor: Any?
+  private var tapCheck: Task<Void, Never>?
   private var gestureListener: TrackpadGestureListener?
   private var moveListener: PointerMoveListener?
   private var modifierListener: ModifierKeyListener?
@@ -48,11 +49,19 @@ package final class MacPointerInput: PointerInput {
       let isRelease = event.type == .leftMouseUp
       MainActor.assumeIsolated { self?.report(isRelease: isRelease) }
     }
+    tapCheck = Task { [weak self] in
+      while true {
+        do { try await Task.sleep(for: .seconds(2)) } catch { return }
+        self?.turnTapsBackOn()
+      }
+    }
   }
 
   package func stop() {
     watch(PointerWatch())
     takeover = PressTakeover(modifier: [], takesGaps: false)
+    tapCheck?.cancel()
+    tapCheck = nil
     guard let monitor else { return }
     NSEvent.removeMonitor(monitor)
     self.monitor = nil
@@ -150,6 +159,21 @@ package final class MacPointerInput: PointerInput {
     guard isOn else { return }
     moveListener = PointerMoveListener { [weak self] location in
       self?.continuation.yield(.moved(location: location))
+    }
+  }
+
+  /// macOS turns a tap off when its callback is slow, after a wake for one. It tells the callback,
+  /// but seconds late, and a tap turned off again may never hear (measured; see "Events and taps"
+  /// in `devdocs/macos-behaviour.md`), so the taps are checked here instead.
+  private func turnTapsBackOn() {
+    let turnedBackOn: [(String, Bool?)] = [
+      ("trackpad gesture listener", gestureListener?.turnBackOnIfOff()),
+      ("pointer move listener", moveListener?.turnBackOnIfOff()),
+      ("modifier key listener", modifierListener?.turnBackOnIfOff()),
+      ("mouse button interceptor", buttonInterceptor?.turnBackOnIfOff()),
+    ]
+    for case (let listener, true) in turnedBackOn {
+      Self.log.warning("\(listener) turned back on - macOS had turned it off")
     }
   }
 

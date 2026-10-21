@@ -165,8 +165,10 @@ package final class MacPointerInput: PointerInput {
 
   /// macOS turns a tap off when its callback is slow, after a wake for one. It tells the callback,
   /// but seconds late, and a tap turned off again may never hear (measured; see "Events and taps"
-  /// in `devdocs/macos-behaviour.md`), so the taps are checked here instead.
+  /// in `devdocs/macos-behaviour.md`), so the taps are checked here instead. Not without the
+  /// Accessibility permission: an active tap turned on then can stop all input.
   private func turnTapsBackOn() {
+    guard AXIsProcessTrusted() else { return }
     let turnedBackOn: [(InputListener.Kind, Bool?)] = [
       (.swipes, gestureListener?.turnBackOnIfOff()),
       (.pointerMoves, moveListener?.turnBackOnIfOff()),

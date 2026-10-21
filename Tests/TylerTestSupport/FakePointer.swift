@@ -34,6 +34,8 @@ package final class FakePointer: PointerInput {
 
   package func gapHovered(_ isOverGap: Bool) { self.isOverGap = isOverGap }
 
+  package var listeners: [InputListener] = []
+
   /// Whether moves are reported, as `watch` last set it.
   package private(set) var watchesMoves = false
 

@@ -245,6 +245,9 @@ package final class WindowManager {
       isAttaching: windowSystem.isAttaching)
   }
 
+  /// The event listeners in place, for `tyler status`.
+  package var inputListeners: [InputListener] { pointer?.listeners ?? [] }
+
   // MARK: - Requests
 
   /// Every switch over requests lists every case, with no `default:`, so the compiler points at

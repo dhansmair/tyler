@@ -248,6 +248,7 @@ tylerd is running (pid 4711, up 2h 5m)
   config  /Users/you/.config/tyler/tyler.toml
   tiling  on
   access  sees the windows
+  input   swipes, pointer moves, modifier key, mouse buttons
 ```
 
 `tiling` is `on`, `off` or `waiting for Accessibility permission`. `access` says whether `tylerd` can reach the windows:
@@ -260,6 +261,9 @@ tylerd is running (pid 4711, up 2h 5m)
 | `sees none of the windows on screen` | `tylerd` tracks windows but none of those on screen: the same fix. |
 | `waiting for the screen to be unlocked` | macOS shows no windows while the screen is locked; `tylerd` starts once it is unlocked. |
 | `some apps haven't answered yet` | Right after a start; `tylerd` is still trying them. |
+
+`input` lists what `tylerd` listens for, as the config asks: `swipes` (`gestures`), `pointer moves` (focus follows mouse and the resize cursor over gaps), `modifier key` and `mouse buttons` (dragging with the modifier or in a gap); `none` when it listens for nothing. `(refused by macOS)` follows a listener macOS wouldn't allow. macOS turns a listener off when `tylerd` is slow to answer it (just after waking from sleep, say); `tylerd` turns it back on within 2 seconds, and a line under `input` says how often and when last, such as `swipes turned off by macOS once (last 5m ago), turned back on`.
+
  If the `tylerd` binary has changed since it started, or `tylerd` is another version than `tyler`, a warning suggests `tyler restart`. Exits with status 1 if `tylerd` isn't running.
 
 ### ping

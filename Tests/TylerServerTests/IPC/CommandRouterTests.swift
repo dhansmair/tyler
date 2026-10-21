@@ -48,6 +48,7 @@ struct CommandRouterTests {
     expected.tiling = .waitingForPermission
     expected.configChanges = []
     expected.access = .notTrusted
+    expected.input = []
     #expect(await router.handle(.status) == .status(expected))
 
     manager.startIfPermitted()
@@ -73,6 +74,24 @@ struct CommandRouterTests {
       return
     }
     #expect(status.configChanges == ["gaps.inner"])
+  }
+
+  @Test @MainActor func statusAddsTheInputListeners() async {
+    let base = ServerStatus(
+      pid: 42, executablePath: "/bin/tylerd", executableModified: nil,
+      startedAt: Date(timeIntervalSince1970: 0), configPath: "/c.toml")
+    let pointer = FakePointer()
+    let swipes = InputListener(kind: .swipes, isListening: true, timesTurnedOff: 2)
+    pointer.listeners = [swipes]
+    let manager = WindowManager(
+      windowSystem: FakeWindowSystem(), displays: FakeDisplays(), gate: FakeGate(isTrusted: true),
+      pointer: pointer)
+    let router = CommandRouter(manager: manager, status: base)
+    guard case .status(let status) = await router.handle(.status) else {
+      Issue.record("no status")
+      return
+    }
+    #expect(status.input == [swipes])
   }
 
   @Test func listWithoutAManagerIsAnError() async {

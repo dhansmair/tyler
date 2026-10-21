@@ -121,6 +121,7 @@ package struct DaemonController {
       lines.append("  access  \(access.summary)")
       if let problem = access.problem { lines.append("warning: " + problem) }
     }
+    if let input = status.input { lines += InputListener.statusLines(input, now: system.now) }
     return lines.joined(separator: "\n") + staleWarning(status)
   }
 

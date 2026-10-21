@@ -40,6 +40,7 @@ package struct CommandRouter: Sendable {
         status.tiling = manager.tilingStatus
         status.configChanges = manager.configChanges
         status.access = manager.access
+        status.input = manager.inputListeners
       }
       return .status(status)
     case .configEdit:

@@ -28,6 +28,7 @@ package final class MacPointerInput: PointerInput {
   /// Whether the interceptor's last arming was refused, so a refusal is logged once, not at every
   /// press of the modifier.
   private var wasRefused = false
+  private var turnedOff: [InputListener.Kind: TurnedOff] = [:]
   package var canCapture: (@MainActor (CGPoint, ModifierGesture.Kind) -> Bool)?
 
   package init() {
@@ -166,15 +167,39 @@ package final class MacPointerInput: PointerInput {
   /// but seconds late, and a tap turned off again may never hear (measured; see "Events and taps"
   /// in `devdocs/macos-behaviour.md`), so the taps are checked here instead.
   private func turnTapsBackOn() {
-    let turnedBackOn: [(String, Bool?)] = [
-      ("trackpad gesture listener", gestureListener?.turnBackOnIfOff()),
-      ("pointer move listener", moveListener?.turnBackOnIfOff()),
-      ("modifier key listener", modifierListener?.turnBackOnIfOff()),
-      ("mouse button interceptor", buttonInterceptor?.turnBackOnIfOff()),
+    let turnedBackOn: [(InputListener.Kind, Bool?)] = [
+      (.swipes, gestureListener?.turnBackOnIfOff()),
+      (.pointerMoves, moveListener?.turnBackOnIfOff()),
+      (.modifierKey, modifierListener?.turnBackOnIfOff()),
+      (.mouseButtons, buttonInterceptor?.turnBackOnIfOff()),
     ]
-    for case (let listener, true) in turnedBackOn {
-      Self.log.warning("\(listener) turned back on - macOS had turned it off")
+    for case (let kind, true) in turnedBackOn {
+      Self.log.warning("event listener turned back on - \(kind.rawValue) - macOS had turned it off")
+      turnedOff[kind, default: TurnedOff()].count += 1
+      turnedOff[kind]?.last = Date()
     }
+  }
+
+  package var listeners: [InputListener] {
+    var listening: [(InputListener.Kind, Bool)] = []
+    if let gestureListener { listening.append((.swipes, gestureListener.isListening)) }
+    if let moveListener { listening.append((.pointerMoves, moveListener.isListening)) }
+    if let modifierListener { listening.append((.modifierKey, modifierListener.isListening)) }
+    // The interceptor exists only while a press may be tyler's, so it is listed while presses are
+    // taken over at all.
+    if !takeover.modifier.isEmpty || takeover.takesGaps {
+      listening.append((.mouseButtons, !wasRefused))
+    }
+    return listening.map { kind, isListening in
+      InputListener(
+        kind: kind, isListening: isListening, timesTurnedOff: turnedOff[kind]?.count ?? 0,
+        lastTurnedOff: turnedOff[kind]?.last)
+    }
+  }
+
+  private struct TurnedOff {
+    var count = 0
+    var last: Date?
   }
 
   /// Reports a drag step or the release with where the pointer is, in Accessibility coordinates

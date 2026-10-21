@@ -41,6 +41,9 @@ final class TrackpadGestureListener {
     self.source = source
   }
 
+  /// `false` when macOS refused the tap.
+  var isListening: Bool { tap != nil }
+
   /// Stops watching. The tap holds an unretained pointer to this object, so this must run before
   /// it goes away.
   func invalidate() {

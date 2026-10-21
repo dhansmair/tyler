@@ -81,6 +81,15 @@ macOS's own swipes still work alongside tyler's. In System Settings > Trackpad >
 pages* doesn't use three fingers. Or set `gestures.fingers = 4` and keep macOS on three. See
 [Swiping between workspaces](features.md#swiping-between-workspaces).
 
+## Swipes, focus follows mouse or Option-drag do nothing
+
+`tyler status` lists what `tylerd` listens for on the `input` line. A feature missing from it is
+off in the config; `(refused by macOS)` after it means macOS wouldn't let `tylerd` listen, usually
+for want of the Accessibility permission. macOS also turns a listener off when `tylerd` is slow to
+answer it, for instance just after waking from sleep. `tylerd` checks every 2 seconds and turns it
+back on, and `tyler status` says how often that happened. If a feature still does nothing, run
+`tyler restart`.
+
 ## Option-drag doesn't work in an app any more
 
 While `mouse.modifier` is `"option"` (the default), Option-drag anywhere in a window moves it, so

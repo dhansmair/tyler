@@ -62,13 +62,13 @@ final class FakeDaemonSystem: DaemonSystem {
   static func status(
     pid: Int32, startedAt: Date = start, keepsWindows: Bool? = true,
     version: String? = TylerVersion.current, configChanges: [String]? = [],
-    access: WindowAccess? = .ok
+    access: WindowAccess? = .ok, input: [InputListener]? = nil
   ) -> ServerStatus {
     ServerStatus(
       pid: pid, executablePath: serverPath, executableModified: start, startedAt: startedAt,
       configPath: "/home/.config/tyler/tyler.toml", tiling: .on,
       keepsWindowsOnRestart: keepsWindows, version: version, configChanges: configChanges,
-      access: access)
+      access: access, input: input)
   }
 
   func send(_ request: Request) throws -> Response {

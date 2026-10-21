@@ -30,6 +30,8 @@ package struct ServerStatus: Codable, Equatable, Sendable {
   package var configChanges: [String]?
   /// Whether tylerd can reach the windows; `nil` from a server older than this check.
   package var access: WindowAccess?
+  /// The event listeners tylerd keeps; `nil` from a server older than this report.
+  package var input: [InputListener]?
 
   package init(
     pid: Int32,
@@ -41,7 +43,8 @@ package struct ServerStatus: Codable, Equatable, Sendable {
     keepsWindowsOnRestart: Bool? = nil,
     version: String? = nil,
     configChanges: [String]? = nil,
-    access: WindowAccess? = nil
+    access: WindowAccess? = nil,
+    input: [InputListener]? = nil
   ) {
     self.pid = pid
     self.executablePath = executablePath
@@ -53,5 +56,6 @@ package struct ServerStatus: Codable, Equatable, Sendable {
     self.version = version
     self.configChanges = configChanges
     self.access = access
+    self.input = input
   }
 }

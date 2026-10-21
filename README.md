@@ -15,32 +15,27 @@ and supports animations, mouse events and trackpad gestures.
 
 ## Features
 
-- **Tiling** of every window into an ordered list. Provides basic layouts out of the box: `tall`, `grid`, `full`.
+- **Tiling**: Provides basic layouts out of the box: `tall`, `grid`, `full`.
   See [Layouts](docs/layouts.md).
-- **Several displays**, each with its own row of workspaces. Windows can be dragged across, and
+- **Animations**: window swapping, resizing, closing or moving between workspaces can be animated.
+- **Several displays**: each with its own row of workspaces. Windows can be dragged across, and
   displays that come and go are followed.
-- **Mouse Support** resize tiled windows and the layout follows; drag a window onto another to swap
+- **Mouse Support**: resize tiled windows and the layout follows; drag a window onto another to swap
   them; Option-drag anywhere in a window to move or resize it.
-- **Swipe Gestures** swipe with three fingers to switch between workspaces
-- **Menu bar indicators** shows the workspaces as numbers or as a small map of every workspace and its
+- **Swipe Gestures**: swipe with three fingers to switch between workspaces
+- **Menu bar indicators**: shows the workspaces as numbers or as a small map of every workspace and its
   windows.
-- **A config file** for gaps, the number of workspaces, layouts, app assignments, gestures and the
-  mouse, applied with `tyler config reload`; `tyler config set` tries a setting out until tylerd
-  stops.
-- **Rich CLI Commands** Tyler doesn't integrate keybindings natively, but provides various commands 
-  that can be bound to keyboard shortcuts, e.g. via `skhd`.
-- **Animations** window swapping, resizing, closing or moving between workspaces can be animated.
 - **No SIP changes.** tyler uses only the public Accessibility API: no private APIs, no scripting
   additions, System Integrity Protection stays on.
 
 See [Features](docs/features.md) for the details.
 
-### Workspace Indicators
-<img width="310" height="34" alt="image" src="https://github.com/user-attachments/assets/c031ff86-a4e3-4fa3-9488-6656dc0749dd" />
-
-### Demo Video
+### Demo
 
 https://github.com/user-attachments/assets/d168cf84-ab63-4a10-8923-fb79e0c58f3d
+
+### Workspace Indicators
+<img width="310" height="34" alt="image" src="https://github.com/user-attachments/assets/c031ff86-a4e3-4fa3-9488-6656dc0749dd" />
 
 ## Requirements
 

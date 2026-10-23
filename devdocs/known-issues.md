@@ -94,3 +94,10 @@ own issues are in `strip-layout.md`. Remove an item when it is fixed (in the sam
   Recording permission and frozen window content during a slide.
 - **Signed releases.** `make install SIGN_ID=<identity>` signs with an identity you have; there is
   no project identity.
+- **A Homebrew package.** Releases ship as source (`devdocs/design.md`, Releases).
+- **A cursor that shows a window can be dragged** while the modifier is held over it. macOS undoes
+  a cursor set from the background; the gap cursor's way around that, a window of tylerd's that
+  takes mouse events, would catch the modifier-click the interceptor passes on to the app, and the
+  app under the pointer sets its own cursor on every move. It needs a spike first (a window that
+  lets clicks through: does the cursor still show?), with a badge beside the pointer as the
+  fallback.

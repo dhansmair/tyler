@@ -365,6 +365,25 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   is ignored and removed (window IDs are reused after a reboot or a new login). `status` warns
   when the binary on disk is newer than the running one.
 
+## Releases
+
+- **MIT license**: short, permissive, and usual for macOS tools.
+- **SemVer, from `0.1.0`** (tag `v<version>`). Before 1.0 a minor version may change the CLI,
+  the config file and the wire format, and `CHANGELOG.md` says how. One constant, `TylerVersion`
+  in `TylerRuntime`, holds the version.
+- **Releases ship as source**, installed with `make install`. A prebuilt binary needs a Developer
+  ID and notarization to get past Gatekeeper, and an unsigned or ad-hoc-signed one loses its
+  Accessibility grant on every update. A Homebrew tap is the next step.
+- **The history was squashed before the repository went public**: it named the developer's own
+  setup in commit messages and old devdocs. The rule against that is in `CLAUDE.md`.
+- **`CLAUDE.md`, `.claude/` and `devtools/` are published**: they are the honest record of how
+  tyler is built.
+- **Open issues go to GitHub issues**, one per item of `known-issues.md` and `strip-layout.md`
+  (labelled `bug`, `limitation`, `unchecked`, `strip`); the markdown lists then shrink to links.
+- **Before every release**, the **release** items of `testing.md` pass on real windows, and the
+  tree and the commit messages since the last release are read for anything about a personal
+  setup (no hook checks it).
+
 ## Diagnostics
 
 - **`tyler debug at` and the real code share one decision.** Whether a press with the modifier

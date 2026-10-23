@@ -3,7 +3,7 @@
 tyler follows [semantic versioning](https://semver.org). Before 1.0, a minor version (0.x) may
 change commands, the config file and the socket protocol; the entry says how.
 
-## 0.1.0 (unreleased)
+## 0.1.0 (2026-10-24)
 
 The first alpha release.
 

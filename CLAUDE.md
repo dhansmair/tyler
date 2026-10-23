@@ -14,7 +14,7 @@ Windows are controlled through the macOS Accessibility API (no SIP changes). Wor
 
 **Keep this section current.** Whenever a feature is complete or its state changes (built, unit tested, checked against real windows, dropped), update it in the same commit.
 
-Every feature in `docs/manual.md` is built and unit tested, and most are in daily use on real windows (`devdocs/testing.md` lists what hasn't been checked); the strip layout is **experimental** (`devdocs/strip-layout.md`: its state, known issues and open questions; keep it current when the strip changes). The next milestone is the first alpha release, 0.1.0: `plans/alpha-release.md` is the working document, so read it first and tick it off as work progresses.
+Every feature in `docs/manual.md` is built and unit tested, and most are in daily use on real windows (`devdocs/testing.md` lists what hasn't been checked); the strip layout is **experimental** (`devdocs/strip-layout.md`: its state, known issues and open questions; keep it current when the strip changes). 0.1.0, the first alpha, is released (tag `v0.1.0`) and the repository is public. The next milestone is a convenient install: `tylerd` as an app with its own Accessibility grant, then a Homebrew tap (`plans/app-bundle-and-homebrew.md`).
 
 Where things are written down:
 - `devdocs/architecture.md`: the target architecture (the layers from input to effects, TylerCore's bounded contexts and which way their dependencies point, the rules), with a diagram, and how far the code is from it. Read it before adding a type, a folder or a dependency between parts.

@@ -113,49 +113,24 @@ Each window has a size (`WindowSize`), set with `tyler window size half|full|qua
 
 ## Known issues and edge cases
 
-- **Quarters feel odd** in use, even with pairing. Pairs follow from list order rather than
-  being real columns, so:
-  - `window swap` can split a pair (each half then shows like `half`);
-  - a new window inserted between the two breaks the pair the same way.
-- **Mouse resizing** isn't built for the strip: dragging an edge snaps back.
-- **Swap by drag** only works between windows in view.
-- **No rubber band** at the strip's ends.
-- **Half columns differ by a point** between the left and right half of the view (rounding, so a
-  view matches `tall` exactly). A window that stays in view while moving from one half to the
-  other is resized by that point during a scroll.
-- **Leaving on the left** shows the window briefly beside a left Dock before it parks, the same as
-  the workspace slide.
-- **Several displays (M5):** each display parks at an edge with no neighbour, the left one when
-  another display lies to the right. Two things the strip doesn't handle yet there:
-  - on a display that parks on the left, windows out of view to the right still wait at the left
-    edge, so a scroll that brings one in makes it jump from the left edge to the right before it
-    slides in;
-  - the strip's scrolls (`ScrollPlan`) don't follow the workspace slide's rule that nothing
-    slides onto a neighbour: a window scrolling out towards another display still hangs over it
-    on the way.
-- **Focus follows mouse** focuses a partly visible window the pointer rests on, which scrolls the
-  strip to show it whole. It may also scroll the strip when the pointer crosses into a window
-  mid-scroll (only windows in view count, but a scroll moves the view). Neither is checked.
-- **Switching builds:** a `tylerd` from before the strip can't read a state file that names the
-  strip layout, and one from before state file version 3 can't read version 3; either starts
-  afresh, which can leave windows parked. Use `tyler stop` and then `tyler start` rather than
-  `restart` when going back.
+Each is a GitHub issue labelled `strip`, which holds the details.
+
+- [#29](https://github.com/dhansmair/tyler/issues/29) Strip: quarters pair by list order, so swaps and new windows split a pair
+- [#30](https://github.com/dhansmair/tyler/issues/30) Strip: resizing with the mouse isn't built
+- [#31](https://github.com/dhansmair/tyler/issues/31) Strip: swap by drag only works between windows in view
+- [#32](https://github.com/dhansmair/tyler/issues/32) Strip: no rubber band at the ends
+- [#33](https://github.com/dhansmair/tyler/issues/33) Strip: half columns differ by a point between the two halves of the view
+- [#34](https://github.com/dhansmair/tyler/issues/34) Strip: windows leaving on the left show briefly beside a left Dock
+- [#35](https://github.com/dhansmair/tyler/issues/35) Strip: scrolls with several displays (parking on the left, sliding over a neighbour)
+- [#36](https://github.com/dhansmair/tyler/issues/36) Strip: focus follows mouse can scroll the strip
+- [#37](https://github.com/dhansmair/tyler/issues/37) Strip: older tylerd builds can't read a state file naming the strip
 
 ## Not yet checked against real windows
 
-- Windows leaving on the left beside a left Dock, then parking
-- A slow app (Firefox) during a scroll and a swipe
-- `tyler restart` keeping the view and the sizes
-- `quarter` windows against apps' minimum heights (macOS clamps them, and the column won't line up)
-- A click on a parked window's 1-point sliver scrolling to it
-- A partly visible window during a swipe, a click on it, and parked beside a display on the right
-  (at rest and scrolling by focus are checked)
+- [#41](https://github.com/dhansmair/tyler/issues/41) Strip: checks against real windows still to do
 
 ## Open design questions
 
-- **Quarters:** replace the list-order pairing with explicit columns, or with a stack command
-  ("stack with next" / "unstack")?
-- **Widths:** only ½ and full now; ⅓ and ⅔ (niri's defaults) would make partly visible
-  neighbours common. They show at an edge without a neighbouring display, and park at one with.
-- **Leaving a strip workspace by swipe:** the swipe stays inside the strip now. Spilling over to
-  the next workspace at the strip's end is an option if a key turns out to be too clumsy.
+- [#38](https://github.com/dhansmair/tyler/issues/38) Strip: explicit columns or a stack command instead of list-order quarters
+- [#39](https://github.com/dhansmair/tyler/issues/39) Strip: column widths of ⅓ and ⅔
+- [#40](https://github.com/dhansmair/tyler/issues/40) Strip: spill a swipe over to the next workspace at the strip's end

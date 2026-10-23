@@ -85,7 +85,7 @@ Tick an item with the date when it is checked; record what was measured in `maco
 - [ ] **release** cmd-tab to a parked window on a single display switches to its workspace
 - [ ] **release** `tiling off` with parked windows leaves a usable screen
 - [ ] Closing a window whose app has another window on a parked workspace: does tylerd follow
-  macOS's focus there? (`known-issues.md`)
+  macOS's focus there? (#12)
 - [ ] Growing and shrinking `[workspaces] count` with `reload`
 - [ ] `apps.<app>.workspace`: a new window of an assigned app (app running, and a cold launch) lands on its
   workspace and the view follows; a window opened in the background (`open -g`) stays parked;

@@ -1,6 +1,6 @@
 # Refactoring backlog
 
-Coding agents tend to add features on top of each other and rarely refactor, which slows later work down. This file keeps track of refactorings and performance improvements still to do. Nothing here changes behaviour on purpose. Done items are deleted (git keeps them); bugs go to `known-issues.md`.
+Coding agents tend to add features on top of each other and rarely refactor, which slows later work down. This file keeps track of refactorings and performance improvements still to do. Nothing here changes behaviour on purpose. Done items are deleted (git keeps them); bugs are GitHub issues (`known-issues.md` lists them).
 
 ## How to work through it
 

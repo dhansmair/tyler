@@ -378,8 +378,9 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   setup in commit messages and old devdocs. The rule against that is in `CLAUDE.md`.
 - **`CLAUDE.md`, `.claude/` and `devtools/` are published**: they are the honest record of how
   tyler is built.
-- **Open issues go to GitHub issues**, one per item of `known-issues.md` and `strip-layout.md`
-  (labelled `bug`, `limitation`, `unchecked`, `strip`); the markdown lists then shrink to links.
+- **Open issues are GitHub issues**, labelled `bug`, `limitation`, `enhancement`, `question`,
+  `unchecked` (seen or suspected, not confirmed) and `strip`. The issue holds the details;
+  `known-issues.md`, `strip-layout.md` and `docs/known-issues.md` link to it.
 - **Before every release**, the **release** items of `testing.md` pass on real windows, and the
   tree and the commit messages since the last release are read for anything about a personal
   setup (no hook checks it).
@@ -429,7 +430,7 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
 - **A vertical slide**: macOS clamps windows at the top and bottom of the screen.
 - **A snapshot overlay for slides** (ScreenCaptureKit): needs Screen Recording permission. Still the
   only way to slide between side-by-side displays, and it would be smoother with many windows; see
-  `known-issues.md`.
+  #25.
 - **Private WindowServer API**: needs SIP off.
 - **A `Scrollable` protocol** for swipes: it would have one implementation per case; an enum is
   enough (`SwipeTarget`). `ScrollingLayout` is a different thing: what a layout answers about its

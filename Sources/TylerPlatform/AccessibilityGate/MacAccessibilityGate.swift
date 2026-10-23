@@ -32,7 +32,7 @@ package final class MacAccessibilityGate: AccessibilityGate {
   }
 
   /// Asks for the focused app, which any working grant allows: a stale grant may report itself
-  /// trusted and still have its calls refused (unverified; see `devdocs/known-issues.md`).
+  /// trusted and still have its calls refused (unverified; issue #10).
   private static func probe() -> AccessFacts.Probe {
     let systemWide = AXUIElementCreateSystemWide()
     // The frontmost app answers, so one that hangs would hold up the main thread. On the

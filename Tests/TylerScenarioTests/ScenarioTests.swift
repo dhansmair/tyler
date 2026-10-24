@@ -88,4 +88,18 @@ struct ScenarioTests {
     #expect(next.list(2) == [3])
     #expect(next.isParked(1))
   }
+
+  @Test func aStartedSlideWaitsForTheClock() async {
+    let scenario = await Scenario(
+      workspaces: [1: [1]], animates: true, slide: .milliseconds(48),
+      frameInterval: .milliseconds(16))
+    let slot = scenario.frame(of: 1)
+    await scenario.start("workspace focus next")
+    #expect(scenario.frame(of: 1) == slot)
+    await scenario.wait(.milliseconds(16))
+    #expect(scenario.frame(of: 1) != slot)
+    #expect(!scenario.isParked(1))
+    await scenario.wait(.milliseconds(32))
+    #expect(scenario.isParked(1))
+  }
 }

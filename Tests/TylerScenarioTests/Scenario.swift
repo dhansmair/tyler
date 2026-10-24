@@ -29,13 +29,16 @@ struct Scenario {
   let stacking = FakeStacking()
   let gapCursor = FakeGapCursor()
   let clock = TestClock()
+  /// How far the clock moves for each frame of an animation.
+  let frameInterval: Duration
   private let displays: FakeDisplays
 
   /// `workspaces` maps a workspace number to its windows, in list order; each starts focused on
   /// its first window. `showing` lists the workspaces on screen; by default each display shows
   /// its first. Numbers belong to displays as the config's defaults say (1 to 4 on display 1, 5
   /// to 8 on display 2). With `animates`, animations step frame by frame on `clock` instead of
-  /// snapping, so a test can see the windows on their way.
+  /// snapping, so a test can see the windows on their way; a slide between workspaces takes
+  /// `slide`.
   ///
   /// tylerd starts from these workspaces as after a restart: it takes them over from a hand-over
   /// state and finds each window where the previous tylerd left it, on its workspace's display,
@@ -48,8 +51,11 @@ struct Scenario {
     config: Config = Config(),
     configFile: FakeConfigFile? = nil,
     gate: FakeGate = FakeGate(isTrusted: true),
-    animates: Bool = false
+    animates: Bool = false,
+    slide: Duration = Animator.defaultDuration,
+    frameInterval: Duration = Animator.defaultFrameInterval
   ) async {
+    self.frameInterval = frameInterval
     self.displays = FakeDisplays(displays: displays)
     // Displays of its own: a manager consumes its displays' changes, so the probe must not see
     // the ones a test sends.
@@ -64,7 +70,9 @@ struct Scenario {
     saved.seen = workspaces.values.flatMap { $0 }.map(WindowID.init)
     harness = ManagerHarness(
       windows: Self.windows(in: rows, on: arranged), displays: self.displays, gate: gate,
-      animator: animates ? Animator(clock: clock) : .snap, config: config, configFile: configFile,
+      animator: animates
+        ? Animator(duration: slide, frameInterval: frameInterval, clock: clock) : .snap,
+      config: config, configFile: configFile,
       pointer: pointer, stacking: stacking, gapCursor: gapCursor, clock: clock,
       restoring: saved)
     await runUntilQuiet()
@@ -78,12 +86,17 @@ struct Scenario {
     config: Config = Config(),
     configFile: FakeConfigFile? = nil,
     gate: FakeGate = FakeGate(isTrusted: true),
-    animates: Bool = false
+    animates: Bool = false,
+    slide: Duration = Animator.defaultDuration,
+    frameInterval: Duration = Animator.defaultFrameInterval
   ) async {
+    self.frameInterval = frameInterval
     self.displays = FakeDisplays(displays: displays)
     harness = ManagerHarness(
       windows: windows, displays: self.displays, gate: gate,
-      animator: animates ? Animator(clock: clock) : .snap, config: config, configFile: configFile,
+      animator: animates
+        ? Animator(duration: slide, frameInterval: frameInterval, clock: clock) : .snap,
+      config: config, configFile: configFile,
       pointer: pointer, stacking: stacking, gapCursor: gapCursor, clock: clock)
     await runUntilQuiet()
   }
@@ -91,6 +104,7 @@ struct Scenario {
   /// The tylerd that `previous` hands over to on `tyler restart`, started with `config`. It finds
   /// the windows where `previous` left them, and keeps the calls `previous` recorded.
   private init(after previous: Scenario, config: Config) async {
+    frameInterval = previous.frameInterval
     displays = FakeDisplays(displays: previous.displays.displays)
     harness = ManagerHarness(
       windows: previous.windowSystem.windows, displays: displays, config: config,
@@ -147,6 +161,15 @@ struct Scenario {
   /// Runs `tyler <command>` (as typed, without `tyler`) and returns tylerd's answer.
   @discardableResult
   func command(_ command: String) async -> Response {
+    let response = await start(command)
+    await runUntilQuiet()
+    return response
+  }
+
+  /// Gives `tyler <command>` and returns tylerd's answer before the first frame of what it
+  /// starts, so a test can follow an animation with `wait(_:)`.
+  @discardableResult
+  func start(_ command: String) async -> Response {
     let words = command.split(separator: " ").map(String.init)
     guard let invocation = try? CommandLineParser.parse(words),
       case .send(let request) = invocation.action
@@ -155,7 +178,7 @@ struct Scenario {
       return .error("not a command")
     }
     let response = harness.manager.handle(request)
-    await runUntilQuiet()
+    await harness.settle()
     return response
   }
 
@@ -207,6 +230,13 @@ struct Scenario {
     await runUntilQuiet()
   }
 
+  /// Lets `time` pass in one go, as when moving the windows took that long, and lets tylerd
+  /// handle what is due.
+  func wait(_ time: Duration) async {
+    clock.advance(by: time)
+    await harness.settle()
+  }
+
   /// The user moves the pointer to `point`, with no button down.
   func movePointer(to point: CGPoint) async {
     pointer.move(to: point)
@@ -256,7 +286,7 @@ struct Scenario {
     await harness.settle()
     for _ in 0..<1000 {
       guard clock.hasSleepers else { return }
-      clock.advance(by: Animator.defaultFrameInterval)
+      clock.advance(by: frameInterval)
       await harness.settle()
     }
     Issue.record("still busy after 1000 frames")

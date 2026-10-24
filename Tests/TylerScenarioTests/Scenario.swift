@@ -186,6 +186,15 @@ struct Scenario {
     return response
   }
 
+  /// A request as any client may send it, including ones the CLI never makes; returns
+  /// tylerd's answer.
+  @discardableResult
+  func send(_ request: Request) async -> Response {
+    let response = harness.manager.handle(request)
+    await runUntilQuiet()
+    return response
+  }
+
   /// The user clicks into `window`, or macOS focuses it.
   func focus(_ window: UInt32) async {
     harness.windowSystem.send(.focused(WindowID(window)))

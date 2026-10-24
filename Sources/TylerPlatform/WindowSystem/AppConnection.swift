@@ -17,6 +17,12 @@ final class AppConnection {
     case focused(WindowID?)
   }
 
+  enum ForgetReason {
+    case destroyed
+    case appQuit
+    case writeRefused
+  }
+
   /// A window and the writes that take it where it goes. An `AXUIElement` is an immutable handle
   /// on an element of another process, and the Accessibility API may be called from any thread.
   struct Move: @unchecked Sendable {
@@ -92,8 +98,15 @@ final class AppConnection {
   }
 
   /// Forgets a window that is gone, and reports it.
-  func forget(_ windowID: WindowID) {
+  func forget(_ windowID: WindowID, because reason: ForgetReason) {
+    let name = named(windowID)
     guard windows.forget(windowID) else { return }
+    switch reason {
+    case .destroyed: Self.log.info("window forgetting - \(name) - it was destroyed")
+    case .appQuit: break  // The app's detaching says so, once for all its windows.
+    case .writeRefused:
+      Self.log.warning("window forgetting - \(name) - a write said the window is invalid")
+    }
     pendingReads.forget(windowID)
     report(.destroyed(windowID))
   }
@@ -145,7 +158,7 @@ final class AppConnection {
     case kAXUIElementDestroyedNotification:
       // The element is already invalid, so it can't be asked for its id; find it by identity.
       if let windowID = windows.identify(element) {
-        forget(windowID)
+        forget(windowID, because: .destroyed)
       }
     default:
       guard let windowID = bridge.windowID(of: element) ?? windows.identify(element) else {
@@ -256,7 +269,10 @@ extension AppConnection {
   }
 
   private func element(of windowID: WindowID) throws(WindowSystemError) -> AXUIElement {
-    guard let element = windows.element(of: windowID) else { throw .windowGone(windowID) }
+    guard let element = windows.element(of: windowID) else {
+      Self.log.info("window call failed - \(named(windowID)) - the app doesn't track it")
+      throw .windowGone(windowID)
+    }
     return element
   }
 
@@ -284,7 +300,7 @@ extension AppConnection {
       // The window closed under us. Its destroyed notification may never come (registering for
       // it can fail right after an app launches), so forget it here: the manager then drops it
       // from its workspace instead of keeping an empty slot for it.
-      forget(windowID)
+      forget(windowID, because: .writeRefused)
       throw .windowGone(windowID)
     default:
       if status == .cannotComplete { noteTimeout() }

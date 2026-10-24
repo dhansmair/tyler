@@ -157,7 +157,7 @@ package final class MacWindowSystem: WindowSystem {
     guard let connection = connections.removeValue(forKey: processID) else { return }
     let windowIDs = connection.windowIDs
     Self.log.info("app quit - pid \(processID) - dropping \(windowIDs.count) windows")
-    for windowID in windowIDs { connection.forget(windowID) }
+    for windowID in windowIDs { connection.forget(windowID, because: .appQuit) }
     connection.close()
   }
 
@@ -206,7 +206,10 @@ package final class MacWindowSystem: WindowSystem {
   }
 
   private func owner(of windowID: WindowID) throws(WindowSystemError) -> AppConnection {
-    guard let connection = connection(of: windowID) else { throw .windowGone(windowID) }
+    guard let connection = connection(of: windowID) else {
+      Self.log.info("window call failed - \(WindowInfo.logName(windowID, nil)) - no app owns it")
+      throw .windowGone(windowID)
+    }
     return connection
   }
 

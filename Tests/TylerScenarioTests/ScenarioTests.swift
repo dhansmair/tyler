@@ -1,4 +1,5 @@
 import Testing
+import TylerConfig
 import TylerTestSupport
 
 /// The context a `Scenario` sets up is the one tylerd starts from.
@@ -69,5 +70,22 @@ struct ScenarioTests {
     await scenario.change(makeWindow(id: 2, isMinimized: true))
     #expect(scenario.list(1) == [1])
     #expect(scenario.windowSystem.windows.first { $0.id.rawValue == 2 }?.isMinimized == true)
+  }
+
+  @Test func aReloadReadsTheConfigFile() async {
+    let file = FakeConfigFile()
+    let scenario = await Scenario(workspaces: [1: [1]], configFile: file)
+    file.write(.config(Config(workspaces: Config.Workspaces(count: 6))))
+    await scenario.command("config reload")
+    #expect(await scenario.command("workspace focus 6") == .message("workspace 6"))
+  }
+
+  @Test func theNextTylerdCarriesOnWithTheWorkspaces() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2], 2: [3]], showing: [2])
+    let next = await scenario.restart()
+    #expect(next.shown == [2])
+    #expect(next.list(1) == [1, 2])
+    #expect(next.list(2) == [3])
+    #expect(next.isParked(1))
   }
 }

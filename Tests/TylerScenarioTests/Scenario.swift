@@ -46,6 +46,7 @@ struct Scenario {
     showing: [Int] = [],
     layout: LayoutKind = .tall,
     config: Config = Config(),
+    configFile: FakeConfigFile? = nil,
     gate: FakeGate = FakeGate(isTrusted: true),
     animates: Bool = false
   ) async {
@@ -63,8 +64,8 @@ struct Scenario {
     saved.seen = workspaces.values.flatMap { $0 }.map(WindowID.init)
     harness = ManagerHarness(
       windows: Self.windows(in: rows, on: arranged), displays: self.displays, gate: gate,
-      animator: animates ? Animator(clock: clock) : .snap, config: config, pointer: pointer,
-      stacking: stacking, gapCursor: gapCursor, clock: clock,
+      animator: animates ? Animator(clock: clock) : .snap, config: config, configFile: configFile,
+      pointer: pointer, stacking: stacking, gapCursor: gapCursor, clock: clock,
       restoring: saved)
     await runUntilQuiet()
   }
@@ -75,14 +76,26 @@ struct Scenario {
     openAtStart windows: [WindowInfo],
     displays: [DisplayInfo] = [FakeDisplays.main],
     config: Config = Config(),
+    configFile: FakeConfigFile? = nil,
     gate: FakeGate = FakeGate(isTrusted: true),
     animates: Bool = false
   ) async {
     self.displays = FakeDisplays(displays: displays)
     harness = ManagerHarness(
       windows: windows, displays: self.displays, gate: gate,
-      animator: animates ? Animator(clock: clock) : .snap, config: config, pointer: pointer,
-      stacking: stacking, gapCursor: gapCursor, clock: clock)
+      animator: animates ? Animator(clock: clock) : .snap, config: config, configFile: configFile,
+      pointer: pointer, stacking: stacking, gapCursor: gapCursor, clock: clock)
+    await runUntilQuiet()
+  }
+
+  /// The tylerd that `previous` hands over to on `tyler restart`, started with `config`. It finds
+  /// the windows where `previous` left them, and keeps the calls `previous` recorded.
+  private init(after previous: Scenario, config: Config) async {
+    displays = FakeDisplays(displays: previous.displays.displays)
+    harness = ManagerHarness(
+      windows: previous.windowSystem.windows, displays: displays, config: config,
+      pointer: pointer, stacking: stacking, gapCursor: gapCursor, clock: clock,
+      restoring: previous.harness.manager.handOver(), clearRecordedCalls: false)
     await runUntilQuiet()
   }
 
@@ -230,6 +243,12 @@ struct Scenario {
     displays.displays = connected
     displays.sendChange()
     await runUntilQuiet()
+  }
+
+  /// `tyler restart`: this tylerd hands its workspaces over, and the next one, with `config`,
+  /// takes over. Read the next one's view from the scenario returned.
+  func restart(config: Config = Config()) async -> Scenario {
+    await Scenario(after: self, config: config)
   }
 
   /// Lets the manager handle what it was sent, and advances the clock until nothing waits on it.

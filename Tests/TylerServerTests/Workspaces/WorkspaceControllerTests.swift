@@ -49,6 +49,11 @@ struct WorkspaceControllerTests {
     }
   }
 
+  @Test(arguments: [([1, 2, 3, 4], "1 to 4"), ([5, 6, 9], "5, 6, 9"), ([7], "7")])
+  func theErrorNamesTheWorkspacesThereAre(numbers: [Int], named: String) {
+    #expect(WorkspaceController.describe(numbers) == named)
+  }
+
   @Test func aSwitchDuringADragEndsTheDragFirst() throws {
     var registry = WindowRegistry()
     registry.replaceAll((1...3).map { makeWindow(id: $0, isFocused: $0 == 1) })

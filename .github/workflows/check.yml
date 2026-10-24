@@ -1,9 +1,11 @@
 # What the pre-commit hook checks (`make check`: format, SwiftLint, test paths and the tests), in a
-# fresh checkout, for every pull request and every push to main.
+# fresh checkout, for every pull request that isn't a draft and every push to main. A draft runs it
+# once it is marked ready for review.
 name: check
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
 
@@ -16,6 +18,7 @@ concurrency:
 
 jobs:
   check:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: macos-26
     timeout-minutes: 30
     env:

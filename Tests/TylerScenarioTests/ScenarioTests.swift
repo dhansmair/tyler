@@ -39,4 +39,35 @@ struct ScenarioTests {
     await scenario.command("workspace focus 2")
     #expect(scenario.frame(of: 4) == scenario.rect(.full))
   }
+
+  @Test func windowsOpenAtAFirstStartAreTiledOnTheFirstWorkspace() async {
+    let scenario = await Scenario(openAtStart: spread([1, 2]))
+    #expect(scenario.list(1) == [1, 2])
+    #expect(scenario.frame(of: 1) == scenario.rect(.leftHalf))
+  }
+
+  @Test func withoutPermissionNothingIsTiled() async {
+    let scenario = await Scenario(openAtStart: spread([1]), gate: FakeGate(isTrusted: false))
+    #expect(scenario.workspaces.isEmpty)
+  }
+
+  @Test func anOpenedWindowJoinsTheList() async {
+    let scenario = await Scenario(workspaces: [1: [1]])
+    await scenario.open(makeWindow(id: 2))
+    #expect(scenario.list(1) == [1, 2])
+  }
+
+  @Test func aClosedWindowLeavesTheList() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    await scenario.close(1)
+    #expect(scenario.list(1) == [2])
+    #expect(scenario.frame(of: 1) == nil)
+  }
+
+  @Test func aChangedWindowIsWhatMacOSReports() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    await scenario.change(makeWindow(id: 2, isMinimized: true))
+    #expect(scenario.list(1) == [1])
+    #expect(scenario.windowSystem.windows.first { $0.id.rawValue == 2 }?.isMinimized == true)
+  }
 }

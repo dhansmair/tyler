@@ -46,6 +46,7 @@ struct Scenario {
     showing: [Int] = [],
     layout: LayoutKind = .tall,
     config: Config = Config(),
+    gate: FakeGate = FakeGate(isTrusted: true),
     animates: Bool = false
   ) async {
     self.displays = FakeDisplays(displays: displays)
@@ -61,10 +62,27 @@ struct Scenario {
     saved.displays = rows
     saved.seen = workspaces.values.flatMap { $0 }.map(WindowID.init)
     harness = ManagerHarness(
-      windows: Self.windows(in: rows, on: arranged), displays: self.displays,
+      windows: Self.windows(in: rows, on: arranged), displays: self.displays, gate: gate,
       animator: animates ? Animator(clock: clock) : .snap, config: config, pointer: pointer,
       stacking: stacking, gapCursor: gapCursor, clock: clock,
       restoring: saved)
+    await runUntilQuiet()
+  }
+
+  /// tylerd starts for the first time with `windows` open, as `tyler start` finds them, and
+  /// tiles them. Their frames are where `tyler stop` and `tiling off` put them back.
+  init(
+    openAtStart windows: [WindowInfo],
+    displays: [DisplayInfo] = [FakeDisplays.main],
+    config: Config = Config(),
+    gate: FakeGate = FakeGate(isTrusted: true),
+    animates: Bool = false
+  ) async {
+    self.displays = FakeDisplays(displays: displays)
+    harness = ManagerHarness(
+      windows: windows, displays: self.displays, gate: gate,
+      animator: animates ? Animator(clock: clock) : .snap, config: config, pointer: pointer,
+      stacking: stacking, gapCursor: gapCursor, clock: clock)
     await runUntilQuiet()
   }
 
@@ -131,6 +149,29 @@ struct Scenario {
   /// The user clicks into `window`, or macOS focuses it.
   func focus(_ window: UInt32) async {
     harness.windowSystem.send(.focused(WindowID(window)))
+    await runUntilQuiet()
+  }
+
+  /// An app opens `window`.
+  func open(_ window: WindowInfo) async {
+    harness.windowSystem.windows.append(window)
+    harness.windowSystem.send(.created(window))
+    await runUntilQuiet()
+  }
+
+  /// `window` closes, by its app or its close button.
+  func close(_ window: UInt32) async {
+    harness.windowSystem.windows.removeAll { $0.id.rawValue == window }
+    harness.windowSystem.send(.destroyed(WindowID(window)))
+    await runUntilQuiet()
+  }
+
+  /// macOS reports `window` changed: minimized or back, full screen, moved, a dialog.
+  func change(_ window: WindowInfo) async {
+    if let index = harness.windowSystem.windows.firstIndex(where: { $0.id == window.id }) {
+      harness.windowSystem.windows[index] = window
+    }
+    harness.windowSystem.send(.updated(window))
     await runUntilQuiet()
   }
 
@@ -214,6 +255,16 @@ struct Scenario {
       .filter { $0.workspace == number && $0.slot != nil }
       .sorted { ($0.slot ?? 0) < ($1.slot ?? 0) }
       .map(\.id.rawValue)
+  }
+
+  /// Window id → workspace number, for the windows on a workspace.
+  var workspaces: [UInt32: Int] {
+    harness.workspaces()
+  }
+
+  /// What tylerd asked macOS to do (moves, focus, closes), and the refusals a test sets up.
+  var windowSystem: FakeWindowSystem {
+    harness.windowSystem
   }
 
   /// The workspace each display shows, by display number.

@@ -389,7 +389,10 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
 - **Open issues are GitHub issues**, labelled `bug`, `limitation`, `enhancement`, `question`,
   `unchecked` (seen or suspected, not confirmed) and `strip`. The issue holds the details;
   `known-issues.md`, `strip-layout.md` and `docs/known-issues.md` link to it.
-- **Before every release**, the **release** items of `testing.md` pass on real windows, and the
+- **Before every release**, the whole catalogue of `testing.md` runs on real windows, and the run
+  is written to `test-runs/<version>.md`: every row passes, is skipped for want of its setup, or
+  links the known issue it fails with. A tick that something once worked says nothing about the
+  build being released, so the catalogue has no ticks, and the runs are kept instead. Then the
   tree and the commit messages since the last release are read for anything about a personal
   setup (no hook checks it).
 

@@ -243,3 +243,13 @@ tylerd does: app frontmost, `AXRaise`, main; then 150 ms later `AXRaise` on wind
 - A synthetic Escape doesn't close a status item menu.
 - Screen capture needs Screen Recording permission, so what the menu bar looks like needs a person's
   eyes.
+
+## Not measured yet
+
+Assumptions the Accessibility layer is built on that no measurement has confirmed:
+
+- The size, position, size sequence in `AXBridge.setFrame` is needed (a single position and size
+  write may do).
+- Making the app frontmost and then raising the window (`AXBridge.raise`) works for every app.
+- `MacWindowSystem`'s attach retries (6 × 500 ms) are enough for apps that launch slowly.
+- `tylerd` needs `NSApplication.run()` rather than `dispatchMain()`.

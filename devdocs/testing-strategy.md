@@ -60,8 +60,17 @@ layout being tested. The frames a layout should produce are listed in `docs/layo
 
 ## The end-to-end suite
 
-`devdocs/testing.md` lists what to run on real windows. The whole list is run before every
-release, as a regression suite, not ticked off once: something that worked on an earlier build
-says nothing about this one. Keep the list short. Anything that can be checked by a scenario test
-belongs there, and anything that can be checked by a script (`devtools/live-check`, `tyler window
-list --json`, `tyler debug windows`) shouldn't wait for a person.
+`devdocs/testing.md` is the catalogue of what to run on real windows: a row per check, with an id,
+why it needs real windows, the scenario test that covers its logic and whether it needs a person.
+The whole catalogue is run before every release, as a regression suite, not ticked off once:
+something that worked on an earlier build says nothing about this one. Each run is written to
+`devdocs/test-runs/` (the format is in `testing.md`). Keep the list short. Anything that can be
+checked by a scenario test belongs there, and anything that can be checked by a script
+(`devtools/live-check`, `tyler window list --json`, `tyler debug windows`) shouldn't wait for a
+person.
+
+**Automate as much as possible.** A test a person has to run is skipped when time is short and
+judged differently each time, so every layer aims to run without one. A row on real windows is
+automated (`devtools/e2e`: commands, AppleScript, posted keys and mouse events) unless macOS
+gives no way to post the input or read the result back; a manual row is marked as such, and its
+action says what the person does. When a way is found, the row becomes automated.

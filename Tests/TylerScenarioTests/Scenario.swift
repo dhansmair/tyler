@@ -74,7 +74,8 @@ struct Scenario {
   }
 
   /// tylerd starts for the first time with `windows` open, as `tyler start` finds them, and
-  /// tiles them. Their frames are where `tyler stop` and `tiling off` put them back.
+  /// tiles them. Their frames are where `tyler stop` and `tiling off` put them back. What tylerd
+  /// asked of the window system to tile them stays recorded in `windowSystem`.
   init(
     openAtStart windows: [WindowInfo],
     displays: [DisplayInfo] = [FakeDisplays.main],
@@ -93,7 +94,8 @@ struct Scenario {
       animator: animates
         ? Animator(duration: slide, frameInterval: frameInterval, clock: clock) : .snap,
       config: config, configFile: configFile,
-      pointer: pointer, stacking: stacking, gapCursor: gapCursor, clock: clock)
+      pointer: pointer, stacking: stacking, gapCursor: gapCursor, clock: clock,
+      clearRecordedCalls: false)
     await runUntilQuiet()
   }
 

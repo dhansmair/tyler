@@ -62,4 +62,10 @@ extension Scenario {
     }
     await runUntilQuiet()
   }
+
+  /// The user moves or resizes `window` by hand to `frame`; its app reports the new frame.
+  func moveByHand(_ window: UInt32, to frame: CGRect) async {
+    await harness.windowSystem.userMoves(window, to: frame)
+    await runUntilQuiet()
+  }
 }

@@ -10,8 +10,10 @@ package final class MacAccessibilityGate: AccessibilityGate {
   package let changes: AsyncStream<Void>
   private static let log = TylerLog(category: "ax")
   private let observer: any NSObjectProtocol
+  private let screenLock: any ScreenLock
 
-  package init() {
+  package init(screenLock: any ScreenLock) {
+    self.screenLock = screenLock
     let (changes, continuation) = AsyncStream.makeStream(of: Void.self)
     self.changes = changes
     // Posted when a grant is switched on or off in System Settings, not when an entry is removed
@@ -28,7 +30,7 @@ package final class MacAccessibilityGate: AccessibilityGate {
   package var isTrusted: Bool { AXIsProcessTrusted() }
 
   package var facts: AccessFacts {
-    AccessFacts(isTrusted: isTrusted, probe: Self.probe(), isScreenLocked: Self.isScreenLocked)
+    AccessFacts(isTrusted: isTrusted, probe: Self.probe(), isScreenLocked: screenLock.isLocked)
   }
 
   /// Asks for the focused app, which any working grant allows: a stale grant may report itself
@@ -44,11 +46,6 @@ package final class MacAccessibilityGate: AccessibilityGate {
     if status == .success || status == .noValue { return .allowed }
     log.debug("permission probing failed - AX error \(status.rawValue)")
     return status == .apiDisabled ? .refused : .noAnswer
-  }
-
-  private static var isScreenLocked: Bool {
-    guard let session = CGSessionCopyCurrentDictionary() as? [String: Any] else { return false }
-    return session["CGSSessionScreenIsLocked"] as? Bool ?? false
   }
 
   package func prompt() {

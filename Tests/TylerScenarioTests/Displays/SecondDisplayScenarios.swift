@@ -4,68 +4,46 @@ import TylerConfig
 import TylerCore
 import TylerTestSupport
 
-@testable import TylerServer
-
 /// With a second display connected, everything still happens on the primary one: its area, its
-/// parking spot, its slides and its resizing. These pin that windows on the primary display behave as with one
-/// display.
+/// parking spot, its slides and its resizing. These pin that windows on the primary display behave
+/// as with one display.
 @Suite("Two displays: the primary display's workspaces")
 @MainActor
 struct SecondDisplayScenarios {
-  private let pointer = FakePointer()
-  private let clock = TestClock()
+  private let displays = [FakeDisplays.main, FakeDisplays.secondary]
 
-  private func twoDisplays() -> FakeDisplays {
-    FakeDisplays(displays: [FakeDisplays.main, FakeDisplays.secondary])
-  }
-
-  @Test func theIndicatorShowsThePrimaryDisplaysArea() {
-    let indicator = FakeIndicator()
-    let manager = WindowManager(
-      windowSystem: FakeWindowSystem(windows: spread([1, 2])), displays: twoDisplays(),
-      gate: FakeGate(isTrusted: true), indicator: indicator)
-    manager.startIfPermitted()
-    #expect(indicator.shown.last?.area == FakeDisplays.main.visibleFrame)
+  @Test func theIndicatorShowsThePrimaryDisplaysArea() async {
+    let scenario = await Scenario(openAtStart: spread([1, 2]), displays: displays)
+    #expect(scenario.indicator.shown.last?.area == scenario.rect(.full))
   }
 
   @Test func aWindowOpeningOnAnotherWorkspaceParksAtThePrimaryDisplaysEdge() async {
-    let harness = ManagerHarness(
-      [1], displays: twoDisplays(), config: Config(apps: ["firefox": Config.App(workspace: 3)]))
+    let scenario = await Scenario(
+      displays: displays, workspaces: [1: [1]],
+      config: Config(apps: ["firefox": Config.App(workspace: 3)]))
     var firefox = makeWindow(id: 9, frame: CGRect(x: 700, y: 100, width: 300, height: 200))
     firefox.appName = "Firefox"
-    harness.windowSystem.windows.append(firefox)
-    harness.windowSystem.send(.created(firefox))
-    await harness.settle()
+    await scenario.open(firefox)
 
-    #expect(harness.workspaces()[9] == 3)
-    #expect(harness.frame(of: 9)?.minX == FakeDisplays.main.visibleFrame.maxX - 1)
+    #expect(scenario.workspaces[9] == 3)
+    #expect(scenario.frame(of: 9)?.minX == scenario.rect(.full).maxX - 1)
   }
 
   @Test func aSwipeSlidesThePrimaryDisplaysWorkspaces() async {
-    let harness = ManagerHarness([1, 2], displays: twoDisplays(), pointer: pointer, clock: clock)
-    await harness.osFocus(2)
-    _ = harness.manager.moveToWorkspace(.number(2), follow: false)
-    await harness.settle()
-
-    for update in [SwipeUpdate.began, .moved(offset: -0.18), .ended(velocity: 0)] {
-      pointer.swipe(update)
-    }
-    await harness.settle()
-    #expect(harness.manager.workspaces.currentIndex == 1)
-    #expect(harness.frame(of: 2) == FakeDisplays.main.visibleFrame)
-    #expect(harness.frame(of: 1)?.minX == FakeDisplays.main.visibleFrame.maxX - 1)
+    let scenario = await Scenario(displays: displays, workspaces: [1: [1], 2: [2]])
+    await scenario.swipe(.left)
+    #expect(scenario.shown == [2, 5])
+    #expect(scenario.frame(of: 2) == scenario.rect(.full))
+    #expect(scenario.frame(of: 1)?.minX == scenario.rect(.full).maxX - 1)
   }
 
   @Test func resizingWithTheMouseLaysOutInThePrimaryDisplaysArea() async {
-    let harness = ManagerHarness(
-      [1, 2, 3], displays: twoDisplays(), pointer: pointer, clock: clock)
-    await harness.settle()
-
-    pointer.isPrimaryButtonDown = true
-    await harness.windowSystem.userMoves(1, to: CGRect(x: 55, y: 38, width: 1047, height: 1131))
-    #expect(harness.frame(of: 2) == CGRect(x: 1102, y: 38, width: 698, height: 566))
-    pointer.release()
-    await harness.settle()
-    #expect(harness.frame(of: 3) == CGRect(x: 1102, y: 604, width: 698, height: 565))
+    let scenario = await Scenario(displays: displays, workspaces: [1: [1, 2, 3]])
+    scenario.pointer.isPrimaryButtonDown = true
+    await scenario.moveByHand(1, to: CGRect(x: 55, y: 38, width: 1047, height: 1131))
+    #expect(scenario.frame(of: 2) == CGRect(x: 1102, y: 38, width: 698, height: 566))
+    scenario.pointer.release()
+    await scenario.runUntilQuiet()
+    #expect(scenario.frame(of: 3) == CGRect(x: 1102, y: 604, width: 698, height: 565))
   }
 }

@@ -188,6 +188,37 @@ subrole, title-bar buttons and whether its size can be set:
   quit: compare the process ids still running instead. An app told to quit (Calculator, `quit app`) shows up in all of
   them.
 
+## tylerd as an app of its own
+
+Measured 2026-10-24 on macOS 26.7, with the release `tylerd` in a hand-made bundle (`Info.plist`
+with a bundle ID, `CFBundleExecutable=tylerd`, `LSUIElement`), ad-hoc signed, launched with `open`,
+from a terminal that held Accessibility itself:
+
+- **Launched through LaunchServices, tylerd is responsible for itself.** Its parent was launchd, and
+  `AXIsProcessTrusted()` said no although the terminal had the grant.
+- **The prompt works for an `LSUIElement` app**: `AXIsProcessTrustedWithOptions` with the prompt
+  option showed the system's dialog.
+- **From a folder under `/private/tmp` the app got no entry in the list**, although the dialog
+  appeared, also after quitting and reopening System Settings. The same bundle in
+  `~/Applications` was listed after its prompt.
+- **The grant follows the bundle ID and the signature, not the path.** The same signed bundle
+  copied to another folder and launched from there was trusted at once, so a new install path per
+  version (Homebrew's Cellar) costs nothing by itself.
+- **A different build in the same bundle is a new identity.** An ad-hoc signature's designated
+  requirement is the code's hash (`codesign -d -r-` printed only `cdhash H"…"`): another
+  `tylerd` in the bundle, re-signed ad-hoc, wasn't trusted while the switch stayed on.
+- **`tccutil reset Accessibility <bundle id>` works without `sudo`**, run while no tylerd was
+  running. It prints its "Successfully reset" line twice even for one entry. The next launch
+  prompted again.
+- **A grant given while tylerd waits** was picked up by the waiting process within its one-second
+  check after the reset; the first time (the very first entry for the bundle ID) it wasn't, and only
+  a relaunch made tylerd trusted. Why the two differed isn't known.
+- **No Input Monitoring is needed.** With only the app's Accessibility grant, every tap came up
+  (`input` in `tyler status`), and three-finger swipes, dragging and resizing with the modifier,
+  and focus follows mouse all worked.
+- **Launched with `open`, tylerd's stderr goes nowhere**, so nothing reached `~/.tyler/tyler.log`,
+  which `tyler start` fills by redirecting stderr. A bundled tylerd has to open its log itself.
+
 ## The cursor from the background
 
 Measured 2026-10-14 on macOS 26.7, with tylerd in the background and the pointer moved by synthetic

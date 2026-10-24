@@ -40,5 +40,8 @@ too. In short:
 - Logic lives in libraries and is unit tested with Swift Testing; everything that touches macOS
   sits behind a protocol so tests use fakes. The executables stay thin.
 - One small, self-contained change per commit, with tests, and the docs updated in the same commit.
+- Every change reaches `main` through a pull request that the maintainer reviews and merges. Its
+  description explains the problem (for a fix, the cause and how it was confirmed), where the
+  change sits in the design and why, the tests, and what was checked on real windows.
 - `devdocs/design.md` explains the design decisions, `devdocs/macos-behaviour.md` what macOS was
   measured to do, and `devdocs/testing.md` the checks against real windows.

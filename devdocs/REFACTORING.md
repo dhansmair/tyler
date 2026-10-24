@@ -4,11 +4,9 @@ Coding agents tend to add features on top of each other and rarely refactor, whi
 
 ## How to work through it
 
-In progress: none.
-
 - **Where items come from:** after every feature, the agent that built it re-reads the feature's whole diff for refactorings (see "Review a feature once it works" in CLAUDE.md). Small finds are done at once; larger ones land here.
-- **Claim an item first:** put it on the "In progress" line above (with who is working on it) and commit, so a parallel agent doesn't take it too; clear it when the item is done. See "Parallel agents" in CLAUDE.md.
-- **One item (or one step of an item) per commit**, like any other increment. Delete it here in the same commit.
+- **Claim an item first:** open its draft PR, titled after the item, so a parallel agent doesn't take it too (`gh pr list` shows what is claimed). See "Pull requests" and "Parallel agents" in CLAUDE.md.
+- **One item per PR, one step of it per commit.** Delete the item here in the commit that completes it.
 - **Pin behaviour down first.** If the tests don't clearly cover what a refactoring touches, add regression tests in a commit of their own *before* changing the code, so the refactoring commit changes no tests (or only their setup).
 - **Run `live-check`** after any item that changes how or when windows move (marked **[live]**).
 - Items name files and symbols, not line numbers, since the code keeps moving. Check that a finding still holds before starting it.

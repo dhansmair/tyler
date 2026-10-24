@@ -45,4 +45,4 @@ too. In short:
   description explains the problem (for a fix, the cause and how it was confirmed), where the
   change sits in the design and why, the tests, and what was checked on real windows.
 - `devdocs/design.md` explains the design decisions, `devdocs/macos-behaviour.md` what macOS was
-  measured to do, and `devdocs/testing.md` the checks against real windows.
+  measured to do, and `devdocs/testing-catalogue.md` the checks against real windows.

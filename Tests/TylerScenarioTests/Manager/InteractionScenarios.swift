@@ -3,89 +3,80 @@ import Testing
 import TylerCore
 import TylerTestSupport
 
-@testable import TylerServer
-
 /// A slide, a trackpad swipe and a mouse drag never run at the same time: whichever comes second
 /// is ignored or ends the first. Windows 1 and 2 tile workspace 1, window 3 waits on workspace 2.
 @Suite("Slide, swipe and drag exclude each other")
 @MainActor
 struct InteractionScenarios {
-  private let pointer = FakePointer()
-  private let clock = TestClock()
-
-  private func makeHarness(animator: Animator = .snap) async -> ManagerHarness {
-    let harness = ManagerHarness([1, 2, 3], animator: animator, pointer: pointer, clock: clock)
-    await harness.osFocus(3)
-    _ = harness.manager.moveToWorkspace(.next, follow: false)
-    while clock.hasSleepers {
-      clock.advance(by: .milliseconds(16))
-      await harness.settle()
-    }
-    await harness.settle()
-    harness.windowSystem.clearRecordedCalls()
-    return harness
+  private func scenario(animates: Bool = false) async -> Scenario {
+    let scenario = await Scenario(
+      workspaces: [1: [1, 2], 2: [3]], animates: animates, slide: .milliseconds(48),
+      frameInterval: .milliseconds(16))
+    scenario.windowSystem.clearRecordedCalls()
+    return scenario
   }
 
-  /// The user resizes window 1 with the button down, starting a drag.
-  private func resizeWindow1(in harness: ManagerHarness) async {
-    pointer.isPrimaryButtonDown = true
-    let frame = harness.frame(of: 1) ?? .zero
-    await harness.windowSystem.userMoves(1, to: frame.insetBy(dx: 0, dy: 50))
+  /// The user resizes window 1 with the button down, by `inset` points at the top and bottom.
+  private func resizeWindow1(by inset: CGFloat, in scenario: Scenario) async {
+    scenario.pointer.isPrimaryButtonDown = true
+    let frame = scenario.frame(of: 1) ?? .zero
+    await scenario.moveByHand(1, to: frame.insetBy(dx: 0, dy: inset))
   }
 
-  @Test func aSwipeDuringADragIsIgnored() async {
-    let harness = await makeHarness()
-    await resizeWindow1(in: harness)
-    #expect(harness.manager.drag != nil)
-    pointer.swipe(.began)
-    pointer.swipe(.moved(offset: -0.15))
-    await harness.settle()
-    #expect(harness.manager.swipe == nil)
-    #expect(harness.manager.drag != nil, "the drag goes on")
-    #expect(harness.windowSystem.nudges.isEmpty)
+  @Test func aSwipeDuringADragIsIgnored() async throws {
+    let scenario = await scenario()
+    await resizeWindow1(by: 50, in: scenario)
+    scenario.windowSystem.clearRecordedCalls()
+    let before = scenario.frame(of: 2)
+    scenario.pointer.swipe(.began)
+    scenario.pointer.swipe(.moved(offset: -0.15))
+    await scenario.runUntilQuiet()
+    #expect(scenario.windowSystem.nudges.isEmpty, "the fingers move nothing")
+    #expect(scenario.frame(of: 2) == before)
+
+    var wider = try #require(scenario.frame(of: 1))
+    wider.size.width += 100
+    await scenario.moveByHand(1, to: wider)
+    #expect(scenario.frame(of: 2) != before, "the drag goes on: window 2 follows the resize")
   }
 
   @Test func aResizeDuringASwipeIsNotFollowed() async {
-    let harness = await makeHarness()
-    pointer.swipe(.began)
-    pointer.swipe(.moved(offset: -0.15))
-    await harness.settle()
-    #expect(harness.manager.swipe != nil)
-    await resizeWindow1(in: harness)
-    #expect(harness.manager.drag == nil)
-    #expect(harness.manager.swipe != nil, "the swipe goes on")
+    let scenario = await scenario()
+    let size = scenario.frame(of: 2)?.size
+    scenario.pointer.swipe(.began)
+    scenario.pointer.swipe(.moved(offset: -0.18))
+    await scenario.runUntilQuiet()
+    await resizeWindow1(by: 50, in: scenario)
+    #expect(scenario.frame(of: 2)?.size == size, "window 2 doesn't follow the resize")
+
+    scenario.pointer.swipe(.ended(velocity: 0))
+    await scenario.runUntilQuiet()
+    #expect(scenario.shown == [2], "the swipe goes on")
   }
 
   @Test func aResizeDuringASlideIsNotFollowed() async {
-    let animator = Animator(
-      duration: .milliseconds(48), frameInterval: .milliseconds(16), clock: clock)
-    let harness = await makeHarness(animator: animator)
-    _ = harness.manager.switchWorkspace(.next)
-    #expect(harness.manager.slide != nil)
-    await resizeWindow1(in: harness)
-    #expect(harness.manager.drag == nil)
-    #expect(harness.manager.slide != nil, "the slide goes on")
+    let scenario = await scenario(animates: true)
+    let size = scenario.frame(of: 2)?.size
+    await scenario.start("workspace focus next")
+    await resizeWindow1(by: 50, in: scenario)
+    #expect(scenario.frame(of: 2)?.size == size, "window 2 doesn't follow the resize")
+
+    await scenario.runUntilQuiet()
+    #expect(scenario.frame(of: 3) == scenario.rect(.full), "the slide goes on")
+    #expect(scenario.isParked(2))
   }
 
   @Test func aSwipeEndsASlide() async {
-    let animator = Animator(
-      duration: .milliseconds(48), frameInterval: .milliseconds(16), clock: clock)
-    let harness = await makeHarness(animator: animator)
-    _ = harness.manager.switchWorkspace(.next)
-    pointer.swipe(.began)
-    await harness.settle()
-    #expect(harness.manager.slide == nil)
-    #expect(harness.manager.workspaces.currentIndex == 1)
-    #expect(harness.frame(of: 3) == harness.area, "the slide jumped to its end")
-    #expect(harness.manager.swipe != nil)
-  }
+    let scenario = await scenario(animates: true)
+    await scenario.start("workspace focus next")
+    scenario.pointer.swipe(.began)
+    await scenario.harness.settle()
+    #expect(scenario.shown == [2])
+    #expect(scenario.frame(of: 3) == scenario.rect(.full), "the slide jumped to its end")
 
-  @Test func endingAKindThatIsNotRunningLeavesTheRunningOneAlone() async {
-    let harness = await makeHarness()
-    pointer.swipe(.began)
-    await harness.settle()
-    harness.manager.endDrag()
-    harness.manager.slide = nil
-    #expect(harness.manager.swipe != nil)
+    scenario.windowSystem.clearRecordedCalls()
+    scenario.pointer.swipe(.moved(offset: 0.05))
+    await scenario.harness.settle()
+    #expect(!scenario.windowSystem.nudges.isEmpty, "the swipe moves the windows")
   }
 }

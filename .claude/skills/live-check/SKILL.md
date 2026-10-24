@@ -1,6 +1,6 @@
 ---
 name: live-check
-description: Check tyler against real windows and the real menu bar with devtools/live-check — where macOS really puts a window, the on-screen stacking order, what the menu bar item shows, and a replay of the workspace slide. Use after changing anything that moves or hides windows (slides, parking, layouts, focus), when running a row of the devdocs/testing.md catalogue, and when the user reports something odd on screen (a window "lost", a jump, a wrong direction, focus follows mouse or dragging with the modifier doing nothing). Starts with `tyler debug at`, tylerd's own view of a point.
+description: Check tyler against real windows and the real menu bar with devtools/live-check — where macOS really puts a window, the on-screen stacking order, what the menu bar item shows, and a replay of the workspace slide. Use after changing anything that moves or hides windows (slides, parking, layouts, focus), when running a row of devdocs/testing-catalogue.md, and when the user reports something odd on screen (a window "lost", a jump, a wrong direction, focus follows mouse or dragging with the modifier doing nothing). Starts with `tyler debug at`, tylerd's own view of a point.
 ---
 
 # live-check
@@ -40,7 +40,7 @@ Get window ids and slots from `tyler window list` (`.build/debug/tyler window li
 - **Check the screen isn't locked before restarting `tylerd`** (`ioreg -n Root -d1 | grep IOConsoleLocked` says `No`): while it is, the Accessibility API shows no windows and the new `tylerd` finds none: each window gets its workspace back only when it appears after the unlock. Live checks can't run on a locked screen either.
 - **Don't run `tyler stop` without asking.** It puts every window back where it was before tylerd moved it, so the user loses their arrangement. `tyler restart` keeps the windows in place (the old tylerd hands its workspaces over), so it's safe after a rebuild; still say that you're restarting.
 - **Check that windows went back** afterwards with `tyler window list`.
-- **Write findings down.** Measured behaviour goes into `devdocs/macos-behaviour.md` with the macOS version and the setup in general terms; the result of a catalogue row goes into the run's file in `devdocs/test-runs/` (`devdocs/testing.md`, "Recording a run").
+- **Write findings down.** Measured behaviour goes into `devdocs/macos-behaviour.md` with the macOS version and the setup in general terms; the result of a catalogue row goes into the run's file in `devdocs/test-runs/` (`devdocs/testing-catalogue.md`, "Recording a run").
 
 In zsh, pass `x y` as separate words: an unquoted `$p` holding "x y" stays one argument, and `positions` then sweeps every edge. That sweep moved a window on the external display onto the laptop, and tylerd tiled it.
 

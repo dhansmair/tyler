@@ -10,7 +10,7 @@ release. This file says what each layer covers and where a new test goes.
 |---|---|---|---|
 | Unit (`make test-unit`) | A pure decision (TylerCore), one controller on a `Model` and `ControllerContext`, a plain server type (Animator, Debounce, WindowRegistry), the window system on fake Accessibility and workspace clients, config, wire format, CLI parsing | `Tests/<Target>Tests/`, mirroring the sources (`devtools/check-test-paths`) | every commit |
 | Scenario (`make test-scenario`) | The whole server on fakes: displays, windows and workspaces given; an input (a command, a window event, a swipe, a drag, a display change); the lists, frames, focus and parking that come out | `Tests/TylerScenarioTests/<Feature>/` (the older ones are built on `ManagerHarness` directly) | every commit |
-| End to end | Real tylerd on real macOS: the AX layer, the event taps, timing, where macOS clamps a window, the menu bar | `devdocs/testing.md`; `devtools/live-check` | before every release, and after changing anything that moves windows |
+| End to end | Real tylerd on real macOS: the AX layer, the event taps, timing, where macOS clamps a window, the menu bar | `devdocs/testing-catalogue.md`; `devtools/live-check` | before every release, and after changing anything that moves windows |
 
 ## Where a test goes
 
@@ -60,12 +60,12 @@ layout being tested. The frames a layout should produce are listed in `docs/layo
 
 ## The end-to-end suite
 
-`devdocs/testing.md` is the catalogue of what to run on real windows: a row per check, with an id,
-why it needs real windows, the scenario test that covers its logic and whether it needs a person.
-The whole catalogue is run before every release, as a regression suite, not ticked off once:
-something that worked on an earlier build says nothing about this one. Each run is written to
-`devdocs/test-runs/` (the format is in `testing.md`). Keep the list short. Anything that can be
-checked by a scenario test belongs there, and anything that can be checked by a script
+`devdocs/testing-catalogue.md` lists what to run on real windows: a row per check, with an id, why
+it needs real windows, the scenario test that covers its logic and whether it needs a person. The
+whole catalogue is run before every release, as a regression suite, not ticked off once: something
+that worked on an earlier build says nothing about this one. Each run is written to
+`devdocs/test-runs/` (the format is in `testing-catalogue.md`). Keep the list short. Anything that
+can be checked by a scenario test belongs there, and anything that can be checked by a script
 (`devtools/live-check`, `tyler window list --json`, `tyler debug windows`) shouldn't wait for a
 person.
 

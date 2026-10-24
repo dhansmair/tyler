@@ -14,14 +14,14 @@ Windows are controlled through the macOS Accessibility API (no SIP changes). Wor
 
 **Keep this section current.** Whenever a feature is complete or its state changes (built, unit tested, checked against real windows, dropped), update it in the same commit.
 
-Every feature in `docs/manual.md` is built and unit tested, and most are in daily use on real windows (`devdocs/testing.md` is the catalogue of checks on real windows, run before every release); the strip layout is **experimental** (`devdocs/strip-layout.md`: its state, known issues and open questions; keep it current when the strip changes). 0.1.0, the first alpha, is released (tag `v0.1.0`) and the repository is public. The next milestone is a convenient install: `tylerd` as an app with its own Accessibility grant, then a Homebrew tap (`plans/app-bundle-and-homebrew.md`).
+Every feature in `docs/manual.md` is built and unit tested, and most are in daily use on real windows (`devdocs/testing-catalogue.md` is the catalogue of checks on real windows, run before every release); the strip layout is **experimental** (`devdocs/strip-layout.md`: its state, known issues and open questions; keep it current when the strip changes). 0.1.0, the first alpha, is released (tag `v0.1.0`) and the repository is public. The next milestone is a convenient install: `tylerd` as an app with its own Accessibility grant, then a Homebrew tap (`plans/app-bundle-and-homebrew.md`).
 
 Where things are written down:
 - `devdocs/architecture.md`: the target architecture (the layers from input to effects, TylerCore's bounded contexts and which way their dependencies point, the rules), with a diagram, and how far the code is from it. Read it before adding a type, a folder or a dependency between parts.
 - `devdocs/design.md`: the design decisions and why. Add a decision when it is made.
 - `devdocs/macos-behaviour.md`: what macOS was measured to do (parking limits, display changes, event taps). Record new measurements there.
 - `devdocs/testing-strategy.md`: the three layers of tests (unit, scenario, end to end) and where a new test goes. Read it before writing a test.
-- `devdocs/testing.md`: the end-to-end catalogue, what to run on real windows before every release; `devdocs/test-runs/` holds each run.
+- `devdocs/testing-catalogue.md`: the end-to-end catalogue, what to run on real windows before every release; `devdocs/test-runs/` holds each run.
 - `devdocs/known-issues.md`: bugs, limitations and what isn't built, each a GitHub issue that holds the details (`gh issue view <n>`); the strip's are in `devdocs/strip-layout.md`. A commit that fixes one says `Fixes #<n>` and removes its line, also from its user-facing twin `docs/known-issues.md`. A new one gets an issue and a line.
 - `devdocs/REFACTORING.md`: the ranked refactoring and performance backlog.
 - `docs/`: for users. `docs/manual.md` is the manual (concepts, running tylerd, the config file and the command reference); `layouts.md`, `features.md`, `keybindings.md`, `troubleshooting.md` and `known-issues.md` sit beside it. Keep them in step when behaviour, settings or commands change.
@@ -126,9 +126,9 @@ GCD is a documented exception, limited to `IPCServer` (blocking socket I/O), `ty
 - Don't block in `read()` on Swift concurrency's cooperative pool in tests. A task-group version of the concurrent-clients test failed most runs; plain threads pass. The cause is suspected, not verified.
 - A test that writes more than the socket buffer (~8 KB) on the same thread that later reads will deadlock.
 - Test socket paths must stay short (macOS limit ~104 bytes), so use `/tmp/tyler-<id>.sock`, not `$TMPDIR`.
-- The raw Accessibility and `NSWorkspace` calls can't be unit tested (they need a live GUI and permission), so they sit behind `AXClient` and `WorkspaceClient`, dumb one-to-one seams: test the window system above them against `FakeAXClient` and `FakeWorkspaceClient` (`Tests/TylerPlatformTests/WindowSystem/`), and what macOS itself does with the catalogue in `devdocs/testing.md`.
+- The raw Accessibility and `NSWorkspace` calls can't be unit tested (they need a live GUI and permission), so they sit behind `AXClient` and `WorkspaceClient`, dumb one-to-one seams: test the window system above them against `FakeAXClient` and `FakeWorkspaceClient` (`Tests/TylerPlatformTests/WindowSystem/`), and what macOS itself does with the catalogue in `devdocs/testing-catalogue.md`.
 - **New scenario tests start from a `Scenario`** (`Tests/TylerScenarioTests/Scenario.swift`): a context, an input, what the user sees. The older ones, and the server's unit tests that need a manager, build it with `ManagerHarness` (`Tests/TylerTestSupport/`, with the fakes, `settle()` and the list and frame helpers; it is a plain target, so it can't import Testing, and its declarations are `package`). Don't copy setup into a suite. `settle()` must stay `@MainActor`: a nonisolated version yields off the main actor and never lets the manager's event pump run.
-- **Check real windows with the `live-check` skill** (`devtools/live-check`): window stacking, the menu bar item, where macOS really puts a window, and a replay of the slide. Use it after changing anything that moves windows, and to run the rows of `devdocs/testing.md`.
+- **Check real windows with the `live-check` skill** (`devtools/live-check`): window stacking, the menu bar item, where macOS really puts a window, and a replay of the slide. Use it after changing anything that moves windows, and to run the rows of `devdocs/testing-catalogue.md`.
 
 ## Working mode
 

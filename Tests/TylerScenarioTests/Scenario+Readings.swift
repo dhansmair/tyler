@@ -1,6 +1,8 @@
 import CoreGraphics
 import Testing
+import TylerConfig
 import TylerCore
+import TylerRuntime
 import TylerTestSupport
 
 @testable import TylerServer
@@ -86,5 +88,21 @@ extension Scenario {
   /// The workspaces each display holds, by display number, in the order the menu bar map shows.
   var rows: [[Int]] {
     harness.manager.rows.entries.map(\.row.numbers)
+  }
+
+  /// The settings tylerd runs with, as `tyler config get` shows them.
+  var config: Config? {
+    guard case .message(let text) = harness.manager.configValue(nil) else { return nil }
+    return try? Config.parse(text)
+  }
+
+  /// The settings `tyler status` lists as changed by `tyler config set`.
+  var changedSettings: [String] {
+    harness.manager.configChanges
+  }
+
+  /// The lowest level of the lines that reach the log.
+  var logLevel: LogLevel {
+    harness.manager.logOutput.level
   }
 }

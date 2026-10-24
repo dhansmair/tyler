@@ -29,6 +29,11 @@ extension Scenario {
     harness.workspaces()
   }
 
+  /// Whether the screen is locked, which a test sets.
+  var screenLock: FakeScreenLock {
+    harness.screenLock
+  }
+
   /// What tylerd asked macOS to do (moves, focus, closes), and the refusals a test sets up.
   var windowSystem: FakeWindowSystem {
     harness.windowSystem

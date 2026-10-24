@@ -225,9 +225,16 @@ struct Scenario {
   /// The displays change to `connected` (one plugged in or unplugged, or the Mac waking), and
   /// tylerd waits for them to settle.
   func changeDisplays(to connected: [DisplayInfo]) async {
+    await beginDisplayChange(to: connected)
+    await runUntilQuiet()
+  }
+
+  /// macOS reports that the displays are now `connected`; tylerd waits for them to settle, which
+  /// a test lets happen with `wait(_:)`.
+  func beginDisplayChange(to connected: [DisplayInfo]) async {
     displays.displays = connected
     displays.sendChange()
-    await runUntilQuiet()
+    await harness.settle()
   }
 
   /// `tyler restart`: this tylerd hands its workspaces over, and the next one, with `config`,

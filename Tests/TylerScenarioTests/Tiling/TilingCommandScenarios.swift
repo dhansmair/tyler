@@ -7,305 +7,286 @@ import TylerTestSupport
 
 @testable import TylerServer
 
-/// Tiling: commands, driven through a fake window system.
 @Suite("Tiling: commands")
 @MainActor
 struct TilingCommandScenarios {
-  private let area = FakeDisplays.main.visibleFrame
-
   // MARK: - Focus and swap commands
 
-  @Test func focusNextFocusesTheNextTiledWindow() {
-    let harness = ManagerHarness([1, 2, 3])
-    _ = harness.manager.focus(.main)
-    harness.windowSystem.clearRecordedCalls()
-    #expect(harness.manager.focus(.next) == .ok)
-    #expect(harness.windowSystem.focusCalls == [WindowID(2)])
-    #expect(harness.manager.focus(.next) == .ok)
-    #expect(harness.windowSystem.focusCalls == [WindowID(2), WindowID(3)])
+  @Test func focusNextFocusesTheNextTiledWindow() async {
+    let scenario = await Scenario(openAtStart: spread([1, 2, 3]))
+    await scenario.command("window focus master")
+    scenario.windowSystem.clearRecordedCalls()
+    #expect(await scenario.command("window focus next") == .ok)
+    #expect(scenario.windowSystem.focusCalls == [WindowID(2)])
+    #expect(await scenario.command("window focus next") == .ok)
+    #expect(scenario.windowSystem.focusCalls == [WindowID(2), WindowID(3)])
   }
 
-  @Test func focusWrapsAroundAndCanJumpToTheMain() {
-    let harness = ManagerHarness([1, 2, 3])
-    _ = harness.manager.focus(.prev)  // nothing focused yet: the last window
-    _ = harness.manager.focus(.next)  // wraps to the first
-    _ = harness.manager.focus(.prev)  // back to the last
-    _ = harness.manager.focus(.main)
-    #expect(harness.windowSystem.focusCalls == [3, 1, 3, 1].map(WindowID.init))
+  @Test func focusWrapsAroundAndCanJumpToTheMain() async {
+    let scenario = await Scenario(openAtStart: spread([1, 2, 3]))
+    await scenario.command("window focus prev")  // nothing focused yet: the last window
+    await scenario.command("window focus next")  // wraps to the first
+    await scenario.command("window focus prev")  // back to the last
+    await scenario.command("window focus master")
+    #expect(scenario.windowSystem.focusCalls == [3, 1, 3, 1].map(WindowID.init))
   }
 
-  @Test func aFailedFocusIsReportedAsAnError() {
-    let harness = ManagerHarness([1, 2])
-    harness.windowSystem.failingFocus = [WindowID(1)]
-    guard case .error(let message) = harness.manager.focus(.main) else {
+  @Test func aFailedFocusIsReportedAsAnError() async {
+    let scenario = await Scenario(openAtStart: spread([1, 2]))
+    scenario.windowSystem.failingFocus = [WindowID(1)]
+    guard case .error(let message) = await scenario.command("window focus master") else {
       Issue.record("expected an error")
       return
     }
     #expect(message.contains("cannot focus"))
   }
 
-  @Test func focusOnNoTiledWindowsIsAnError() {
-    let harness = ManagerHarness(windows: [])
-    #expect(harness.manager.focus(.next) == .error("no tiled windows"))
+  @Test func focusOnNoTiledWindowsIsAnError() async {
+    let scenario = await Scenario(workspaces: [:])
+    #expect(await scenario.command("window focus next") == .error("no tiled windows"))
   }
 
   @Test func swapReordersAndRetiles() async {
-    let harness = ManagerHarness([1, 2, 3])
-    harness.windowSystem.send(.focused(WindowID(1)))
-    await settle()
-    harness.windowSystem.clearRecordedCalls()
+    let scenario = await Scenario(workspaces: [1: [1, 2, 3]])
+    await scenario.focus(1)
+    scenario.windowSystem.clearRecordedCalls()
 
-    #expect(harness.manager.swap(.next) == .ok)
-    #expect(harness.manager.slots == [2: 1, 1: 2, 3: 3])
+    #expect(await scenario.command("window swap next") == .ok)
+    #expect(scenario.list(1) == [2, 1, 3])
     // Windows 1 and 2 traded slots, so both had to move.
-    #expect(Set(harness.windowSystem.moves.map(\.id.rawValue)) == [1, 2])
+    #expect(Set(scenario.windowSystem.moves.map(\.id.rawValue)) == [1, 2])
   }
 
   @Test func swapMainBringsTheFocusedWindowToTheMainSlot() async {
-    let harness = ManagerHarness([1, 2, 3])
-    harness.windowSystem.send(.focused(WindowID(3)))
-    await settle()
-    _ = harness.manager.swap(.main)
-    #expect(harness.manager.slots == [3: 1, 2: 2, 1: 3])
+    let scenario = await Scenario(workspaces: [1: [1, 2, 3]])
+    await scenario.focus(3)
+    await scenario.command("window swap master")
+    #expect(scenario.list(1) == [3, 2, 1])
   }
 
-  @Test func swapNeedsTwoWindows() {
-    let harness = ManagerHarness([1])
-    #expect(harness.manager.swap(.next) == .error("need at least two tiled windows to swap"))
+  @Test func swapNeedsTwoWindows() async {
+    let scenario = await Scenario(workspaces: [1: [1]])
+    #expect(
+      await scenario.command("window swap next")
+        == .error("need at least two tiled windows to swap"))
   }
 
-  @Test func swapNeedsAFocusedTiledWindow() {
-    let harness = ManagerHarness([1, 2])
-    #expect(harness.manager.swap(.next) == .error("no tiled window is focused"))
+  @Test func swapNeedsAFocusedTiledWindow() async {
+    let scenario = await Scenario(openAtStart: spread([1, 2]))
+    #expect(await scenario.command("window swap next") == .error("no tiled window is focused"))
   }
 
   // MARK: - Layout and ratio
 
-  @Test func layoutFullGivesEveryWindowTheWholeArea() {
-    let harness = ManagerHarness([1, 2, 3])
-    #expect(harness.manager.setLayout(.set(.full)) == .message("layout full"))
+  @Test func layoutFullGivesEveryWindowTheWholeArea() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2, 3]])
+    #expect(await scenario.command("layout set full") == .message("layout full"))
     for windowID: UInt32 in [1, 2, 3] {
-      #expect(harness.frame(of: windowID) == area)
+      #expect(scenario.frame(of: windowID) == scenario.rect(.full))
     }
   }
 
-  @Test func layoutNextLeavesOutTheStripByDefault() {
-    let harness = ManagerHarness([1, 2])
-    let names = (1...3).map { _ in harness.manager.setLayout(.next) }
+  @Test func layoutNextLeavesOutTheStripByDefault() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    var names: [Response] = []
+    for _ in 1...3 { names.append(await scenario.command("layout next")) }
     #expect(names == ["grid", "full", "tall"].map { .message("layout \($0)") })
   }
 
-  @Test func layoutNextFollowsTheConfiguredCycle() {
+  @Test func layoutNextFollowsTheConfiguredCycle() async {
     let config = Config(layouts: Config.Layouts(cycle: [.strip, .tall]))
-    let harness = ManagerHarness([1, 2], config: config)
-    #expect(harness.manager.setLayout(.next) == .message("layout strip"))
-    #expect(harness.manager.setLayout(.next) == .message("layout tall"))
+    let scenario = await Scenario(workspaces: [1: [1, 2]], config: config)
+    #expect(await scenario.command("layout next") == .message("layout strip"))
+    #expect(await scenario.command("layout next") == .message("layout tall"))
     // A layout chosen by name, outside the cycle, goes on to the cycle's first.
-    _ = harness.manager.setLayout(.set(.full))
-    #expect(harness.manager.setLayout(.next) == .message("layout strip"))
+    await scenario.command("layout set full")
+    #expect(await scenario.command("layout next") == .message("layout strip"))
   }
 
-  @Test func ratioMovesTheDividerAndStopsAtItsLimit() {
-    let harness = ManagerHarness([1, 2])
-    let before = harness.frame(of: 1)?.width ?? 0
-    #expect(harness.manager.adjustRatio(by: 0.1) == .ok)
-    #expect((harness.frame(of: 1)?.width ?? 0) > before)
+  @Test func ratioMovesTheDividerAndStopsAtItsLimit() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    let before = scenario.frame(of: 1)?.width ?? 0
+    #expect(await scenario.command("layout ratio +0.1") == .ok)
+    #expect((scenario.frame(of: 1)?.width ?? 0) > before)
 
-    _ = harness.manager.adjustRatio(by: 5)  // clamps to the maximum
-    harness.windowSystem.clearRecordedCalls()
-    guard case .message(let text) = harness.manager.adjustRatio(by: 0.05) else {
+    await scenario.command("layout ratio +0.9")  // clamps to the maximum
+    scenario.windowSystem.clearRecordedCalls()
+    guard case .message(let text) = await scenario.command("layout ratio +0.05") else {
       Issue.record("expected a message at the limit")
       return
     }
     #expect(text.contains("already at its limit"))
-    #expect(harness.windowSystem.moves.isEmpty)
+    #expect(scenario.windowSystem.moves.isEmpty)
   }
 
   // MARK: - Floating
 
   @Test func floatingTheFocusedWindowRemovesItFromTheListAndRetilesTheRest() async {
-    let harness = ManagerHarness([1, 2, 3])
-    harness.windowSystem.send(.focused(WindowID(2)))
-    await settle()
-    #expect(harness.manager.setFloat(.toggle) == .ok)
-    #expect(harness.manager.slots == [1: 1, 3: 2])
-    let floatedWindow = harness.manager.listed.first { $0.id == WindowID(2) }
+    let scenario = await Scenario(workspaces: [1: [1, 2, 3]])
+    await scenario.focus(2)
+    #expect(await scenario.command("window float toggle") == .ok)
+    #expect(scenario.list(1) == [1, 3])
+    let floatedWindow = scenario.windowList.first { $0.id == WindowID(2) }
     #expect(floatedWindow?.isFloated == true)
     #expect(floatedWindow?.slot == nil)
   }
 
   @Test func aFloatedWindowIsNotMovedByLaterRetiles() async {
-    let harness = ManagerHarness([1, 2, 3])
-    harness.windowSystem.send(.focused(WindowID(2)))
-    await settle()
-    _ = harness.manager.setFloat(.toggle)
-    harness.windowSystem.clearRecordedCalls()
-    _ = harness.manager.retile()
-    #expect(!harness.windowSystem.moves.map(\.id.rawValue).contains(2))
+    let scenario = await Scenario(workspaces: [1: [1, 2, 3]])
+    await scenario.focus(2)
+    await scenario.command("window float toggle")
+    scenario.windowSystem.clearRecordedCalls()
+    await scenario.command("workspace retile")
+    #expect(!scenario.windowSystem.moves.map(\.id.rawValue).contains(2))
   }
 
   @Test func floatingTwiceTilesTheWindowAgain() async {
-    let harness = ManagerHarness([1, 2])
-    harness.windowSystem.send(.focused(WindowID(2)))
-    await settle()
-    _ = harness.manager.setFloat(.toggle)
-    #expect(harness.manager.slots == [1: 1])
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    await scenario.focus(2)
+    await scenario.command("window float toggle")
+    #expect(scenario.list(1) == [1])
     // A floated window can still be focused by the user and toggled back.
-    #expect(harness.manager.setFloat(.toggle) == .ok)
-    #expect(harness.manager.slots == [1: 1, 2: 2])
+    #expect(await scenario.command("window float toggle") == .ok)
+    #expect(scenario.list(1) == [1, 2])
   }
 
   @Test func floatOnAndOffSetTheStateWhateverItWas() async {
-    let harness = ManagerHarness([1, 2])
-    harness.windowSystem.send(.focused(WindowID(2)))
-    await settle()
-    #expect(harness.manager.setFloat(.on) == .ok)
-    #expect(harness.manager.slots == [1: 1])
-    #expect(harness.manager.setFloat(.on) == .message("already floating"))
-    #expect(harness.manager.slots == [1: 1])
-    #expect(harness.manager.setFloat(.off) == .ok)
-    #expect(harness.manager.slots == [1: 1, 2: 2])
-    #expect(harness.manager.setFloat(.off) == .message("already tiled"))
-    #expect(harness.manager.slots == [1: 1, 2: 2])
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    await scenario.focus(2)
+    #expect(await scenario.command("window float on") == .ok)
+    #expect(scenario.list(1) == [1])
+    #expect(await scenario.command("window float on") == .message("already floating"))
+    #expect(scenario.list(1) == [1])
+    #expect(await scenario.command("window float off") == .ok)
+    #expect(scenario.list(1) == [1, 2])
+    #expect(await scenario.command("window float off") == .message("already tiled"))
+    #expect(scenario.list(1) == [1, 2])
   }
 
-  @Test(arguments: FloatMode.allCases)
-  func windowsThatAreNeverTiledCannotBeFloatedOrTiled(mode: FloatMode) async {
-    let harness = ManagerHarness(windows: spread([1]) + [makeWindow(id: 8, kind: .dialog)])
-    harness.windowSystem.send(.focused(WindowID(8)))
-    await settle()
+  @Test(arguments: ["on", "off", "toggle"])
+  func windowsThatAreNeverTiledCannotBeFloatedOrTiled(mode: String) async {
+    let scenario = await Scenario(openAtStart: spread([1]) + [makeWindow(id: 8, kind: .dialog)])
+    await scenario.focus(8)
     #expect(
-      harness.manager.setFloat(mode)
+      await scenario.command("window float \(mode)")
         == .error("this window is never tiled, so it can't be floated"))
   }
 
-  @Test func floatNeedsAFocusedWindow() {
-    let harness = ManagerHarness([1, 2])
-    #expect(harness.manager.setFloat(.toggle) == .error("no focused window"))
+  @Test func floatNeedsAFocusedWindow() async {
+    let scenario = await Scenario(openAtStart: spread([1, 2]))
+    #expect(await scenario.command("window float toggle") == .error("no focused window"))
   }
 
   @Test func aDestroyedWindowIsForgottenByTheFloatedSet() async {
-    let harness = ManagerHarness([1, 2])
-    harness.windowSystem.send(.focused(WindowID(2)))
-    await settle()
-    _ = harness.manager.setFloat(.toggle)
-    harness.windowSystem.send(.destroyed(WindowID(2)))
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    await scenario.focus(2)
+    await scenario.command("window float toggle")
+    await scenario.close(2)
     // The window id comes back (ids can be reused); it must tile like a new window.
-    harness.windowSystem.send(
-      .created(makeWindow(id: 2, frame: CGRect(x: 300, y: 100, width: 300, height: 200))))
-    await settle()
-    #expect(harness.manager.slots[2] != nil)
+    await scenario.open(makeWindow(id: 2, frame: CGRect(x: 300, y: 100, width: 300, height: 200)))
+    #expect(scenario.list(1).contains(2))
   }
 
   // MARK: - Tiling on and off
 
-  @Test func tilingOffBlocksEveryWorkspaceCommand() {
-    let harness = ManagerHarness([1, 2])
-    #expect(harness.manager.setTiling(.off) == .message("tiling off"))
-    let blocked: [Response] = [
-      harness.manager.retile(), harness.manager.focus(.next), harness.manager.swap(.next),
-      harness.manager.setLayout(.next), harness.manager.adjustRatio(by: 0.05),
-      harness.manager.setFloat(.toggle),
-    ]
-    for response in blocked {
-      #expect(response == .error(WindowManager.tilingOffMessage))
+  @Test func tilingOffBlocksEveryWorkspaceCommand() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    #expect(await scenario.command("tiling off") == .message("tiling off"))
+    for command in [
+      "workspace retile", "window focus next", "window swap next", "layout next",
+      "layout ratio +0.05", "window float toggle",
+    ] {
+      #expect(await scenario.command(command) == .error(WindowManager.tilingOffMessage))
     }
   }
 
   @Test func tilingOffLeavesWindowsAloneWhenThingsChange() async {
-    let harness = ManagerHarness([1, 2])
-    _ = harness.manager.setTiling(.off)
-    harness.windowSystem.send(
-      .created(makeWindow(id: 9, frame: CGRect(x: 700, y: 100, width: 300, height: 200))))
-    harness.windowSystem.send(.destroyed(WindowID(1)))
-    await settle()
-    #expect(harness.windowSystem.moves.isEmpty)
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    await scenario.command("tiling off")
+    scenario.windowSystem.clearRecordedCalls()
+    await scenario.open(makeWindow(id: 9, frame: CGRect(x: 700, y: 100, width: 300, height: 200)))
+    await scenario.close(1)
+    #expect(scenario.windowSystem.moves.isEmpty)
   }
 
-  @Test func tilingOffStillAnswersListAndTilingItself() {
-    let harness = ManagerHarness([1, 2])
-    _ = harness.manager.setTiling(.off)
-    #expect(!harness.manager.listed.isEmpty)
-    #expect(harness.manager.setTiling(.toggle) == .message("tiling on"))
+  @Test func tilingOffStillAnswersListAndTilingItself() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    await scenario.command("tiling off")
+    #expect(!scenario.windowList.isEmpty)
+    #expect(await scenario.command("tiling toggle") == .message("tiling on"))
   }
 
   @Test func turningTilingBackOnTilesEverythingThatIsEligibleNow() async {
-    let harness = ManagerHarness([1, 2])
-    _ = harness.manager.setTiling(.off)
-    let window = makeWindow(id: 9, frame: CGRect(x: 700, y: 100, width: 300, height: 200))
-    harness.windowSystem.windows.append(window)
-    harness.windowSystem.send(.created(window))
-    await settle()
-    harness.windowSystem.clearRecordedCalls()
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    await scenario.command("tiling off")
+    await scenario.open(makeWindow(id: 9, frame: CGRect(x: 700, y: 100, width: 300, height: 200)))
+    scenario.windowSystem.clearRecordedCalls()
 
-    #expect(harness.manager.setTiling(.on) == .message("tiling on"))
-    #expect(harness.manager.slots.count == 3)
-    #expect(!harness.windowSystem.moves.isEmpty)
+    #expect(await scenario.command("tiling on") == .message("tiling on"))
+    #expect(scenario.list(1).count == 3)
+    #expect(!scenario.windowSystem.moves.isEmpty)
   }
 
-  @Test func turningTilingOnSaysWhichWindowsItCouldNotPlace() {
-    let harness = ManagerHarness([1, 2])
-    _ = harness.manager.setTiling(.off)
-    harness.windowSystem.failingMoves = [WindowID(2)]
-    #expect(harness.manager.setTiling(.on) == .message("tiling on; 1 window could not be placed"))
+  @Test func turningTilingOnSaysWhichWindowsItCouldNotPlace() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    await scenario.command("tiling off")
+    scenario.windowSystem.failingMoves = [WindowID(2)]
+    #expect(
+      await scenario.command("tiling on") == .message("tiling on; 1 window could not be placed"))
   }
 
-  @Test func turningTilingOnWhenAlreadyOnDoesNotMoveAnything() {
-    let harness = ManagerHarness([1, 2])
-    #expect(harness.manager.setTiling(.on) == .message("tiling on"))
-    #expect(harness.windowSystem.moves.isEmpty)
+  @Test func turningTilingOnWhenAlreadyOnDoesNotMoveAnything() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    scenario.windowSystem.clearRecordedCalls()
+    #expect(await scenario.command("tiling on") == .message("tiling on"))
+    #expect(scenario.windowSystem.moves.isEmpty)
   }
 
   @Test func turningTilingOnKeepsTheOrderOfWindowsAlreadyInTheList() async {
-    let harness = ManagerHarness([1, 2, 3])
-    harness.windowSystem.send(.focused(WindowID(3)))
-    await settle()
-    _ = harness.manager.swap(.main)  // order is now 3, 2, 1
-    _ = harness.manager.setTiling(.off)
-    _ = harness.manager.setTiling(.on)
-    #expect(harness.manager.slots == [3: 1, 2: 2, 1: 3])
+    let scenario = await Scenario(workspaces: [1: [3, 2, 1]])
+    await scenario.command("tiling off")
+    await scenario.command("tiling on")
+    #expect(scenario.list(1) == [3, 2, 1])
   }
 
   // MARK: - Permission
 
-  @Test func commandsWithoutPermissionExplainWhatToDo() {
-    let manager = WindowManager(
-      windowSystem: FakeWindowSystem(), displays: FakeDisplays(), gate: FakeGate(isTrusted: false))
-    let expected = Response.error(WindowManager.permissionMessage)
-    #expect(manager.retile() == expected)
-    #expect(manager.focus(.next) == expected)
-    #expect(manager.swap(.next) == expected)
-    #expect(manager.setLayout(.next) == expected)
-    #expect(manager.adjustRatio(by: 0.05) == expected)
-    #expect(manager.setFloat(.toggle) == expected)
+  @Test func commandsWithoutPermissionExplainWhatToDo() async {
+    let scenario = await Scenario(workspaces: [:], gate: FakeGate(isTrusted: false))
+    for command in [
+      "workspace retile", "window focus next", "window swap next", "layout next",
+      "layout ratio +0.05", "window float toggle",
+    ] {
+      #expect(await scenario.command(command) == .error(WindowManager.permissionMessage))
+    }
   }
 
-  @Test(arguments: [(TilingMode.on, "tiling on"), (.off, "tiling off")])
-  func tilingWithoutPermissionSaysItWaits(mode: TilingMode, reply: String) {
-    let manager = WindowManager(
-      windowSystem: FakeWindowSystem(), displays: FakeDisplays(), gate: FakeGate(isTrusted: false))
+  @Test(arguments: [("on", "tiling on"), ("off", "tiling off")])
+  func tilingWithoutPermissionSaysItWaits(mode: String, reply: String) async {
+    let scenario = await Scenario(workspaces: [:], gate: FakeGate(isTrusted: false))
     let expected =
       "\(reply) once Accessibility permission is granted\n\(WindowManager.permissionMessage)"
-    #expect(manager.setTiling(mode) == .message(expected))
+    #expect(await scenario.command("tiling \(mode)") == .message(expected))
   }
 
-  @Test func tilingOffBeforePermissionLeavesWindowsAloneOnceGranted() {
-    let gate = FakeGate(isTrusted: false)
-    let harness = ManagerHarness(windows: spread([1, 2]), gate: gate)
-    _ = harness.manager.setTiling(.off)
-    gate.isTrusted = true
-    #expect(harness.manager.startIfPermitted())
-    #expect(harness.windowSystem.moves.isEmpty)
-    #expect(harness.manager.tilingStatus == .off)
+  @Test func tilingOffBeforePermissionLeavesWindowsAloneOnceGranted() async {
+    let scenario = await Scenario(
+      openAtStart: spread([1, 2]), gate: FakeGate(isTrusted: false))
+    await scenario.command("tiling off")
+    await scenario.grantPermission()
+    #expect(scenario.windowSystem.moves.isEmpty)
+    #expect(
+      await scenario.command("workspace retile") == .error(WindowManager.tilingOffMessage))
   }
 
-  @Test func handleRoutesEveryRequestToTheRightCommand() {
-    let harness = ManagerHarness([1, 2])
-    #expect(harness.manager.handle(.ping) == .pong)
-    #expect(harness.manager.handle(.tiling(.off)) == .message("tiling off"))
-    #expect(harness.manager.handle(.retile) == .error(WindowManager.tilingOffMessage))
-    #expect(harness.manager.handle(.tiling(.on)) == .message("tiling on"))
-    #expect(harness.manager.handle(.layout(.set(.full))) == .message("layout full"))
-    #expect(harness.manager.handle(.ratio(0.05)) == .ok)
+  @Test func everyKindOfRequestReachesItsCommand() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    #expect(await scenario.command("ping") == .pong)
+    #expect(await scenario.command("tiling off") == .message("tiling off"))
+    #expect(
+      await scenario.command("workspace retile") == .error(WindowManager.tilingOffMessage))
+    #expect(await scenario.command("tiling on") == .message("tiling on"))
+    #expect(await scenario.command("layout set full") == .message("layout full"))
+    #expect(await scenario.command("layout ratio +0.05") == .ok)
   }
 }

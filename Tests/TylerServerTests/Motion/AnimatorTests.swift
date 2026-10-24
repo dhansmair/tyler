@@ -38,6 +38,14 @@ struct AnimatorTests {
     return (steps, await task.value)
   }
 
+  @Test func theStepCountFollowsTheDurationAndZeroSnaps() {
+    #expect(Animator().stepCount == 32)
+    #expect(
+      Animator(duration: .milliseconds(48), frameInterval: .milliseconds(16), clock: clock)
+        .stepCount == 3)
+    #expect(Animator.snap.stepCount == 0)
+  }
+
   @Test func eachFrameIsAnnouncedBeforeItsMoves() async {
     var events: [String] = []
     let animator = animator

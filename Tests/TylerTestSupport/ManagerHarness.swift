@@ -28,6 +28,7 @@ package struct ManagerHarness {
     pointer: FakePointer? = nil,
     stacking: FakeStacking? = nil,
     gapCursor: FakeGapCursor? = nil,
+    indicator: FakeIndicator? = nil,
     clock: any Clock<Duration> = ContinuousClock(),
     restoring saved: SavedState? = nil,
     clearRecordedCalls: Bool = true
@@ -37,7 +38,7 @@ package struct ManagerHarness {
     manager = WindowManager(
       windowSystem: windowSystem, displays: displays, gate: gate, screenLock: screenLock,
       animator: animator, config: config,
-      configSource: configFile?.source, pointer: pointer, stacking: stacking,
+      configSource: configFile?.source, indicator: indicator, pointer: pointer, stacking: stacking,
       gapCursor: gapCursor, clock: clock,
       logOutput: LogOutput(), restoring: saved)
     manager.startIfPermitted()

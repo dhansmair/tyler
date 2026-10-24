@@ -7,181 +7,167 @@ import TylerTestSupport
 @testable import TylerServer
 
 /// Sliding between workspaces with a trackpad swipe. Window 1 fills workspace 1, window 2
-/// workspace 2 and window 3 workspace 4, the one before workspace 1. With the default
-/// `swipe-distance` of 0.3, a swipe of 0.15 trackpad widths moves the content half a display.
+/// workspace 2 and window 3 workspace 4, the one before workspace 1, each parked from its slot.
+/// With the default `swipe-distance` of 0.3, a swipe of 0.15 trackpad widths moves the content
+/// half a display.
 @Suite("Workspaces: trackpad swipe")
 @MainActor
 struct SwipeScenarios {
-  private let pointer = FakePointer()
-  private let clock = TestClock()
+  private let area = FakeDisplays.main.visibleFrame
 
-  private func makeHarness(
-    config: Config = Config(), animator: Animator = .snap, configFile: FakeConfigFile? = nil
-  ) async -> ManagerHarness {
-    let harness = ManagerHarness(
-      [1, 2, 3], animator: animator, config: config, configFile: configFile, pointer: pointer,
-      clock: clock)
+  private func scenario(
+    config: Config = Config(), animates: Bool = false, configFile: FakeConfigFile? = nil
+  ) async -> Scenario {
+    let scenario = await Scenario(
+      openAtStart: spread([1, 2, 3]), config: config, configFile: configFile,
+      animates: animates, slide: .milliseconds(48), frameInterval: .milliseconds(16))
     if config.workspaces.count >= 4 {
-      await harness.osFocus(2)
-      _ = harness.manager.moveToWorkspace(.number(2), follow: false)
-      await harness.osFocus(3)
-      _ = harness.manager.moveToWorkspace(.number(4), follow: false)
+      await scenario.focus(2)
+      await scenario.command("window move-to-workspace 2")
+      await scenario.focus(3)
+      await scenario.command("window move-to-workspace 4")
     }
-    await harness.settle()
-    while clock.hasSleepers {
-      clock.advance(by: .milliseconds(16))
-      await harness.settle()
-    }
-    harness.windowSystem.clearRecordedCalls()
-    return harness
+    scenario.windowSystem.clearRecordedCalls()
+    return scenario
   }
 
-  /// Sends swipe updates and lets the manager handle them.
-  private func swipe(_ updates: SwipeUpdate..., in harness: ManagerHarness) async {
-    for update in updates { pointer.swipe(update) }
-    await harness.settle()
+  /// Sends swipe updates and lets tylerd handle them, without letting time pass.
+  private func swipe(_ updates: SwipeUpdate..., in scenario: Scenario) async {
+    for update in updates { scenario.pointer.swipe(update) }
+    await scenario.harness.settle()
   }
 
   /// Lets the swipe's frame pacing move on to the next frame.
-  private func nextFrame(_ harness: ManagerHarness) async {
-    clock.advance(by: Animator.defaultFrameInterval)
-    await harness.settle()
+  private func nextFrame(_ scenario: Scenario) async {
+    await scenario.wait(Animator.defaultFrameInterval)
   }
 
-  private func lastNudge(of windowID: UInt32, in harness: ManagerHarness) -> CGPoint? {
-    harness.windowSystem.nudges.last { $0.id == WindowID(windowID) }?.origin
+  private func lastNudge(of windowID: UInt32, in scenario: Scenario) -> CGPoint? {
+    scenario.windowSystem.nudges.last { $0.id == WindowID(windowID) }?.origin
   }
 
   @Test func theWindowsFollowTheFingers() async {
-    let harness = await makeHarness()
-    await swipe(.began, .moved(offset: -0.15), in: harness)
+    let scenario = await scenario()
+    await swipe(.began, .moved(offset: -0.15), in: scenario)
     let leaving = Track.leaving(
-      WindowID(1), from: harness.area, direction: .next, on: harness.display)
+      WindowID(1), from: area, direction: .next, on: FakeDisplays.main)
     let entering = Track.entering(
-      WindowID(2), into: harness.area, direction: .next, on: harness.display)
-    #expect(lastNudge(of: 1, in: harness) == leaving.position(at: 0.5, easing: Easing.linear))
-    #expect(lastNudge(of: 2, in: harness) == entering.position(at: 0.5, easing: Easing.linear))
-    #expect(lastNudge(of: 3, in: harness) == nil, "the other neighbour stays parked")
-    #expect(harness.manager.workspaces.currentIndex == 0, "nothing is decided before the release")
+      WindowID(2), into: area, direction: .next, on: FakeDisplays.main)
+    #expect(lastNudge(of: 1, in: scenario) == leaving.position(at: 0.5, easing: Easing.linear))
+    #expect(lastNudge(of: 2, in: scenario) == entering.position(at: 0.5, easing: Easing.linear))
+    #expect(lastNudge(of: 3, in: scenario) == nil, "the other neighbour stays parked")
+    #expect(scenario.shown == [1], "nothing is decided before the release")
   }
 
   @Test func aReleasePastHalfwayBringsTheNextWorkspaceIn() async {
-    let harness = await makeHarness()
-    await swipe(.began, .moved(offset: -0.18), .ended(velocity: 0), in: harness)
-    #expect(harness.manager.workspaces.currentIndex == 1)
-    #expect(harness.frame(of: 2) == harness.area)
-    #expect(harness.isParked(1))
-    #expect(harness.isParked(3))
-    #expect(harness.windowSystem.focusCalls.last == WindowID(2))
+    let scenario = await scenario()
+    await swipe(.began, .moved(offset: -0.18), .ended(velocity: 0), in: scenario)
+    #expect(scenario.shown == [2])
+    #expect(scenario.frame(of: 2) == area)
+    #expect(scenario.isParked(1))
+    #expect(scenario.isParked(3))
+    #expect(scenario.windowSystem.focusCalls.last == WindowID(2))
   }
 
   @Test func aReleaseBeforeHalfwayGoesBack() async {
-    let harness = await makeHarness()
-    await swipe(.began, .moved(offset: -0.06), .ended(velocity: 0), in: harness)
-    #expect(harness.manager.workspaces.currentIndex == 0)
-    #expect(harness.frame(of: 1) == harness.area)
-    #expect(harness.isParked(2))
-    #expect(harness.isParked(3))
+    let scenario = await scenario()
+    await swipe(.began, .moved(offset: -0.06), .ended(velocity: 0), in: scenario)
+    #expect(scenario.shown == [1])
+    #expect(scenario.frame(of: 1) == area)
+    #expect(scenario.isParked(2))
+    #expect(scenario.isParked(3))
   }
 
   @Test func aFlickGoesOnEvenBeforeHalfway() async {
-    let harness = await makeHarness()
+    let scenario = await scenario()
     // 0.6 trackpad widths per second is two display widths per second.
-    await swipe(.began, .moved(offset: -0.06), .ended(velocity: -0.6), in: harness)
-    #expect(harness.manager.workspaces.currentIndex == 1)
-    #expect(harness.frame(of: 2) == harness.area)
+    await swipe(.began, .moved(offset: -0.06), .ended(velocity: -0.6), in: scenario)
+    #expect(scenario.shown == [2])
+    #expect(scenario.frame(of: 2) == area)
   }
 
   @Test func swipingRightFromTheFirstWorkspaceWrapsToTheLast() async {
-    let harness = await makeHarness()
-    await swipe(.began, .moved(offset: 0.18), .ended(velocity: 0), in: harness)
-    #expect(harness.manager.workspaces.currentIndex == 3)
-    #expect(harness.frame(of: 3) == harness.area)
-    #expect(harness.isParked(1))
-    #expect(harness.isParked(2))
+    let scenario = await scenario()
+    await swipe(.began, .moved(offset: 0.18), .ended(velocity: 0), in: scenario)
+    #expect(scenario.shown == [4])
+    #expect(scenario.frame(of: 3) == area)
+    #expect(scenario.isParked(1))
+    #expect(scenario.isParked(2))
   }
 
   @Test func turningBackPastTheStartSwapsTheNeighbour() async {
-    let harness = await makeHarness()
-    await swipe(.began, .moved(offset: -0.15), in: harness)
-    await swipe(.moved(offset: 0.15), in: harness)
-    await nextFrame(harness)
-    #expect(harness.isParked(2), "the next workspace went back")
+    let scenario = await scenario()
+    await swipe(.began, .moved(offset: -0.15), in: scenario)
+    await swipe(.moved(offset: 0.15), in: scenario)
+    await nextFrame(scenario)
+    #expect(scenario.isParked(2), "the next workspace went back")
     let entering = Track.entering(
-      WindowID(3), into: harness.area, direction: .prev, on: harness.display)
-    #expect(lastNudge(of: 3, in: harness) == entering.position(at: 0.5, easing: Easing.linear))
-    #expect(harness.everyPositionIsAllowed())
+      WindowID(3), into: area, direction: .prev, on: FakeDisplays.main)
+    #expect(lastNudge(of: 3, in: scenario) == entering.position(at: 0.5, easing: Easing.linear))
+    #expect(scenario.harness.everyPositionIsAllowed())
   }
 
   @Test func offsetsWithinAFrameReplaceEachOther() async {
-    let harness = await makeHarness()
+    let scenario = await scenario()
     await swipe(
-      .began, .moved(offset: -0.03), .moved(offset: -0.06), .moved(offset: -0.09), in: harness)
-    #expect(harness.windowSystem.nudges.filter { $0.id == WindowID(1) }.count == 1)
-    await nextFrame(harness)
+      .began, .moved(offset: -0.03), .moved(offset: -0.06), .moved(offset: -0.09), in: scenario)
+    #expect(scenario.windowSystem.nudges.filter { $0.id == WindowID(1) }.count == 1)
+    await nextFrame(scenario)
     let leaving = Track.leaving(
-      WindowID(1), from: harness.area, direction: .next, on: harness.display)
-    let steps = harness.windowSystem.nudges.filter { $0.id == WindowID(1) }
+      WindowID(1), from: area, direction: .next, on: FakeDisplays.main)
+    let steps = scenario.windowSystem.nudges.filter { $0.id == WindowID(1) }
     #expect(steps.count == 2, "the middle offset was never placed")
     #expect(steps.last?.origin == leaving.position(at: 0.3, easing: Easing.linear))
-    await nextFrame(harness)
-    #expect(harness.windowSystem.nudges.filter { $0.id == WindowID(1) }.count == 2, "nothing new")
+    await nextFrame(scenario)
+    #expect(scenario.windowSystem.nudges.filter { $0.id == WindowID(1) }.count == 2, "nothing new")
   }
 
   @Test func aSlowStepIsFollowedByTheNextAtOnce() async {
-    let harness = await makeHarness()
-    harness.windowSystem.onWrite = { [clock] in clock.advance(by: .milliseconds(5)) }
-    await swipe(.began, .moved(offset: -0.03), in: harness)
-    harness.windowSystem.onWrite = nil
-    await swipe(.moved(offset: -0.06), in: harness)
+    let scenario = await scenario()
+    scenario.windowSystem.onWrite = { [clock = scenario.clock] in
+      clock.advance(by: .milliseconds(5))
+    }
+    await swipe(.began, .moved(offset: -0.03), in: scenario)
+    scenario.windowSystem.onWrite = nil
+    await swipe(.moved(offset: -0.06), in: scenario)
     #expect(
-      harness.windowSystem.nudges.filter { $0.id == WindowID(1) }.count == 2,
+      scenario.windowSystem.nudges.filter { $0.id == WindowID(1) }.count == 2,
       "the first step took longer than a frame")
   }
 
   @Test func aCommandInTheMiddlePutsTheWindowsBack() async {
-    let harness = await makeHarness()
-    await swipe(.began, .moved(offset: -0.15), in: harness)
-    _ = harness.manager.retile()
-    #expect(harness.frame(of: 1) == harness.area)
-    #expect(harness.isParked(2))
-    await swipe(.moved(offset: -0.2), .ended(velocity: 0), in: harness)
-    #expect(harness.manager.workspaces.currentIndex == 0, "the rest of the swipe is ignored")
-    #expect(harness.frame(of: 1) == harness.area)
+    let scenario = await scenario()
+    await swipe(.began, .moved(offset: -0.15), in: scenario)
+    await scenario.start("workspace retile")
+    #expect(scenario.frame(of: 1) == area)
+    #expect(scenario.isParked(2))
+    await swipe(.moved(offset: -0.2), .ended(velocity: 0), in: scenario)
+    #expect(scenario.shown == [1], "the rest of the swipe is ignored")
+    #expect(scenario.frame(of: 1) == area)
   }
 
   @Test func theSlideFinishesFromWhereTheFingersLeftIt() async {
-    let animator = Animator(
-      duration: .milliseconds(48), frameInterval: .milliseconds(16), clock: clock)
-    let harness = await makeHarness(animator: animator)
-    await swipe(.began, .moved(offset: -0.18), .ended(velocity: 0), in: harness)
-    while clock.hasSleepers {
-      clock.advance(by: .milliseconds(16))
-      await harness.settle()
-    }
-    let steps = harness.windowSystem.nudges.filter { $0.id == WindowID(1) }.map(\.origin.x)
+    let scenario = await scenario(animates: true)
+    await swipe(.began, .moved(offset: -0.18), .ended(velocity: 0), in: scenario)
+    await scenario.runUntilQuiet()
+    let steps = scenario.windowSystem.nudges.filter { $0.id == WindowID(1) }.map(\.origin.x)
     #expect(steps.count >= 2)
     #expect(steps == steps.sorted(by: >), "it carries on to the left")
-    #expect(harness.isParked(1))
-    #expect(harness.frame(of: 2) == harness.area)
-    #expect(harness.everyPositionIsAllowed())
+    #expect(scenario.isParked(1))
+    #expect(scenario.frame(of: 2) == area)
+    #expect(scenario.harness.everyPositionIsAllowed())
   }
 
   @Test func goingBackFromNearTheStartStillSlides() async {
-    let animator = Animator(
-      duration: .milliseconds(48), frameInterval: .milliseconds(16), clock: clock)
-    let harness = await makeHarness(animator: animator)
-    await swipe(.began, .moved(offset: -0.03), .ended(velocity: 0), in: harness)
-    harness.windowSystem.clearRecordedCalls()
-    while clock.hasSleepers {
-      clock.advance(by: .milliseconds(16))
-      await harness.settle()
-    }
-    let steps = harness.windowSystem.nudges.filter { $0.id == WindowID(1) }.map(\.origin.x)
+    let scenario = await scenario(animates: true)
+    await swipe(.began, .moved(offset: -0.03), .ended(velocity: 0), in: scenario)
+    scenario.windowSystem.clearRecordedCalls()
+    await scenario.runUntilQuiet()
+    let steps = scenario.windowSystem.nudges.filter { $0.id == WindowID(1) }.map(\.origin.x)
     #expect(!steps.isEmpty, "a tenth of the way back would otherwise snap in one frame")
     #expect(steps == steps.sorted(), "it moves back to the right")
-    #expect(harness.frame(of: 1) == harness.area)
-    #expect(harness.isParked(2))
+    #expect(scenario.frame(of: 1) == area)
+    #expect(scenario.isParked(2))
   }
 
   @Test(arguments: ["swipe off", "one workspace", "tiling off"])
@@ -189,13 +175,13 @@ struct SwipeScenarios {
     var config = Config()
     if reason == "swipe off" { config.gestures.swipe = false }
     if reason == "one workspace" { config.workspaces.count = 1 }
-    let harness = await makeHarness(config: config)
-    if reason == "tiling off" { _ = harness.manager.setTiling(.off) }
-    harness.windowSystem.clearRecordedCalls()
-    await swipe(.began, .moved(offset: -0.18), .ended(velocity: 0), in: harness)
-    #expect(harness.windowSystem.nudges.isEmpty)
-    #expect(harness.windowSystem.moves.isEmpty)
-    #expect(harness.manager.workspaces.currentIndex == 0)
+    let scenario = await scenario(config: config)
+    if reason == "tiling off" { await scenario.command("tiling off") }
+    scenario.windowSystem.clearRecordedCalls()
+    await swipe(.began, .moved(offset: -0.18), .ended(velocity: 0), in: scenario)
+    #expect(scenario.windowSystem.nudges.isEmpty)
+    #expect(scenario.windowSystem.moves.isEmpty)
+    #expect(scenario.shown == [1])
   }
 
   // MARK: - Watching the trackpad
@@ -203,22 +189,22 @@ struct SwipeScenarios {
   @Test func thePointerWatchesForTheConfiguredSwipe() async {
     var config = Config()
     config.gestures.fingers = 4
-    _ = await makeHarness(config: config)
-    #expect(pointer.swipeFingers == 4)
+    let scenario = await scenario(config: config)
+    #expect(scenario.pointer.swipeFingers == 4)
   }
 
   @Test func reloadTurnsTheSwipeOffAndOnAgain() async {
     let file = FakeConfigFile()
-    let harness = await makeHarness(configFile: file)
-    #expect(pointer.swipeFingers == 3)
+    let scenario = await scenario(configFile: file)
+    #expect(scenario.pointer.swipeFingers == 3)
     var config = Config()
     config.gestures.swipe = false
     file.write(.config(config))
-    _ = harness.manager.reload()
-    #expect(pointer.swipeFingers == nil)
+    await scenario.command("config reload")
+    #expect(scenario.pointer.swipeFingers == nil)
     file.write(.missing)
-    _ = harness.manager.reload()
-    #expect(pointer.swipeFingers == 3, "no file means the defaults")
+    await scenario.command("config reload")
+    #expect(scenario.pointer.swipeFingers == 3, "no file means the defaults")
   }
 
   @Test func movingTheFingersLeftBringsInTheNextWorkspace() async {

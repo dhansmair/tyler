@@ -4,38 +4,38 @@ import TylerConfig
 import TylerCore
 import TylerTestSupport
 
-@testable import TylerServer
-
 /// Tiling every display: the laptop (`main`, workspaces 1 to 4) and the external display above it
 /// (`secondary`, workspaces 5 to 8). Windows 1 and 2 start on the laptop, 3 on the external
 /// display.
 @Suite("Several displays: tiling each one")
 @MainActor
 struct DisplayTilingScenarios {
-  private let external = FakeDisplays.secondary
+  private let firefoxFrame = CGRect(x: 700, y: 100, width: 300, height: 200)
 
-  private func twoDisplays() -> FakeDisplays {
-    FakeDisplays(displays: [FakeDisplays.main, FakeDisplays.secondary])
+  private func scenario(config: Config = Config()) async -> Scenario {
+    await Scenario(
+      openAtStart: spread([1, 2])
+        + [makeWindow(id: 3, frame: CGRect(x: 100, y: -1000, width: 300, height: 200))],
+      displays: [FakeDisplays.main, FakeDisplays.secondary], config: config)
   }
 
-  private func onExternal(_ id: UInt32) -> WindowInfo {
-    makeWindow(id: id, frame: CGRect(x: 100, y: -1000, width: 300, height: 200))
+  private func firefox() -> WindowInfo {
+    var firefox = makeWindow(id: 9, frame: firefoxFrame)
+    firefox.appName = "Firefox"
+    return firefox
   }
 
-  private func harness(config: Config = Config()) -> ManagerHarness {
-    ManagerHarness([1, 2], extra: [onExternal(3)], displays: twoDisplays(), config: config)
+  @Test func eachDisplayTilesItsCurrentWorkspace() async {
+    let scenario = await scenario()
+    #expect(scenario.workspaces == [1: 1, 2: 1, 3: 5])
+    #expect(
+      [scenario.frame(of: 1), scenario.frame(of: 2)]
+        == [scenario.rect(.leftHalf), scenario.rect(.rightHalf)])
+    #expect(scenario.frame(of: 3) == scenario.rect(.full, display: 2))
   }
 
-  @Test func eachDisplayTilesItsCurrentWorkspace() {
-    let harness = harness()
-    #expect(harness.workspaces() == [1: 1, 2: 1, 3: 5])
-    let halves = TallLayout().frames(count: 2, in: harness.area)
-    #expect([harness.frame(of: 1), harness.frame(of: 2)] == halves)
-    #expect(harness.frame(of: 3) == external.visibleFrame)
-  }
-
-  @Test func listShowsEachWindowsDisplayAndWorkspaceNumber() {
-    let listed = harness().manager.listed
+  @Test func listShowsEachWindowsDisplayAndWorkspaceNumber() async {
+    let listed = await scenario().windowList
     let byID = Dictionary(uniqueKeysWithValues: listed.map { ($0.id.rawValue, $0) })
     #expect(byID[1]?.displayNumber == 1)
     #expect(byID[3]?.displayNumber == 2)
@@ -44,44 +44,37 @@ struct DisplayTilingScenarios {
   }
 
   @Test func aWindowAssignedToAHiddenWorkspaceOfTheExternalDisplayParksAtItsEdge() async {
-    let harness = harness(config: Config(apps: ["firefox": Config.App(workspace: 6)]))
-    var firefox = makeWindow(id: 9, frame: CGRect(x: 700, y: 100, width: 300, height: 200))
-    firefox.appName = "Firefox"
-    harness.windowSystem.windows.append(firefox)
-    harness.windowSystem.send(.created(firefox))
-    await harness.settle()
+    let scenario = await scenario(config: Config(apps: ["firefox": Config.App(workspace: 6)]))
+    await scenario.open(firefox())
 
-    #expect(harness.workspaces()[9] == 6)
-    #expect(harness.frame(of: 9)?.minX == external.visibleFrame.maxX - 1)
-    #expect(harness.frame(of: 3) == external.visibleFrame, "workspace 5 stays on screen")
+    #expect(scenario.workspaces[9] == 6)
+    #expect(scenario.frame(of: 9)?.minX == scenario.rect(.full, display: 2).maxX - 1)
+    #expect(scenario.frame(of: 3) == scenario.rect(.full, display: 2), "workspace 5 stays")
   }
 
   @Test func tilingOffBringsBackTheParkedWindowsOfEveryDisplay() async {
-    let harness = harness(config: Config(apps: ["firefox": Config.App(workspace: 6)]))
-    var firefox = makeWindow(id: 9, frame: CGRect(x: 700, y: 100, width: 300, height: 200))
-    firefox.appName = "Firefox"
-    harness.windowSystem.windows.append(firefox)
-    harness.windowSystem.send(.created(firefox))
-    await harness.settle()
+    let scenario = await scenario(config: Config(apps: ["firefox": Config.App(workspace: 6)]))
+    await scenario.open(firefox())
 
-    #expect(harness.manager.setTiling(.off) == .message("tiling off"))
-    #expect(harness.frame(of: 9) == CGRect(x: 700, y: 100, width: 300, height: 200))
-    #expect(harness.workspaces()[9] == nil)
+    #expect(await scenario.command("tiling off") == .message("tiling off"))
+    #expect(scenario.frame(of: 9) == firefoxFrame)
+    #expect(scenario.workspaces[9] == nil)
   }
 
-  @Test func withADisplayToTheRightTheLaptopParksAtItsLeftEdge() {
-    let harness = ManagerHarness(
-      [1, 2], displays: FakeDisplays(displays: [FakeDisplays.main, FakeDisplays.right]))
-    _ = harness.manager.switchWorkspace(.next)
+  @Test func withADisplayToTheRightTheLaptopParksAtItsLeftEdge() async {
+    let scenario = await Scenario(
+      displays: [FakeDisplays.main, FakeDisplays.right], workspaces: [1: [1, 2]])
+    await scenario.command("workspace focus next")
     for id: UInt32 in [1, 2] {
-      #expect(harness.frame(of: id)?.maxX == FakeDisplays.main.visibleFrame.minX + 1)
+      #expect(scenario.frame(of: id)?.maxX == scenario.rect(.full).minX + 1)
     }
   }
 
   @Test func aRestartKeepsTheWorkspacesOfEveryDisplay() async {
-    let harness = harness()
-    let successor = harness.successor(saved: harness.manager.handOver(), displays: twoDisplays())
-    #expect(successor.workspaces() == [1: 1, 2: 1, 3: 5])
-    #expect(successor.windowSystem.moves.isEmpty, "every window is already where it belongs")
+    let scenario = await scenario()
+    scenario.windowSystem.clearRecordedCalls()
+    let next = await scenario.restart()
+    #expect(next.workspaces == [1: 1, 2: 1, 3: 5])
+    #expect(next.windowSystem.moves.isEmpty, "every window is already where it belongs")
   }
 }

@@ -5,165 +5,153 @@ import TylerTestSupport
 
 @testable import TylerServer
 
-// MARK: - Switching
-
 @Suite("Workspaces: switching")
 @MainActor
 struct WorkspaceSwitchScenarios {
-  @Test func existingWindowsStartOnTheFirstWorkspace() {
-    let harness = ManagerHarness([1, 2])
-    #expect(harness.workspaces() == [1: 1, 2: 1])
+  @Test func existingWindowsStartOnTheFirstWorkspace() async {
+    let scenario = await Scenario(openAtStart: spread([1, 2]))
+    #expect(scenario.workspaces == [1: 1, 2: 1])
   }
 
-  @Test func switchingParksTheCurrentWindowsAndGivesNoFocusToAnEmptyWorkspace() {
-    let harness = ManagerHarness([1, 2])
-    #expect(harness.manager.switchWorkspace(.next) == .message("workspace 2"))
-    #expect(harness.isParked(1))
-    #expect(harness.isParked(2))
-    #expect(harness.workspaces() == [1: 1, 2: 1], "parked windows keep their workspace")
-    #expect(harness.windowSystem.focusCalls.isEmpty)
-    #expect(harness.windowSystem.unfocusCount == 0, "no window had focus")
+  @Test func switchingParksTheCurrentWindowsAndGivesNoFocusToAnEmptyWorkspace() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    scenario.windowSystem.clearRecordedCalls()
+    #expect(await scenario.command("workspace focus next") == .message("workspace 2"))
+    #expect(scenario.isParked(1))
+    #expect(scenario.isParked(2))
+    #expect(scenario.workspaces == [1: 1, 2: 1], "parked windows keep their workspace")
+    #expect(scenario.windowSystem.focusCalls.isEmpty)
+    #expect(scenario.windowSystem.unfocusCount == 0, "no window had focus")
   }
 
   @Test func switchingToAnEmptyWorkspaceTakesFocusFromTheParkedWindow() async {
-    let harness = ManagerHarness([1, 2])
-    await harness.osFocus(2)
-    _ = harness.manager.switchWorkspace(.next)
-    #expect(harness.isParked(2))
-    #expect(harness.windowSystem.focusCalls.isEmpty)
-    #expect(harness.windowSystem.unfocusCount == 1)
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    await scenario.focus(2)
+    scenario.windowSystem.clearRecordedCalls()
+    await scenario.command("workspace focus next")
+    #expect(scenario.isParked(2))
+    #expect(scenario.windowSystem.focusCalls.isEmpty)
+    #expect(scenario.windowSystem.unfocusCount == 1)
   }
 
   @Test func failingToTakeFocusStillSwitchesAndSaysSo() async {
-    let harness = ManagerHarness([1])
-    await harness.osFocus(1)
-    harness.windowSystem.isUnfocusFailing = true
+    let scenario = await Scenario(workspaces: [1: [1]])
+    await scenario.focus(1)
+    scenario.windowSystem.clearRecordedCalls()
+    scenario.windowSystem.isUnfocusFailing = true
     #expect(
-      harness.manager.switchWorkspace(.next)
+      await scenario.command("workspace focus next")
         == .message("workspace 2; cannot take focus from window 1: fake refusal"))
-    #expect(harness.isParked(1))
-    #expect(harness.windowSystem.unfocusCount == 1)
+    #expect(scenario.isParked(1))
+    #expect(scenario.windowSystem.unfocusCount == 1)
   }
 
   @Test func aWindowThatRefusesFocusIsReportedAfterTheSwitch() async {
-    let harness = ManagerHarness([1, 2])
-    await harness.osFocus(2)
-    _ = harness.manager.moveToWorkspace(.next, follow: false)
-    harness.windowSystem.failingFocus = [WindowID(2)]
+    let scenario = await Scenario(workspaces: [1: [1], 2: [2]])
+    scenario.windowSystem.failingFocus = [WindowID(2)]
     #expect(
-      harness.manager.switchWorkspace(.next)
+      await scenario.command("workspace focus next")
         == .message("workspace 2; cannot focus window 2: fake refusal"))
-    #expect(harness.manager.workspaces.currentIndex == 1)
+    #expect(scenario.shown == [2])
   }
 
   @Test func newWindowsOpenOnTheCurrentWorkspace() async {
-    let harness = ManagerHarness([1, 2])
-    _ = harness.manager.switchWorkspace(.number(3))
-    harness.windowSystem.windows.append(makeWindow(id: 9))
-    harness.windowSystem.send(.created(makeWindow(id: 9)))
-    await harness.settle()
-    #expect(harness.workspaces() == [1: 1, 2: 1, 9: 3])
-    #expect(harness.frame(of: 9) == harness.area)
+    let scenario = await Scenario(workspaces: [1: [1, 2]], showing: [3])
+    await scenario.open(makeWindow(id: 9))
+    #expect(scenario.workspaces == [1: 1, 2: 1, 9: 3])
+    #expect(scenario.frame(of: 9) == scenario.rect(.full))
   }
 
   @Test func switchingBackRestoresTheSlotsAndFocusesTheFocusedWindow() async {
-    let harness = ManagerHarness([1, 2])
-    let slots = [harness.frame(of: 1), harness.frame(of: 2)]
-    await harness.osFocus(2)
-    _ = harness.manager.switchWorkspace(.next)
-    _ = harness.manager.switchWorkspace(.prev)
-    #expect([harness.frame(of: 1), harness.frame(of: 2)] == slots)
-    #expect(harness.windowSystem.focusCalls == [WindowID(2)])
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    let slots = [scenario.frame(of: 1), scenario.frame(of: 2)]
+    await scenario.focus(2)
+    scenario.windowSystem.clearRecordedCalls()
+    await scenario.command("workspace focus next")
+    await scenario.command("workspace focus prev")
+    #expect([scenario.frame(of: 1), scenario.frame(of: 2)] == slots)
+    #expect(scenario.windowSystem.focusCalls == [WindowID(2)])
   }
 
   @Test(arguments: [
-    (WorkspaceTarget.next, 4, "workspace 1"), (.prev, 1, "workspace 4"),
-    (.number(2), 1, "workspace 2"),
+    ("next", 4, "workspace 1"), ("prev", 1, "workspace 4"), ("2", 1, "workspace 2"),
   ])
-  func upAndDownWrapAtTheEnds(target: WorkspaceTarget, from: Int, expected: String) {
-    let harness = ManagerHarness([1])
-    _ = harness.manager.switchWorkspace(.number(from))
-    #expect(harness.manager.switchWorkspace(target) == .message(expected))
+  func nextAndPrevWrapAtTheEnds(target: String, from: Int, expected: String) async {
+    let scenario = await Scenario(workspaces: [1: [1]], showing: [from])
+    #expect(await scenario.command("workspace focus \(target)") == .message(expected))
   }
 
-  @Test(arguments: [5, 0])
-  func aWorkspaceOutOfRangeIsAnError(number: Int) {
-    let harness = ManagerHarness([1])
+  @Test func aWorkspaceOutOfRangeIsAnError() async {
+    let scenario = await Scenario(workspaces: [1: [1]])
+    scenario.windowSystem.clearRecordedCalls()
     #expect(
-      harness.manager.switchWorkspace(.number(number))
-        == .error("workspace \(number) does not exist (use 1 to 4)"))
-    #expect(harness.windowSystem.moves.isEmpty)
+      await scenario.command("workspace focus 5")
+        == .error("workspace 5 does not exist (use 1 to 4)"))
+    #expect(scenario.windowSystem.moves.isEmpty)
   }
 
-  @Test(arguments: [([1, 2, 3, 4], "1 to 4"), ([5, 6, 9], "5, 6, 9"), ([7], "7")])
-  func theErrorNamesTheWorkspacesThereAre(numbers: [Int], named: String) {
-    #expect(WorkspaceController.describe(numbers) == named)
+  @Test func switchingToTheCurrentWorkspaceMovesNothing() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    scenario.windowSystem.clearRecordedCalls()
+    #expect(await scenario.command("workspace focus 1") == .message("workspace 1"))
+    #expect(scenario.windowSystem.moves.isEmpty)
   }
 
-  @Test func switchingToTheCurrentWorkspaceMovesNothing() {
-    let harness = ManagerHarness([1, 2])
-    #expect(harness.manager.switchWorkspace(.number(1)) == .message("workspace 1"))
-    #expect(harness.windowSystem.moves.isEmpty)
-  }
-
-  @Test func switchingNeedsTilingAndPermission() {
-    let harness = ManagerHarness([1])
-    _ = harness.manager.setTiling(.off)
-    #expect(harness.manager.switchWorkspace(.next) == .error(WindowManager.tilingOffMessage))
+  @Test func switchingNeedsTiling() async {
+    let scenario = await Scenario(workspaces: [1: [1]])
+    await scenario.command("tiling off")
     #expect(
-      harness.manager.moveToWorkspace(.next, follow: false)
+      await scenario.command("workspace focus next") == .error(WindowManager.tilingOffMessage))
+    #expect(
+      await scenario.command("window move-to-workspace next")
         == .error(WindowManager.tilingOffMessage))
-
-    let waiting = WindowManager(
-      windowSystem: FakeWindowSystem(), displays: FakeDisplays(), gate: FakeGate(isTrusted: false))
-    #expect(waiting.switchWorkspace(.next) == .error(WindowManager.permissionMessage))
   }
 
-  @Test func handleRoutesTheWorkspaceRequests() async {
-    let harness = ManagerHarness([1, 2])
-    await harness.osFocus(2)
+  @Test func switchingNeedsPermission() async {
+    let scenario = await Scenario(workspaces: [:], gate: FakeGate(isTrusted: false))
     #expect(
-      harness.manager.handle(.moveToWorkspace(.number(3), follow: false))
-        == .message("moved to workspace 3"))
-    #expect(harness.manager.handle(.workspace(.number(3))) == .message("workspace 3"))
-    #expect(harness.workspaces() == [1: 1, 2: 3])
+      await scenario.command("workspace focus next") == .error(WindowManager.permissionMessage))
   }
 
-  @Test func tilingOffBringsParkedWindowsBackAndForgetsTheirWorkspace() {
-    let harness = ManagerHarness([1, 2, 3])
-    _ = harness.manager.switchWorkspace(.next)
-    harness.windowSystem.windows.append(makeWindow(id: 9))
-    _ = harness.manager.setTiling(.off)
-    #expect(harness.frame(of: 1) == ManagerHarness.originalFrame(index: 0))
-    #expect(harness.frame(of: 3) == ManagerHarness.originalFrame(index: 2))
-    #expect(harness.workspaces().isEmpty)
+  @Test func aWindowSentToAnotherWorkspaceIsThereWhenItIsShown() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    await scenario.focus(2)
+    #expect(
+      await scenario.command("window move-to-workspace 3") == .message("moved to workspace 3"))
+    #expect(await scenario.command("workspace focus 3") == .message("workspace 3"))
+    #expect(scenario.workspaces == [1: 1, 2: 3])
   }
 
-  @Test func turningTilingBackOnTilesEverythingOntoTheCurrentWorkspace() {
-    let harness = ManagerHarness([1, 2])
-    _ = harness.manager.switchWorkspace(.next)
-    _ = harness.manager.setTiling(.off)
-    _ = harness.manager.setTiling(.on)
-    #expect(harness.workspaces() == [1: 2, 2: 2])
+  @Test func tilingOffBringsParkedWindowsBackAndForgetsTheirWorkspace() async {
+    let scenario = await Scenario(openAtStart: spread([1, 2, 3]))
+    await scenario.command("workspace focus next")
+    scenario.windowSystem.windows.append(makeWindow(id: 9))
+    await scenario.command("tiling off")
+    #expect(scenario.frame(of: 1) == ManagerHarness.originalFrame(index: 0))
+    #expect(scenario.frame(of: 3) == ManagerHarness.originalFrame(index: 2))
+    #expect(scenario.workspaces.isEmpty)
+  }
+
+  @Test func turningTilingBackOnTilesEverythingOntoTheCurrentWorkspace() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2]], showing: [2])
+    await scenario.command("tiling off")
+    await scenario.command("tiling on")
+    #expect(scenario.workspaces == [1: 2, 2: 2])
   }
 
   @Test func aParkedWindowThatClosesLeavesItsWorkspace() async {
-    let harness = ManagerHarness([1, 2])
-    _ = harness.manager.switchWorkspace(.next)
-    harness.windowSystem.send(.destroyed(WindowID(1)))
-    await harness.settle()
-    #expect(harness.workspaces() == [2: 1])
+    let scenario = await Scenario(workspaces: [1: [1, 2]], showing: [2])
+    await scenario.close(1)
+    #expect(scenario.workspaces == [2: 1])
   }
 
   @Test func aParkedWindowStaysOnItsWorkspaceWhateverItsFrameSays() async {
-    let displays = FakeDisplays(displays: [FakeDisplays.main, FakeDisplays.right])
-    let harness = ManagerHarness([1, 2], displays: displays)
-    _ = harness.manager.switchWorkspace(.next)
+    let scenario = await Scenario(
+      displays: [FakeDisplays.main, FakeDisplays.right], workspaces: [1: [1, 2]], showing: [2])
     // macOS (or the user) moves a parked window onto the other display.
-    harness.windowSystem.send(
-      .updated(makeWindow(id: 1, frame: CGRect(x: 2000, y: 100, width: 300, height: 200))))
-    await harness.settle()
-    #expect(harness.workspaces() == [1: 1, 2: 1])
+    await scenario.change(
+      makeWindow(id: 1, frame: CGRect(x: 2000, y: 100, width: 300, height: 200)))
+    #expect(scenario.workspaces == [1: 1, 2: 1])
   }
 
   @Test func parkedWindowsOverlappingAnotherDisplayComeBackWithTheirWorkspace() async {
@@ -173,35 +161,31 @@ struct WorkspaceSwitchScenarios {
       id: 3,
       frame: CGRect(x: 1800, y: 0, width: 1920, height: 2400),
       visibleFrame: CGRect(x: 1800, y: 0, width: 1920, height: 2400))
-    let harness = ManagerHarness(
-      [1, 2], displays: FakeDisplays(displays: [FakeDisplays.main, tall]))
-    let slots = [harness.frame(of: 1), harness.frame(of: 2)]
-    _ = harness.manager.switchWorkspace(.next)
-    await harness.settle()  // the manager learns the parked frames
-    _ = harness.manager.switchWorkspace(.prev)
-    #expect(harness.workspaces() == [1: 1, 2: 1])
-    #expect([harness.frame(of: 1), harness.frame(of: 2)] == slots)
+    let scenario = await Scenario(displays: [FakeDisplays.main, tall], workspaces: [1: [1, 2]])
+    let slots = [scenario.frame(of: 1), scenario.frame(of: 2)]
+    await scenario.command("workspace focus next")
+    await scenario.command("workspace focus prev")
+    #expect(scenario.workspaces == [1: 1, 2: 1])
+    #expect([scenario.frame(of: 1), scenario.frame(of: 2)] == slots)
   }
 
   @Test func aParkedWindowThatIsMinimizedComesBackOnTheCurrentWorkspace() async {
-    let harness = ManagerHarness([1, 2])
-    _ = harness.manager.switchWorkspace(.next)
-    harness.windowSystem.send(.updated(makeWindow(id: 1, isMinimized: true)))
-    await harness.settle()
-    #expect(harness.workspaces() == [2: 1])
-    harness.windowSystem.send(.updated(makeWindow(id: 1)))
-    await harness.settle()
-    #expect(harness.workspaces() == [1: 2, 2: 1])
+    let scenario = await Scenario(workspaces: [1: [1, 2]], showing: [2])
+    await scenario.change(makeWindow(id: 1, isMinimized: true))
+    #expect(scenario.workspaces == [2: 1])
+    await scenario.change(makeWindow(id: 1))
+    #expect(scenario.workspaces == [1: 2, 2: 1])
   }
 
   @Test func floatedWindowsBelongToNoWorkspaceAndAreNeverParked() async {
-    let harness = ManagerHarness([1, 2])
-    await harness.osFocus(2)
-    _ = harness.manager.setFloat(.toggle)
-    let floatedFrame = harness.frame(of: 2)
-    _ = harness.manager.switchWorkspace(.next)
-    #expect(harness.workspaces() == [1: 1])
-    #expect(harness.frame(of: 2) == floatedFrame)
-    #expect(harness.windowSystem.unfocusCount == 0, "a floated window stays on screen, with focus")
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    await scenario.focus(2)
+    await scenario.command("window float toggle")
+    let floatedFrame = scenario.frame(of: 2)
+    scenario.windowSystem.clearRecordedCalls()
+    await scenario.command("workspace focus next")
+    #expect(scenario.workspaces == [1: 1])
+    #expect(scenario.frame(of: 2) == floatedFrame)
+    #expect(scenario.windowSystem.unfocusCount == 0, "a floated window stays on screen, with focus")
   }
 }

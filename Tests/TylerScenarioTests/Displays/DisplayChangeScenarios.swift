@@ -12,191 +12,156 @@ import TylerTestSupport
 @MainActor
 struct DisplayChangeScenarios {
   private let external = FakeDisplays.secondary
-  private let displays = FakeDisplays(displays: [FakeDisplays.main, FakeDisplays.secondary])
-  private let clock = TestClock()
+  private let displays = [FakeDisplays.main, FakeDisplays.secondary]
 
-  private func harness(animator: Animator = .snap) async -> ManagerHarness {
-    let harness = ManagerHarness(
-      [1, 2, 9],
-      extra: [makeWindow(id: 3, frame: CGRect(x: 100, y: -1000, width: 300, height: 200))],
-      displays: displays, animator: animator, clock: clock)
-    await harness.osFocus(9)
-    _ = harness.manager.moveToWorkspace(.number(2), follow: false)
-    await harness.osFocus(1)
-    harness.windowSystem.clearRecordedCalls()
-    return harness
+  private func scenario() async -> Scenario {
+    let scenario = await Scenario(
+      displays: displays, workspaces: [1: [1, 2], 2: [9], 5: [3]])
+    await scenario.focus(1)
+    scenario.windowSystem.clearRecordedCalls()
+    return scenario
   }
 
-  /// macOS reports the displays as `connected`, then waits for the displays to settle.
-  private func change(to connected: [DisplayInfo], in harness: ManagerHarness) async {
-    displays.displays = connected
-    displays.sendChange()
-    await harness.settle()
-  }
-
-  private func waitForTheDisplaysToSettle(_ harness: ManagerHarness) async {
-    clock.advance(by: WindowManager.displaySettleDelay)
-    await harness.settle()
-  }
-
-  private func isParked(_ id: UInt32, on display: DisplayInfo, _ harness: ManagerHarness) -> Bool {
-    guard let frame = harness.frame(of: id) else { return false }
+  private func isParked(_ id: UInt32, on display: DisplayInfo, _ scenario: Scenario) -> Bool {
+    guard let frame = scenario.frame(of: id) else { return false }
     return frame == Parking.frame(for: frame, on: display)
   }
 
   @Test func theWorkspacesOfAnUnpluggedDisplayWaitParkedOnTheLaptop() async {
-    let harness = await harness()
-    await change(to: [FakeDisplays.main], in: harness)
+    let scenario = await scenario()
+    await scenario.beginDisplayChange(to: [FakeDisplays.main])
     // macOS moves the external display's window onto the laptop.
-    await harness.windowSystem.userMoves(3, to: CGRect(x: 200, y: 200, width: 800, height: 600))
-    #expect(harness.windowSystem.moves.isEmpty, "nothing moves before the displays settle")
+    await scenario.windowSystem.userMoves(3, to: CGRect(x: 200, y: 200, width: 800, height: 600))
+    #expect(scenario.windowSystem.moves.isEmpty, "nothing moves before the displays settle")
 
-    await waitForTheDisplaysToSettle(harness)
-    #expect(harness.manager.rows.keys == [FakeDisplays.main.key])
-    #expect(harness.manager.rows[0].numbers == [1, 2, 3, 4, 5, 6, 7, 8])
-    #expect(harness.workspaces() == [1: 1, 2: 1, 3: 5, 9: 2])
-    #expect(harness.isParked(3))
-    #expect(harness.frame(of: 1) == TallLayout().frames(count: 2, in: harness.area)[0])
+    await scenario.wait(WindowManager.displaySettleDelay)
+    #expect(scenario.rows == [[1, 2, 3, 4, 5, 6, 7, 8]])
+    #expect(scenario.workspaces == [1: 1, 2: 1, 3: 5, 9: 2])
+    #expect(scenario.isParked(3))
+    #expect(scenario.frame(of: 1) == scenario.rect(.leftHalf))
   }
 
   /// The Mac locks the screen as it sleeps, and macOS shows no windows until it is unlocked.
   @Test func displaysThatSettleAtTheLockScreenArePlacedOnceItIsUnlocked() async {
-    let harness = await harness()
-    harness.screenLock.isLocked = true
-    await change(to: [FakeDisplays.main], in: harness)
-    await harness.windowSystem.userMoves(3, to: CGRect(x: 200, y: 200, width: 800, height: 600))
-    await waitForTheDisplaysToSettle(harness)
-    clock.advance(by: WindowManager.unlockCheckInterval)
-    await harness.settle()
-    #expect(harness.windowSystem.moves.isEmpty, "nothing moves while the screen is locked")
+    let scenario = await scenario()
+    scenario.screenLock.isLocked = true
+    await scenario.beginDisplayChange(to: [FakeDisplays.main])
+    await scenario.windowSystem.userMoves(3, to: CGRect(x: 200, y: 200, width: 800, height: 600))
+    await scenario.wait(WindowManager.displaySettleDelay)
+    await scenario.wait(WindowManager.unlockCheckInterval)
+    #expect(scenario.windowSystem.moves.isEmpty, "nothing moves while the screen is locked")
 
-    harness.screenLock.isLocked = false
-    clock.advance(by: WindowManager.unlockCheckInterval)
-    await harness.settle()
-    #expect(harness.workspaces() == [1: 1, 2: 1, 3: 5, 9: 2])
-    #expect(harness.isParked(3))
-    #expect(harness.frame(of: 1) == TallLayout().frames(count: 2, in: harness.area)[0])
+    scenario.screenLock.isLocked = false
+    await scenario.wait(WindowManager.unlockCheckInterval)
+    #expect(scenario.workspaces == [1: 1, 2: 1, 3: 5, 9: 2])
+    #expect(scenario.isParked(3))
+    #expect(scenario.frame(of: 1) == scenario.rect(.leftHalf))
   }
 
   @Test func aReconnectedDisplayShowsItsWorkspaceAgain() async {
-    let harness = await harness()
-    await change(to: [FakeDisplays.main], in: harness)
-    await waitForTheDisplaysToSettle(harness)
+    let scenario = await scenario()
+    await scenario.changeDisplays(to: [FakeDisplays.main])
 
-    await change(to: [FakeDisplays.main, external], in: harness)
-    await waitForTheDisplaysToSettle(harness)
-    #expect(harness.manager.rows.keys == [FakeDisplays.main.key, external.key])
-    #expect(harness.manager.rows[1].number(at: harness.manager.rows[1].currentIndex) == 5)
-    #expect(harness.frame(of: 3) == external.visibleFrame)
-    #expect(harness.isParked(9))
+    await scenario.changeDisplays(to: displays)
+    #expect(scenario.rows == [[1, 2, 3, 4], [5, 6, 7, 8]])
+    #expect(scenario.shown == [1, 5])
+    #expect(scenario.frame(of: 3) == scenario.rect(.full, display: 2))
+    #expect(scenario.isParked(9))
   }
 
   /// Each window's move back onto the external display is reported on its own; until then the
   /// others still read as on the laptop and must not join its workspace.
   @Test func severalWindowsGoBackToAReconnectedDisplayTogether() async {
-    let harness = ManagerHarness(
-      [1],
-      extra: [3, 4].map {
-        makeWindow(id: $0, frame: CGRect(x: 100 * CGFloat($0), y: -1000, width: 300, height: 200))
-      },
-      displays: displays, clock: clock)
-    await change(to: [FakeDisplays.main], in: harness)
-    await waitForTheDisplaysToSettle(harness)
+    let scenario = await Scenario(displays: displays, workspaces: [1: [1], 5: [3, 4]])
+    await scenario.changeDisplays(to: [FakeDisplays.main])
 
-    await change(to: [FakeDisplays.main, external], in: harness)
-    await waitForTheDisplaysToSettle(harness)
-    #expect(harness.workspaces() == [1: 1, 3: 5, 4: 5])
-    #expect(harness.frame(of: 1) == harness.area)
-    #expect(harness.frame(of: 3) == TallLayout().frames(count: 2, in: external.visibleFrame)[0])
+    await scenario.changeDisplays(to: displays)
+    #expect(scenario.workspaces == [1: 1, 3: 5, 4: 5])
+    #expect(scenario.frame(of: 1) == scenario.rect(.full))
+    #expect(scenario.frame(of: 3) == scenario.rect(.leftHalf, display: 2))
   }
 
   @Test func withTheLidClosedTheExternalDisplayTakesTheLaptopsWorkspacesParked() async {
-    let harness = await harness()
+    let scenario = await scenario()
     // In clamshell mode the external display is the main display, at the origin, with the Dock.
     let alone = DisplayInfo(
       id: external.id, key: external.key, frame: CGRect(x: 0, y: 0, width: 2560, height: 1440),
       visibleFrame: CGRect(x: 55, y: 30, width: 2505, height: 1410))
-    await change(to: [alone], in: harness)
-    await waitForTheDisplaysToSettle(harness)
+    await scenario.changeDisplays(to: [alone])
 
-    #expect(harness.manager.rows.keys == [external.key])
-    #expect(harness.manager.rows[0].number(at: harness.manager.rows[0].currentIndex) == 5)
-    #expect(harness.frame(of: 3) == alone.visibleFrame)
-    #expect([1, 2, 9].allSatisfy { isParked($0, on: alone, harness) })
+    #expect(scenario.rows == [[1, 2, 3, 4, 5, 6, 7, 8]], "one display holds them all")
+    #expect(scenario.shown == [5])
+    #expect(scenario.frame(of: 3) == alone.visibleFrame)
+    #expect([1, 2, 9].allSatisfy { isParked($0, on: alone, scenario) })
   }
 
   @Test func theListsHoldStillWhileTheDisplaysChange() async {
-    let harness = await harness()
-    await change(to: [FakeDisplays.main, external], in: harness)
+    let scenario = await scenario()
+    await scenario.beginDisplayChange(to: displays)
     // Mid-change, the external display's window shows up on the laptop for a moment.
-    await harness.windowSystem.userMoves(3, to: CGRect(x: 200, y: 200, width: 800, height: 600))
-    #expect(harness.workspaces()[3] == 5, "it doesn't join the laptop's workspace")
+    await scenario.windowSystem.userMoves(3, to: CGRect(x: 200, y: 200, width: 800, height: 600))
+    #expect(scenario.workspaces[3] == 5, "it doesn't join the laptop's workspace")
 
-    await waitForTheDisplaysToSettle(harness)
-    #expect(harness.frame(of: 3) == external.visibleFrame, "it goes back to its slot")
+    await scenario.wait(WindowManager.displaySettleDelay)
+    #expect(scenario.frame(of: 3) == scenario.rect(.full, display: 2), "it goes back to its slot")
   }
 
   @Test func aParkedWindowThatMacOSPulledBackIsParkedAgain() async {
-    let harness = await harness()
-    await change(to: [FakeDisplays.main, external], in: harness)
-    await harness.windowSystem.userMoves(9, to: CGRect(x: 1139, y: 100, width: 300, height: 200))
-    await waitForTheDisplaysToSettle(harness)
-    #expect(harness.isParked(9))
+    let scenario = await scenario()
+    await scenario.beginDisplayChange(to: displays)
+    await scenario.windowSystem.userMoves(9, to: CGRect(x: 1139, y: 100, width: 300, height: 200))
+    await scenario.wait(WindowManager.displaySettleDelay)
+    #expect(scenario.isParked(9))
   }
 
   @Test func movingTheExternalDisplayToTheRightMovesTheLaptopsParkedWindowsToItsLeftEdge() async {
-    let harness = await harness()
+    let scenario = await scenario()
     let toTheRight = DisplayInfo(
       id: external.id, key: external.key,
       frame: CGRect(x: 1800, y: -271, width: 2560, height: 1440),
       visibleFrame: CGRect(x: 1800, y: -241, width: 2560, height: 1410))
-    await change(to: [FakeDisplays.main, toTheRight], in: harness)
-    await waitForTheDisplaysToSettle(harness)
-    #expect(harness.frame(of: 9)?.maxX == harness.area.minX + 1)
-    #expect(harness.isParked(9))
-    #expect(harness.frame(of: 3) == toTheRight.visibleFrame)
+    await scenario.changeDisplays(to: [FakeDisplays.main, toTheRight])
+    #expect(scenario.frame(of: 9)?.maxX == scenario.rect(.full).minX + 1)
+    #expect(scenario.isParked(9))
+    #expect(scenario.frame(of: 3) == toTheRight.visibleFrame)
   }
 
   @Test func aBurstOfChangesIsActedOnOnceASecondAfterTheLast() async {
-    let harness = await harness()
+    let scenario = await scenario()
     let moved = DisplayInfo(
       id: external.id, key: external.key, frame: external.frame.offsetBy(dx: 100, dy: 0),
       visibleFrame: external.visibleFrame.offsetBy(dx: 100, dy: 0))
-    await change(to: [FakeDisplays.main, moved], in: harness)
-    clock.advance(by: .milliseconds(600))
-    await change(to: [FakeDisplays.main, moved], in: harness)
-    clock.advance(by: .milliseconds(600))
-    await harness.settle()
-    #expect(harness.windowSystem.moves.isEmpty, "the second change restarted the wait")
+    await scenario.beginDisplayChange(to: [FakeDisplays.main, moved])
+    await scenario.wait(.milliseconds(600))
+    await scenario.beginDisplayChange(to: [FakeDisplays.main, moved])
+    await scenario.wait(.milliseconds(600))
+    #expect(scenario.windowSystem.moves.isEmpty, "the second change restarted the wait")
 
-    clock.advance(by: .milliseconds(400))
-    await harness.settle()
-    #expect(harness.frame(of: 3) == moved.visibleFrame)
+    await scenario.wait(.milliseconds(400))
+    #expect(scenario.frame(of: 3) == moved.visibleFrame)
   }
 
   @Test func aChangeDuringASlideEndsTheSlide() async {
-    let slideClock = TestClock()
-    let animator = Animator(
-      duration: .milliseconds(48), frameInterval: .milliseconds(16), clock: slideClock)
-    let harness = await harness(animator: animator)
-    _ = harness.manager.switchWorkspace(.next)
-    await harness.settle()
-    #expect(harness.manager.slide != nil, "the slide is still running")
+    // A slide much longer than the wait for the displays, so only the change can end it.
+    let scenario = await Scenario(
+      displays: displays, workspaces: [1: [1, 2], 2: [9], 5: [3]], animates: true,
+      slide: .seconds(10), frameInterval: .milliseconds(16))
+    await scenario.start("workspace focus next")
+    await scenario.wait(.milliseconds(16))
+    #expect(!scenario.isParked(1), "the slide is still running")
 
-    await change(to: [FakeDisplays.main], in: harness)
-    await waitForTheDisplaysToSettle(harness)
-    #expect(harness.manager.slide == nil)
-    #expect([1, 2, 3].allSatisfy(harness.isParked))
-    #expect(harness.frame(of: 9) == harness.area)
+    await scenario.beginDisplayChange(to: [FakeDisplays.main])
+    await scenario.wait(WindowManager.displaySettleDelay)
+    #expect([1, 2, 3].allSatisfy(scenario.isParked))
+    #expect(scenario.frame(of: 9) == scenario.rect(.full))
   }
 
   @Test func withTilingOffTheWorkspacesFollowButNoWindowMoves() async {
-    let harness = await harness()
-    _ = harness.manager.setTiling(.off)
-    harness.windowSystem.clearRecordedCalls()
-    await change(to: [FakeDisplays.main], in: harness)
-    await waitForTheDisplaysToSettle(harness)
-    #expect(harness.manager.rows.keys == [FakeDisplays.main.key])
-    #expect(harness.windowSystem.moves.isEmpty)
+    let scenario = await scenario()
+    await scenario.command("tiling off")
+    scenario.windowSystem.clearRecordedCalls()
+    await scenario.changeDisplays(to: [FakeDisplays.main])
+    #expect(scenario.rows.count == 1)
+    #expect(scenario.windowSystem.moves.isEmpty)
   }
 }

@@ -11,87 +11,71 @@ import TylerTestSupport
 @Suite("Several displays: tyler display")
 @MainActor
 struct DisplayCommandScenarios {
-  private let external = FakeDisplays.secondary
-
-  private func onExternal(_ id: UInt32) -> WindowInfo {
-    makeWindow(id: id, frame: CGRect(x: 100 + CGFloat(id) * 50, y: -1000, width: 300, height: 200))
-  }
-
-  private func harness() -> ManagerHarness {
-    ManagerHarness(
-      [1, 2], extra: [onExternal(3), onExternal(4)],
-      displays: FakeDisplays(displays: [FakeDisplays.main, FakeDisplays.secondary]))
-  }
-
-  private func focusedKey(_ harness: ManagerHarness) -> DisplayKey {
-    harness.manager.rows.focusedKey
+  private func scenario() async -> Scenario {
+    await Scenario(
+      displays: [FakeDisplays.main, FakeDisplays.secondary], workspaces: [1: [1, 2], 5: [3, 4]])
   }
 
   @Test func aDisplayByNumberGetsTheFocusAndNothingMoves() async {
-    let harness = harness()
-    await harness.osFocus(4)
-    await harness.osFocus(1)
-    harness.windowSystem.clearRecordedCalls()
-    #expect(harness.manager.switchDisplay(.number(2)) == .message("display 2"))
-    #expect(focusedKey(harness) == external.key)
+    let scenario = await scenario()
+    await scenario.focus(4)
+    await scenario.focus(1)
+    scenario.windowSystem.clearRecordedCalls()
+    #expect(await scenario.command("display focus 2") == .message("display 2"))
+    #expect(scenario.focusedDisplay == 2)
     #expect(
-      harness.windowSystem.focusCalls == [WindowID(4)], "the window that last had focus there")
-    #expect(harness.windowSystem.moves.isEmpty)
+      scenario.windowSystem.focusCalls == [WindowID(4)], "the window that last had focus there")
+    #expect(scenario.windowSystem.moves.isEmpty)
   }
 
   @Test func prevAndNextWrap() async {
-    let harness = harness()
-    await harness.osFocus(1)
-    #expect(harness.manager.switchDisplay(.next) == .message("display 2"))
-    #expect(harness.manager.switchDisplay(.next) == .message("display 1"))
-    #expect(harness.manager.switchDisplay(.prev) == .message("display 2"))
-    #expect(focusedKey(harness) == external.key)
+    let scenario = await scenario()
+    await scenario.focus(1)
+    #expect(await scenario.command("display focus next") == .message("display 2"))
+    #expect(await scenario.command("display focus next") == .message("display 1"))
+    #expect(await scenario.command("display focus prev") == .message("display 2"))
+    #expect(scenario.focusedDisplay == 2)
   }
 
   @Test func theFocusedDisplayIsWhereTheNextCommandGoes() async {
-    let harness = harness()
-    await harness.osFocus(1)
-    _ = harness.manager.switchDisplay(.number(2))
-    await harness.settle()
-    #expect(harness.manager.switchWorkspace(.next) == .message("workspace 6"))
-    #expect(harness.manager.rows[0].currentIndex == 0, "the laptop still shows 1")
+    let scenario = await scenario()
+    await scenario.focus(1)
+    await scenario.command("display focus 2")
+    #expect(await scenario.command("workspace focus next") == .message("workspace 6"))
+    #expect(scenario.shown == [1, 6], "the laptop still shows 1")
   }
 
   @Test func onAnEmptyWorkspaceNoWindowKeepsTheFocus() async {
-    let harness = harness()
-    await harness.osFocus(3)
-    _ = harness.manager.switchWorkspace(.number(6))
-    _ = harness.manager.switchDisplay(.number(1))
-    await harness.osFocus(1)
-    harness.windowSystem.clearRecordedCalls()
+    let scenario = await Scenario(
+      displays: [FakeDisplays.main, FakeDisplays.secondary], workspaces: [1: [1, 2], 5: [3, 4]],
+      showing: [6])
+    await scenario.focus(1)
+    scenario.windowSystem.clearRecordedCalls()
 
-    #expect(harness.manager.switchDisplay(.number(2)) == .message("display 2"))
-    #expect(harness.windowSystem.focusCalls.isEmpty)
-    #expect(harness.windowSystem.unfocusCount == 1, "keys don't go to the laptop's window")
-    #expect(focusedKey(harness) == external.key)
+    #expect(await scenario.command("display focus 2") == .message("display 2"))
+    #expect(scenario.windowSystem.focusCalls.isEmpty)
+    #expect(scenario.windowSystem.unfocusCount == 1, "keys don't go to the laptop's window")
+    #expect(scenario.focusedDisplay == 2)
   }
 
-  @Test func aNumberNoDisplayHasIsAnError() {
+  @Test func aNumberNoDisplayHasIsAnError() async {
     #expect(
-      harness().manager.switchDisplay(.number(3))
+      await scenario().command("display focus 3")
         == .error("display 3 does not exist (use 1 to 2)"))
   }
 
   @Test func withOneDisplayNextStaysOnIt() async {
-    let harness = ManagerHarness([1])
-    await harness.osFocus(1)
-    #expect(harness.manager.switchDisplay(.next) == .message("display 1"))
-    #expect(harness.manager.switchDisplay(.number(2)) == .error("display 2 does not exist (use 1)"))
+    let scenario = await Scenario(workspaces: [1: [1]])
+    await scenario.focus(1)
+    #expect(await scenario.command("display focus next") == .message("display 1"))
+    #expect(
+      await scenario.command("display focus 2") == .error("display 2 does not exist (use 1)"))
   }
 
-  @Test func itNeedsTilingOn() {
-    let harness = harness()
-    _ = harness.manager.setTiling(.off)
-    #expect(harness.manager.switchDisplay(.next) == .error(WindowManager.tilingOffMessage))
-  }
-
-  @Test func theRequestReachesTheCommand() async {
-    let harness = harness()
-    #expect(harness.manager.handle(.display(.number(2))) == .message("display 2"))
+  @Test func itNeedsTilingOn() async {
+    let scenario = await scenario()
+    await scenario.command("tiling off")
+    #expect(
+      await scenario.command("display focus next") == .error(WindowManager.tilingOffMessage))
   }
 }

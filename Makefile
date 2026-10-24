@@ -2,11 +2,13 @@ PREFIX ?= $(HOME)/.local/bin
 # Optional code-signing identity, e.g. `make install SIGN_ID=tyler-dev`.
 SIGN_ID ?=
 
-# The Command Line Tools ship Swift Testing, but SwiftPM doesn't search for it there.
-# Harmless when full Xcode is installed.
+# The Command Line Tools ship Swift Testing, but SwiftPM doesn't search for it there, nor for its
+# macro plugin, which sits in a folder of its own. Harmless when full Xcode is installed.
 CLT_DEV := /Library/Developer/CommandLineTools/Library/Developer
+CLT_TESTING_PLUGINS := /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing
 TEST_FLAGS := \
 	-Xswiftc -F -Xswiftc $(CLT_DEV)/Frameworks \
+	-Xswiftc -plugin-path -Xswiftc $(CLT_TESTING_PLUGINS) \
 	-Xlinker -F -Xlinker $(CLT_DEV)/Frameworks \
 	-Xlinker -rpath -Xlinker $(CLT_DEV)/Frameworks \
 	-Xlinker -rpath -Xlinker $(CLT_DEV)/usr/lib

@@ -14,6 +14,10 @@ package protocol WindowSystem: AnyObject {
   /// Every tracked window read again, the observed apps' windows it doesn't track, and the apps it
   /// couldn't observe: for `tyler debug windows`, which compares them with tylerd's picture.
   func freshWindows() -> FreshWindows
+  /// Reads the observed apps' windows again and starts tracking those it doesn't, reporting each
+  /// through `events` as created: windows can go untracked (a failed read, an element that went
+  /// invalid), and nothing else would find them before an event names them.
+  func trackUntrackedWindows()
   func stop()
   /// Whether an app that refused to be observed is still being tried again.
   var isAttaching: Bool { get }

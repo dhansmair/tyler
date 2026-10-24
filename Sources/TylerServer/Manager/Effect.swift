@@ -44,4 +44,7 @@ enum Effect: Equatable {
   /// These windows sent to another display have arrived (or left tiling): the mover stops
   /// holding them on their workspace.
   case releaseCrossings(Set<WindowID>)
+  /// Every observed app's windows are read again: those not tracked arrive as new windows, after
+  /// the decision.
+  case findMissedWindows
 }

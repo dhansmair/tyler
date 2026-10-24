@@ -113,12 +113,24 @@ final class AppConnection {
 
   /// The app's windows that aren't tracked, read again.
   func untrackedWindows() -> [WindowInfo] {
+    listedWindows().compactMap { window in
+      guard !windows.contains(window.id) else { return nil }
+      return reader.read(window.element, id: window.id, processID: processID, known: nil)
+    }
+  }
+
+  /// Starts tracking the windows the app lists that aren't tracked, reporting each as created.
+  func trackUntrackedWindows() {
+    for window in listedWindows() where !windows.contains(window.id) {
+      register(window: window.element)
+      Self.log.warning("window tracking started - \(named(window.id)) - it had been missed")
+    }
+  }
+
+  /// The windows the app lists now, with their ids.
+  private func listedWindows() -> [(id: WindowID, element: AXUIElement)] {
     bridge.windows(of: application).compactMap { element in
-      guard let windowID = bridge.windowID(of: element), !windows.contains(windowID) else {
-        return nil
-      }
-      return reader.read(
-        element, id: windowID, processID: processID, known: nil)
+      bridge.windowID(of: element).map { (id: $0, element: element) }
     }
   }
 

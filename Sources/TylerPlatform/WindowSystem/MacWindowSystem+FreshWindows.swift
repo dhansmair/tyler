@@ -3,8 +3,12 @@ import ApplicationServices
 import TylerCore
 import TylerServer
 
-/// Reading every window again, for `tyler debug windows`.
+/// Reading every window again, for `tyler debug windows` and to find the windows missed.
 extension MacWindowSystem {
+  package func trackUntrackedWindows() {
+    for connection in attachedApps { connection.trackUntrackedWindows() }
+  }
+
   package func freshWindows() -> FreshWindows {
     let tracked = snapshot()
     let untracked = attachedApps.flatMap { $0.untrackedWindows() }

@@ -6,7 +6,8 @@
 > change. The other layouts don't depend on it.
 
 This file describes the strip as it is now, with its known issues and open questions; its checks
-against real windows are in `testing.md`. Keep this file current when the strip changes.
+against real windows are the `STRIP-` rows of `testing.md`. Keep this file current when the strip
+changes.
 
 ## What it is
 

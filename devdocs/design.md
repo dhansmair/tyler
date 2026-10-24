@@ -105,9 +105,9 @@ it is made, and change it here when it changes.
   it, and its tests in `<Type>Tests.swift` or `<Type>Tests+<Aspect>.swift` at the mirrored path,
   so a type and its tests are found by file name alone, by people and agents, and small files
   conflict less when two agents work at once. The folder, not a shared file, groups a family of
-  types; a private helper type is nested in its user, so it stays private. Scenario tests driving
-  `WindowManager` belong to their feature's controller. SwiftLint and `devtools/check-test-paths`
-  keep it so.
+  types; a private helper type is nested in its user, so it stays private. Scenario tests are
+  named after the behaviour instead, in the folder of their feature (see Testing). SwiftLint and
+  `devtools/check-test-paths` keep it so.
 
 ## Terminology
 
@@ -373,6 +373,31 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   is ignored and removed (window IDs are reused after a reboot or a new login). `status` warns
   when the binary on disk is newer than the running one.
 
+## Testing
+
+- **Three layers, a pyramid** (`testing-strategy.md`): unit tests for one decision, scenario tests
+  for the whole server on fakes, and an end-to-end catalogue on real windows. Each has its own
+  place and command (`make test-unit`, `make test-scenario`), and a test goes at the lowest layer
+  where its bug could show. Before the split, about 400 tests of the whole server sat among the
+  unit tests, named after controllers, and nothing said which kind a test was.
+- **A scenario reads as context, input, what the user sees.** `Scenario` places windows on
+  workspaces directly instead of replaying commands, gives one input in the words of `docs/`, and
+  reads lists, frames and focus. It never calls into the manager or a controller, so the inside
+  can be restructured without touching it. Scenario tests sit in `TylerScenarioTests/<Feature>/`,
+  named after the behaviour, since a behaviour crosses controllers.
+- **Expected values don't come from the code under test**: a frame is a literal or a region worked
+  out from the display, never the layout's own result. No golden files.
+- **The end-to-end catalogue says what to run, not what ran.** A tick that something worked once
+  protects no release, so the catalogue has ids and no ticks, and each run is kept in
+  `test-runs/`. A row is there only for what macOS decides; its logic has a scenario test.
+- **Automate as much as possible.** A manual check is skipped when time is short and judged
+  differently each time, so a row needs a person only when macOS gives no way to post its input
+  or read its result back.
+- **End-to-end runs belong in a macOS virtual machine.** Only the socket keeps a second tylerd out,
+  so a test tylerd beside the developer's would tile the same windows, and rows that stop tylerd
+  or turn tiling off act on every window on screen. In a VM nothing reaches the machine in use,
+  and switching the Accessibility grant off can't freeze it. Not built yet.
+
 ## Releases
 
 - **MIT license**: short, permissive, and usual for macOS tools.
@@ -389,7 +414,10 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
 - **Open issues are GitHub issues**, labelled `bug`, `limitation`, `enhancement`, `question`,
   `unchecked` (seen or suspected, not confirmed) and `strip`. The issue holds the details;
   `known-issues.md`, `strip-layout.md` and `docs/known-issues.md` link to it.
-- **Before every release**, the **release** items of `testing.md` pass on real windows, and the
+- **Before every release**, the whole catalogue of `testing.md` runs on real windows, and the run
+  is written to `test-runs/<version>.md`: every row passes, is skipped for want of its setup, or
+  links the known issue it fails with. A tick that something once worked says nothing about the
+  build being released, so the catalogue has no ticks, and the runs are kept instead. Then the
   tree and the commit messages since the last release are read for anything about a personal
   setup (no hook checks it).
 

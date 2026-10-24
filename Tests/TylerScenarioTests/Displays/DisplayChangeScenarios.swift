@@ -59,6 +59,25 @@ struct DisplayChangeScenarios {
     #expect(harness.frame(of: 1) == TallLayout().frames(count: 2, in: harness.area)[0])
   }
 
+  /// The Mac locks the screen as it sleeps, and macOS shows no windows until it is unlocked.
+  @Test func displaysThatSettleAtTheLockScreenArePlacedOnceItIsUnlocked() async {
+    let harness = await harness()
+    harness.screenLock.isLocked = true
+    await change(to: [FakeDisplays.main], in: harness)
+    await harness.windowSystem.userMoves(3, to: CGRect(x: 200, y: 200, width: 800, height: 600))
+    await waitForTheDisplaysToSettle(harness)
+    clock.advance(by: WindowManager.unlockCheckInterval)
+    await harness.settle()
+    #expect(harness.windowSystem.moves.isEmpty, "nothing moves while the screen is locked")
+
+    harness.screenLock.isLocked = false
+    clock.advance(by: WindowManager.unlockCheckInterval)
+    await harness.settle()
+    #expect(harness.workspaces() == [1: 1, 2: 1, 3: 5, 9: 2])
+    #expect(harness.isParked(3))
+    #expect(harness.frame(of: 1) == TallLayout().frames(count: 2, in: harness.area)[0])
+  }
+
   @Test func aReconnectedDisplayShowsItsWorkspaceAgain() async {
     let harness = await harness()
     await change(to: [FakeDisplays.main], in: harness)

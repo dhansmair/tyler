@@ -11,6 +11,7 @@ package struct ManagerHarness {
   // Held here because the manager's event pumps only keep it weakly.
   package let manager: WindowManager
   package let windowSystem: FakeWindowSystem
+  package let screenLock = FakeScreenLock()
   package let display = FakeDisplays.main
   package var area: CGRect { display.visibleFrame }
 
@@ -34,8 +35,8 @@ package struct ManagerHarness {
     windowSystem = FakeWindowSystem(windows: windows)
     stacking?.windowSystem = windowSystem
     manager = WindowManager(
-      windowSystem: windowSystem, displays: displays, gate: gate, animator: animator,
-      config: config,
+      windowSystem: windowSystem, displays: displays, gate: gate, screenLock: screenLock,
+      animator: animator, config: config,
       configSource: configFile?.source, pointer: pointer, stacking: stacking,
       gapCursor: gapCursor, clock: clock,
       logOutput: LogOutput(), restoring: saved)

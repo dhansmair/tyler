@@ -79,7 +79,20 @@ extension WindowManager {
     }
   }
 
+  /// How often tylerd looks again whether the screen is unlocked, once the displays have settled
+  /// at the lock screen.
+  static let unlockCheckInterval = Duration.seconds(1)
+
+  /// At a wake the displays settle at the lock screen, where macOS shows no windows, so placing
+  /// them waits for the unlock.
   func displaysSettled() {
+    guard !isScreenLocked else {
+      Self.log.debug("displays settling postponed - the screen is locked")
+      displaySettling.restart(after: Self.unlockCheckInterval) { [weak self] in
+        self?.displaysSettled()
+      }
+      return
+    }
     run(DisplayController(context: context).displaysSettled(model: &model))
   }
 }

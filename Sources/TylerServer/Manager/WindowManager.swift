@@ -71,6 +71,8 @@ package final class WindowManager {
   let windowSystem: any WindowSystem
   let displays: any DisplayProvider
   private let gate: any AccessibilityGate
+  private let screenLock: (any ScreenLock)?
+  var isScreenLocked: Bool { screenLock?.isLocked ?? false }
   /// What the last check before tracking windows found; `nil` before the first.
   private var accessBeforeStart: WindowAccess?
   /// Where `reload` reads the config from; `nil` when there is nothing to reload.
@@ -101,6 +103,7 @@ package final class WindowManager {
     windowSystem: any WindowSystem,
     displays: any DisplayProvider,
     gate: any AccessibilityGate,
+    screenLock: (any ScreenLock)? = nil,
     animator: Animator = Animator(),
     config: Config = Config(),
     configSource: ConfigSource? = nil,
@@ -116,6 +119,7 @@ package final class WindowManager {
     mover = WindowMover(windowSystem: windowSystem, displays: displays, clock: clock)
     self.displays = displays
     self.gate = gate
+    self.screenLock = screenLock
     self.animator = animator
     self.config = config
     self.logOutput = logOutput

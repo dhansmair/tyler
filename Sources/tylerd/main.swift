@@ -85,6 +85,7 @@ let manager = WindowManager(
   windowSystem: MacWindowSystem(screenLock: screenLock),
   displays: MacDisplayProvider(),
   gate: gate,
+  screenLock: screenLock,
   config: configLoad.config,
   configSource: configSource,
   indicator: indicator,

@@ -25,7 +25,7 @@ struct TilingControllerTests {
     return (TilingController(context: context), model)
   }
 
-  @Test func floatingTakesTheWindowOutOfTheListAndSlidesTheRestIntoPlace() throws {
+  @Test func floatingTakesTheWindowOutOfTheListAndSlidesItAndTheRestIntoPlace() throws {
     var (controller, model) = setUp()
     let decision = try controller.setFloat(.on, model: &model)
     #expect(model.bookkeeping.floated == [WindowID(1)])
@@ -35,7 +35,20 @@ struct TilingControllerTests {
       Issue.record("the window left re-tiles with an animation: \(decision.effects)")
       return
     }
-    #expect(retile.finals == [fullScreen])
+    let floated = FloatedFrame.frame(
+      leaving: CGRect(x: 0, y: 0, width: 500, height: 600), in: Self.display.visibleFrame)
+    #expect(retile.finals == [fullScreen, Placement(id: WindowID(1), frame: floated)])
+  }
+
+  @Test func floatingSlidesFromWhereTheWindowIsNotFromItsSlot() throws {
+    var (controller, model) = setUp()
+    let decision = try controller.setFloat(.on, model: &model)
+    guard case .animate(let retile) = decision.effects.last else {
+      Issue.record("the window floats with an animation: \(decision.effects)")
+      return
+    }
+    let track = try #require(retile.tracks.first { $0.id == WindowID(1) })
+    #expect(track.start == makeWindow(id: 1).frame.origin)
   }
 
   @Test func askingForTheStateAWindowIsInChangesNothing() {

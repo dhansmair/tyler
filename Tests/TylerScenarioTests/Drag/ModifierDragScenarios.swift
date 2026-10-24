@@ -17,6 +17,8 @@ struct ModifierDragScenarios {
   private static let lower = CGRect(x: 928, y: 604, width: 872, height: 565)
   private static let overWindow1 = CGPoint(x: 400, y: 300)
   private static let overWindow2 = CGPoint(x: 1300, y: 300)
+  /// Where window 2 goes from `upper` when it is floated.
+  private static let floated = CGRect(x: 898, y: 68, width: 872, height: 566)
 
   private let pointer = FakePointer()
   private let stacking = FakeStacking()
@@ -239,12 +241,13 @@ struct ModifierDragScenarios {
 
   // MARK: - Floated windows
 
-  /// Floats window 2, which stays where it was, in front of the others.
+  /// Floats window 2, which moves to `floated`, in front of the others.
   private func floatWindow2(in harness: ManagerHarness) async {
     harness.windowSystem.send(.focused(WindowID(2)))
     await harness.settle()
     _ = harness.manager.setFloat(.toggle)
     await harness.settle()
+    #expect(harness.frame(of: 2) == Self.floated)
     stacking.front = [2]
     harness.windowSystem.clearRecordedCalls()
   }
@@ -256,7 +259,7 @@ struct ModifierDragScenarios {
     pointer.moveGrab(to: CGPoint(x: 1200, y: 350))
     pointer.endGrab(at: CGPoint(x: 1200, y: 350))
     await harness.settle()
-    #expect(harness.windowSystem.nudges.last?.origin == CGPoint(x: 828, y: 88))
+    #expect(harness.windowSystem.nudges.last?.origin == CGPoint(x: 798, y: 118))
     #expect(harness.windowSystem.moves.isEmpty, "nothing is tiled or put back")
   }
 
@@ -269,7 +272,7 @@ struct ModifierDragScenarios {
     pointer.endGrab(at: CGPoint(x: 960, y: 530))
     await harness.settle()
     #expect(harness.windowSystem.moves.map(\.id) == [WindowID(2)])
-    #expect(harness.frame(of: 2) == CGRect(x: 888, y: 38, width: 912, height: 596))
+    #expect(harness.frame(of: 2) == CGRect(x: 858, y: 68, width: 912, height: 596))
   }
 
   @Test func aFloatedWindowsResizeIsPacedToo() async {
@@ -284,6 +287,6 @@ struct ModifierDragScenarios {
     clock.advance(by: .milliseconds(Config.Mouse().followInterval))
     await harness.settle()
     #expect(harness.windowSystem.moves.count == 2)
-    #expect(harness.frame(of: 2)?.minX == 898)
+    #expect(harness.frame(of: 2)?.minX == 868)
   }
 }

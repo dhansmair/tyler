@@ -38,7 +38,7 @@ The windows of the workspaces that aren't on screen are *parked*: moved just pas
 tyler sorts every window into one of three kinds:
 
 - **Tiled** windows belong to a workspace and are placed by its layout. Normal app windows are tiled.
-- **Floated** windows are ones you took out of tiling with `tyler window float`. tyler leaves them where you put them.
+- **Floated** windows are ones you took out of tiling with `tyler window float`. tyler leaves them where you put them, after moving a floated window a little out of its slot so it is plain to see that it floats.
 - **Never-tiled** windows are dialogs, sheets, panels and other special windows. tyler leaves them alone.
 
 Floated and never-tiled windows belong to no workspace, so they stay visible whichever workspace is on screen. Minimized windows and windows in native fullscreen leave the tiling list. When they come back, they are tiled on the current workspace.
@@ -147,7 +147,7 @@ icon = "terminal"                # or an SF Symbol
 | `gestures.swipe-distance` | How far your fingers travel to swipe a whole workspace across, in trackpad widths (0.1 to 1.0): lower is more sensitive | `0.3` |
 | `animations.swap` | How long [`tyler window swap`](#window-swap) takes to move the windows to their new places, in milliseconds (0 to 1000); 0 moves them at once | `250` |
 | `animations.drag-preview` | How long the preview of a [drag](features.md#moving-windows-by-dragging) takes to move a window to where a drop would put it, in milliseconds (0 to 1000); 0 moves it at once | `200` |
-| `animations.retile` | How long the windows that stay on a workspace take to slide into their new slots when one leaves it (sent to another workspace, closed, minimized, floated, its app quit), in milliseconds (0 to 1000); 0 moves them at once. In the `strip` layout they always move at once | `250` |
+| `animations.retile` | How long the windows that stay on a workspace take to slide into their new slots when one leaves it (sent to another workspace, closed, minimized, floated, its app quit), and how long a window takes to move out of its slot when floated and back into it when tiled again, in milliseconds (0 to 1000); 0 moves them at once. In the `strip` layout they always move at once | `250` |
 | `indicators.text.enabled` | Whether the menu bar shows the workspace numbers (`1 [2] 3 4  ▥`) | `true` |
 | `indicators.map.enabled` | Whether the menu bar shows the map of the workspaces | `true` |
 | `indicators.map.show-icons` | Whether the map shows each window's app icon | `true` |
@@ -345,7 +345,7 @@ tyler window float off     # tile it again
 tyler window float toggle  # float it if it is tiled, tile it if it floats
 ```
 
-`on` takes the focused window out of the tiling list and leaves it where it is; `off` puts a floated window back into the list. If the window already is in that state, nothing changes and `tyler` says so (`already floating`, `already tiled`). Windows that are never tiled (dialogs, panels) can't be floated.
+`on` takes the focused window out of the tiling list and moves it 30 points toward the middle of its display, so none of its edges lines up with the tiled windows behind it. Along a side where the window reached from edge to edge it can't move, so it shrinks instead, leaving 60 points free on both ends: the only window on a workspace shrinks on every side, the right one of two side by side moves left and gets shorter; `off` puts a floated window back into the list and into its slot. The window and the windows that make room for it or take its place slide over `animations.retile` milliseconds (in the `strip` layout a floated window stays where it is, and the others jump). If the window already is in that state, nothing changes and `tyler` says so (`already floating`, `already tiled`). Windows that are never tiled (dialogs, panels) can't be floated.
 
 ### window close
 

@@ -205,6 +205,14 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   switch back late. On an empty workspace tylerd makes itself frontmost, so keys never go to a
   parked window. A floated window keeps the focus.
 - **Floated windows and dialogs** belong to no workspace and stay visible everywhere.
+- **A floated window moves out of its slot** (`FloatedFrame`), sliding there with the windows
+  that take its place (`animations.retile`). Left in its slot it sat flush with the tiled windows
+  and didn't look floated. On each axis the slot doesn't span, it moves 30 points toward the
+  middle of the tiling area and keeps its size; on an axis the slot spans it can't move without
+  leaving the area, so it shrinks by 60 points at both ends instead. A window shrinks only where it
+  has to: shrinking on every side looked wrong for a window beside another. Tiling it again
+  slides it back the same way. In the strip it stays where it is, as the strip's windows jump when
+  the list changes.
 - `prev` and `next` wrap; numbers are 1-based and range-checked.
 
 ## Several displays

@@ -33,4 +33,12 @@ struct DisplayRowsLeavingTests {
     after.focused.select(1)
     #expect(!after.focusedWorkspaceOnlyLostWindows(since: before))
   }
+
+  @Test func theWindowJoiningOnPurposeDoesNotCount() {
+    let before = rows()
+    var after = before
+    after.focused.current.sync(eligible: [WindowID(1), WindowID(3), WindowID(4)])
+    #expect(after.focusedWorkspaceOnlyLostWindows(since: before, apartFrom: WindowID(4)))
+    #expect(!after.focusedWorkspaceOnlyLostWindows(since: before, apartFrom: WindowID(5)))
+  }
 }

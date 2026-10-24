@@ -56,8 +56,10 @@ struct TilingController {
     return retiled(from: slots, model.rows, over: swapDuration)
   }
 
-  /// A floated window leaves the list and stays where it is. Asking for the state the window is
-  /// already in changes nothing and says so.
+  /// A floated window leaves the list and moves a little toward the middle of its display (see
+  /// `FloatedFrame`); a window tiled again goes from where it floats into its slot. Both move
+  /// with the windows that make room, over `animations.retile`. Asking for the state the window
+  /// is already in changes nothing and says so.
   func setFloat(_ mode: FloatMode, model: inout Model) throws(Refusal) -> Decision {
     guard let windowID = context.registry.focusedID,
       let window = context.registry.window(withID: windowID)
@@ -76,7 +78,9 @@ struct TilingController {
     } else {
       model.bookkeeping.floated.remove(windowID)
     }
-    return Decision(effects: reconcile(model: &model))
+    let change: FloatChange =
+      floats ? .floats(windowID, from: window.frame) : .tiles(windowID, from: window.frame)
+    return Decision(effects: reconcile(model: &model, change))
   }
 
   /// The window goes when the app reports it gone; an app may first ask to save it.
@@ -116,6 +120,24 @@ struct TilingController {
   /// their new slots over `animations.retile`. A focused window that was just assigned to a
   /// parked workspace brings that workspace into view, so keys don't go to a parked window.
   func reconcile(model: inout Model) -> [Effect] {
+    reconcile(model: &model, nil)
+  }
+
+  /// A window the float command takes out of the focused workspace's list or puts into it.
+  private enum FloatChange {
+    /// From where the window is: one that sizes itself in steps (a terminal) may not quite fill
+    /// its slot.
+    case floats(WindowID, from: CGRect)
+    case tiles(WindowID, from: CGRect)
+
+    var joining: WindowID? {
+      guard case .tiles(let windowID, _) = self else { return nil }
+      return windowID
+    }
+  }
+
+  /// `change` moves along with the windows that slide into their new slots.
+  private func reconcile(model: inout Model, _ change: FloatChange?) -> [Effect] {
     guard context.isTiling(model) else { return [] }
     let before = model.rows
     let sync = SyncController(context: context).sync(model: &model)
@@ -127,12 +149,35 @@ struct TilingController {
     }
     guard sync.changedCurrent else { return sync.effects }
     // In a scrolling layout the view moves, so the windows jump there.
-    guard model.rows.focusedWorkspaceOnlyLostWindows(since: before),
+    guard model.rows.focusedWorkspaceOnlyLostWindows(since: before, apartFrom: change?.joining),
       !model.rows.focused.current.scrolls
     else { return sync.effects + [.endSlideOrSwipe, .reconcile()] }
+    var slotsBefore = context.focusedSlots(in: before)
+    var slotsAfter = context.focusedSlots(in: model.rows)
+    switch change {
+    case .floats(let windowID, let frame):
+      slotsAfter +=
+        floatedPlacement(of: windowID, leaving: slotsBefore, model.rows).map { [$0] } ?? []
+      slotsBefore =
+        slotsBefore.filter { $0.id != windowID } + [Placement(id: windowID, frame: frame)]
+    case .tiles(let windowID, let frame): slotsBefore.append(Placement(id: windowID, frame: frame))
+    case nil: break
+    }
     let duration = Duration.milliseconds(context.config.animations.retile)
     return sync.effects + [.endSlideOrSwipe]
-      + retiled(from: context.focusedSlots(in: before), model.rows, over: duration).effects
+      + retiled(from: slotsBefore, to: slotsAfter, over: duration).effects
+  }
+
+  /// Where a window floated from one of `slots` on the focused display goes.
+  private func floatedPlacement(
+    of windowID: WindowID, leaving slots: [Placement], _ rows: DisplayRows
+  ) -> Placement? {
+    guard let slot = slots.first(where: { $0.id == windowID }),
+      let display = context.display(for: rows.focusedKey)
+    else { return nil }
+    let area = display.visibleFrame.insetBy(dx: context.gaps.outer, dy: context.gaps.outer)
+    let frame = FloatedFrame.frame(leaving: slot.frame, in: area)
+    return Placement(id: windowID, frame: frame)
   }
 
   /// The current workspace keeps its list (so `tiling on` restores its order), and its windows
@@ -157,7 +202,13 @@ struct TilingController {
   private func retiled(
     from slots: [Placement], _ rows: DisplayRows, over duration: Duration
   ) -> Decision {
-    let retile = Transition(retiling: slots, to: context.focusedSlots(in: rows), duration: duration)
+    retiled(from: slots, to: context.focusedSlots(in: rows), over: duration)
+  }
+
+  private func retiled(
+    from before: [Placement], to after: [Placement], over duration: Duration
+  ) -> Decision {
+    let retile = Transition(retiling: before, to: after, duration: duration)
     return Decision(effects: [retile.tracks.isEmpty ? .reconcile() : .animate(retile)])
   }
 

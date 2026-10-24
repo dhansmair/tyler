@@ -24,11 +24,6 @@ final class AppConnection {
     let writes: [FrameWrite]
   }
 
-  /// How long an app that timed out is left alone: each call to an app that doesn't answer waits
-  /// the full Accessibility timeout, so placing its windows one by one on every switch would hold
-  /// up tylerd for a second per window.
-  static let pause = Duration.seconds(5)
-
   nonisolated private static let log = TylerLog(category: "ax")
 
   let processID: pid_t
@@ -42,9 +37,7 @@ final class AppConnection {
   /// Steps are written on a queue of the app's own, so the windows of a frame move side by side,
   /// a slow app skips frames instead of holding up the others, and the main thread stays free.
   private let steps: AppWriteQueue<WindowID, Move>
-  private let clock: any Clock<Duration>
-  /// Set once the app timed out: whether its pause is over.
-  private var isPauseOver: (() -> Bool)?
+  private var pause: AppPause
 
   init(
     processID: pid_t, bridge: AXBridge, reader: WindowReader, clock: any Clock<Duration>,
@@ -54,7 +47,7 @@ final class AppConnection {
     application = bridge.applicationElement(processID: processID)
     self.bridge = bridge
     self.reader = reader
-    self.clock = clock
+    pause = AppPause(clock: clock)
     self.report = report
     steps = AppWriteQueue(label: "tyler.moves.\(processID)") { windowID, move in
       Self.write(move, of: windowID, through: bridge)
@@ -254,7 +247,7 @@ extension AppConnection {
 
   func focus(_ windowID: WindowID) throws(WindowSystemError) {
     let element = try element(of: windowID)
-    try refuseIfSkipped()
+    try pause.refuseIfOn()
     try check(bridge.raise(window: element, in: processID), for: windowID)
   }
 
@@ -269,7 +262,7 @@ extension AppConnection {
 
   private func move(_ windowID: WindowID, by writes: [FrameWrite]) throws(WindowSystemError) {
     let element = try element(of: windowID)
-    try refuseIfSkipped()
+    try pause.refuseIfOn()
     steps.submit(Move(element: element, writes: writes), for: windowID)
   }
 
@@ -277,7 +270,7 @@ extension AppConnection {
   /// dropped, and a write on the main thread then lands after every step already sent.
   private func settledElement(_ windowID: WindowID) throws(WindowSystemError) -> AXUIElement {
     let element = try element(of: windowID)
-    try refuseIfSkipped()
+    try pause.refuseIfOn()
     steps.discard(windowID)
     steps.waitUntilWritten()
     return element
@@ -301,27 +294,12 @@ extension AppConnection {
 
   // MARK: - Whether the app answers
 
-  private var isSkipped: Bool { isPauseOver.map { !$0() } ?? false }
-
-  /// Refuses at once while the app is skipped, instead of waiting out the timeout again.
-  private func refuseIfSkipped() throws(WindowSystemError) {
-    guard !isSkipped else { throw .refused("its app didn't answer a moment ago") }
-  }
-
-  /// Skips the app for `pause`, from now: a call to it timed out.
+  /// Skips the app for a while, from now: a call to it timed out.
   private func noteTimeout() {
-    let wasSkipped = isSkipped
-    let clock = clock  // Swift opens the existential from a local, not from the stored property.
-    isPauseOver = Self.deadline(Self.pause, on: clock)
-    guard !wasSkipped else { return }
+    guard pause.start() else { return }
     Self.log.warning(
       "app skipping started - pid \(processID) - it didn't answer within "
-        + "\(AXBridge.messagingTimeout) s; its windows aren't moved for \(Self.pause)")
-  }
-
-  private static func deadline(_ duration: Duration, on clock: some Clock<Duration>) -> () -> Bool {
-    let end = clock.now.advanced(by: duration)
-    return { clock.now >= end }
+        + "\(AXBridge.messagingTimeout) s; its windows aren't moved for \(AppPause.length)")
   }
 
   nonisolated private static func write(

@@ -28,7 +28,14 @@ func die(_ message: String) -> Never {
   exit(1)
 }
 
-// Log lines at or above `log.level` go to stderr: `tyler start` sends it to ~/.tyler/tyler.log.
+// Log lines at or above `log.level` go to stderr: `tyler start` sends it to ~/.tyler/tyler.log,
+// and launched by LaunchServices, tylerd opens that file itself.
+do {
+  let logPath = Paths.logPath()
+  if try LogFile.takeDiscardedOutput(to: logPath) { announce("log opened - \(logPath)") }
+} catch {
+  warn("log opening failed - \(error)")
+}
 LogOutput.shared.setSink { line in FileHandle.standardError.write(Data((line + "\n").utf8)) }
 
 let socketPath = Paths.socketPath()

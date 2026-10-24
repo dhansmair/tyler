@@ -1,7 +1,8 @@
 import OSLog
 
-/// Where the lines of `TylerLog` go beyond the unified log: in tylerd, stderr, which `tyler start`
-/// sends to `~/.tyler/tyler.log`. Thread-safe, since the IPC server logs off the main thread.
+/// Where the lines of `TylerLog` go beyond the unified log: in tylerd, stderr, which goes to
+/// `~/.tyler/tyler.log` (`tyler start` sends it there, or `LogFile` opens it). Thread-safe, since
+/// the IPC server logs off the main thread.
 package final class LogOutput: Sendable {
   /// The one tylerd writes to.
   package static let shared = LogOutput()

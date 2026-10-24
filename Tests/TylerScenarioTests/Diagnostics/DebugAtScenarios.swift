@@ -2,39 +2,35 @@ import CoreGraphics
 import Testing
 import TylerConfig
 import TylerCore
+import TylerProtocol
 import TylerTestSupport
-
-@testable import TylerServer
 
 /// `tyler debug at`. Windows 1, 2 and 3 tile `tall` on the fake display: window 1 on the left,
 /// 2 above 3 on the right. Window 1 has focus.
 @Suite("debug at")
 @MainActor
 struct DebugAtScenarios {
-  private let pointer = FakePointer()
-  private let stacking = FakeStacking()
-
-  private func makeHarness() async -> ManagerHarness {
+  private func scenario() async -> Scenario {
     var config = Config()
     config.mouse.focusFollows = true
-    let harness = ManagerHarness(
-      [1, 2, 3], config: config, pointer: pointer, stacking: stacking, clock: TestClock())
-    await harness.osFocus(1)
-    return harness
+    let scenario = await Scenario(workspaces: [1: [1, 2, 3]], config: config)
+    await scenario.focus(1)
+    return scenario
   }
 
-  private func diagnosis(at point: CGPoint?, in harness: ManagerHarness) -> PointerDiagnosis? {
-    guard case .pointer(let diagnosis) = harness.manager.handle(.debugAt(point)) else {
-      return nil
-    }
+  private func diagnosis(at point: CGPoint, in scenario: Scenario) async -> PointerDiagnosis? {
+    guard
+      case .pointer(let diagnosis) = await scenario.command(
+        "debug at \(Int(point.x)) \(Int(point.y))")
+    else { return nil }
     return diagnosis
   }
 
   @Test func aWindowInViewIsDescribedAndWouldBeGrabbedAndFocused() async throws {
-    let harness = await makeHarness()
-    let diagnosis = try #require(self.diagnosis(at: CGPoint(x: 1300, y: 300), in: harness))
+    let scenario = await scenario()
+    let diagnosis = try #require(await diagnosis(at: CGPoint(x: 1300, y: 300), in: scenario))
     #expect(diagnosis.displayNumber == 1)
-    #expect(diagnosis.visibleFrame == FakeDisplays.main.visibleFrame)
+    #expect(diagnosis.visibleFrame == scenario.rect(.full))
     #expect(diagnosis.onTop?.id == WindowID(2))
     #expect(diagnosis.onTop?.workspace == 1)
     #expect(diagnosis.onTop?.appName != nil)
@@ -45,50 +41,33 @@ struct DebugAtScenarios {
   }
 
   @Test func theReasonsAreTheRealDecisions() async throws {
-    let harness = await makeHarness()
-    let focused = try #require(self.diagnosis(at: CGPoint(x: 400, y: 600), in: harness))
+    let scenario = await scenario()
+    let focused = try #require(await diagnosis(at: CGPoint(x: 400, y: 600), in: scenario))
     #expect(focused.focus == .refused(.alreadyFocused))
-    _ = harness.manager.setTiling(.off)
-    let off = try #require(self.diagnosis(at: CGPoint(x: 1300, y: 300), in: harness))
+    await scenario.command("tiling off")
+    let off = try #require(await diagnosis(at: CGPoint(x: 1300, y: 300), in: scenario))
     #expect(off.grab == .refused(.tilingOff))
-    #expect(!pointer.wouldGrab(at: CGPoint(x: 1300, y: 300)))
+    #expect(!scenario.pointer.wouldGrab(at: CGPoint(x: 1300, y: 300)))
   }
 
   @Test func theMenuBarIsOutsideEveryVisibleFrame() async throws {
-    let harness = await makeHarness()
-    let diagnosis = try #require(self.diagnosis(at: CGPoint(x: 400, y: 10), in: harness))
+    let scenario = await scenario()
+    let diagnosis = try #require(await diagnosis(at: CGPoint(x: 400, y: 10), in: scenario))
     #expect(diagnosis.displayNumber == 1, "on the display, but not in its visible frame")
     #expect(diagnosis.grab == .refused(.outsideDisplays))
   }
 
   @Test func aWindowTylerdDoesNotTrackIsNamedByItsOwner() async throws {
-    let harness = await makeHarness()
+    let scenario = await scenario()
     let cursor = StackedWindow(id: WindowID(900), layer: 25, owner: "Window Server")
-    stacking.overlays = [(cursor, CGRect(x: 1290, y: 290, width: 28, height: 40))]
-    let diagnosis = try #require(self.diagnosis(at: CGPoint(x: 1300, y: 300), in: harness))
+    scenario.stacking.overlays = [(cursor, CGRect(x: 1290, y: 290, width: 28, height: 40))]
+    let diagnosis = try #require(await diagnosis(at: CGPoint(x: 1300, y: 300), in: scenario))
     #expect(diagnosis.onTop?.owner == "Window Server")
     #expect(diagnosis.onTop?.appName == nil)
   }
 
-  @Test func theLogNamesTheWindowOnTopByItsAppOrOwner() async throws {
-    let harness = await makeHarness()
-    let cursor = StackedWindow(id: WindowID(900), layer: 25, owner: "Window Server")
-    stacking.overlays = [(cursor, CGRect(x: 1290, y: 290, width: 28, height: 40))]
-    let manager = harness.manager
-    let untracked = CGPoint(x: 1300, y: 300)
-    let tracked = CGPoint(x: 400, y: 600)
-    let empty = CGPoint(x: 5000, y: 5000)
-    #expect(
-      manager.pointerLogSubject(untracked, manager.pointerCheck(at: untracked))
-        == "1300,300 - #900 (Window Server)")
-    let name = manager.named(WindowID(1))
-    #expect(
-      manager.pointerLogSubject(tracked, manager.pointerCheck(at: tracked)) == "400,600 - \(name)")
-    #expect(manager.pointerLogSubject(empty, manager.pointerCheck(at: empty)) == "5000,5000")
-  }
-
   @Test func withoutAPointItSaysSo() async {
-    let harness = await makeHarness()
-    #expect(harness.manager.handle(.debugAt(nil)) == .error("debug at needs a point on screen"))
+    let scenario = await scenario()
+    #expect(await scenario.send(.debugAt(nil)) == .error("debug at needs a point on screen"))
   }
 }

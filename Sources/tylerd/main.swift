@@ -82,7 +82,7 @@ let indicator = IndicatorGroup([
   TextIndicator(perform: performFromIndicator), MapIndicator(perform: performFromIndicator),
 ])
 let manager = WindowManager(
-  windowSystem: MacWindowSystem(),
+  windowSystem: MacWindowSystem(screenLock: screenLock),
   displays: MacDisplayProvider(),
   gate: gate,
   config: configLoad.config,

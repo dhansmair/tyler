@@ -105,7 +105,12 @@ subrole, title-bar buttons and whether its size can be set:
   stayed. So after every change tylerd places every window again.
 - **Plugging a display in also sends `activeSpaceDidChange`.**
 - **A short sleep and wake** sends only `willSleep`, `screensDidSleep`, `screensDidWake` and
-  `didWake`. A long sleep, where an external display may drop off, is unmeasured.
+  `didWake`.
+- **An external display unplugged while the Mac sleeps** (seen three times, 2026-10-24, macOS 26,
+  with the screen locked as soon as the Mac sleeps): the displays change at the full wake and
+  settle about a second after the display comes on, while the lock screen is still up. Every
+  write to a window then answered `invalidUIElement`, and no app listed any window, as the
+  locked screen above predicts; after the unlock every window was listed again (#43).
 - **"Displays have separate Spaces"** doesn't change the parking limits above.
 
 ## Events and taps

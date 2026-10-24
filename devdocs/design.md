@@ -224,6 +224,8 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   Until then the lists hold still. A display's workspaces join display 1 when it goes away and go
   home when it returns: home is the configured display, or the one `move-workspace-to-display`
   pinned. Then every window is placed again, parked ones included, since macOS moves them.
+- **A write that says the window is invalid forgets it, unless the screen is locked**: then every
+  window answers so, and none closed.
 - **Moving windows between displays.** A window dragged onto another display takes the slot under
   the pointer, with a preview. One that changes display any other way goes last in that display's
   current workspace. tylerd notes each window it sends to another display and holds it on its

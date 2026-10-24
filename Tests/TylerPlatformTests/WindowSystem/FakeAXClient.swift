@@ -40,6 +40,7 @@ final class FakeAXClient: AXClient, @unchecked Sendable {
     var calls: [WindowID: [Call]] = [:]
     var frontmostRequests: [pid_t] = []
     var gates: [WindowID: Gate] = [:]
+    var isHidingWindows = false
   }
 
   /// A write held until the test opens it; the semaphores are safe from any thread.
@@ -80,6 +81,12 @@ final class FakeAXClient: AXClient, @unchecked Sendable {
       state.appWindows[window.app]?.removeAll { $0 == WindowID(id) }
       if state.focused[window.app] == WindowID(id) { state.focused[window.app] = nil }
     }
+  }
+
+  /// Every app lists no windows and every window's element answers as invalid, as while the screen
+  /// is locked; `false` shows them again.
+  func hideWindows(_ isHiding: Bool) {
+    lock.withLock { state.isHidingWindows = isHiding }
   }
 
   /// What the user did to a window, which macOS then reports.
@@ -189,7 +196,8 @@ final class FakeAXClient: AXClient, @unchecked Sendable {
       guard error(for: key) == nil else { return nil }
       if let windows = state.appWindows[key] {
         switch attribute {
-        case kAXWindowsAttribute: return windows.map(Self.element(of:)) as CFArray
+        case kAXWindowsAttribute:
+          return state.isHidingWindows ? [] as CFArray : windows.map(Self.element(of:)) as CFArray
         case kAXFocusedWindowAttribute: return state.focused[key].map(Self.element(of:))
         default: return nil
         }
@@ -311,7 +319,7 @@ final class FakeAXClient: AXClient, @unchecked Sendable {
   private func error(for key: pid_t) -> AXError? {
     if let error = state.errors[key] { return error }
     guard let id = Self.windowID(of: key), let app = state.windows[id]?.app else { return nil }
-    return state.errors[app]
+    return state.isHidingWindows ? .invalidUIElement : state.errors[app]
   }
 }
 

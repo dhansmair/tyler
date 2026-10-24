@@ -36,6 +36,7 @@ final class AppConnection {
   private let application: AXUIElement
   private let bridge: AXBridge
   private let reader: WindowReader
+  private let screenLock: any ScreenLock
   private let report: (Report) -> Void
   private var windows = TrackedWindows()
   private var pendingReads = PendingReads()
@@ -45,15 +46,14 @@ final class AppConnection {
   private let steps: AppWriteQueue<WindowID, Move>
   private var pause: AppPause
 
-  init(
-    processID: pid_t, bridge: AXBridge, reader: WindowReader, clock: any Clock<Duration>,
-    report: @escaping (Report) -> Void
-  ) {
+  init(processID: pid_t, shared: Shared, report: @escaping (Report) -> Void) {
     self.processID = processID
+    let bridge = shared.bridge
     application = bridge.applicationElement(processID: processID)
     self.bridge = bridge
-    self.reader = reader
-    pause = AppPause(clock: clock)
+    reader = shared.reader
+    screenLock = shared.screenLock
+    pause = AppPause(clock: shared.clock)
     self.report = report
     steps = AppWriteQueue(label: "tyler.moves.\(processID)") { windowID, move in
       Self.write(move, of: windowID, through: bridge)
@@ -297,6 +297,8 @@ extension AppConnection {
     case .success:
       return
     case .invalidUIElement:
+      // While the screen is locked, the windows of every app are invalid: none closed.
+      guard !screenLock.isLocked else { throw .refused("the screen is locked") }
       // The window closed under us. Its destroyed notification may never come (registering for
       // it can fail right after an app launches), so forget it here: the manager then drops it
       // from its workspace instead of keeping an empty slot for it.

@@ -3,15 +3,18 @@ PREFIX ?= $(HOME)/.local/bin
 SIGN_ID ?=
 
 # The Command Line Tools ship Swift Testing, but SwiftPM doesn't search for it there, nor for its
-# macro plugin, which sits in a folder of its own. Harmless when full Xcode is installed.
-CLT_DEV := /Library/Developer/CommandLineTools/Library/Developer
-CLT_TESTING_PLUGINS := /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing
+# macro plugin, which sits in a folder of its own. Only for them: Xcode finds its own, and a
+# plugin of the Command Line Tools may not match Xcode's compiler.
+CLT := /Library/Developer/CommandLineTools
+ifeq ($(shell xcode-select -p),$(CLT))
+CLT_DEV := $(CLT)/Library/Developer
 TEST_FLAGS := \
 	-Xswiftc -F -Xswiftc $(CLT_DEV)/Frameworks \
-	-Xswiftc -plugin-path -Xswiftc $(CLT_TESTING_PLUGINS) \
+	-Xswiftc -plugin-path -Xswiftc $(CLT)/usr/lib/swift/host/plugins/testing \
 	-Xlinker -F -Xlinker $(CLT_DEV)/Frameworks \
 	-Xlinker -rpath -Xlinker $(CLT_DEV)/Frameworks \
 	-Xlinker -rpath -Xlinker $(CLT_DEV)/usr/lib
+endif
 
 .PHONY: build test test-unit test-scenario lint check release install clean
 

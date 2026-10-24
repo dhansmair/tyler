@@ -49,7 +49,10 @@ struct Scenario {
     animates: Bool = false
   ) async {
     self.displays = FakeDisplays(displays: displays)
-    let probe = ManagerHarness(windows: [], displays: self.displays, config: config)
+    // Displays of its own: a manager consumes its displays' changes, so the probe must not see
+    // the ones a test sends.
+    let probe = ManagerHarness(
+      windows: [], displays: FakeDisplays(displays: displays), config: config)
     let arranged = probe.manager.rows.keys.compactMap { probe.manager.display(for: $0) }
     guard var saved = probe.manager.handOver(), var rows = saved.displays else {
       preconditionFailure("a running tylerd hands its workspaces over")
@@ -177,6 +180,14 @@ struct Scenario {
     for update: SwipeUpdate in [.began, .moved(offset: offset), .ended(velocity: 0)] {
       pointer.swipe(update)
     }
+    await runUntilQuiet()
+  }
+
+  /// The displays change to `connected` (one plugged in or unplugged, or the Mac waking), and
+  /// tylerd waits for them to settle.
+  func changeDisplays(to connected: [DisplayInfo]) async {
+    displays.displays = connected
+    displays.sendChange()
     await runUntilQuiet()
   }
 

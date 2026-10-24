@@ -71,6 +71,12 @@ package final class FakeWindowSystem: WindowSystem {
       focusedID: freshFocus)
   }
 
+  package func trackUntrackedWindows() {
+    windows += untracked
+    for window in untracked { continuation.yield(.created(window)) }
+    untracked = []
+  }
+
   package func setFrame(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
     settle(windowID)
     let index = try movableIndex(of: windowID)

@@ -24,4 +24,17 @@ struct MacWindowSystemFreshWindowsTests {
     #expect(fresh.unattachedApps == ["Busy"])
     #expect(fresh.focusedID == WindowID(2))
   }
+
+  @Test func tracksTheWindowsItMissed() async {
+    harness.addApp(100, windows: [1])
+    await harness.start()
+    _ = await harness.takeEvents()
+    harness.accessibility.addWindow(id: 2, frame: WindowSystemHarness.frame(of: 2), in: 100)
+
+    harness.windowSystem.trackUntrackedWindows()
+    #expect(await harness.takeEvents().created == [2])
+    #expect(harness.windowSystem.snapshot().map(\.id.rawValue) == [1, 2])
+    harness.windowSystem.trackUntrackedWindows()
+    #expect(await harness.takeEvents().created.isEmpty, "a tracked window is left alone")
+  }
 }

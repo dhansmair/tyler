@@ -102,6 +102,9 @@ Tick an item with the date when it is checked; record what was measured in `maco
   home survives `restart`
 - [ ] A swipe on each display
 - [ ] Closing and opening the lid; a long sleep where an external display drops off
+- [x] Unplugging an external display while the Mac sleeps, then waking it: every window is tiled,
+  `tyler debug windows` lists none untracked, and the log has no `window forgetting` lines (#43;
+  2026-10-24, with the screen locked as the Mac sleeps: the windows were placed after the unlock)
 - [ ] `displays.<n>.workspaces` in the config
 - [ ] Side by side with "Displays have separate Spaces" on
 - [ ] Three displays

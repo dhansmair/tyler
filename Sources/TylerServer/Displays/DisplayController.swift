@@ -64,9 +64,10 @@ struct DisplayController {
   /// Once the displays have settled, each workspace goes to the display it now belongs on (see
   /// `DisplayRows.reassign`) and every window is placed again, parked ones included, because
   /// macOS moves windows when displays change, and also pulls parked windows back on screen.
+  /// Windows tylerd missed meanwhile are looked for too.
   func displaysSettled(model: inout Model) -> [Effect] {
     guard context.isRunning else { return [] }
-    let ending = context.endInteractionEffects(model)
+    let ending = [.findMissedWindows] + context.endInteractionEffects(model)
     let context = context.endingInteraction
     Self.log.info(
       "displays changed - \(context.displays.map(\.key.rawValue).joined(separator: ", "))")

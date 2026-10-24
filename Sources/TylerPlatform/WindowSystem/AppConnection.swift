@@ -17,6 +17,12 @@ final class AppConnection {
     case focused(WindowID?)
   }
 
+  enum ForgetReason {
+    case destroyed
+    case appQuit
+    case writeRefused
+  }
+
   /// A window and the writes that take it where it goes. An `AXUIElement` is an immutable handle
   /// on an element of another process, and the Accessibility API may be called from any thread.
   struct Move: @unchecked Sendable {
@@ -24,17 +30,13 @@ final class AppConnection {
     let writes: [FrameWrite]
   }
 
-  /// How long an app that timed out is left alone: each call to an app that doesn't answer waits
-  /// the full Accessibility timeout, so placing its windows one by one on every switch would hold
-  /// up tylerd for a second per window.
-  static let pause = Duration.seconds(5)
-
   nonisolated private static let log = TylerLog(category: "ax")
 
   let processID: pid_t
   private let application: AXUIElement
   private let bridge: AXBridge
   private let reader: WindowReader
+  private let screenLock: any ScreenLock
   private let report: (Report) -> Void
   private var windows = TrackedWindows()
   private var pendingReads = PendingReads()
@@ -42,19 +44,16 @@ final class AppConnection {
   /// Steps are written on a queue of the app's own, so the windows of a frame move side by side,
   /// a slow app skips frames instead of holding up the others, and the main thread stays free.
   private let steps: AppWriteQueue<WindowID, Move>
-  private let clock: any Clock<Duration>
-  /// Set once the app timed out: whether its pause is over.
-  private var isPauseOver: (() -> Bool)?
+  private var pause: AppPause
 
-  init(
-    processID: pid_t, bridge: AXBridge, reader: WindowReader, clock: any Clock<Duration>,
-    report: @escaping (Report) -> Void
-  ) {
+  init(processID: pid_t, shared: Shared, report: @escaping (Report) -> Void) {
     self.processID = processID
+    let bridge = shared.bridge
     application = bridge.applicationElement(processID: processID)
     self.bridge = bridge
-    self.reader = reader
-    self.clock = clock
+    reader = shared.reader
+    screenLock = shared.screenLock
+    pause = AppPause(clock: shared.clock)
     self.report = report
     steps = AppWriteQueue(label: "tyler.moves.\(processID)") { windowID, move in
       Self.write(move, of: windowID, through: bridge)
@@ -99,20 +98,39 @@ final class AppConnection {
   }
 
   /// Forgets a window that is gone, and reports it.
-  func forget(_ windowID: WindowID) {
+  func forget(_ windowID: WindowID, because reason: ForgetReason) {
+    let name = named(windowID)
     guard windows.forget(windowID) else { return }
+    switch reason {
+    case .destroyed: Self.log.info("window forgetting - \(name) - it was destroyed")
+    case .appQuit: break  // The app's detaching says so, once for all its windows.
+    case .writeRefused:
+      Self.log.warning("window forgetting - \(name) - a write said the window is invalid")
+    }
     pendingReads.forget(windowID)
     report(.destroyed(windowID))
   }
 
   /// The app's windows that aren't tracked, read again.
   func untrackedWindows() -> [WindowInfo] {
+    listedWindows().compactMap { window in
+      guard !windows.contains(window.id) else { return nil }
+      return reader.read(window.element, id: window.id, processID: processID, known: nil)
+    }
+  }
+
+  /// Starts tracking the windows the app lists that aren't tracked, reporting each as created.
+  func trackUntrackedWindows() {
+    for window in listedWindows() where !windows.contains(window.id) {
+      register(window: window.element)
+      Self.log.warning("window tracking started - \(named(window.id)) - it had been missed")
+    }
+  }
+
+  /// The windows the app lists now, with their ids.
+  private func listedWindows() -> [(id: WindowID, element: AXUIElement)] {
     bridge.windows(of: application).compactMap { element in
-      guard let windowID = bridge.windowID(of: element), !windows.contains(windowID) else {
-        return nil
-      }
-      return reader.read(
-        element, id: windowID, processID: processID, known: nil)
+      bridge.windowID(of: element).map { (id: $0, element: element) }
     }
   }
 
@@ -152,7 +170,7 @@ final class AppConnection {
     case kAXUIElementDestroyedNotification:
       // The element is already invalid, so it can't be asked for its id; find it by identity.
       if let windowID = windows.identify(element) {
-        forget(windowID)
+        forget(windowID, because: .destroyed)
       }
     default:
       guard let windowID = bridge.windowID(of: element) ?? windows.identify(element) else {
@@ -254,7 +272,7 @@ extension AppConnection {
 
   func focus(_ windowID: WindowID) throws(WindowSystemError) {
     let element = try element(of: windowID)
-    try refuseIfSkipped()
+    try pause.refuseIfOn()
     try check(bridge.raise(window: element, in: processID), for: windowID)
   }
 
@@ -263,13 +281,16 @@ extension AppConnection {
   }
 
   private func element(of windowID: WindowID) throws(WindowSystemError) -> AXUIElement {
-    guard let element = windows.element(of: windowID) else { throw .windowGone(windowID) }
+    guard let element = windows.element(of: windowID) else {
+      Self.log.info("window call failed - \(named(windowID)) - the app doesn't track it")
+      throw .windowGone(windowID)
+    }
     return element
   }
 
   private func move(_ windowID: WindowID, by writes: [FrameWrite]) throws(WindowSystemError) {
     let element = try element(of: windowID)
-    try refuseIfSkipped()
+    try pause.refuseIfOn()
     steps.submit(Move(element: element, writes: writes), for: windowID)
   }
 
@@ -277,7 +298,7 @@ extension AppConnection {
   /// dropped, and a write on the main thread then lands after every step already sent.
   private func settledElement(_ windowID: WindowID) throws(WindowSystemError) -> AXUIElement {
     let element = try element(of: windowID)
-    try refuseIfSkipped()
+    try pause.refuseIfOn()
     steps.discard(windowID)
     steps.waitUntilWritten()
     return element
@@ -288,10 +309,12 @@ extension AppConnection {
     case .success:
       return
     case .invalidUIElement:
+      // While the screen is locked, the windows of every app are invalid: none closed.
+      guard !screenLock.isLocked else { throw .refused("the screen is locked") }
       // The window closed under us. Its destroyed notification may never come (registering for
       // it can fail right after an app launches), so forget it here: the manager then drops it
       // from its workspace instead of keeping an empty slot for it.
-      forget(windowID)
+      forget(windowID, because: .writeRefused)
       throw .windowGone(windowID)
     default:
       if status == .cannotComplete { noteTimeout() }
@@ -301,27 +324,12 @@ extension AppConnection {
 
   // MARK: - Whether the app answers
 
-  private var isSkipped: Bool { isPauseOver.map { !$0() } ?? false }
-
-  /// Refuses at once while the app is skipped, instead of waiting out the timeout again.
-  private func refuseIfSkipped() throws(WindowSystemError) {
-    guard !isSkipped else { throw .refused("its app didn't answer a moment ago") }
-  }
-
-  /// Skips the app for `pause`, from now: a call to it timed out.
+  /// Skips the app for a while, from now: a call to it timed out.
   private func noteTimeout() {
-    let wasSkipped = isSkipped
-    let clock = clock  // Swift opens the existential from a local, not from the stored property.
-    isPauseOver = Self.deadline(Self.pause, on: clock)
-    guard !wasSkipped else { return }
+    guard pause.start() else { return }
     Self.log.warning(
       "app skipping started - pid \(processID) - it didn't answer within "
-        + "\(AXBridge.messagingTimeout) s; its windows aren't moved for \(Self.pause)")
-  }
-
-  private static func deadline(_ duration: Duration, on clock: some Clock<Duration>) -> () -> Bool {
-    let end = clock.now.advanced(by: duration)
-    return { clock.now >= end }
+        + "\(AXBridge.messagingTimeout) s; its windows aren't moved for \(AppPause.length)")
   }
 
   nonisolated private static func write(

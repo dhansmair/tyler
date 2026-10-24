@@ -19,6 +19,7 @@ package final class MacWindowSystem: WindowSystem {
   let workspace: any WorkspaceClient
   let reader: WindowReader
   private let clock: any Clock<Duration>
+  private let screenLock: any ScreenLock
   private var connections: [pid_t: AppConnection] = [:]
   private var retries: [pid_t: Task<Void, Never>] = [:]
   /// Which app each window is in, changed only by the connections' reports.
@@ -26,16 +27,22 @@ package final class MacWindowSystem: WindowSystem {
   private var focusedID: WindowID?
   private var isStarted = false
 
-  package convenience init() {
-    self.init(client: MacAXClient(), workspace: MacWorkspaceClient(), clock: ContinuousClock())
+  package convenience init(screenLock: any ScreenLock) {
+    self.init(
+      client: MacAXClient(), workspace: MacWorkspaceClient(), clock: ContinuousClock(),
+      screenLock: screenLock)
   }
 
-  init(client: any AXClient, workspace: any WorkspaceClient, clock: any Clock<Duration>) {
+  init(
+    client: any AXClient, workspace: any WorkspaceClient, clock: any Clock<Duration>,
+    screenLock: any ScreenLock
+  ) {
     (events, continuation) = AsyncStream.makeStream(of: WindowEvent.self)
     bridge = AXBridge(client: client)
     self.workspace = workspace
     reader = WindowReader(bridge: bridge, workspace: workspace)
     self.clock = clock
+    self.screenLock = screenLock
   }
 
   // MARK: - WindowSystem
@@ -102,9 +109,11 @@ package final class MacWindowSystem: WindowSystem {
       app.activationPolicy == .regular
     else { return }
 
-    let connection = AppConnection(
-      processID: processID, bridge: bridge, reader: reader, clock: clock
-    ) { [weak self] report in self?.receive(report, from: processID) }
+    let shared = AppConnection.Shared(
+      bridge: bridge, reader: reader, clock: clock, screenLock: screenLock)
+    let connection = AppConnection(processID: processID, shared: shared) { [weak self] report in
+      self?.receive(report, from: processID)
+    }
     do {
       try connection.open()
       connections[processID] = connection
@@ -157,7 +166,7 @@ package final class MacWindowSystem: WindowSystem {
     guard let connection = connections.removeValue(forKey: processID) else { return }
     let windowIDs = connection.windowIDs
     Self.log.info("app quit - pid \(processID) - dropping \(windowIDs.count) windows")
-    for windowID in windowIDs { connection.forget(windowID) }
+    for windowID in windowIDs { connection.forget(windowID, because: .appQuit) }
     connection.close()
   }
 
@@ -206,7 +215,10 @@ package final class MacWindowSystem: WindowSystem {
   }
 
   private func owner(of windowID: WindowID) throws(WindowSystemError) -> AppConnection {
-    guard let connection = connection(of: windowID) else { throw .windowGone(windowID) }
+    guard let connection = connection(of: windowID) else {
+      Self.log.info("window call failed - \(WindowInfo.logName(windowID, nil)) - no app owns it")
+      throw .windowGone(windowID)
+    }
     return connection
   }
 

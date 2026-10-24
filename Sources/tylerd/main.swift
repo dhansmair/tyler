@@ -59,7 +59,8 @@ do {
   if case .stale = error { forgetHandedOverState() }
 }
 
-let gate = MacAccessibilityGate()
+let screenLock = MacScreenLock()
+let gate = MacAccessibilityGate(screenLock: screenLock)
 // The menu bar items send requests through the router, which only exists once the items do;
 // `indicatorRouter` closes that loop.
 var indicatorRouter: CommandRouter?
@@ -81,9 +82,10 @@ let indicator = IndicatorGroup([
   TextIndicator(perform: performFromIndicator), MapIndicator(perform: performFromIndicator),
 ])
 let manager = WindowManager(
-  windowSystem: MacWindowSystem(),
+  windowSystem: MacWindowSystem(screenLock: screenLock),
   displays: MacDisplayProvider(),
   gate: gate,
+  screenLock: screenLock,
   config: configLoad.config,
   configSource: configSource,
   indicator: indicator,

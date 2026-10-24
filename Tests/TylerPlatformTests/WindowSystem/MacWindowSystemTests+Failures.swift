@@ -38,6 +38,29 @@ struct MacWindowSystemFailuresTests {
     #expect(harness.windowSystem.snapshot().map(\.id.rawValue) == [2, 3])
   }
 
+  @Test func aWindowIsNotForgottenWhileTheScreenIsLocked() async throws {
+    let harness = await started()
+    harness.accessibility.hideWindows(true)
+    harness.screenLock.isLocked = true
+    #expect(throws: WindowSystemError.refused("the screen is locked")) {
+      try harness.windowSystem.setFrame(.zero, of: WindowID(1))
+    }
+    #expect(await harness.takeEvents().destroyed.isEmpty)
+
+    harness.accessibility.hideWindows(false)
+    harness.screenLock.isLocked = false
+    try harness.windowSystem.setFrame(.zero, of: WindowID(1))
+  }
+
+  @Test func aWindowThatClosedUnderAMoveIsForgotten() async {
+    let harness = await started()
+    harness.accessibility.removeWindow(1)
+    #expect(throws: WindowSystemError.windowGone(WindowID(1))) {
+      try harness.windowSystem.setFrame(.zero, of: WindowID(1))
+    }
+    #expect(await harness.takeEvents().destroyed == [1])
+  }
+
   @Test func anAppThatDidNotAnswerIsSkippedForAWhile() async throws {
     let harness = await started()
     harness.accessibility.answer(.cannotComplete, fromApp: 100)

@@ -10,12 +10,14 @@ import TylerTestSupport
 final class WindowSystemHarness {
   let accessibility = FakeAXClient()
   let workspace = FakeWorkspaceClient()
+  let screenLock = FakeScreenLock()
   let clock = TestClock()
   let windowSystem: MacWindowSystem
   private var events: [WindowEvent] = []
 
   init() {
-    windowSystem = MacWindowSystem(client: accessibility, workspace: workspace, clock: clock)
+    windowSystem = MacWindowSystem(
+      client: accessibility, workspace: workspace, clock: clock, screenLock: screenLock)
     let stream = windowSystem.events
     Task { [weak self] in
       for await event in stream { self?.events.append(event) }

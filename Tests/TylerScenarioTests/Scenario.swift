@@ -21,6 +21,8 @@ struct Scenario {
   /// What the window server stacks where: the tiled windows, and whatever a test puts in front.
   let stacking = FakeStacking()
   let gapCursor = FakeGapCursor()
+  /// The menu bar items: what tylerd last showed in them.
+  let indicator = FakeIndicator()
   let clock = TestClock()
   /// How far the clock moves for each frame of an animation.
   let frameInterval: Duration
@@ -68,7 +70,8 @@ struct Scenario {
       animator: animates
         ? Animator(duration: slide, frameInterval: frameInterval, clock: clock) : .snap,
       config: config, configFile: configFile,
-      pointer: pointer, stacking: stacking, gapCursor: gapCursor, clock: clock,
+      pointer: pointer, stacking: stacking, gapCursor: gapCursor, indicator: indicator,
+      clock: clock,
       restoring: saved)
     await runUntilQuiet()
   }
@@ -94,7 +97,8 @@ struct Scenario {
       animator: animates
         ? Animator(duration: slide, frameInterval: frameInterval, clock: clock) : .snap,
       config: config, configFile: configFile,
-      pointer: pointer, stacking: stacking, gapCursor: gapCursor, clock: clock,
+      pointer: pointer, stacking: stacking, gapCursor: gapCursor, indicator: indicator,
+      clock: clock,
       clearRecordedCalls: false)
     await runUntilQuiet()
   }
@@ -107,7 +111,8 @@ struct Scenario {
     displays = FakeDisplays(displays: previous.displays.displays)
     harness = ManagerHarness(
       windows: previous.windowSystem.windows, displays: displays, config: config,
-      pointer: pointer, stacking: stacking, gapCursor: gapCursor, clock: clock,
+      pointer: pointer, stacking: stacking, gapCursor: gapCursor, indicator: indicator,
+      clock: clock,
       restoring: previous.harness.manager.handOver(), clearRecordedCalls: false)
     await runUntilQuiet()
   }

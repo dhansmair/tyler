@@ -72,4 +72,9 @@ extension Scenario {
       .compactMap { entry in entry.row.index(ofNumber: number).map { entry.row[$0].layout } }
       .first
   }
+
+  /// The number of the display that has the focus, where the next command goes.
+  var focusedDisplay: Int? {
+    harness.manager.rows.keys.firstIndex(of: harness.manager.rows.focusedKey).map { $0 + 1 }
+  }
 }

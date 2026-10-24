@@ -28,7 +28,8 @@ make check     # lint and test, as the pre-commit hook does
 Run your build with `.build/debug/tyler start` (or `tyler restart` if one is running). The
 pre-commit hook (`.pre-commit-config.yaml`, installed with `pre-commit install`) runs `make check`
 on every commit that touches Swift files. SwiftLint needs
-`TOOLCHAIN_DIR=/Library/Developer/CommandLineTools` without full Xcode; the Makefile sets it.
+`TOOLCHAIN_DIR=/Library/Developer/CommandLineTools` without full Xcode; the Makefile sets it. CI
+runs the same `make check` on every pull request.
 
 ## How tyler is written
 

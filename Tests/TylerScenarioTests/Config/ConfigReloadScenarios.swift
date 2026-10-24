@@ -149,8 +149,7 @@ struct ConfigReloadScenarios {
 
   @Test func theGapsSurviveAStopAndRestart() async {
     let scenario = await scenario(config: gaps)
-    // tylerd stops the manager when the permission goes, and starts it when it comes back.
-    scenario.harness.manager.stop()
+    await scenario.stop()
     await scenario.grantPermission()
     #expect(frames(scenario) == expectedFrames(gaps))
   }

@@ -246,6 +246,12 @@ struct Scenario {
     await harness.settle()
   }
 
+  /// `tyler stop`: tylerd puts every window back where it was before it moved it.
+  func stop() async {
+    harness.manager.stop()
+    await harness.settle()
+  }
+
   /// `tyler restart`: this tylerd hands its workspaces over, and the next one, with `config`,
   /// takes over. Read the next one's view from the scenario returned.
   func restart(config: Config = Config()) async -> Scenario {

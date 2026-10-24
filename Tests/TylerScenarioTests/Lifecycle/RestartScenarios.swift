@@ -91,6 +91,16 @@ struct RestartScenarios {
     #expect(windows.first { $0.id == WindowID(2) }?.isFloated == true)
   }
 
+  @Test func aFloatedWindowGoesBackToItsPlaceAfterARestart() async {
+    let harness = ManagerHarness([1, 2, 3])
+    await harness.osFocus(1)
+    _ = harness.manager.setFloat(.on)
+    let successor = harness.successor(saved: harness.manager.handOver())
+    await successor.osFocus(1)
+    _ = successor.manager.setFloat(.off)
+    #expect(successor.manager.rows.focused.current.windows.first == WindowID(1))
+  }
+
   @Test func aSlideInProgressIsFinishedBeforeHandingOver() async {
     let clock = TestClock()
     let animator = Animator(

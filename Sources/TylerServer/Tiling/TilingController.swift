@@ -57,7 +57,8 @@ struct TilingController {
   }
 
   /// A floated window leaves the list and moves a little toward the middle of its display (see
-  /// `FloatedFrame`); a window tiled again goes from where it floats into its slot. Both move
+  /// `FloatedFrame`); a window tiled again goes back to the place in the list it left, on the
+  /// workspace on screen, and from where it floats into its slot there. Both move
   /// with the windows that make room, over `animations.retile`. Asking for the state the window
   /// is already in changes nothing and says so.
   func setFloat(_ mode: FloatMode, model: inout Model) throws(Refusal) -> Decision {
@@ -73,13 +74,17 @@ struct TilingController {
     guard floats != isFloated else {
       throw .message(isFloated ? "already floating" : "already tiled")
     }
+    let change: FloatChange
     if floats {
       model.bookkeeping.floated.insert(windowID)
+      model.bookkeeping.floatedSlots[windowID] = model.rows.location(of: windowID).flatMap {
+        model.rows[$0.position][$0.index].slot(of: windowID)
+      }
+      change = .floats(windowID, from: window.frame)
     } else {
       model.bookkeeping.floated.remove(windowID)
+      change = .tiles(windowID, from: window.frame)
     }
-    let change: FloatChange =
-      floats ? .floats(windowID, from: window.frame) : .tiles(windowID, from: window.frame)
     return Decision(effects: reconcile(model: &model, change))
   }
 

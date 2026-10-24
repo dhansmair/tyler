@@ -61,6 +61,7 @@ struct SyncController {
         outcome.effects.append(context.parking(sync.arrivals, in: model.rows))
       }
     }
+    returnToFloatedSlots(model: &model)
     // Only the focused display slides, so the others are laid out at once, whatever the caller
     // does with the focused one.
     if context.isTiling(model) && !changedElsewhere.isEmpty {
@@ -73,6 +74,18 @@ struct SyncController {
       wasUnlisted: isFocusUnlisted == true, arrivals: Set(syncs.flatMap(\.arrivals)),
       model: &model)
     return outcome
+  }
+
+  /// Windows let go of floating that are back in a list go to the slot they floated from, on the
+  /// workspace they joined. One that can't join yet (minimized, tiling off, the displays settling)
+  /// keeps its slot until it does.
+  private func returnToFloatedSlots(model: inout Model) {
+    for (windowID, slot) in model.bookkeeping.floatedSlots
+    where !model.bookkeeping.floated.contains(windowID) {
+      guard let location = model.rows.location(of: windowID) else { continue }
+      model.rows[location.position][location.index].move(windowID, toSlot: slot)
+      model.bookkeeping.floatedSlots[windowID] = nil
+    }
   }
 
   /// Puts windows a previous tylerd handed over that appeared only now back where they were.

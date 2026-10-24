@@ -149,4 +149,15 @@ struct SavedStateTests {
     try Data("{".utf8).write(to: URL(fileURLWithPath: path))
     #expect(throws: SavedStateError.self) { try SavedState.read(from: path) }
   }
+
+  @Test func theSlotsOfFloatedWindowsRoundTrip() throws {
+    let path = NSTemporaryDirectory() + "tyler-state-\(UUID().uuidString)/tyler.state.json"
+    defer { try? FileManager.default.removeItem(atPath: path) }
+    let state = SavedState(
+      rows: DisplayRows(keys: [DisplayKey("display")], configured: [[1]]), floated: [WindowID(9)],
+      tilingEnabled: true, originalFrames: [:], floatedSlots: [WindowID(9): 2])
+    try state.write(to: path)
+    let read = try #require(try SavedState.read(from: path))
+    #expect(read.floatedSlots == [SavedState.FloatedSlot(id: WindowID(9), slot: 2)])
+  }
 }

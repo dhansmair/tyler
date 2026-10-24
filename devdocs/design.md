@@ -211,7 +211,9 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   middle of the tiling area and keeps its size; on an axis the slot spans it can't move without
   leaving the area, so it shrinks by 60 points at both ends instead. A window shrinks only where it
   has to: shrinking on every side looked wrong for a window beside another. Tiling it again
-  slides it back the same way. In the strip it stays where it is, as the strip's windows jump when
+  slides it back the same way, to the place in the list it left (`WindowBookkeeping.floatedSlots`,
+  kept across a restart), on the workspace on screen: going back to its old workspace would park
+  the window just tiled. In the strip it stays where it is, as the strip's windows jump when
   the list changes.
 - `prev` and `next` wrap; numbers are 1-based and range-checked.
 

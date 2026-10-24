@@ -18,7 +18,8 @@ extension WindowManager {
       rows: rows, floated: bookkeeping.floated, tilingEnabled: tilingEnabled,
       originalFrames: mover.originalFrames, seen: bookkeeping.seen,
       processIDs: Dictionary(
-        registry.windows.map { ($0.id, $0.processID) }, uniquingKeysWith: { first, _ in first }))
+        registry.windows.map { ($0.id, $0.processID) }, uniquingKeysWith: { first, _ in first }),
+      floatedSlots: bookkeeping.floatedSlots)
     tearDown()
     return saved
   }

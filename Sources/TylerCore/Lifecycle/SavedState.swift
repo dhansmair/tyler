@@ -113,6 +113,12 @@ package struct SavedState: Codable, Equatable, Sendable {
     }
   }
 
+  /// The slot a floated window goes back to when tiled again.
+  package struct FloatedSlot: Codable, Equatable, Sendable {
+    package var id: WindowID
+    package var slot: Int
+  }
+
   package var version: Int
   /// Each display's row (version 2).
   package var displays: [SavedDisplay]?
@@ -136,6 +142,8 @@ package struct SavedState: Codable, Equatable, Sendable {
   /// with the ID of one handed over is only taken for it if it is the same app's. Missing in
   /// files from before late windows were taken over.
   package var apps: [WindowApp]?
+  /// Missing in files from before floated windows went back to their slot.
+  package var floatedSlots: [FloatedSlot]?
 
   /// How old a file may be when it is read. A hand-over takes seconds; an older file was left
   /// behind (the next tylerd never started, or stopped before tracking windows), and window IDs
@@ -145,7 +153,7 @@ package struct SavedState: Codable, Equatable, Sendable {
   package init(
     rows: DisplayRows, floated: Set<WindowID>, tilingEnabled: Bool,
     originalFrames: [WindowID: CGRect], seen: Set<WindowID> = [],
-    processIDs: [WindowID: Int32] = [:]
+    processIDs: [WindowID: Int32] = [:], floatedSlots: [WindowID: Int] = [:]
   ) {
     version = Self.currentVersion
     displays = rows.entries.map(SavedDisplay.init)
@@ -161,6 +169,9 @@ package struct SavedState: Codable, Equatable, Sendable {
     self.seen = seen.sorted()
     apps = processIDs.keys.sorted().compactMap { windowID in
       processIDs[windowID].map { WindowApp(id: windowID, processID: $0) }
+    }
+    self.floatedSlots = floatedSlots.keys.sorted().compactMap { windowID in
+      floatedSlots[windowID].map { FloatedSlot(id: windowID, slot: $0) }
     }
   }
 
@@ -179,6 +190,7 @@ package struct SavedState: Codable, Equatable, Sendable {
     workspaces = row.workspaces.map(SavedWorkspace.init)
     currentIndex = row.currentIndex
     apps = nil
+    floatedSlots = nil
   }
 
   /// The windows the previous tylerd had tiled. A file from before app assignments doesn't

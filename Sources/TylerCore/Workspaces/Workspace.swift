@@ -227,6 +227,17 @@ package struct Workspace: Equatable, Sendable {
     focused.flatMap { windows.firstIndex(of: $0) }
   }
 
+  /// Moves a window in the list to the 1-based `slot`, or last if the list is shorter. Returns
+  /// whether it moved.
+  @discardableResult
+  package mutating func move(_ windowID: WindowID, toSlot slot: Int) -> Bool {
+    guard let index = windows.firstIndex(of: windowID) else { return false }
+    let destination = (slot - 1).clamped(to: 0...(windows.count - 1))
+    guard destination != index else { return false }
+    moveWindow(at: index, to: destination)
+    return true
+  }
+
   /// Moves the window at `index` to `destination`, the others closing up behind it.
   mutating func moveWindow(at index: Int, to destination: Int) {
     windows.insert(windows.remove(at: index), at: destination)

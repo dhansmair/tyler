@@ -77,4 +77,9 @@ extension Scenario {
   var focusedDisplay: Int? {
     harness.manager.rows.keys.firstIndex(of: harness.manager.rows.focusedKey).map { $0 + 1 }
   }
+
+  /// The workspaces each display holds, by display number, in the order the menu bar map shows.
+  var rows: [[Int]] {
+    harness.manager.rows.entries.map(\.row.numbers)
+  }
 }

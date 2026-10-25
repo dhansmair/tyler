@@ -356,7 +356,9 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
 - **`tyler start`** spawns the `tylerd` next to `tyler`, detached, with its output in
   `~/.tyler/tyler.log`. The terminal stays the process responsible for Accessibility, so rebuilds
   need no new grant. A LaunchAgent would need its own grant and a stable code signature, so
-  `service install` is left for later.
+  `service install` is left for later. Started by LaunchServices (`open`, a login item), tylerd's
+  output goes to /dev/null, so then tylerd opens the log itself (`LogFile`); a terminal or a pipe
+  keeps its output.
 - **`tyler start` checks that tylerd can reach the windows** (`WindowAccess`). A grant can look
   fine and not work: after a restart of the Mac or a new login, a stale entry left tylerd
   tracking no windows while `status` said `tiling on`. Before tracking, tylerd needs

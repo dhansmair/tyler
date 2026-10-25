@@ -6,7 +6,8 @@ press, so it can't clash with your apps or your key remapper.
 
 Any tool that runs a shell command on a key press works. Three common ones are below. Each runs
 commands without your shell's `PATH`, so call `tyler` by its full path: after `make install`,
-`~/.local/bin/tyler` (`$HOME/.local/bin/tyler` where `~` isn't expanded).
+`~/.local/bin/tyler` (`$HOME/.local/bin/tyler` where `~` isn't expanded); installed with Homebrew,
+`/opt/homebrew/bin/tyler`.
 
 Every command is described in the [command reference](manual.md#command-reference).
 

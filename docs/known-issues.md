@@ -46,7 +46,7 @@ has its own list in [Layouts](layouts.md#strip--experimental).
 - **Starting at login.** Start `tylerd` with `tyler start` from a terminal; see the
   [README](../README.md#starting-at-login). ([#23](https://github.com/dhansmair/tyler/issues/23))
 - **Float rules** in the config file, beyond dialogs and `tyler window float`. ([#24](https://github.com/dhansmair/tyler/issues/24))
-- **Signed binaries.** Install from source with `make install`. ([#26](https://github.com/dhansmair/tyler/issues/26))
+- **Signed binaries.** Homebrew and `make install` build from source, signed ad hoc, so macOS asks for the permission again after each update. ([#26](https://github.com/dhansmair/tyler/issues/26))
 
 ## Not yet checked
 

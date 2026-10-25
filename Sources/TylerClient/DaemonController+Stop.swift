@@ -48,4 +48,25 @@ extension DaemonController {
     }
     return .stopped(pid, ending)
   }
+
+  /// What `restart` says about how the old tylerd ended, and why.
+  static func note(_ ending: Ending, _ change: GrantChange?) -> String {
+    let reason =
+      switch change {
+      case .movesElsewhere: "the new tylerd runs from elsewhere, with a permission of its own"
+      case .newAdHocBuild:
+        "the new build is signed ad hoc, which macOS treats as another app that needs the "
+          + "permission again"
+      case nil: "the old tylerd could not hand over"
+      }
+    return switch (ending, change) {
+    case (.handingOver, _): ""
+    case (.handingOverPuttingWindowsBack, _):
+      "\n(\(reason), so the old one put its windows back where they were; they go back to "
+        + "their workspaces once the new one has the permission)"
+    case (.puttingWindowsBack, nil): "\n(\(reason), so its windows went back where they were)"
+    case (.puttingWindowsBack, _):
+      "\n(\(reason), so the old one put its windows back where they were)"
+    }
+  }
 }

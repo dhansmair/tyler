@@ -24,8 +24,13 @@ plutil -replace CFBundleShortVersionString -string "$version" "$plist"
 # Every build between releases is the same version; the stamp tells `tyler` whether the copy in
 # ~/Applications is this build.
 plutil -replace CFBundleVersion -string "$(date -u +%Y%m%d.%H%M%S)" "$plist"
+# An ad-hoc signature is the code's hash: `tyler restart` onto a new build of it asks for the grant
+# again.
+if [ "$sign" = - ]; then
+  plutil -replace TylerSignedAdHoc -bool true "$plist"
+fi
 if [ "$placement" = installed ]; then
   plutil -replace TylerInstallsInApplications -bool true "$plist"
 fi
 codesign --force --sign "$sign" "$app"
-echo "built $app ($id, signed by $sign)"
+echo "built $app ($id, signed $( [ "$sign" = - ] && echo ad hoc || echo "by $sign"))"

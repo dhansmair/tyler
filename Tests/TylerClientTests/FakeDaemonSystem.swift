@@ -55,6 +55,9 @@ final class FakeDaemonSystem: DaemonSystem {
   var launchFailure: String?
   /// Each app's `Info.plist`, by path.
   var appInfos: [String: AppInfo] = [:]
+  /// Bundle IDs whose Accessibility entry was reset, and whether a server was running then.
+  private(set) var resets: [(bundleID: String, whileRunning: Bool)] = []
+  var resetFailure: String?
   /// Why staging or putting a staged app in place fails, if it does.
   var stageFailure: String?
   var replaceFailure: String?
@@ -78,14 +81,16 @@ final class FakeDaemonSystem: DaemonSystem {
     pid: Int32, executablePath: String = serverPath, startedAt: Date = start,
     keepsWindows: Bool? = true, putsWindowsBack: Bool? = true,
     version: String? = TylerVersion.current, configChanges: [String]? = [],
-    access: WindowAccess? = .ok, input: [InputListener]? = nil, appName: String? = nil
+    access: WindowAccess? = .ok, input: [InputListener]? = nil, appName: String? = nil,
+    appBundleID: String? = nil, appBuild: String? = nil
   ) -> ServerStatus {
     ServerStatus(
       pid: pid, executablePath: executablePath, executableModified: start, startedAt: startedAt,
       configPath: "/home/.config/tyler/tyler.toml", tiling: .on,
       keepsWindowsOnRestart: keepsWindows, putsWindowsBackOnHandOver: putsWindowsBack,
       version: version, configChanges: configChanges,
-      access: access, input: input, appName: appName)
+      access: access, input: input, appName: appName, appBundleID: appBundleID,
+      appBuild: appBuild)
   }
 
   func send(_ request: Request) throws -> Response {
@@ -142,6 +147,14 @@ final class FakeDaemonSystem: DaemonSystem {
     replaced.append((destination, isRunning))
     appInfos[destination] = appInfos[staged]
     executables.insert(destination + "/Contents/MacOS/tylerd")
+  }
+
+  func resetAccessibility(bundleID: String) throws(DaemonError) -> Bool {
+    if let resetFailure { throw .resetFailed(bundleID, resetFailure) }
+    var isRunning = false
+    if case .running = server { isRunning = true }
+    resets.append((bundleID, isRunning))
+    return true
   }
 
   func terminate(_ pid: Int32) -> Bool {

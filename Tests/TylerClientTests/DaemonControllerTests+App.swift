@@ -72,7 +72,7 @@ struct DaemonControllerAppTests {
         == .message(
           "restarted tylerd (pid 77 → 200), output in /home/.tyler/tyler.log\n(the new tylerd "
             + "runs from elsewhere, with a permission of its own, so the old one put its windows "
-            + "back where they were; they go back to their workspaces once it has the "
+            + "back where they were; they go back to their workspaces once the new one has the "
             + "permission)"))
   }
 

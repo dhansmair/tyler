@@ -35,7 +35,8 @@ extension WindowAccess {
       if let app {
         "tylerd has no Accessibility permission yet. Turn on \(app) under \(Self.settings); "
           + "tylerd starts by itself once it is on (if it doesn't within a few seconds, run "
-          + "`tyler restart`)."
+          + "`tyler restart`). If it is on already, it belongs to an earlier build: remove it "
+          + "with −, and run `tyler restart`."
       } else {
         "tylerd has no Accessibility permission yet. Turn on the terminal app you ran tyler in "
           + "under \(Self.settings) (add it with + if it isn't listed); tylerd starts by itself "

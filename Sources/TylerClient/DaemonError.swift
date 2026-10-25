@@ -9,6 +9,7 @@ package enum DaemonError: Error, Equatable, Sendable, CustomStringConvertible {
   case staleApp(String)
   case spawnFailed(String)
   case installFailed(String, String)
+  case resetFailed(String, String)
   case exitedAtStartup(log: String)
   /// `pid` is `nil` for an app launched through LaunchServices, which doesn't say it.
   case noAnswer(pid: Int32?, logPath: String)
@@ -31,6 +32,8 @@ package enum DaemonError: Error, Equatable, Sendable, CustomStringConvertible {
     case .staleApp(let path):
       "\(path) is older than the tylerd next to it; rebuild it with `make build` (or "
         + "`make install`), or remove it to run that tylerd under the terminal's permission"
+    case .resetFailed(let bundleID, let reason):
+      "cannot reset the Accessibility permission of \(bundleID): \(reason)"
     case .installFailed(let path, let reason):
       "cannot install tylerd's app at \(path): \(reason)"
     case .spawnFailed(let reason):

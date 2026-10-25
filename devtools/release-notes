@@ -1,0 +1,26 @@
+#!/bin/sh
+# Prints the release notes for <version>: its entry in CHANGELOG.md without the heading. Fails if
+# the version isn't the one TylerVersion names, or its entry is missing or still `(unreleased)`, so
+# a tag can't release a build that calls itself something else. Run by the release workflow.
+#
+#   devtools/release-notes <version>
+set -eu
+[ $# -eq 1 ] || { echo "usage: $0 <version>" >&2; exit 2; }
+version=$1
+root=$(cd "$(dirname "$0")/.." && pwd)
+
+current=$(sed -n 's/.*static let current = "\(.*\)".*/\1/p' "$root/Sources/TylerRuntime/TylerVersion.swift")
+[ "$version" = "$current" ] || { echo "$0: the tag says $version, TylerVersion says $current" >&2; exit 1; }
+
+if grep -q "^## $version (unreleased)" "$root/CHANGELOG.md"; then
+  echo "$0: CHANGELOG.md still calls $version unreleased; give it the release date" >&2
+  exit 1
+fi
+notes=$(awk -v heading="## $version " '
+  index($0, heading) == 1 { found = 1; next }
+  found && /^## / { exit }
+  found { print }
+' "$root/CHANGELOG.md")
+[ -n "$(printf '%s' "$notes" | tr -d '[:space:]')" ] ||
+  { echo "$0: CHANGELOG.md has no entry for $version" >&2; exit 1; }
+printf '%s\n' "$notes" | sed '/./,$!d'

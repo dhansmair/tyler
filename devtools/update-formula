@@ -1,0 +1,16 @@
+#!/bin/sh
+# Points the Homebrew formula at a release: sets its `url` to the tag's source archive and its
+# `sha256` to <checksum>, adding both after `homepage` the first time. Run by the release workflow
+# on a checkout of the tap.
+#
+#   devtools/update-formula <formula file> <tag> <checksum>
+set -eu
+[ $# -eq 3 ] || { echo "usage: $0 <formula file> <tag> <checksum>" >&2; exit 2; }
+formula=$1 tag=$2 checksum=$3
+url="https://github.com/dhansmair/tyler/archive/refs/tags/$tag.tar.gz"
+
+grep -q '^  homepage ' "$formula" || { echo "$0: $formula has no homepage line" >&2; exit 1; }
+URL=$url SHA=$checksum perl -0pi -e '
+  s/^  url .*\n  sha256 .*\n//m;
+  s/^(  homepage .*\n)/$1  url "$ENV{URL}"\n  sha256 "$ENV{SHA}"\n/m;
+' "$formula"

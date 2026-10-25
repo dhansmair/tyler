@@ -471,7 +471,10 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   its entry, merged, then `git tag v<version> && git push origin v<version>`. A tag
   `v<version>-<suffix>` (`v0.2.0-pre`) makes a GitHub pre-release of that version, to try a
   release before dating it: its entry may still be `(unreleased)`, and the build still reports
-  plain `<version>`, which `TylerVersionTests` keeps to `x.y.z`.
+  plain `<version>`, which `TylerVersionTests` keeps to `x.y.z`. A release, not a pre-release,
+  then points the formula at the tag's source archive (`devtools/update-formula`), with a token
+  in the secret `HOMEBREW_TAP_TOKEN` that can write to the tap only; without it the formula stays
+  as it is.
 - **The history was squashed before the repository went public**: it named the developer's own
   setup in commit messages and old devdocs. The rule against that is in `CLAUDE.md`.
 - **`CLAUDE.md`, `.claude/` and `devtools/` are published**: they are the honest record of how

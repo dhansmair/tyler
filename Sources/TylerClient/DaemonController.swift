@@ -90,9 +90,11 @@ package struct DaemonController {
   private func restartMessage() throws(DaemonError) -> String {
     // Before stopping: a tylerd that handed over and has no successor leaves windows parked.
     let target = try prepareLaunch()
-    let movesElsewhere = try runningStatus().map { $0.executablePath != executablePath(target) }
-    let stopped = try stop(movesElsewhere == true ? .handingOverPuttingWindowsBack : .handingOver)
-    switch (stopped, try start(target)) {
+    let running = try runningStatus()
+    let change = running.flatMap { grantChange(from: $0, to: target) }
+    let stale = running.flatMap { staleEntry(from: $0, to: target) }
+    let stopped = try stop(change == nil ? .handingOver : .handingOverPuttingWindowsBack)
+    switch (stopped, try start(target, resettingEntryOf: stale)) {
     case (_, .alreadyRunning(let status)):
       return try withAccess(
         "tylerd is already running (pid \(status.pid))" + staleWarning(status), of: status)
@@ -101,22 +103,9 @@ package struct DaemonController {
         "tylerd was not running; started it (pid \(status.pid)), output in \(logPath)"
           + Self.note(install), of: status)
     case (.stopped(let old, let ending), .started(let status, let install)):
-      let note =
-        switch ending {
-        case .handingOver: ""
-        case .handingOverPuttingWindowsBack:
-          "\n(the new tylerd runs from elsewhere, with a permission of its own, so the old one put "
-            + "its windows back where they were; they go back to their workspaces once it has the "
-            + "permission)"
-        case .puttingWindowsBack where movesElsewhere == true:
-          "\n(the new tylerd runs from elsewhere, with a permission of its own, so the old one put "
-            + "its windows back where they were)"
-        case .puttingWindowsBack:
-          "\n(the old tylerd could not hand over, so its windows went back where they were)"
-        }
       return try withAccess(
         "restarted tylerd (pid \(old) → \(status.pid)), output in \(logPath)"
-          + Self.note(install) + note, of: status)
+          + Self.note(install) + Self.note(ending, change), of: status)
     }
   }
 
@@ -190,7 +179,9 @@ package struct DaemonController {
   }
 
   /// Launches `target`, or what `launchTarget` finds, unless tylerd already runs.
-  private func start(_ target: LaunchTarget? = nil) throws(DaemonError) -> StartOutcome {
+  private func start(
+    _ target: LaunchTarget? = nil, resettingEntryOf staleEntry: String? = nil
+  ) throws(DaemonError) -> StartOutcome {
     if let status = try runningStatus() { return .alreadyRunning(status) }
     let resolved: LaunchTarget
     if let target {
@@ -198,7 +189,7 @@ package struct DaemonController {
     } else {
       resolved = try prepareLaunch()
     }
-    let (pid, install) = try launch(resolved)
+    let (pid, install) = try launch(resolved, resettingEntryOf: staleEntry)
     var waited = Duration.zero
     while waited < startTimeout {
       system.pause(pollInterval)

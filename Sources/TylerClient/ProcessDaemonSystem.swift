@@ -93,7 +93,9 @@ package struct ProcessDaemonSystem: DaemonSystem {
     }
     return AppInfo(
       build: values["CFBundleVersion"] as? String,
-      installsInApplications: values["TylerInstallsInApplications"] as? Bool ?? false)
+      installsInApplications: values["TylerInstallsInApplications"] as? Bool ?? false,
+      bundleID: values["CFBundleIdentifier"] as? String,
+      isSignedAdHoc: values["TylerSignedAdHoc"] as? Bool ?? false)
   }
 
   package func stageApp(
@@ -124,6 +126,29 @@ package struct ProcessDaemonSystem: DaemonSystem {
     } catch {
       throw .installFailed(destination, error.localizedDescription)
     }
+  }
+
+  package func resetAccessibility(bundleID: String) throws(DaemonError) -> Bool {
+    let tccutil = Process()
+    tccutil.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
+    tccutil.arguments = ["reset", "Accessibility", bundleID]
+    let errors = Pipe()
+    tccutil.standardOutput = FileHandle.nullDevice
+    tccutil.standardError = errors
+    do {
+      try tccutil.run()
+    } catch {
+      throw .resetFailed(bundleID, error.localizedDescription)
+    }
+    tccutil.waitUntilExit()
+    guard tccutil.terminationStatus == 0 else {
+      let data = errors.fileHandleForReading.readDataToEndOfFile()
+      let output = String(bytes: data, encoding: .utf8) ?? ""
+      // What it says for a bundle ID LaunchServices doesn't know (OSStatus -10814, measured).
+      if output.contains("No such bundle identifier") { return false }
+      throw .resetFailed(bundleID, output.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+    return true
   }
 
   package func terminate(_ pid: Int32) -> Bool {

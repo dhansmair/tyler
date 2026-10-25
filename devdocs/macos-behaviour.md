@@ -215,6 +215,11 @@ from a terminal that held Accessibility itself:
 - **A different build in the same bundle is a new identity.** An ad-hoc signature's designated
   requirement is the code's hash (`codesign -d -r-` printed only `cdhash H"…"`): another
   `tylerd` in the bundle, re-signed ad-hoc, wasn't trusted while the switch stayed on.
+- **Switching it off and on again doesn't help** (measured 2026-10-25, a probe app that only
+  logs `AXIsProcessTrusted()`, two ad-hoc builds in one bundle): after the toggle, the new build
+  was still not trusted, launched fresh too, while the old build still was: the entry stays tied
+  to the old build's hash. `tccutil reset` (or removing the entry with −) and a new grant made
+  the new build trusted on its next launch.
 - **`tccutil reset Accessibility <bundle id>` works without `sudo`**, run while no tylerd was
   running. It prints its "Successfully reset" line twice even for one entry. The next launch
   prompted again.
@@ -225,7 +230,9 @@ from a terminal that held Accessibility itself:
   register a new one before resetting its entry.
 - **A grant given while tylerd waits** was picked up by the waiting process within its one-second
   check after the reset; the first time (the very first entry for the bundle ID) it wasn't, and only
-  a relaunch made tylerd trusted. Why the two differed isn't known.
+  a relaunch made tylerd trusted. Why the two differed isn't known. The probe above, a process
+  without a run loop, never picked a grant up while it ran, only on its next launch: that may be
+  what a run loop changes, so it says nothing about tylerd.
 - **No Input Monitoring is needed.** With only the app's Accessibility grant, every tap came up
   (`input` in `tyler status`), and three-finger swipes, dragging and resizing with the modifier,
   and focus follows mouse all worked.

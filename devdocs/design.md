@@ -381,6 +381,15 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   one would die of it without cleaning up, so it gets SIGTERM. Which restart needs it is, for
   now, one from another place (the bare tylerd and the app, two copies of the app); comparing the
   grants themselves (the designated requirement) is next.
+- **An installed Tyler.app is signed ad hoc without a certificate, and `restart` deals with the
+  stale entry.** `make install` bundles a release either way (development builds only when
+  signed, as each build would need the grant again); `make-app` marks an ad-hoc bundle
+  (`TylerSignedAdHoc`). `restart` onto another build of the same ad-hoc app (`appBundleID` and
+  `appBuild` in `status` against the new `Info.plist`) puts the windows back and hands over
+  (SIGUSR2), then resets the entry with `tccutil` once the old tylerd has quit: its switch stays
+  on but no longer works, and toggling doesn't fix it (measured). Which signature a build has is
+  read from that key, not from the code signature itself: `make-app` knows, and reading the
+  designated requirement would need the Security framework for the same answer.
 - **An installed Tyler.app runs from a copy in `~/Applications`, which `tyler` makes.** Spotlight
   finds a real app there, not one under Homebrew's Cellar, nor a symlink, and shows a Finder alias
   as "alias" (`macos-behaviour.md`, "tylerd as an app of its own"), while a formula can't install

@@ -7,10 +7,15 @@ SIGN_ID ?=
 
 APP_ID := io.github.dhansmair.tyler
 # Builds Tyler.app in the bin folder $(1) with bundle ID $(2), name $(3) and placement $(4)
-# (devtools/make-app), or removes an old one so `tyler` doesn't launch it. Only signed: an ad-hoc
-# bundle would need the grant after each build.
+# (devtools/make-app). A development build is only bundled when signed, as an ad-hoc bundle would
+# need the grant after every build; otherwise an old one is removed so `tyler` doesn't launch it.
+# A release is bundled either way, ad hoc without SIGN_ID: the grant is then asked for again
+# after each update.
 define bundle
 	$(if $(SIGN_ID),devtools/make-app "$(1)" "$(2)" "$(3)" "$(SIGN_ID)" $(4),rm -rf "$(1)/Tyler.app")
+endef
+define release_bundle
+	devtools/make-app "$(1)" "$(2)" "$(3)" "$(or $(SIGN_ID),-)" $(4)
 endef
 
 # The Command Line Tools ship Swift Testing, but SwiftPM doesn't search for it there, nor for its
@@ -57,15 +62,15 @@ check: lint test
 release:
 	swift build -c release --product tyler
 	swift build -c release --product tylerd
-	$(call bundle,$(shell swift build -c release --show-bin-path),$(APP_ID),Tyler,installed)
+	$(call release_bundle,$(shell swift build -c release --show-bin-path),$(APP_ID),Tyler,installed)
 
 install: release
 	mkdir -p $(PREFIX)
 	cp .build/release/tyler .build/release/tylerd $(PREFIX)/
 	rm -rf $(PREFIX)/Tyler.app
+	cp -R .build/release/Tyler.app $(PREFIX)/
 ifneq ($(SIGN_ID),)
 	codesign --force --sign "$(SIGN_ID)" $(PREFIX)/tyler $(PREFIX)/tylerd
-	cp -R .build/release/Tyler.app $(PREFIX)/
 endif
 	@echo "installed to $(PREFIX)"
 

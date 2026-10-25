@@ -21,6 +21,12 @@ package protocol DaemonSystem {
   /// Puts the staged app in place at `destination` in one step; on failure `destination` is left
   /// as it was.
   func replaceApp(at destination: String, with staged: String) throws(DaemonError)
+  /// Removes the Accessibility entry of the app `bundleID` (`tccutil reset`), so macOS asks
+  /// again. Only once the tylerd holding it has quit: taking a grant away from a running process
+  /// can stop all input. `tccutil` finds the app through LaunchServices: returns false if no app
+  /// with that ID is registered, which an app that was never launched isn't, and then there is
+  /// no entry to reset either.
+  func resetAccessibility(bundleID: String) throws(DaemonError) -> Bool
   /// Asks a process to quit (SIGTERM). Returns whether the signal was sent.
   func terminate(_ pid: Int32) -> Bool
   /// Asks tylerd to quit and write its workspaces down for the next tylerd, leaving its windows

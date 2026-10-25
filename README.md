@@ -42,7 +42,7 @@ https://github.com/user-attachments/assets/d168cf84-ab63-4a10-8923-fb79e0c58f3d
 - macOS 14 or later. Only macOS 26 on an Apple silicon Mac has been tried so far.
 - The Xcode Command Line Tools with Swift 6 (`xcode-select --install`). Full Xcode works too but
   isn't needed.
-- Accessibility permission for the terminal you start tyler from.
+- Accessibility permission for `Tyler.app`, which macOS asks for when tyler first starts.
 
 ## Installation
 
@@ -57,11 +57,12 @@ make install          # builds a release and copies tyler and tylerd to ~/.local
 Add `~/.local/bin` to your `PATH` if it isn't there yet (for zsh, in `~/.zshrc`:
 `export PATH="$HOME/.local/bin:$PATH"`). `make install PREFIX=/some/dir` installs elsewhere.
 
-With a code-signing identity of your own (a self-signed one is enough),
-`make install SIGN_ID=<identity>` also installs `Tyler.app`, and `tylerd` runs as an app with its
-own Accessibility permission instead of your terminal's (see the
-[manual](docs/manual.md#running-tylerd)). The signature keeps the permission across updates.
-`tyler start` copies the app into `~/Applications`, so you can also start `tylerd` from Spotlight.
+`make install` also installs `Tyler.app`: `tylerd` runs as an app with its own Accessibility
+permission (see the [manual](docs/manual.md#running-tylerd)), and `tyler start` copies it into
+`~/Applications`, so you can also start it from Spotlight. Built without a code-signing identity,
+the app is signed ad hoc, and macOS treats every update as a new app: it asks for the permission
+again after each one. With an identity of your own (a self-signed one is enough),
+`make install SIGN_ID=<identity>` keeps the permission across updates.
 
 Then start it:
 
@@ -70,11 +71,11 @@ tyler start
 ```
 
 > [!IMPORTANT]
-> `tylerd`, the server, now runs in the background and keeps running when you close the terminal. It
-> needs Accessibility permission, which macOS gives to the app that started it: open System Settings >
-> Privacy & Security > Accessibility and turn on your terminal. `tylerd` notices within a second and
-> tiles your windows. `tyler status` shows that it runs; `tyler window list` shows the windows it
-> tiles.
+> `tylerd`, the server, now runs in the background as `Tyler.app` and keeps running when you close
+> the terminal. It needs Accessibility permission: macOS asks, and System Settings > Privacy &
+> Security > Accessibility lists `Tyler.app`; turn it on. `tylerd` tiles your windows once it
+> notices (if it doesn't within a few seconds, run `tyler restart`). `tyler status` shows that it
+> runs; `tyler window list` shows the windows it tiles.
 
 ### Updating
 
@@ -83,6 +84,10 @@ git pull
 make install
 tyler restart         # windows stay where they are
 ```
+
+Signed ad hoc (without `SIGN_ID`), the new build needs the permission again: `tyler restart` puts
+every window back where it was, resets the old entry in System Settings, and macOS asks; once you
+turn `Tyler.app` on, the windows go back to their workspaces.
 
 ### Starting at login
 
@@ -93,7 +98,8 @@ shell do it, for example in `~/.zprofile`:
 tyler start >/dev/null 2>&1   # does nothing if tylerd already runs
 ```
 
-Start it from the terminal app that has the Accessibility permission.
+Without `Tyler.app` (a `make build` without `SIGN_ID`, see the manual), start it from the terminal
+app that has the Accessibility permission.
 
 ### Uninstalling
 

@@ -39,6 +39,10 @@ package struct ServerStatus: Codable, Equatable, Sendable {
   /// it (`Tyler.app`); `nil` when the app that started it holds the grant (a terminal), or from an
   /// older server.
   package var appName: String?
+  /// The running app's `CFBundleIdentifier` and its build stamp (`CFBundleVersion`); `nil` for a
+  /// bare tylerd or an older server. `tyler restart` compares them with the new build's.
+  package var appBundleID: String?
+  package var appBuild: String?
 
   package init(
     pid: Int32,
@@ -53,7 +57,9 @@ package struct ServerStatus: Codable, Equatable, Sendable {
     configChanges: [String]? = nil,
     access: WindowAccess? = nil,
     input: [InputListener]? = nil,
-    appName: String? = nil
+    appName: String? = nil,
+    appBundleID: String? = nil,
+    appBuild: String? = nil
   ) {
     self.pid = pid
     self.executablePath = executablePath
@@ -68,5 +74,7 @@ package struct ServerStatus: Codable, Equatable, Sendable {
     self.access = access
     self.input = input
     self.appName = appName
+    self.appBundleID = appBundleID
+    self.appBuild = appBuild
   }
 }

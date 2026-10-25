@@ -1,0 +1,30 @@
+#!/bin/sh
+# Points the Homebrew tap at a release: Formula/tyler.rb gets the tag's source archive as `url`
+# and <checksum> as `sha256` (added after `homepage` the first time), and Formula/tyler@<version>.rb
+# is a copy of it that stays at this version, for `brew install dhansmair/tyler/tyler@<version>`.
+# The copy has no `head`, and is keg-only, as Homebrew wants a versioned formula: it isn't linked
+# into Homebrew's `bin` unless asked (`brew link --force`). Run by the release workflow on a
+# checkout of the tap.
+#
+#   devtools/update-tap <tap dir> <tag> <checksum>
+set -eu
+[ $# -eq 3 ] || { echo "usage: $0 <tap dir> <tag> <checksum>" >&2; exit 2; }
+tap=$1 tag=$2 checksum=$3
+version=${tag#v}
+formula="$tap/Formula/tyler.rb"
+pinned="$tap/Formula/tyler@$version.rb"
+url="https://github.com/dhansmair/tyler/archive/refs/tags/$tag.tar.gz"
+
+grep -q '^  homepage ' "$formula" || { echo "$0: $formula has no homepage line" >&2; exit 1; }
+URL=$url SHA=$checksum perl -0pi -e '
+  s/^  url .*\n  sha256 .*\n//m;
+  s/^(  homepage .*\n)/$1  url "$ENV{URL}"\n  sha256 "$ENV{SHA}"\n/m;
+' "$formula"
+
+# Homebrew's class for tyler@0.2.0 is TylerAT020.
+class="TylerAT$(printf '%s' "$version" | tr -d .)"
+CLASS=$class perl -0pe '
+  s/^class Tyler < Formula/class $ENV{CLASS} < Formula/m;
+  s/^  head .*\n//m;
+  s/^(  depends_on .*\n)/  keg_only :versioned_formula\n\n$1/m;
+' "$formula" > "$pinned"

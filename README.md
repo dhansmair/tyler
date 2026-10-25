@@ -50,10 +50,10 @@ With [Homebrew](https://brew.sh), from the tap
 [dhansmair/homebrew-tyler](https://github.com/dhansmair/homebrew-tyler):
 
 ```bash
-brew install --HEAD dhansmair/tyler/tyler   # builds main from source, about a minute
+brew install dhansmair/tyler/tyler   # builds the latest release from source, about a minute
 ```
 
-There is no release with the app bundle yet, so the formula builds `main` (`--HEAD`).
+`tyler@<version>` stays at one release, and `--HEAD` builds `main` (see the tap's README).
 
 Or from source:
 
@@ -89,7 +89,7 @@ tyler start
 ### Updating
 
 ```bash
-brew upgrade --fetch-HEAD tyler   # or, from source: git pull && make install
+brew upgrade tyler                # or, from source: git pull && make install
 tyler restart                     # windows stay where they are
 ```
 

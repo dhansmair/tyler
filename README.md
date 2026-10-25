@@ -1,8 +1,9 @@
 # Tyler
 
-A dynamic tiling window manager for macOS with an XMonad-style layout system.
-Windows are ordered in a flat list. Tyler offers basic layouts (tall, grid, full)
-and supports animations, mouse events and trackpad gestures.
+A dynamic tiling window manager for macOS with an XMonad-style layout system. Each window's 
+position is determined by its index in a virtual list, so you rearrange windows simply by moving
+them within that list or by adjusting layout parameters. 
+Tyler offers a variety of layouts and supports mouse events, trackpad gestures and animations.
 
 > [!WARNING]
 > **tyler is alpha software.**
@@ -18,11 +19,9 @@ and supports animations, mouse events and trackpad gestures.
 - **Tiling**: Provides basic layouts out of the box: `tall`, `grid`, `full`.
   See [Layouts](docs/layouts.md).
 - **Animations**: window swapping, resizing, closing or moving between workspaces can be animated.
-- **Several displays**: each with its own row of workspaces. Windows can be dragged across, and
-  displays that come and go are followed.
-- **Mouse Support**: resize tiled windows and the layout follows; drag a window onto another to swap
-  them; Option-drag anywhere in a window to move or resize it.
-- **Swipe Gestures**: swipe with three fingers to switch between workspaces
+- **Several displays**: each display has its own workspaces.
+- **Mouse Support**: resize tiled windows or drag a window onto another to swap them.
+- **Swipe Gestures**: swipe with three fingers to switch between workspaces.
 - **Menu bar indicators**: shows the workspaces as numbers or as a small map of every workspace and its
   windows.
 - **No SIP changes.** tyler uses only the public Accessibility API: no private APIs, no scripting
@@ -40,26 +39,22 @@ https://github.com/user-attachments/assets/d168cf84-ab63-4a10-8923-fb79e0c58f3d
 ## Requirements
 
 - macOS 14 or later. Only macOS 26 on an Apple silicon Mac has been tried so far.
-- The Xcode Command Line Tools with Swift 6 (`xcode-select --install`). Full Xcode works too but
-  isn't needed.
-- Accessibility permission for `Tyler.app`, which macOS asks for when tyler first starts.
+- The Xcode Command Line Tools with Swift 6 (`xcode-select --install`)
+- Accessibility permission for `Tyler.app`, which is requested on the first start.
 
 ## Installation
 
-With [Homebrew](https://brew.sh), from the tap
-[dhansmair/homebrew-tyler](https://github.com/dhansmair/homebrew-tyler):
+You can install tyler with [Homebrew](https://brew.sh):
 
 ```bash
-brew install dhansmair/tyler/tyler   # builds the latest release from source, about a minute
+brew install dhansmair/tyler/tyler        # builds the latest release
+brew install dhansmair/tyler/tyler@v0.x.y # install specific version
+brew install --HEAD dhansmair/tyler/tyler # builds from main
 ```
 
-`tyler@<version>` stays at one release, and `--HEAD` builds `main` (see the tap's README). To
-build it yourself, see [Installing from source](docs/install-from-source.md).
+To build tyler yourself, see [Installing from source](docs/install-from-source.md).
 
-`Tyler.app` comes with it: `tylerd` runs as an app with its own Accessibility permission (see the
-[manual](docs/manual.md#running-tylerd)), and `tyler start` copies it into `~/Applications`, so you
-can also start it from Spotlight. The app is signed ad hoc, and macOS treats every update as a new
-app: it asks for the permission again after each one.
+Installing adds `Tyler.app`, which runs `tylerd` in the background (see the [manual](docs/manual.md#running-tylerd)).
 
 Then start it:
 
@@ -68,11 +63,15 @@ tyler start
 ```
 
 > [!IMPORTANT]
-> `tylerd`, the server, now runs in the background as `Tyler.app` and keeps running when you close
-> the terminal. It needs Accessibility permission: macOS asks, and System Settings > Privacy &
-> Security > Accessibility lists `Tyler.app`; turn it on. `tylerd` tiles your windows once it
-> notices (if it doesn't within a few seconds, run `tyler restart`). `tyler status` shows that it
-> runs; `tyler window list` shows the windows it tiles.
+> The daemon `tylerd` now runs in the background and keeps running when you close
+> the terminal. It will prompt for Accessibility permission: System Settings > Privacy &
+> Security > Accessibility lists `Tyler.app`; turn it on.
+> tyler tiles your windows once it notices (if it doesn't within a few seconds, run `tyler restart`).
+
+Check the status:
+```bash
+tyler status
+```
 
 ### Updating
 

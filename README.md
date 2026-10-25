@@ -61,6 +61,7 @@ With a code-signing identity of your own (a self-signed one is enough),
 `make install SIGN_ID=<identity>` also installs `Tyler.app`, and `tylerd` runs as an app with its
 own Accessibility permission instead of your terminal's (see the
 [manual](docs/manual.md#running-tylerd)). The signature keeps the permission across updates.
+`tyler start` copies the app into `~/Applications`, so you can also start `tylerd` from Spotlight.
 
 Then start it:
 
@@ -98,11 +99,14 @@ Start it from the terminal app that has the Accessibility permission.
 
 ```bash
 tyler stop                                   # puts every window back
-rm -r ~/.local/bin/tyler ~/.local/bin/tylerd ~/.local/bin/Tyler.app
+tccutil reset Accessibility io.github.dhansmair.tyler   # Tyler.app's permission, if you installed it
+rm -r ~/.local/bin/tyler ~/.local/bin/tylerd ~/.local/bin/Tyler.app ~/Applications/Tyler.app
 rm -r ~/.tyler ~/.config/tyler               # the socket, log and config
 ```
 
-Then remove your terminal (or `Tyler.app`) from the Accessibility list if nothing else needs it.
+Reset the permission before deleting the app: `tccutil` only finds an app that is still there.
+Without `Tyler.app`, remove your terminal from the Accessibility list instead, if nothing else
+needs it.
 
 ## Keybindings
 

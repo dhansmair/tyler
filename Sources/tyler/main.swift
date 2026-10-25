@@ -79,7 +79,8 @@ case .daemon(let command):
     serverPath: DaemonController.serverPath(nextTo: client),
     logPath: Paths.logPath(),
     app: AppLaunch.nextTo(
-      client, socketPath: Paths.socketPath(), environment: ProcessInfo.processInfo.environment,
+      client, home: NSHomeDirectory(), socketPath: Paths.socketPath(),
+      environment: ProcessInfo.processInfo.environment,
       workingDirectory: FileManager.default.currentDirectoryPath))
   show(controller.run(command))
 }

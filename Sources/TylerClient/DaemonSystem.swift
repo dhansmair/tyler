@@ -13,6 +13,14 @@ package protocol DaemonSystem {
   /// Launches the app at `path` through LaunchServices, in a new instance and without taking the
   /// focus, with `environment`; returns once it has been launched. tylerd opens its own log then.
   func launchApp(_ path: String, environment: [String: String]) throws(DaemonError)
+  /// The `Info.plist` of the app at `path`; `nil` if there is none.
+  func appInfo(atPath path: String) -> AppInfo?
+  /// Copies the app at `source` next to `destination`, under a hidden name, creating the folder;
+  /// returns where. `destination` stays as it was.
+  func stageApp(from source: String, nextTo destination: String) throws(DaemonError) -> String
+  /// Puts the staged app in place at `destination` in one step; on failure `destination` is left
+  /// as it was.
+  func replaceApp(at destination: String, with staged: String) throws(DaemonError)
   /// Asks a process to quit (SIGTERM). Returns whether the signal was sent.
   func terminate(_ pid: Int32) -> Bool
   /// Asks tylerd to quit and leave its windows where they are, writing its workspaces down for

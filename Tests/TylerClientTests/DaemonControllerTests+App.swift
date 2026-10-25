@@ -9,7 +9,8 @@ import TylerProtocol
 @Suite("DaemonController: the app")
 struct DaemonControllerAppTests {
   private let app = AppLaunch(
-    path: FakeDaemonSystem.appPath, environment: ["TYLER_SOCKET": "/home/.tyler/tyler.sock"])
+    path: FakeDaemonSystem.appPath, installedPath: FakeDaemonSystem.installedAppPath,
+    environment: ["TYLER_SOCKET": "/home/.tyler/tyler.sock"])
 
   private func controller(_ system: FakeDaemonSystem, hasApp: Bool = true) -> DaemonController {
     if hasApp { system.executables.insert(app.executablePath) }

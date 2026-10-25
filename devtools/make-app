@@ -1,11 +1,14 @@
 #!/bin/sh
-# Builds Tyler.app next to the tylerd in <bin dir>: packaging/Info.plist with the bundle ID, name
-# and version set, the bundle signed with <sign id>. `tyler start` launches it from there.
+# Builds Tyler.app next to the tylerd in <bin dir>: packaging/Info.plist with the bundle ID, name,
+# version and a build stamp set, the bundle signed with <sign id>. <placement> is `installed` for
+# a release, which `tyler start` copies into ~/Applications and runs from there, or `in-place` for
+# a development build, which it runs where it is.
 #
-#   devtools/make-app <bin dir> <bundle id> <name> <sign id>
+#   devtools/make-app <bin dir> <bundle id> <name> <sign id> <placement>
 set -eu
-[ $# -eq 4 ] || { echo "usage: $0 <bin dir> <bundle id> <name> <sign id>" >&2; exit 2; }
-bin=$1 id=$2 name=$3 sign=$4
+[ $# -eq 5 ] || { echo "usage: $0 <bin dir> <bundle id> <name> <sign id> installed|in-place" >&2; exit 2; }
+bin=$1 id=$2 name=$3 sign=$4 placement=$5
+case $placement in installed|in-place) ;; *) echo "$0: placement must be installed or in-place" >&2; exit 2 ;; esac
 root=$(cd "$(dirname "$0")/.." && pwd)
 app="$bin/Tyler.app"
 version=$("$bin/tyler" --version | sed 's/^tyler //')
@@ -18,6 +21,11 @@ cp "$root/packaging/Info.plist" "$plist"
 plutil -replace CFBundleIdentifier -string "$id" "$plist"
 plutil -replace CFBundleName -string "$name" "$plist"
 plutil -replace CFBundleShortVersionString -string "$version" "$plist"
-plutil -replace CFBundleVersion -string "$version" "$plist"
+# Every build between releases is the same version; the stamp tells `tyler` whether the copy in
+# ~/Applications is this build.
+plutil -replace CFBundleVersion -string "$(date -u +%Y%m%d.%H%M%S)" "$plist"
+if [ "$placement" = installed ]; then
+  plutil -replace TylerInstallsInApplications -bool true "$plist"
+fi
 codesign --force --sign "$sign" "$app"
 echo "built $app ($id, signed by $sign)"

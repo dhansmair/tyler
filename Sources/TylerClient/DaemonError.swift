@@ -8,6 +8,7 @@ package enum DaemonError: Error, Equatable, Sendable, CustomStringConvertible {
   /// The `Tyler.app` at this path holds an older `tylerd` than the one next to it.
   case staleApp(String)
   case spawnFailed(String)
+  case installFailed(String, String)
   case exitedAtStartup(log: String)
   /// `pid` is `nil` for an app launched through LaunchServices, which doesn't say it.
   case noAnswer(pid: Int32?, logPath: String)
@@ -30,6 +31,8 @@ package enum DaemonError: Error, Equatable, Sendable, CustomStringConvertible {
     case .staleApp(let path):
       "\(path) is older than the tylerd next to it; rebuild it with `make build` (or "
         + "`make install`), or remove it to run that tylerd under the terminal's permission"
+    case .installFailed(let path, let reason):
+      "cannot install tylerd's app at \(path): \(reason)"
     case .spawnFailed(let reason):
       "cannot start tylerd: \(reason)"
     case .exitedAtStartup(let log):

@@ -78,6 +78,54 @@ package struct ProcessDaemonSystem: DaemonSystem {
     }
   }
 
+  package func appInfo(atPath path: String) -> AppInfo? {
+    let plist = path + "/Contents/Info.plist"
+    guard let data = FileManager.default.contents(atPath: plist) else { return nil }
+    let values: [String: Any]
+    do {
+      guard
+        let read = try PropertyListSerialization.propertyList(from: data, format: nil)
+          as? [String: Any]
+      else { return nil }
+      values = read
+    } catch {
+      return nil
+    }
+    return AppInfo(
+      build: values["CFBundleVersion"] as? String,
+      installsInApplications: values["TylerInstallsInApplications"] as? Bool ?? false)
+  }
+
+  package func stageApp(
+    from source: String, nextTo destination: String
+  ) throws(DaemonError) -> String {
+    let files = FileManager.default
+    let folder = (destination as NSString).deletingLastPathComponent
+    let staged = folder + "/." + (destination as NSString).lastPathComponent + ".new"
+    do {
+      try files.createDirectory(atPath: folder, withIntermediateDirectories: true)
+      if files.fileExists(atPath: staged) { try files.removeItem(atPath: staged) }
+      try files.copyItem(atPath: source, toPath: staged)
+    } catch {
+      throw .installFailed(staged, error.localizedDescription)
+    }
+    return staged
+  }
+
+  package func replaceApp(at destination: String, with staged: String) throws(DaemonError) {
+    let files = FileManager.default
+    do {
+      if files.fileExists(atPath: destination) {
+        _ = try files.replaceItemAt(
+          URL(fileURLWithPath: destination), withItemAt: URL(fileURLWithPath: staged))
+      } else {
+        try files.moveItem(atPath: staged, toPath: destination)
+      }
+    } catch {
+      throw .installFailed(destination, error.localizedDescription)
+    }
+  }
+
   package func terminate(_ pid: Int32) -> Bool {
     kill(pid, SIGTERM) == 0
   }

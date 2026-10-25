@@ -7,10 +7,12 @@ import Testing
 struct AppLaunchTests {
   @Test func theAppIsNextToTyler() {
     let app = AppLaunch.nextTo(
-      URL(fileURLWithPath: "/opt/tyler/bin/tyler"), socketPath: "/s.sock", environment: [:],
+      URL(fileURLWithPath: "/opt/tyler/bin/tyler"), home: "/Users/x", socketPath: "/s.sock",
+      environment: [:],
       workingDirectory: "/work")
     #expect(app.path == "/opt/tyler/bin/Tyler.app")
     #expect(app.executablePath == "/opt/tyler/bin/Tyler.app/Contents/MacOS/tylerd")
+    #expect(app.installedPath == "/Users/x/Applications/Tyler.app")
   }
 
   @Test func itIsToldTheSocketAndWhatASpawnedTylerdInherited() {
@@ -19,16 +21,37 @@ struct AppLaunchTests {
       "TYLER_SOCKET": "/ignored.sock",
     ]
     let app = AppLaunch.nextTo(
-      URL(fileURLWithPath: "/bin/tyler"), socketPath: "/s.sock", environment: environment,
+      URL(fileURLWithPath: "/bin/tyler"), home: "/Users/x", socketPath: "/s.sock",
+      environment: environment,
       workingDirectory: "/work")
     #expect(
       app.environment
         == ["TYLER_SOCKET": "/s.sock", "TYLER_CONFIG": "/c.toml", "PATH": "/bin", "EDITOR": "vi"])
   }
 
+  /// tylerd reports its own path with symlinks resolved; the copy's path must compare equal.
+  @Test func theInstalledPathIsResolvedThroughASymlinkedHome() throws {
+    let files = FileManager.default
+    let root = files.temporaryDirectory.appendingPathComponent("tyler-home-\(UUID().uuidString)")
+    let real = root.appendingPathComponent("real")
+    try files.createDirectory(
+      at: real.appendingPathComponent("Applications/Tyler.app"), withIntermediateDirectories: true)
+    defer {
+      do { try files.removeItem(at: root) } catch { Issue.record("cleanup failed: \(error)") }
+    }
+    let link = root.appendingPathComponent("link")
+    try files.createSymbolicLink(at: link, withDestinationURL: real)
+    let app = AppLaunch.nextTo(
+      URL(fileURLWithPath: "/bin/tyler"), home: link.path, socketPath: "/s.sock",
+      environment: [:], workingDirectory: "/")
+    #expect(
+      app.installedPath
+        == real.appendingPathComponent("Applications/Tyler.app").resolvingSymlinksInPath().path)
+  }
+
   @Test func relativePathsAreMadeAbsoluteAgainstWhereTylerRuns() {
     let app = AppLaunch.nextTo(
-      URL(fileURLWithPath: "/bin/tyler"), socketPath: "x.sock",
+      URL(fileURLWithPath: "/bin/tyler"), home: "/Users/x", socketPath: "x.sock",
       environment: ["TYLER_CONFIG": "../conf/tyler.toml"], workingDirectory: "/work/tyler")
     #expect(app.environment["TYLER_SOCKET"] == "/work/tyler/x.sock")
     #expect(app.environment["TYLER_CONFIG"] == "/work/conf/tyler.toml")

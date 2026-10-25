@@ -18,7 +18,7 @@ package struct DaemonController {
 
   private enum StartOutcome {
     case alreadyRunning(ServerStatus)
-    case started(ServerStatus)
+    case started(ServerStatus, install: Install)
   }
 
   private enum StopOutcome {
@@ -75,8 +75,10 @@ package struct DaemonController {
     case .alreadyRunning(let status):
       try withAccess(
         "tylerd is already running (pid \(status.pid))" + staleWarning(status), of: status)
-    case .started(let status):
-      try withAccess("started tylerd (pid \(status.pid)), output in \(logPath)", of: status)
+    case .started(let status, let install):
+      try withAccess(
+        "started tylerd (pid \(status.pid)), output in \(logPath)" + Self.note(install),
+        of: status)
     }
   }
 
@@ -93,18 +95,18 @@ package struct DaemonController {
   /// app's) or none yet, and couldn't take parked windows on until it is granted.
   private func restartMessage() throws(DaemonError) -> String {
     // Before stopping: a tylerd that handed over and has no successor leaves windows parked.
-    let target = try launchTarget()
+    let target = try prepareLaunch()
     let movesElsewhere = try runningStatus().map { $0.executablePath != executablePath(target) }
     let stopped = try stop(keepingWindows: movesElsewhere != true)
     switch (stopped, try start(target)) {
     case (_, .alreadyRunning(let status)):
       return try withAccess(
         "tylerd is already running (pid \(status.pid))" + staleWarning(status), of: status)
-    case (.notRunning, .started(let status)):
+    case (.notRunning, .started(let status, let install)):
       return try withAccess(
-        "tylerd was not running; started it (pid \(status.pid)), output in \(logPath)",
-        of: status)
-    case (.stopped(let old, let keptWindows), .started(let status)):
+        "tylerd was not running; started it (pid \(status.pid)), output in \(logPath)"
+          + Self.note(install), of: status)
+    case (.stopped(let old, let keptWindows), .started(let status, let install)):
       let note =
         if keptWindows {
           ""
@@ -115,7 +117,8 @@ package struct DaemonController {
           "\n(the old tylerd could not hand over, so its windows went back where they were)"
         }
       return try withAccess(
-        "restarted tylerd (pid \(old) → \(status.pid)), output in \(logPath)" + note, of: status)
+        "restarted tylerd (pid \(old) → \(status.pid)), output in \(logPath)"
+          + Self.note(install) + note, of: status)
     }
   }
 
@@ -191,12 +194,13 @@ package struct DaemonController {
   /// Launches `target`, or what `launchTarget` finds, unless tylerd already runs.
   private func start(_ target: LaunchTarget? = nil) throws(DaemonError) -> StartOutcome {
     if let status = try runningStatus() { return .alreadyRunning(status) }
-    let pid: Int32?
+    let resolved: LaunchTarget
     if let target {
-      pid = try launch(target)
+      resolved = target
     } else {
-      pid = try launch(launchTarget())
+      resolved = try prepareLaunch()
     }
+    let (pid, install) = try launch(resolved)
     var waited = Duration.zero
     while waited < startTimeout {
       system.pause(pollInterval)
@@ -205,7 +209,7 @@ package struct DaemonController {
         throw .exitedAtStartup(log: system.lastLines(ofFile: logPath, count: 10))
       }
       switch probe() {
-      case .running(let status): return .started(status)
+      case .running(let status): return .started(status, install: install)
       case .outdated: throw .outdatedServer
       case .notRunning, .unresponsive: continue
       }
@@ -247,6 +251,9 @@ package struct DaemonController {
         "\nwarning: \(app.path) is older than the tylerd next to it; run `make build`, then "
         + "`tyler restart`"
     }
+    if isInstalledCopyOutdated(running: status) {
+      warning += "\nwarning: a new build of Tyler.app is next to tyler; run `tyler restart`"
+    }
     if status.version != TylerVersion.current {
       warning +=
         "\nwarning: tylerd is version \(status.version ?? "older than 0.1.0"), this tyler is "
@@ -261,6 +268,16 @@ package struct DaemonController {
       let current = system.modificationDate(ofFile: status.executablePath)
     else { return false }
     return current > built
+  }
+
+  private static func note(_ install: Install) -> String {
+    switch install {
+    case .none: ""
+    case .replaced(let path): "\n(copied the new build of Tyler.app to \(path))"
+    case .keptOld(let path, let reason):
+      "\n(the new build of Tyler.app couldn't be put in place, so the one at \(path) runs: "
+        + "\(reason))"
+    }
   }
 
   static func describe(uptime seconds: TimeInterval) -> String {

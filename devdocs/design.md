@@ -371,6 +371,17 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   `TYLER_SOCKET` and what a spawned tylerd inherited and uses (`TYLER_CONFIG`, `PATH`, `EDITOR`,
   `VISUAL`). The running tylerd names its app in `status` (`appName`), by its file name as System
   Settings lists it, so the advice names what to turn on.
+- **An installed Tyler.app runs from a copy in `~/Applications`, which `tyler` makes.** Spotlight
+  finds a real app there, not one under Homebrew's Cellar, nor a symlink, and shows a Finder alias
+  as "alias" (`macos-behaviour.md`, "tylerd as an app of its own"), while a formula can't install
+  outside its prefix. So `tyler start` and `restart` copy the release next to `tyler` into
+  `~/Applications` when the copy is missing or another build, and launch the copy; the path stays
+  the same across updates, so they hand over. The copy is staged beside it before `restart` stops
+  the old tylerd (a failing copy then stops nothing) and swapped in atomically once it has quit;
+  if the swap fails, the copy that was there runs, so a hand-over always has a successor. A
+  build stamp in `CFBundleVersion` tells builds apart (between releases every build has the same
+  version), and `TylerInstallsInApplications` marks a release: a development build runs where it
+  was built, so it never replaces the installed app.
 - **`tyler start` checks that tylerd can reach the windows** (`WindowAccess`). A grant can look
   fine and not work: after a restart of the Mac or a new login, a stale entry left tylerd
   tracking no windows while `status` said `tiling on`. Before tracking, tylerd needs

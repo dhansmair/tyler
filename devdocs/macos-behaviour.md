@@ -204,6 +204,11 @@ from a terminal that held Accessibility itself:
 - **From a folder under `/private/tmp` the app got no entry in the list**, although the dialog
   appeared, also after quitting and reopening System Settings. The same bundle in
   `~/Applications` was listed after its prompt.
+- **Spotlight finds a real app in `~/Applications`, and nothing else tried** (measured
+  2026-10-25, never-launched copies with their own bundle IDs, searched with `mdfind` and
+  Spotlight): one under `/opt/homebrew/Cellar/…` wasn't indexed after more than three minutes, nor
+  a symlink in `~/Applications` to one in a hidden folder; a Finder alias (a bookmark file) in
+  `~/Applications` was, but Spotlight lists it as "alias".
 - **The grant follows the bundle ID and the signature, not the path.** The same signed bundle
   copied to another folder and launched from there was trusted at once, so a new install path per
   version (Homebrew's Cellar) costs nothing by itself.

@@ -35,6 +35,7 @@ final class FakeDaemonSystem: DaemonSystem {
 
   static let serverPath = "/build/tylerd"
   static let appPath = "/build/Tyler.app"
+  static let installedAppPath = "/home/Applications/Tyler.app"
   static let logPath = "/home/.tyler/tyler.log"
   static let start = Date(timeIntervalSinceReferenceDate: 800_000_000)
 
@@ -52,6 +53,14 @@ final class FakeDaemonSystem: DaemonSystem {
   private(set) var launchedApps: [(path: String, environment: [String: String])] = []
   /// Why `open` fails, if it does.
   var launchFailure: String?
+  /// Each app's `Info.plist`, by path.
+  var appInfos: [String: AppInfo] = [:]
+  /// Why staging or putting a staged app in place fails, if it does.
+  var stageFailure: String?
+  var replaceFailure: String?
+  private(set) var staged: [String] = []
+  /// Apps put in place, and whether a server was running at the time.
+  private(set) var replaced: [(destination: String, whileRunning: Bool)] = []
   private(set) var terminated: [Int32] = []
   /// Pids asked to hand over (SIGUSR1).
   private(set) var handedOver: [Int32] = []
@@ -111,6 +120,25 @@ final class FakeDaemonSystem: DaemonSystem {
     let pid = nextPID
     nextPID += 1
     if case .answersAfter(let count) = spawnBehaviour { pendingStart = (pid, pauses + count) }
+  }
+
+  func appInfo(atPath path: String) -> AppInfo? { appInfos[path] }
+
+  func stageApp(from source: String, nextTo destination: String) throws(DaemonError) -> String {
+    if let stageFailure { throw .installFailed(destination, stageFailure) }
+    let path = destination + ".new"
+    staged.append(path)
+    appInfos[path] = appInfos[source]
+    return path
+  }
+
+  func replaceApp(at destination: String, with staged: String) throws(DaemonError) {
+    if let replaceFailure { throw .installFailed(destination, replaceFailure) }
+    var isRunning = false
+    if case .running = server { isRunning = true }
+    replaced.append((destination, isRunning))
+    appInfos[destination] = appInfos[staged]
+    executables.insert(destination + "/Contents/MacOS/tylerd")
   }
 
   func terminate(_ pid: Int32) -> Bool {

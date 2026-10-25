@@ -61,6 +61,18 @@ package final class IPCServer: @unchecked Sendable {
     thread.start()
   }
 
+  /// Whether a server answers on `path`; a leftover socket file with nobody behind it doesn't
+  /// count, and is left alone.
+  package static func isServed(path: String) -> Bool {
+    guard FileManager.default.fileExists(atPath: path) else { return false }
+    do {
+      close(try UnixSocket.openClient(path: path))
+      return true
+    } catch {
+      return false
+    }
+  }
+
   /// Stops accepting, closes the listener and removes the socket file. Safe to call twice.
   package func stop() {
     lock.lock()
@@ -80,17 +92,9 @@ package final class IPCServer: @unchecked Sendable {
 
   /// Removes a leftover socket file, unless a live server is still behind it.
   private func removeStaleSocket() throws {
-    guard FileManager.default.fileExists(atPath: path) else { return }
-    let probe: Int32
-    do {
-      probe = try UnixSocket.openClient(path: path)
-    } catch {
-      // Nobody is listening, so the file is a leftover from a crashed server.
-      unlink(path)
-      return
-    }
-    close(probe)
-    throw Failure.alreadyRunning(path)
+    if Self.isServed(path: path) { throw Failure.alreadyRunning(path) }
+    // Nobody is listening, so a file there is a leftover from a crashed server.
+    if FileManager.default.fileExists(atPath: path) { unlink(path) }
   }
 
   private var isStopping: Bool {
@@ -133,13 +137,18 @@ package final class IPCServer: @unchecked Sendable {
   private static func serve(client: Int32, handler: @escaping Handler) {
     defer { close(client) }
     let response: Response
-    if let line = UnixSocket.readLine(fd: client) {
+    switch UnixSocket.readLineOrHangUp(fd: client) {
+    case .line(let line):
       do {
         response = runBlocking(handler, on: try Wire.decode(Request.self, from: line))
       } catch {
         response = .error(describeUndecodable(line))
       }
-    } else {
+    case .hungUp:
+      // `isServed` connects and hangs up without asking; there is nobody to answer.
+      log.debug("connection closing - hung up without a request")
+      return
+    case .failed:
       response = .error("no request received")
     }
     do {

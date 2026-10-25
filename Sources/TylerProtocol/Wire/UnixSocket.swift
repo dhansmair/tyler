@@ -31,20 +31,26 @@ package enum UnixSocket {
   /// closes without a newline, and `nil` if nothing was read, on error or timeout, or if
   /// more than `maxBytes` arrive without a newline.
   package static func readLine(fd: Int32, maxBytes: Int = 1 << 20) -> Data? {
+    guard case .line(let line) = readLineOrHangUp(fd: fd, maxBytes: maxBytes) else { return nil }
+    return line
+  }
+
+  /// `readLine`, telling a peer that closed without sending anything apart from a failed read.
+  package static func readLineOrHangUp(fd: Int32, maxBytes: Int = 1 << 20) -> LineRead {
     var buffer = Data()
     var chunk = [UInt8](repeating: 0, count: 4096)
     while true {
       let count = chunk.withUnsafeMutableBytes { read(fd, $0.baseAddress, $0.count) }
       if count < 0 {
         if errno == EINTR { continue }
-        return nil
+        return .failed
       }
-      if count == 0 { return buffer.isEmpty ? nil : buffer }
+      if count == 0 { return buffer.isEmpty ? .hungUp : .line(buffer) }
       buffer.append(contentsOf: chunk[0..<count])
       if let newline = buffer.firstIndex(of: Wire.terminator) {
-        return Data(buffer[buffer.startIndex..<newline])
+        return .line(Data(buffer[buffer.startIndex..<newline]))
       }
-      if buffer.count > maxBytes { return nil }
+      if buffer.count > maxBytes { return .failed }
     }
   }
 

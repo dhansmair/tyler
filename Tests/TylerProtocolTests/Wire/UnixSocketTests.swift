@@ -88,6 +88,26 @@ struct UnixSocketTests {
     #expect(UnixSocket.readLine(fd: server) == nil)
   }
 
+  @Test func tellsAHangUpFromAFailedRead() throws {
+    let path = makeTempSocketPath()
+    defer { unlink(path) }
+    let listener = try UnixSocket.openListener(path: path)
+    defer { close(listener) }
+
+    let quiet = try UnixSocket.openClient(path: path)
+    let quietServer = accept(listener, nil, nil)
+    defer { close(quietServer) }
+    close(quiet)
+    #expect(UnixSocket.readLineOrHangUp(fd: quietServer) == .hungUp)
+
+    let talkative = try UnixSocket.openClient(path: path)
+    defer { close(talkative) }
+    let talkativeServer = accept(listener, nil, nil)
+    defer { close(talkativeServer) }
+    try UnixSocket.writeAll(fd: talkative, data: Data(repeating: 0x41, count: 3_000))
+    #expect(UnixSocket.readLineOrHangUp(fd: talkativeServer, maxBytes: 1_000) == .failed)
+  }
+
   @Test func givesUpOnOversizedLines() throws {
     let path = makeTempSocketPath()
     defer { unlink(path) }

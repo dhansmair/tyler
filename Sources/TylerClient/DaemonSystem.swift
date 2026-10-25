@@ -23,9 +23,10 @@ package protocol DaemonSystem {
   func replaceApp(at destination: String, with staged: String) throws(DaemonError)
   /// Asks a process to quit (SIGTERM). Returns whether the signal was sent.
   func terminate(_ pid: Int32) -> Bool
-  /// Asks tylerd to quit and leave its windows where they are, writing its workspaces down for
-  /// the next tylerd (SIGUSR1). Returns whether the signal was sent.
-  func requestHandOver(_ pid: Int32) -> Bool
+  /// Asks tylerd to quit and write its workspaces down for the next tylerd, leaving its windows
+  /// where they are (SIGUSR1) or `puttingWindowsBack` first (SIGUSR2). Returns whether the
+  /// signal was sent.
+  func requestHandOver(_ pid: Int32, puttingWindowsBack: Bool) -> Bool
   /// Whether a process this client spawned has already exited.
   func childHasExited(_ pid: Int32) -> Bool
   /// Whether any process with this pid exists.

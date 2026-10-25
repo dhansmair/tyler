@@ -58,27 +58,45 @@ struct DaemonControllerAppTests {
 
   /// The app holds a grant of its own, maybe none yet: until it has one, it couldn't take on the
   /// parked windows of a tylerd that ran under the terminal's.
+  /// The workspaces are handed over all the same, and come back once the app has its grant.
   @Test func restartFromTheBareTylerdToTheAppPutsTheWindowsBack() {
     let system = FakeDaemonSystem()
     system.server = .running(FakeDaemonSystem.status(pid: 77))
     let response = controller(system).run(.restart)
-    #expect(system.terminated == [77])
+    #expect(system.handedOverPuttingWindowsBack == [77])
     #expect(system.handedOver.isEmpty)
+    #expect(system.terminated.isEmpty)
     #expect(system.launchedApps.count == 1)
     #expect(
       response
         == .message(
           "restarted tylerd (pid 77 → 200), output in /home/.tyler/tyler.log\n(the new tylerd "
             + "runs from elsewhere, with a permission of its own, so the old one put its windows "
-            + "back where they were)"))
+            + "back where they were; they go back to their workspaces once it has the "
+            + "permission)"))
   }
 
   @Test func restartFromTheAppToTheBareTylerdPutsTheWindowsBack() {
     let system = FakeDaemonSystem()
     system.server = .running(FakeDaemonSystem.status(pid: 77, executablePath: app.executablePath))
     _ = controller(system, hasApp: false).run(.restart)
-    #expect(system.terminated == [77])
+    #expect(system.handedOverPuttingWindowsBack == [77])
     #expect(system.spawned.count == 1)
+  }
+
+  /// A tylerd from before SIGUSR2 would die on it without cleaning up, leaving windows parked.
+  @Test func aTylerdTooOldToPutWindowsBackOnAHandOverIsStopped() {
+    let system = FakeDaemonSystem()
+    system.server = .running(FakeDaemonSystem.status(pid: 77, putsWindowsBack: nil))
+    let response = controller(system).run(.restart)
+    #expect(system.terminated == [77])
+    #expect(system.handedOverPuttingWindowsBack.isEmpty)
+    #expect(
+      response
+        == .message(
+          "restarted tylerd (pid 77 → 200), output in /home/.tyler/tyler.log\n(the new tylerd "
+            + "runs from elsewhere, with a permission of its own, so the old one put its windows "
+            + "back where they were)"))
   }
 
   @Test func statusWarnsWhenTheRunningAppIsOlderThanTheTylerdNextToIt() {

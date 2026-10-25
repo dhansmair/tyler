@@ -7,7 +7,11 @@ extension WindowManager {
   /// Stops observing without moving any window, and returns what the next tylerd needs to carry
   /// on: a slide in progress is finished first, so the windows are where the state says. Before
   /// permission it passes on the state it was itself handed, if any.
-  package func handOver() -> SavedState? {
+  ///
+  /// With `puttingWindowsBack`, every window first goes back where it was before tylerd moved it,
+  /// as at `stop`, and the workspaces are still handed over: for a next tylerd under another
+  /// grant, which may not have it yet and couldn't move parked windows until then.
+  package func handOver(puttingWindowsBack: Bool = false) -> SavedState? {
     guard state == .running else {
       let unused = pendingRestore
       tearDown()
@@ -19,6 +23,7 @@ extension WindowManager {
       originalFrames: mover.originalFrames, seen: bookkeeping.seen,
       processIDs: Dictionary(
         registry.windows.map { ($0.id, $0.processID) }, uniquingKeysWith: { first, _ in first }))
+    if puttingWindowsBack { restoreOriginalFrames(of: registry.windows.map(\.id)) }
     tearDown()
     return saved
   }
@@ -43,6 +48,17 @@ extension WindowManager {
     interpreter = WindowEventInterpreter()
     pendingRestore = nil
     state = .waitingForPermission
+  }
+
+  /// Parks the windows of every parked workspace that are in view: all of them after a hand-over
+  /// that put the windows back, none after one that left them parked (where each keeps the size
+  /// it had, so it isn't exactly at the spot a fresh parking would give it).
+  func parkHandedOverWindows() {
+    let displays = context.displays
+    let inView = rows.windowsOnParkedWorkspaces.compactMap { registry.window(withID: $0) }
+      .filter { window in !displays.contains { Parking.isParked(window.frame, on: $0) } }
+    place(
+      inView.compactMap { tiling.parkingPlacement(of: $0.id, size: $0.frame.size) })
   }
 
   /// Takes over the workspaces a previous tylerd handed over; windows not there yet get their

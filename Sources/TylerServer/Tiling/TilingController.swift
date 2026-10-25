@@ -119,8 +119,9 @@ struct TilingController {
   /// workspace only if its membership changed: when windows only left it, the others slide into
   /// their new slots over `animations.retile`. A focused window that was just assigned to a
   /// parked workspace brings that workspace into view, so keys don't go to a parked window.
-  func reconcile(model: inout Model) -> [Effect] {
-    reconcile(model: &model, nil)
+  /// Windows in `held` keep their workspace wherever they are (see `SyncController.sync`).
+  func reconcile(model: inout Model, holding held: Set<WindowID> = []) -> [Effect] {
+    reconcile(model: &model, nil, holding: held)
   }
 
   /// A window the float command takes out of the focused workspace's list or puts into it.
@@ -137,10 +138,12 @@ struct TilingController {
   }
 
   /// `change` moves along with the windows that slide into their new slots.
-  private func reconcile(model: inout Model, _ change: FloatChange?) -> [Effect] {
+  private func reconcile(
+    model: inout Model, _ change: FloatChange?, holding held: Set<WindowID> = []
+  ) -> [Effect] {
     guard context.isTiling(model) else { return [] }
     let before = model.rows
-    let sync = SyncController(context: context).sync(model: &model)
+    let sync = SyncController(context: context).sync(model: &model, holding: held)
     if let (key, index) = sync.focusedArrival {
       model.rows.focus(key)
       let direction: ScrollDirection = index > model.rows.focused.currentIndex ? .next : .prev

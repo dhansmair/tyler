@@ -21,12 +21,6 @@ package struct DaemonController {
     case started(ServerStatus, install: Install)
   }
 
-  private enum StopOutcome {
-    case notRunning
-    /// `keptWindows` when tylerd handed its workspaces over instead of putting windows back.
-    case stopped(Int32, keptWindows: Bool)
-  }
-
   package let system: any DaemonSystem
   /// The `tylerd` that `start` runs when there is no `app`.
   package let serverPath: String
@@ -97,7 +91,7 @@ package struct DaemonController {
     // Before stopping: a tylerd that handed over and has no successor leaves windows parked.
     let target = try prepareLaunch()
     let movesElsewhere = try runningStatus().map { $0.executablePath != executablePath(target) }
-    let stopped = try stop(keepingWindows: movesElsewhere != true)
+    let stopped = try stop(movesElsewhere == true ? .handingOverPuttingWindowsBack : .handingOver)
     switch (stopped, try start(target)) {
     case (_, .alreadyRunning(let status)):
       return try withAccess(
@@ -106,14 +100,18 @@ package struct DaemonController {
       return try withAccess(
         "tylerd was not running; started it (pid \(status.pid)), output in \(logPath)"
           + Self.note(install), of: status)
-    case (.stopped(let old, let keptWindows), .started(let status, let install)):
+    case (.stopped(let old, let ending), .started(let status, let install)):
       let note =
-        if keptWindows {
-          ""
-        } else if movesElsewhere == true {
+        switch ending {
+        case .handingOver: ""
+        case .handingOverPuttingWindowsBack:
+          "\n(the new tylerd runs from elsewhere, with a permission of its own, so the old one put "
+            + "its windows back where they were; they go back to their workspaces once it has the "
+            + "permission)"
+        case .puttingWindowsBack where movesElsewhere == true:
           "\n(the new tylerd runs from elsewhere, with a permission of its own, so the old one put "
             + "its windows back where they were)"
-        } else {
+        case .puttingWindowsBack:
           "\n(the old tylerd could not hand over, so its windows went back where they were)"
         }
       return try withAccess(
@@ -182,7 +180,7 @@ package struct DaemonController {
 
   /// The running server's status, `nil` when none is running; a server that answers wrongly or
   /// not at all is an error.
-  private func runningStatus() throws(DaemonError) -> ServerStatus? {
+  func runningStatus() throws(DaemonError) -> ServerStatus? {
     switch probe() {
     case .running(let status): return status
     case .notRunning: return nil
@@ -215,24 +213,6 @@ package struct DaemonController {
       }
     }
     throw .noAnswer(pid: pid, logPath: logPath)
-  }
-
-  /// Sends SIGTERM, which runs tylerd's normal shutdown (windows go back where they were), and
-  /// waits for the process to end. With `keepingWindows`, a tylerd that supports it is asked to
-  /// hand over instead (SIGUSR1), leaving its windows where they are.
-  private func stop(keepingWindows: Bool = false) throws(DaemonError) -> StopOutcome {
-    guard let status = try runningStatus() else { return .notRunning }
-    let pid = status.pid
-    let handsOver = keepingWindows && status.keepsWindowsOnRestart == true
-    let signalled = handsOver ? system.requestHandOver(pid) : system.terminate(pid)
-    guard signalled else { throw .cannotSignal(pid) }
-    var waited = Duration.zero
-    while system.isRunning(pid) {
-      guard waited < stopTimeout else { throw .stillRunning(pid) }
-      system.pause(pollInterval)
-      waited += pollInterval
-    }
-    return .stopped(pid, keptWindows: handsOver)
   }
 
   // MARK: - Text

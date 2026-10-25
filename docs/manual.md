@@ -233,7 +233,7 @@ tyler restart
 
 `stop` asks `tylerd` to quit, which puts every window back where it was, and waits until it has. It is not an error if `tylerd` isn't running.
 
-`restart` stops `tylerd` and starts it again, keeping every window where it is and on its workspace (see [Running tylerd](#running-tylerd)): use it after `make build` or `make install`. A `tylerd` from before restarts kept windows can't hand them over; it is stopped normally, its windows go back where they were, and `restart` says so. The same happens when the new `tylerd` runs from elsewhere than the old one (from `Tyler.app` instead of the bare `tylerd`, or another copy of the app): it holds a permission of its own, maybe not yet given, and couldn't take on parked windows until then.
+`restart` stops `tylerd` and starts it again, keeping every window where it is and on its workspace (see [Running tylerd](#running-tylerd)): use it after `make build` or `make install`. A `tylerd` from before restarts kept windows can't hand them over; it is stopped normally, its windows go back where they were, and `restart` says so. When the new `tylerd` runs from elsewhere than the old one (from `Tyler.app` instead of the bare `tylerd`, or another copy of the app), it holds a permission of its own, maybe not yet given, and couldn't move parked windows until then: the old one puts every window back where it was and still hands its workspaces over, and the new one puts the windows back on their workspaces once it has the permission. `restart` says so.
 
 A `tylerd` started before these commands existed can't be stopped this way; `tyler` says so. Stop it once with `pkill tylerd` (or Ctrl-C), then use `tyler start`.
 

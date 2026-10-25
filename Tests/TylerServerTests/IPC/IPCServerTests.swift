@@ -129,6 +129,41 @@ struct IPCServerTests {
     #expect(try IPCClient(path: path).send(.ping) == .pong)
   }
 
+  @Test func aRunningServerIsSeenAsServing() throws {
+    let path = makeSocketPath()
+    let server = IPCServer(path: path) { await CommandRouter().handle($0) }
+    try server.start()
+    defer { server.stop() }
+    #expect(IPCServer.isServed(path: path))
+  }
+
+  @Test func noSocketFileIsNotServing() {
+    #expect(!IPCServer.isServed(path: makeSocketPath()))
+  }
+
+  @Test func aLeftoverSocketFileIsNotServingAndIsLeftAlone() throws {
+    let path = makeSocketPath()
+    let stale = try UnixSocket.openListener(path: path)
+    close(stale)
+    defer { unlink(path) }
+    #expect(!IPCServer.isServed(path: path))
+    #expect(FileManager.default.fileExists(atPath: path))
+  }
+
+  /// `isServed` connects and hangs up; answering it only failed, and logged an error.
+  @Test func aConnectionWithoutARequestGetsNoReply() throws {
+    let path = makeSocketPath()
+    let server = IPCServer(path: path) { await CommandRouter().handle($0) }
+    try server.start()
+    defer { server.stop() }
+    let fd = try UnixSocket.openClient(path: path)
+    defer { close(fd) }
+    UnixSocket.setReceiveTimeout(fd: fd, seconds: 5)
+    shutdown(fd, SHUT_WR)
+    #expect(UnixSocket.readLine(fd: fd) == nil)
+    #expect(try IPCClient(path: path).send(.ping) == .pong)
+  }
+
   @Test func staleSocketFileIsReplaced() throws {
     let path = makeSocketPath()
     // Simulate a crashed server: a socket file with nobody listening.

@@ -28,6 +28,13 @@ func die(_ message: String) -> Never {
   exit(1)
 }
 
+let socketPath = Paths.socketPath()
+// Before the log, the state and the menu bar: a second tylerd (Tyler.app opened from Spotlight
+// while another one runs) would empty the running one's log, and show its own items.
+if IPCServer.isServed(path: socketPath) {
+  die("socket taken - \(socketPath) - tylerd is already running")
+}
+
 // Log lines at or above `log.level` go to stderr: `tyler start` sends it to ~/.tyler/tyler.log,
 // and launched by LaunchServices, tylerd opens that file itself.
 do {
@@ -38,7 +45,6 @@ do {
 }
 LogOutput.shared.setSink { line in FileHandle.standardError.write(Data((line + "\n").utf8)) }
 
-let socketPath = Paths.socketPath()
 let statePath = Paths.statePath(socketPath: socketPath)
 let configSource = ConfigSource.file(at: Paths.configPath())
 let configLoad = configSource.load()

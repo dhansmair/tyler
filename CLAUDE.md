@@ -14,7 +14,7 @@ Windows are controlled through the macOS Accessibility API (no SIP changes). Wor
 
 **Keep this section current.** Whenever a feature is complete or its state changes (built, unit tested, checked against real windows, dropped), update it in the same commit.
 
-Every feature in `docs/manual.md` is built and unit tested, and most are in daily use on real windows (`devdocs/testing-catalogue.md` is the catalogue of checks on real windows, run before every release); the strip layout is **experimental** (`devdocs/strip-layout.md`: its state, known issues and open questions; keep it current when the strip changes). 0.1.0, the first alpha, is released (tag `v0.1.0`) and the repository is public. 0.2.0 (tag `v0.2.0`) made the install convenient: `tylerd` runs as `Tyler.app` with its own Accessibility grant, installed into `~/Applications` by `tyler start` and signed ad hoc unless built with `SIGN_ID` (a restart onto a new ad-hoc build puts the windows back, resets the stale entry and keeps the workspaces); Homebrew installs it from the tap `dhansmair/homebrew-tyler` (`tyler`, and `tyler@<version>` for each release); a pushed tag `v<version>` releases through `.github/workflows/release.yml`, which also updates the tap. 0.2.0 was released before a run of the testing catalogue. Next: `devtools/e2e`, running the catalogue's automated rows, then the catalogue run for 0.2.0.
+Every feature in `docs/manual.md` is built and unit tested, and most are in daily use on real windows; the strip layout is **experimental** (`devdocs/strip-layout.md`: its state, known issues and open questions; keep it current when the strip changes). The latest release is in `CHANGELOG.md`; how a release is made is in `devdocs/design.md` (Releases). 0.2.0 was released before a run of the testing catalogue. Next: `devtools/e2e`, running the catalogue's automated rows, then the catalogue run for 0.2.0.
 
 Where things are written down:
 - `devdocs/architecture.md`: the target architecture (the layers from input to effects, TylerCore's bounded contexts and which way their dependencies point, the rules), with a diagram, and how far the code is from it. Read it before adding a type, a folder or a dependency between parts.
@@ -77,22 +77,21 @@ Keep the executables thin. Logic goes in the libraries, and anything that touche
 make build     # swift build
 make test      # swift test with the flags below; use this, not plain `swift test`
 make test-unit / make test-scenario   # one layer of tests (devdocs/testing-strategy.md)
-make install   # release build, copied to ~/.local/bin (SIGN_ID=<identity> to codesign)
+make install   # release build, copied to ~/.local/bin (docs/install-from-source.md)
 make lint      # swift format lint and swiftlint (with TOOLCHAIN_DIR set) over the whole tree
 make check     # lint and test: what the pre-commit hook checks
 ```
 
-- **Use `make test`.** The Command Line Tools ship Swift Testing, but SwiftPM doesn't find it without extra framework and rpath flags. The Makefile passes them.
-- **`plugin for module 'TestingMacros' not found` means the testing macro plugin wasn't on the plugin path**: the Command Line Tools keep it in `usr/lib/swift/host/plugins/testing/`, which the compiler doesn't search by itself, and `TEST_FLAGS` in the Makefile adds it. Without that flag it failed every time in a fresh build directory, and only now and then in an old one (where it looked like a flake).
-- **Run the pieces by hand:** `.build/debug/tyler start` (background, log in `~/.tyler/tyler.log`) or `.build/debug/tylerd` in a terminal, then `.build/debug/tyler ping` or `tyler window list`. After `make build`, run `tyler restart`: a running `tylerd` keeps the old code, and `tyler status` warns about it. Restart keeps every window where it is (the old tylerd hands its workspaces over through `~/.tyler/tyler.state.json`); `stop` puts windows back. Set `TYLER_SOCKET=/tmp/x.sock` to use a different socket (default `~/.tyler/tyler.sock`).
-- **`tyler window list` and the tiling commands need Accessibility permission.** Grant it in System Settings > Privacy & Security > Accessibility to the terminal app that runs `tylerd`, or to `Tyler.app` when it runs as an app: with `SIGN_ID` set (`SIGN_ID := <identity>` in a git-ignored `local.mk`), `make build` builds a signed `Tyler.app` next to `tyler`, and `tyler start` launches that instead; the signature keeps the grant across rebuilds. A worktree without `local.mk` builds no bundle and runs the bare `tylerd` under the terminal's grant. Without it, `tylerd` still runs and they print instructions. **Never suggest switching off or removing that grant while `tylerd` runs**: macOS can then stop all input until a forced restart (`devdocs/macos-behaviour.md`, "Events and taps"). Say `tyler stop` first.
-- **`tylerd` tiles your windows as soon as it has permission.** Quitting it with SIGINT/SIGTERM (Ctrl-C) puts every window it moved back where it was, parked ones included. A crash or `kill -9` does not, and leaves windows of other workspaces parked at the edge of the display; the next `tyler start` tiles them again. Run `tyler tiling off` first if you want windows left alone.
+- **Use `make test`.** The Makefile adds the flags the Command Line Tools need for Swift Testing and its macro plugin; `plugin for module 'TestingMacros' not found` means they were missing.
+- **Run the pieces by hand:** `.build/debug/tyler start` (log in `~/.tyler/tyler.log`), then `.build/debug/tyler window list`. After `make build`, run `tyler restart`: a running `tylerd` keeps the old code. Restart keeps every window where it is; `stop` puts windows back. `TYLER_SOCKET=/tmp/x.sock` uses another socket.
+- **Accessibility permission** goes to `Tyler.app`, or to the terminal that runs a bare `tylerd`; which build runs which is in `docs/install-from-source.md` and the manual (Running tylerd). **Never suggest switching off or removing that grant while `tylerd` runs**: macOS can then stop all input until a forced restart (`devdocs/macos-behaviour.md`, "Events and taps"). Say `tyler stop` first.
+- **`tylerd` tiles your windows as soon as it has permission.** Stopping it puts every window back; a crash or `kill -9` leaves other workspaces' windows parked until the next `tyler start`. `tyler tiling off` leaves windows alone.
 - **Use `main`, not `master`, in Swift identifiers.** SwiftLint's `inclusive_language` rule rejects `master`. The CLI and wire format still say `master` (`ListTarget.main = "master"`).
 - macOS has no `timeout`. To bound a command that might hang, use `perl -e 'alarm N; exec @ARGV' <command>`.
-- **SwiftLint needs `TOOLCHAIN_DIR`.** Without full Xcode, plain `swiftlint` crashes looking for sourcekitd. Setting `TOOLCHAIN_DIR=/Library/Developer/CommandLineTools` fixes it (the pre-commit hook does this). `.swiftlint.yml` aligns SwiftLint with swift-format (trailing commas; `closure_parameter_position` is off because swift-format moves closure parameters to the next line when only the brace fits) and allows the short names `fd`, `id`, `ok` and `on`.
+- **SwiftLint needs `TOOLCHAIN_DIR`.** Without full Xcode, plain `swiftlint` crashes looking for sourcekitd; `make lint` and the pre-commit hook set `TOOLCHAIN_DIR=/Library/Developer/CommandLineTools`.
 - **Where swift-format and SwiftLint still disagree, write around it.** A one-element array literal whose element spans lines: SwiftLint wants a trailing comma, swift-format removes it (use a variadic parameter, or put the element on one line). A signature just over 100 columns: swift-format puts `{` on its own line, SwiftLint's `opening_brace` rejects that (shorten the signature). Also, SwiftLint's complexity limit (10) and 5-parameter limit apply: group parameters into a struct rather than splitting logic arbitrarily.
 - **Pre-commit** (`.pre-commit-config.yaml`) is installed in `.git/hooks`. A commit that touches Swift files runs format lint, SwiftLint and the tests, and is blocked if any fail. Don't bypass it with `--no-verify`.
-- **CI** (`.github/workflows/check.yml`) runs `make check` on a macOS runner with Xcode, in a fresh checkout, for every PR that isn't a draft (a draft runs it when marked ready) and every push to `main`, with SwiftLint pinned to the version used locally. It catches what a local build directory hides. When a tool changes version, update the pin in the workflow too.
+- **CI** (`.github/workflows/check.yml`) runs `make check` in a fresh checkout for every PR that isn't a draft and every push to `main`, with SwiftLint pinned to the local version: update the pin when SwiftLint changes.
 
 ## Design principles
 
@@ -116,8 +115,6 @@ These guide every change: modularity, abstraction, grouping what belongs togethe
 ## Coding guidelines
 
 @devdocs/coding-guidelines.md
-
-GCD is a documented exception, limited to `IPCServer` (blocking socket I/O), `tylerd`'s signal sources and `AppWriteQueue` (blocking Accessibility writes, a queue per app); the guidelines explain why. Don't use GCD anywhere else without asking.
 
 ## Testing notes
 

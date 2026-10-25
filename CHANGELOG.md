@@ -3,6 +3,26 @@
 tyler follows [semantic versioning](https://semver.org). Before 1.0, a minor version (0.x) may
 change commands, the config file and the socket protocol; the entry says how.
 
+## 0.2.0 (2026-10-25)
+
+An easier install.
+
+- Homebrew: `brew install --HEAD dhansmair/tyler/tyler` from the tap
+  [dhansmair/homebrew-tyler](https://github.com/dhansmair/homebrew-tyler).
+- `tylerd` runs as `Tyler.app`, with an Accessibility permission of its own instead of the
+  terminal's. `tyler start` copies it into `~/Applications`, where Spotlight finds it, and launches
+  it; opening Tyler from Spotlight starts `tylerd` too. Started that way, `tylerd` opens
+  `~/.tyler/tyler.log` itself.
+- Without a code-signing identity the app is signed ad hoc, and macOS asks for the permission again
+  after every update: `tyler restart` onto a new build puts every window back, removes the old
+  entry in System Settings, and once the permission is given the windows go back to their
+  workspaces. `make install SIGN_ID=<identity>` keeps the permission across updates.
+- A second `tylerd` started while one runs quits without touching the running one's log.
+- A floated window slides toward the middle of its display, and back when it is tiled again.
+- Fixes after a display change or a wake: windows are placed only once the screen is unlocked, a
+  window isn't forgotten because a move failed while the screen was locked, and windows missed
+  while the displays settled are found.
+
 ## 0.1.0 (2026-10-21)
 
 The first alpha release.

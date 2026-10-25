@@ -1,6 +1,7 @@
 # A pushed tag v<version> makes the GitHub release, with the version's CHANGELOG.md entry as its
-# notes. The tag must name the version TylerVersion says, and the release must build. Releases ship as source (devdocs/design.md,
-# Releases), so nothing is attached beyond GitHub's own source archives.
+# notes; v<version>-<suffix> (v0.2.0-pre) makes a pre-release of that version. The tag must name
+# the version TylerVersion says, and the release must build. Releases ship as source
+# (devdocs/design.md, Releases), so nothing is attached beyond GitHub's own source archives.
 name: release
 
 on:
@@ -27,5 +28,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          prerelease=""
+          case "$GITHUB_REF_NAME" in *-*) prerelease="--prerelease" ;; esac
           gh release create "$GITHUB_REF_NAME" --verify-tag --title "tyler ${GITHUB_REF_NAME#v}" \
-            --notes-file "$RUNNER_TEMP/notes.md"
+            --notes-file "$RUNNER_TEMP/notes.md" $prerelease

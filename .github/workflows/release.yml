@@ -2,7 +2,8 @@
 # notes; v<version>-<suffix> (v0.2.0-pre) makes a pre-release of that version. The tag must name
 # the version TylerVersion says, and the release must build. Releases ship as source
 # (devdocs/design.md, Releases), so nothing is attached beyond GitHub's own source archives. A
-# release (not a pre-release) then points the formula in the Homebrew tap at the tag's archive.
+# release (not a pre-release) then points the formula in the Homebrew tap at the tag's archive,
+# and adds a formula that stays at this version (tyler@<version>).
 name: release
 
 on:
@@ -58,14 +59,15 @@ jobs:
           token: ${{ env.TAP_TOKEN }}
           path: tap
 
-      - name: Point the formula at the release
+      - name: Point the tap at the release
         if: ${{ env.TAP_TOKEN != '' }}
         run: |
           checksum=$(curl -fsSL "https://github.com/dhansmair/tyler/archive/refs/tags/$GITHUB_REF_NAME.tar.gz" \
             | shasum -a 256 | cut -d' ' -f1)
-          devtools/update-formula tap/Formula/tyler.rb "$GITHUB_REF_NAME" "$checksum"
+          devtools/update-tap tap "$GITHUB_REF_NAME" "$checksum"
           cd tap
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "tyler ${GITHUB_REF_NAME#v}"
+          git add Formula
+          git commit -m "tyler ${GITHUB_REF_NAME#v}"
           git push

@@ -462,8 +462,8 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
 - **A Homebrew tap that builds from source** (`dhansmair/homebrew-tyler`). The formula builds the
   binaries and an ad-hoc signed `Tyler.app` into `libexec`, and links only `tyler` into `bin`:
   `tyler` finds the app next to its own binary once the symlink is resolved, and an app in `bin`
-  would be linked into Homebrew's `bin` too. Until a release has the app bundle, it builds `main`
-  (`--HEAD`).
+  would be linked into Homebrew's `bin` too. `tyler@<version>` stays at one release, keg-only as
+  Homebrew wants a versioned formula.
 - **A pushed tag makes the release.** `.github/workflows/release.yml` runs on a tag `v<version>`:
   `devtools/release-notes` refuses a tag whose version isn't `TylerVersion`'s or whose
   `CHANGELOG.md` entry is missing or still `(unreleased)`, the release is built, and the GitHub
@@ -472,7 +472,8 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   `v<version>-<suffix>` (`v0.2.0-pre`) makes a GitHub pre-release of that version, to try a
   release before dating it: its entry may still be `(unreleased)`, and the build still reports
   plain `<version>`, which `TylerVersionTests` keeps to `x.y.z`. A release, not a pre-release,
-  then points the formula at the tag's source archive (`devtools/update-formula`), with a token
+  then points the formula at the tag's source archive and adds `tyler@<version>`, a formula that
+  stays at that version (`devtools/update-tap`), with a token
   in the secret `HOMEBREW_TAP_TOKEN` that can write to the tap only; without it the formula stays
   as it is.
 - **The history was squashed before the repository went public**: it named the developer's own

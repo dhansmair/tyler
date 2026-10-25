@@ -464,6 +464,14 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   `tyler` finds the app next to its own binary once the symlink is resolved, and an app in `bin`
   would be linked into Homebrew's `bin` too. Until a release has the app bundle, it builds `main`
   (`--HEAD`).
+- **A pushed tag makes the release.** `.github/workflows/release.yml` runs on a tag `v<version>`:
+  `devtools/release-notes` refuses a tag whose version isn't `TylerVersion`'s or whose
+  `CHANGELOG.md` entry is missing or still `(unreleased)`, the release is built, and the GitHub
+  release gets that entry as its notes. So a release is a commit that sets the version and dates
+  its entry, merged, then `git tag v<version> && git push origin v<version>`. A tag
+  `v<version>-<suffix>` (`v0.2.0-pre`) makes a GitHub pre-release of that version, to try a
+  release before dating it: its entry may still be `(unreleased)`, and the build still reports
+  plain `<version>`, which `TylerVersionTests` keeps to `x.y.z`.
 - **The history was squashed before the repository went public**: it named the developer's own
   setup in commit messages and old devdocs. The rule against that is in `CLAUDE.md`.
 - **`CLAUDE.md`, `.claude/` and `devtools/` are published**: they are the honest record of how

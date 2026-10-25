@@ -1,7 +1,8 @@
 # A pushed tag v<version> makes the GitHub release, with the version's CHANGELOG.md entry as its
 # notes; v<version>-<suffix> (v0.2.0-pre) makes a pre-release of that version. The tag must name
 # the version TylerVersion says, and the release must build. Releases ship as source
-# (devdocs/design.md, Releases), so nothing is attached beyond GitHub's own source archives.
+# (devdocs/design.md, Releases), so nothing is attached beyond GitHub's own source archives. A
+# release (not a pre-release) then points the formula in the Homebrew tap at the tag's archive.
 name: release
 
 on:
@@ -32,3 +33,39 @@ jobs:
           case "$GITHUB_REF_NAME" in *-*) prerelease="--prerelease" ;; esac
           gh release create "$GITHUB_REF_NAME" --verify-tag --title "tyler ${GITHUB_REF_NAME#v}" \
             --notes-file "$RUNNER_TEMP/notes.md" $prerelease
+
+  homebrew:
+    needs: release
+    if: ${{ !contains(github.ref_name, '-') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # A fine-grained token with Contents read and write on dhansmair/homebrew-tyler only: the
+      # workflow's own token can't push to another repository.
+      TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+    steps:
+      - name: Without a token
+        if: ${{ env.TAP_TOKEN == '' }}
+        run: echo "::notice::HOMEBREW_TAP_TOKEN isn't set, so the formula stays as it is"
+
+      - uses: actions/checkout@v7
+        if: ${{ env.TAP_TOKEN != '' }}
+
+      - uses: actions/checkout@v7
+        if: ${{ env.TAP_TOKEN != '' }}
+        with:
+          repository: dhansmair/homebrew-tyler
+          token: ${{ env.TAP_TOKEN }}
+          path: tap
+
+      - name: Point the formula at the release
+        if: ${{ env.TAP_TOKEN != '' }}
+        run: |
+          checksum=$(curl -fsSL "https://github.com/dhansmair/tyler/archive/refs/tags/$GITHUB_REF_NAME.tar.gz" \
+            | shasum -a 256 | cut -d' ' -f1)
+          devtools/update-formula tap/Formula/tyler.rb "$GITHUB_REF_NAME" "$checksum"
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "tyler ${GITHUB_REF_NAME#v}"
+          git push

@@ -53,25 +53,13 @@ With [Homebrew](https://brew.sh), from the tap
 brew install dhansmair/tyler/tyler   # builds the latest release from source, about a minute
 ```
 
-`tyler@<version>` stays at one release, and `--HEAD` builds `main` (see the tap's README).
+`tyler@<version>` stays at one release, and `--HEAD` builds `main` (see the tap's README). To
+build it yourself, see [Installing from source](docs/install-from-source.md).
 
-Or from source:
-
-```bash
-git clone https://github.com/dhansmair/tyler.git
-cd tyler
-make install          # builds a release and copies tyler and tylerd to ~/.local/bin
-```
-
-Add `~/.local/bin` to your `PATH` if it isn't there yet (for zsh, in `~/.zshrc`:
-`export PATH="$HOME/.local/bin:$PATH"`). `make install PREFIX=/some/dir` installs elsewhere.
-
-Either way, `Tyler.app` comes with it: `tylerd` runs as an app with its own Accessibility
-permission (see the [manual](docs/manual.md#running-tylerd)), and `tyler start` copies it into
-`~/Applications`, so you can also start it from Spotlight. Built without a code-signing identity,
-the app is signed ad hoc, and macOS treats every update as a new app: it asks for the permission
-again after each one. From source, with an identity of your own (a self-signed one is enough),
-`make install SIGN_ID=<identity>` keeps the permission across updates.
+`Tyler.app` comes with it: `tylerd` runs as an app with its own Accessibility permission (see the
+[manual](docs/manual.md#running-tylerd)), and `tyler start` copies it into `~/Applications`, so you
+can also start it from Spotlight. The app is signed ad hoc, and macOS treats every update as a new
+app: it asks for the permission again after each one.
 
 Then start it:
 
@@ -89,13 +77,13 @@ tyler start
 ### Updating
 
 ```bash
-brew upgrade tyler                # or, from source: git pull && make install
-tyler restart                     # windows stay where they are
+brew upgrade tyler
+tyler restart         # windows stay where they are
 ```
 
-Signed ad hoc (without `SIGN_ID`), the new build needs the permission again: `tyler restart` puts
-every window back where it was, resets the old entry in System Settings, and macOS asks; once you
-turn `Tyler.app` on, the windows go back to their workspaces.
+The new build needs the permission again: `tyler restart` puts every window back where it was,
+resets the old entry in System Settings, and macOS asks; once you turn `Tyler.app` on, the windows
+go back to their workspaces.
 
 ### Starting at login
 
@@ -106,23 +94,17 @@ shell do it, for example in `~/.zprofile`:
 tyler start >/dev/null 2>&1   # does nothing if tylerd already runs
 ```
 
-Without `Tyler.app` (a `make build` without `SIGN_ID`, see the manual), start it from the terminal
-app that has the Accessibility permission.
-
 ### Uninstalling
 
 ```bash
 tyler stop                                   # puts every window back
-tccutil reset Accessibility io.github.dhansmair.tyler   # Tyler.app's permission, if you installed it
-brew uninstall tyler                         # or, from source:
-# rm -r ~/.local/bin/tyler ~/.local/bin/tylerd ~/.local/bin/Tyler.app
+tccutil reset Accessibility io.github.dhansmair.tyler   # Tyler.app's permission
+brew uninstall tyler
 rm -r ~/Applications/Tyler.app
 rm -r ~/.tyler ~/.config/tyler               # the socket, log and config
 ```
 
 Reset the permission before deleting the app: `tccutil` only finds an app that is still there.
-Without `Tyler.app`, remove your terminal from the Accessibility list instead, if nothing else
-needs it.
 
 ## Keybindings
 

@@ -458,7 +458,12 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   in `TylerRuntime`, holds the version.
 - **Releases ship as source**, installed with `make install`. A prebuilt binary needs a Developer
   ID and notarization to get past Gatekeeper, and an unsigned or ad-hoc-signed one loses its
-  Accessibility grant on every update. A Homebrew tap is the next step.
+  Accessibility grant on every update.
+- **A Homebrew tap that builds from source** (`dhansmair/homebrew-tyler`). The formula builds the
+  binaries and an ad-hoc signed `Tyler.app` into `libexec`, and links only `tyler` into `bin`:
+  `tyler` finds the app next to its own binary once the symlink is resolved, and an app in `bin`
+  would be linked into Homebrew's `bin` too. Until a release has the app bundle, it builds `main`
+  (`--HEAD`).
 - **The history was squashed before the repository went public**: it named the developer's own
   setup in commit messages and old devdocs. The rule against that is in `CLAUDE.md`.
 - **`CLAUDE.md`, `.claude/` and `devtools/` are published**: they are the honest record of how

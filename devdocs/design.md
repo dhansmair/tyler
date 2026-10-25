@@ -359,6 +359,18 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   `service install` is left for later. Started by LaunchServices (`open`, a login item), tylerd's
   output goes to /dev/null, so then tylerd opens the log itself (`LogFile`); a terminal or a pipe
   keeps its output.
+- **tylerd as an app of its own, when signed.** A `Tyler.app` next to `tyler` (`Info.plist` from
+  `packaging/`, built by `devtools/make-app`) is launched with `open -n -g`, so launchd starts it
+  and it holds its own Accessibility grant, under the bundle ID and signature, not the path
+  (`macos-behaviour.md`, "tylerd as an app of its own"); `-g` keeps the focus where it is. `make`
+  builds it only with `SIGN_ID`: an ad-hoc signature is the code's hash, so every build would need
+  the grant again, and until a restart onto a new build puts windows back first, a restart would
+  leave them parked meanwhile. Without `SIGN_ID`, an old bundle is removed and the bare tylerd runs
+  under the terminal's grant. Development builds use the bundle ID `….tyler.dev`, so their grant
+  and an installed tylerd's don't collide. `open` passes no environment, so the client hands on
+  `TYLER_SOCKET` and what a spawned tylerd inherited and uses (`TYLER_CONFIG`, `PATH`, `EDITOR`,
+  `VISUAL`). The running tylerd names its app in `status` (`appName`), by its file name as System
+  Settings lists it, so the advice names what to turn on.
 - **`tyler start` checks that tylerd can reach the windows** (`WindowAccess`). A grant can look
   fine and not work: after a restart of the Mac or a new login, a stale entry left tylerd
   tracking no windows while `status` said `tiling on`. Before tracking, tylerd needs

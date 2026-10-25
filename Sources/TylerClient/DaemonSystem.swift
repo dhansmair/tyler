@@ -10,6 +10,9 @@ package protocol DaemonSystem {
   /// Starts `executable` in the background, detached from the terminal, with its output going
   /// to `logPath`. Returns its pid.
   func spawn(_ executable: String, logPath: String) throws(DaemonError) -> Int32
+  /// Launches the app at `path` through LaunchServices, in a new instance and without taking the
+  /// focus, with `environment`; returns once it has been launched. tylerd opens its own log then.
+  func launchApp(_ path: String, environment: [String: String]) throws(DaemonError)
   /// Asks a process to quit (SIGTERM). Returns whether the signal was sent.
   func terminate(_ pid: Int32) -> Bool
   /// Asks tylerd to quit and leave its windows where they are, writing its workspaces down for

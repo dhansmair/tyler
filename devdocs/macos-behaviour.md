@@ -198,6 +198,9 @@ from a terminal that held Accessibility itself:
   `AXIsProcessTrusted()` said no although the terminal had the grant.
 - **The prompt works for an `LSUIElement` app**: `AXIsProcessTrustedWithOptions` with the prompt
   option showed the system's dialog.
+- **System Settings lists the app by its file name** (`Tyler.app`), not by `CFBundleName`
+  (measured 2026-10-25 with a bundle named "Tyler (development)" in its `Info.plist`, launched
+  from the build folder of a checkout, which was listed).
 - **From a folder under `/private/tmp` the app got no entry in the list**, although the dialog
   appeared, also after quitting and reopening System Settings. The same bundle in
   `~/Applications` was listed after its prompt.

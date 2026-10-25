@@ -60,6 +60,8 @@ One display, `tall`, a few windows on two workspaces.
 | yes | LIFE-LOCKED-RESTART | `sleep 10; tyler restart` with a workspace in the strip, then lock the screen; unlock | Every window is back on its workspace and in its place, nothing moves, and `tyler stop` still puts them back | macOS | RestartScenarios |
 | yes | LIFE-PERMISSION | After a new login, `tyler start`; then `tyler stop`, switch the terminal's Accessibility off, `tyler start` | `status` reports `access sees the windows`; without the grant, the start fails with the fix | process | WindowAccessScenarios |
 | yes | LIFE-INSTALL | `make install`, `tyler restart` from `~/.local/bin` | Every event tap works (a swipe, focus follows mouse, a modifier drag) without a new permission prompt | process | |
+| yes | LIFE-APP | With a code-signing identity: `make install SIGN_ID=<identity>`, `~/.local/bin/tyler start`, turn on `Tyler.app`; then `make install` of a changed build and `tyler restart` | The dialog appears and `Tyler.app` is listed; once on, tylerd tiles by itself; the update restarts without a new prompt and nothing moves; every event tap works | process | DaemonControllerAppTests |
+| yes | LIFE-APP-SWITCH | `tyler restart` from a tylerd under the terminal's grant onto `Tyler.app`, and back (`make install` without `SIGN_ID`, `tyler restart`) | Each time the old tylerd puts its windows back first and `restart` says why; the new one tiles once it has its grant | process | DaemonControllerAppTests |
 | yes | LIFE-FRESH | A fresh clone on another user account, following the README word for word | It builds, installs, asks for the grant and tiles | process | |
 
 Never switch the grant off while tylerd runs: macOS can then stop all input until a forced

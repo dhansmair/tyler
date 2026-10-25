@@ -77,6 +77,9 @@ case .daemon(let command):
   let controller = DaemonController(
     system: ProcessDaemonSystem(),
     serverPath: DaemonController.serverPath(nextTo: client),
-    logPath: Paths.logPath())
+    logPath: Paths.logPath(),
+    app: AppLaunch.nextTo(
+      client, socketPath: Paths.socketPath(), environment: ProcessInfo.processInfo.environment,
+      workingDirectory: FileManager.default.currentDirectoryPath))
   show(controller.run(command))
 }

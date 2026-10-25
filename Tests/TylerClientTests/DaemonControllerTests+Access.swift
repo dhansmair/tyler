@@ -24,7 +24,7 @@ struct DaemonControllerAccessTests {
   @Test(arguments: [WindowAccess.notTrusted, .refused, .blind])
   func startFailsWithTheFixWhenTylerdCanNotReachTheWindows(access: WindowAccess) throws {
     let (response, system) = run(.start, reports: [access])
-    let problem = try #require(access.problem)
+    let problem = try #require(access.problem(app: nil))
     #expect(response == .error(started + "\n" + problem))
     #expect(system.terminated.isEmpty, "tylerd keeps running")
   }
@@ -36,7 +36,7 @@ struct DaemonControllerAccessTests {
 
   @Test func startWaitsForAppsThatHaveNotAnsweredYet() {
     let (response, system) = run(.start, reports: [.checking, .checking, .blind])
-    #expect(response == .error(started + "\n" + (WindowAccess.blind.problem ?? "")))
+    #expect(response == .error(started + "\n" + (WindowAccess.blind.problem(app: nil) ?? "")))
     #expect(system.pauses == 4, "2 until tylerd answers, 2 until the apps have")
   }
 
@@ -57,7 +57,8 @@ struct DaemonControllerAccessTests {
     let (response, _) = run(.start, reports: [.refused], running: true)
     #expect(
       response
-        == .error("tylerd is already running (pid 77)\n" + (WindowAccess.refused.problem ?? "")))
+        == .error(
+          "tylerd is already running (pid 77)\n" + (WindowAccess.refused.problem(app: nil) ?? "")))
   }
 
   @Test func restartChecksTheNewTylerd() {
@@ -66,7 +67,7 @@ struct DaemonControllerAccessTests {
       return
     }
     #expect(text.hasPrefix("restarted tylerd (pid 77 → 200)"))
-    #expect(text.hasSuffix(WindowAccess.notTrusted.problem ?? ""))
+    #expect(text.hasSuffix(WindowAccess.notTrusted.problem(app: nil) ?? ""))
   }
 
   @Test func statusShowsTheAccessAndWhatToFix() {

@@ -1,6 +1,16 @@
 PREFIX ?= $(HOME)/.local/bin
-# Optional code-signing identity, e.g. `make install SIGN_ID=tyler-dev`.
+# Optional code-signing identity, e.g. `make install SIGN_ID=tyler-dev`, or set once in local.mk
+# (git-ignored). With one, `build` and `install` also build Tyler.app, which tylerd runs as with a
+# grant of its own; without, tylerd runs under the terminal's grant (devdocs/design.md, Releases).
 SIGN_ID ?=
+-include local.mk
+
+APP_ID := io.github.dhansmair.tyler
+# Builds Tyler.app in the bin folder $(1) with bundle ID $(2) and name $(3), or removes an old one
+# so `tyler` doesn't launch it. Only signed: an ad-hoc bundle would need the grant after each build.
+define bundle
+	$(if $(SIGN_ID),devtools/make-app "$(1)" "$(2)" "$(3)" "$(SIGN_ID)",rm -rf "$(1)/Tyler.app")
+endef
 
 # The Command Line Tools ship Swift Testing, but SwiftPM doesn't search for it there, nor for its
 # macro plugin, which sits in a folder of its own. Only for them: Xcode finds its own, and a
@@ -20,6 +30,7 @@ endif
 
 build:
 	swift build
+	$(call bundle,$(shell swift build --show-bin-path),$(APP_ID).dev,Tyler (development))
 
 test:
 	swift test $(TEST_FLAGS)
@@ -45,12 +56,15 @@ check: lint test
 release:
 	swift build -c release --product tyler
 	swift build -c release --product tylerd
+	$(call bundle,$(shell swift build -c release --show-bin-path),$(APP_ID),Tyler)
 
 install: release
 	mkdir -p $(PREFIX)
 	cp .build/release/tyler .build/release/tylerd $(PREFIX)/
+	rm -rf $(PREFIX)/Tyler.app
 ifneq ($(SIGN_ID),)
 	codesign --force --sign "$(SIGN_ID)" $(PREFIX)/tyler $(PREFIX)/tylerd
+	cp -R .build/release/Tyler.app $(PREFIX)/
 endif
 	@echo "installed to $(PREFIX)"
 

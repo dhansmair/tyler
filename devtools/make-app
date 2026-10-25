@@ -1,0 +1,23 @@
+#!/bin/sh
+# Builds Tyler.app next to the tylerd in <bin dir>: packaging/Info.plist with the bundle ID, name
+# and version set, the bundle signed with <sign id>. `tyler start` launches it from there.
+#
+#   devtools/make-app <bin dir> <bundle id> <name> <sign id>
+set -eu
+[ $# -eq 4 ] || { echo "usage: $0 <bin dir> <bundle id> <name> <sign id>" >&2; exit 2; }
+bin=$1 id=$2 name=$3 sign=$4
+root=$(cd "$(dirname "$0")/.." && pwd)
+app="$bin/Tyler.app"
+version=$("$bin/tyler" --version | sed 's/^tyler //')
+
+rm -rf "$app"
+mkdir -p "$app/Contents/MacOS"
+cp "$bin/tylerd" "$app/Contents/MacOS/tylerd"
+plist="$app/Contents/Info.plist"
+cp "$root/packaging/Info.plist" "$plist"
+plutil -replace CFBundleIdentifier -string "$id" "$plist"
+plutil -replace CFBundleName -string "$name" "$plist"
+plutil -replace CFBundleShortVersionString -string "$version" "$plist"
+plutil -replace CFBundleVersion -string "$version" "$plist"
+codesign --force --sign "$sign" "$app"
+echo "built $app ($id, signed by $sign)"

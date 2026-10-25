@@ -198,6 +198,9 @@ from a terminal that held Accessibility itself:
   `AXIsProcessTrusted()` said no although the terminal had the grant.
 - **The prompt works for an `LSUIElement` app**: `AXIsProcessTrustedWithOptions` with the prompt
   option showed the system's dialog.
+- **System Settings lists the app by its file name** (`Tyler.app`), not by `CFBundleName`
+  (measured 2026-10-25 with a bundle named "Tyler (development)" in its `Info.plist`, launched
+  from the build folder of a checkout, which was listed).
 - **From a folder under `/private/tmp` the app got no entry in the list**, although the dialog
   appeared, also after quitting and reopening System Settings. The same bundle in
   `~/Applications` was listed after its prompt.
@@ -210,6 +213,11 @@ from a terminal that held Accessibility itself:
 - **`tccutil reset Accessibility <bundle id>` works without `sudo`**, run while no tylerd was
   running. It prints its "Successfully reset" line twice even for one entry. The next launch
   prompted again.
+- **`tccutil reset` finds the bundle ID through LaunchServices** (measured 2026-10-25): with the
+  app deleted, or rebuilt in place but not yet launched, it failed with `No such bundle
+  identifier` (OSStatus -10814) and left the entry in System Settings; after `lsregister -f` on
+  the bundle it succeeded. Launching an app registers it. So reset before deleting an app, and
+  register a new one before resetting its entry.
 - **A grant given while tylerd waits** was picked up by the waiting process within its one-second
   check after the reset; the first time (the very first entry for the bundle ID) it wasn't, and only
   a relaunch made tylerd trusted. Why the two differed isn't known.

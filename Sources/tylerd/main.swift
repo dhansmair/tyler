@@ -118,7 +118,9 @@ let status = ServerStatus(
   startedAt: Date(),
   configPath: configSource.path,
   keepsWindowsOnRestart: true,
-  version: TylerVersion.current
+  version: TylerVersion.current,
+  // System Settings lists the app by its file name, not its `CFBundleName` (measured).
+  appName: Bundle.main.bundleIdentifier == nil ? nil : Bundle.main.bundleURL.lastPathComponent
 )
 let router = CommandRouter(manager: manager, status: status) { openConfigFile() }
 indicatorRouter = router

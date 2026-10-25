@@ -5,9 +5,12 @@ package enum DaemonError: Error, Equatable, Sendable, CustomStringConvertible {
   case unresponsive
   case notRunning
   case missingServer(String)
+  /// The `Tyler.app` at this path holds an older `tylerd` than the one next to it.
+  case staleApp(String)
   case spawnFailed(String)
   case exitedAtStartup(log: String)
-  case noAnswer(pid: Int32, logPath: String)
+  /// `pid` is `nil` for an app launched through LaunchServices, which doesn't say it.
+  case noAnswer(pid: Int32?, logPath: String)
   case cannotSignal(Int32)
   case stillRunning(Int32)
   /// tylerd runs (`report` says so) but can't reach the windows.
@@ -24,12 +27,15 @@ package enum DaemonError: Error, Equatable, Sendable, CustomStringConvertible {
       "tylerd is not running"
     case .missingServer(let path):
       "cannot find tylerd at \(path) (tyler starts the tylerd in its own folder)"
+    case .staleApp(let path):
+      "\(path) is older than the tylerd next to it; rebuild it with `make build` (or "
+        + "`make install`), or remove it to run that tylerd under the terminal's permission"
     case .spawnFailed(let reason):
       "cannot start tylerd: \(reason)"
     case .exitedAtStartup(let log):
       "tylerd exited right after starting" + (log.isEmpty ? "" : ":\n" + log)
     case .noAnswer(let pid, let logPath):
-      "tylerd (pid \(pid)) started but did not answer; see \(logPath)"
+      "tylerd\(pid.map { " (pid \($0))" } ?? "") started but did not answer; see \(logPath)"
     case .cannotSignal(let pid):
       "cannot signal tylerd (pid \(pid))"
     case .stillRunning(let pid):

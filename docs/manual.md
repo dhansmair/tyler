@@ -66,7 +66,9 @@ tyler stop
 
 You can also run `tylerd` yourself in a terminal, which keeps its output there; that's handy for debugging.
 
-`tylerd` needs Accessibility permission. macOS grants it to the app that starts `tylerd`, so grant it in System Settings > Privacy & Security > Accessibility to the terminal you run `tyler start` (or `tylerd`) in. Without it, `tylerd` still runs and answers `tyler ping`, and the other commands print what to do. Once you grant the permission, `tylerd` picks it up within a second; you don't have to restart it. It also waits, and says so, while macOS refuses its Accessibility calls although the permission is on (a stale entry; see [Troubleshooting](troubleshooting.md#nothing-is-tiled-or-commands-say-there-is-no-permission)), and while the screen is locked, when macOS shows it no windows.
+**As an app.** If a `Tyler.app` sits in the same folder as `tyler` (`make install SIGN_ID=<identity>` puts it there, see the README), `tyler start` launches it instead, through macOS, without taking the focus. `tylerd` then runs as an app of its own and needs the permission for `Tyler.app`, not for the terminal, and `tylerd` opens `~/.tyler/tyler.log` itself. `tyler start` hands it `TYLER_SOCKET`, `TYLER_CONFIG`, `PATH`, `EDITOR` and `VISUAL`, which macOS wouldn't pass on. If the `tylerd` inside `Tyler.app` is older than the one beside it (after a plain `swift build`), `start` refuses and says how to rebuild it.
+
+`tylerd` needs Accessibility permission. macOS grants it to the app that starts `tylerd`, so grant it in System Settings > Privacy & Security > Accessibility to the terminal you run `tyler start` (or `tylerd`) in, or to `Tyler.app` when `tylerd` runs as an app. Without it, `tylerd` still runs and answers `tyler ping`, and the other commands print what to do. Once you grant the permission, `tylerd` picks it up within a second; you don't have to restart it. It also waits, and says so, while macOS refuses its Accessibility calls although the permission is on (a stale entry; see [Troubleshooting](troubleshooting.md#nothing-is-tiled-or-commands-say-there-is-no-permission)), and while the screen is locked, when macOS shows it no windows.
 
 Run `tyler stop` before you switch off or remove that permission: taking it away while `tylerd` runs can stop all keyboard and mouse input until a forced restart (see [Troubleshooting](troubleshooting.md#nothing-is-tiled-or-commands-say-there-is-no-permission)). If the permission is switched off anyway, `tylerd` stops watching the mouse at once, leaves every window where it is and waits for the permission; once it is back, `tylerd` carries on with its workspaces.
 
@@ -231,7 +233,7 @@ tyler restart
 
 `stop` asks `tylerd` to quit, which puts every window back where it was, and waits until it has. It is not an error if `tylerd` isn't running.
 
-`restart` stops `tylerd` and starts it again, keeping every window where it is and on its workspace (see [Running tylerd](#running-tylerd)): use it after `make build` or `make install`. A `tylerd` from before restarts kept windows can't hand them over; it is stopped normally, its windows go back where they were, and `restart` says so.
+`restart` stops `tylerd` and starts it again, keeping every window where it is and on its workspace (see [Running tylerd](#running-tylerd)): use it after `make build` or `make install`. A `tylerd` from before restarts kept windows can't hand them over; it is stopped normally, its windows go back where they were, and `restart` says so. The same happens when the new `tylerd` runs from elsewhere than the old one (from `Tyler.app` instead of the bare `tylerd`, or another copy of the app): it holds a permission of its own, maybe not yet given, and couldn't take on parked windows until then.
 
 A `tylerd` started before these commands existed can't be stopped this way; `tyler` says so. Stop it once with `pkill tylerd` (or Ctrl-C), then use `tyler start`.
 

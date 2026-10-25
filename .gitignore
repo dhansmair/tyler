@@ -5,3 +5,4 @@
 .vscode/
 plans/
 local/
+local.mk

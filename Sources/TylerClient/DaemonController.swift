@@ -5,9 +5,9 @@ import TylerRuntime
 
 /// Starts, stops and inspects the `tylerd` process for `tyler start|stop|restart|status`.
 ///
-/// `start` launches the `tylerd` next to the `tyler` binary as a detached child. Accessibility
-/// permission belongs to the app responsible for a process, which stays the terminal (or
-/// whatever runs `tyler`), so a rebuilt `tylerd` needs no new permission.
+/// `start` launches the `Tyler.app` next to the `tyler` binary through LaunchServices, so it holds
+/// its own Accessibility grant. Without one, it runs the `tylerd` there as a detached child,
+/// whose grant is the terminal's (or whatever runs `tyler`).
 package struct DaemonController {
   private enum Probe {
     case notRunning
@@ -28,9 +28,10 @@ package struct DaemonController {
   }
 
   package let system: any DaemonSystem
-  /// The `tylerd` that `start` launches.
+  /// The `tylerd` that `start` runs when there is no `app`.
   package let serverPath: String
   package let logPath: String
+  package let app: AppLaunch?
   var startTimeout: Duration = .seconds(10)
   var stopTimeout: Duration = .seconds(10)
   /// How long `start` waits for apps that haven't answered tylerd yet: it tries each again for
@@ -38,10 +39,13 @@ package struct DaemonController {
   var accessTimeout: Duration = .seconds(4)
   var pollInterval: Duration = .milliseconds(100)
 
-  package init(system: any DaemonSystem, serverPath: String, logPath: String) {
+  package init(
+    system: any DaemonSystem, serverPath: String, logPath: String, app: AppLaunch? = nil
+  ) {
     self.system = system
     self.serverPath = serverPath
     self.logPath = logPath
+    self.app = app
   }
 
   /// The `tylerd` in the same folder as the `tyler` binary at `client`, after resolving
@@ -84,10 +88,15 @@ package struct DaemonController {
   }
 
   /// Restarts without losing the arrangement: the old tylerd hands its workspaces over and the
-  /// new one carries on. A tylerd too old to hand over is stopped normally instead.
+  /// new one carries on. A tylerd too old to hand over is stopped normally instead, and so is one
+  /// whose successor runs from elsewhere: that may hold another grant (the terminal's, another
+  /// app's) or none yet, and couldn't take parked windows on until it is granted.
   private func restartMessage() throws(DaemonError) -> String {
-    let stopped = try stop(keepingWindows: true)
-    switch (stopped, try start()) {
+    // Before stopping: a tylerd that handed over and has no successor leaves windows parked.
+    let target = try launchTarget()
+    let movesElsewhere = try runningStatus().map { $0.executablePath != executablePath(target) }
+    let stopped = try stop(keepingWindows: movesElsewhere != true)
+    switch (stopped, try start(target)) {
     case (_, .alreadyRunning(let status)):
       return try withAccess(
         "tylerd is already running (pid \(status.pid))" + staleWarning(status), of: status)
@@ -97,8 +106,14 @@ package struct DaemonController {
         of: status)
     case (.stopped(let old, let keptWindows), .started(let status)):
       let note =
-        keptWindows
-        ? "" : "\n(the old tylerd could not hand over, so its windows went back where they were)"
+        if keptWindows {
+          ""
+        } else if movesElsewhere == true {
+          "\n(the new tylerd runs from elsewhere, with a permission of its own, so the old one put "
+            + "its windows back where they were)"
+        } else {
+          "\n(the old tylerd could not hand over, so its windows went back where they were)"
+        }
       return try withAccess(
         "restarted tylerd (pid \(old) → \(status.pid)), output in \(logPath)" + note, of: status)
     }
@@ -119,7 +134,7 @@ package struct DaemonController {
     lines.append("  tiling  \(Self.describe(status.tiling))")
     if let access = status.access {
       lines.append("  access  \(access.summary)")
-      if let problem = access.problem { lines.append("warning: " + problem) }
+      if let problem = access.problem(app: status.appName) { lines.append("warning: " + problem) }
     }
     if let input = status.input { lines += InputListener.statusLines(input, now: system.now) }
     return lines.joined(separator: "\n") + staleWarning(status)
@@ -129,7 +144,9 @@ package struct DaemonController {
   /// or an error when it needs fixing. tylerd keeps running either way.
   private func withAccess(_ report: String, of status: ServerStatus) throws(DaemonError) -> String {
     guard let access = settledAccess(status) else { return report }
-    if let problem = access.problem { throw .cannotReachWindows(report: report, problem: problem) }
+    if let problem = access.problem(app: status.appName) {
+      throw .cannotReachWindows(report: report, problem: problem)
+    }
     return access.note.map { report + "\nnote: " + $0 } ?? report
   }
 
@@ -171,15 +188,20 @@ package struct DaemonController {
     }
   }
 
-  private func start() throws(DaemonError) -> StartOutcome {
+  /// Launches `target`, or what `launchTarget` finds, unless tylerd already runs.
+  private func start(_ target: LaunchTarget? = nil) throws(DaemonError) -> StartOutcome {
     if let status = try runningStatus() { return .alreadyRunning(status) }
-    guard system.isExecutable(atPath: serverPath) else { throw .missingServer(serverPath) }
-    let pid = try system.spawn(serverPath, logPath: logPath)
+    let pid: Int32?
+    if let target {
+      pid = try launch(target)
+    } else {
+      pid = try launch(launchTarget())
+    }
     var waited = Duration.zero
     while waited < startTimeout {
       system.pause(pollInterval)
       waited += pollInterval
-      if system.childHasExited(pid) {
+      if let pid, system.childHasExited(pid) {
         throw .exitedAtStartup(log: system.lastLines(ofFile: logPath, count: 10))
       }
       switch probe() {
@@ -219,6 +241,11 @@ package struct DaemonController {
     if isRebuilt(status) {
       warning +=
         "\nwarning: tylerd has been rebuilt since it started; run `tyler restart` to use the new build"
+    }
+    if let app, status.executablePath == app.executablePath, isOutdated(app) {
+      warning +=
+        "\nwarning: \(app.path) is older than the tylerd next to it; run `make build`, then "
+        + "`tyler restart`"
     }
     if status.version != TylerVersion.current {
       warning +=

@@ -57,6 +57,27 @@ package struct ProcessDaemonSystem: DaemonSystem {
     return pid
   }
 
+  package func launchApp(_ path: String, environment: [String: String]) throws(DaemonError) {
+    let open = Process()
+    open.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+    let variables = environment.sorted { $0.key < $1.key }.flatMap { ["--env", "\($0)=\($1)"] }
+    open.arguments = ["-n", "-g"] + variables + [path]
+    let errors = Pipe()
+    open.standardError = errors
+    do {
+      try open.run()
+    } catch {
+      throw .spawnFailed("cannot run open: \(error.localizedDescription)")
+    }
+    open.waitUntilExit()
+    guard open.terminationStatus == 0 else {
+      let data = errors.fileHandleForReading.readDataToEndOfFile()
+      let output = String(bytes: data, encoding: .utf8) ?? ""
+      throw .spawnFailed(
+        "open \(path) failed: \(output.trimmingCharacters(in: .whitespacesAndNewlines))")
+    }
+  }
+
   package func terminate(_ pid: Int32) -> Bool {
     kill(pid, SIGTERM) == 0
   }

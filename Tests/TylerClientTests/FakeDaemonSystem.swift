@@ -34,6 +34,7 @@ final class FakeDaemonSystem: DaemonSystem {
   }
 
   static let serverPath = "/build/tylerd"
+  static let appPath = "/build/Tyler.app"
   static let logPath = "/home/.tyler/tyler.log"
   static let start = Date(timeIntervalSinceReferenceDate: 800_000_000)
 
@@ -48,6 +49,9 @@ final class FakeDaemonSystem: DaemonSystem {
   var accessReports: [WindowAccess?] = []
   private(set) var now = start
   private(set) var spawned: [(executable: String, logPath: String)] = []
+  private(set) var launchedApps: [(path: String, environment: [String: String])] = []
+  /// Why `open` fails, if it does.
+  var launchFailure: String?
   private(set) var terminated: [Int32] = []
   /// Pids asked to hand over (SIGUSR1).
   private(set) var handedOver: [Int32] = []
@@ -60,15 +64,16 @@ final class FakeDaemonSystem: DaemonSystem {
   /// `keepsWindows: nil` is a server from before hand-over existed, `version: nil` one from
   /// before 0.1.0.
   static func status(
-    pid: Int32, startedAt: Date = start, keepsWindows: Bool? = true,
+    pid: Int32, executablePath: String = serverPath, startedAt: Date = start,
+    keepsWindows: Bool? = true,
     version: String? = TylerVersion.current, configChanges: [String]? = [],
-    access: WindowAccess? = .ok, input: [InputListener]? = nil
+    access: WindowAccess? = .ok, input: [InputListener]? = nil, appName: String? = nil
   ) -> ServerStatus {
     ServerStatus(
-      pid: pid, executablePath: serverPath, executableModified: start, startedAt: startedAt,
+      pid: pid, executablePath: executablePath, executableModified: start, startedAt: startedAt,
       configPath: "/home/.config/tyler/tyler.toml", tiling: .on,
       keepsWindowsOnRestart: keepsWindows, version: version, configChanges: configChanges,
-      access: access, input: input)
+      access: access, input: input, appName: appName)
   }
 
   func send(_ request: Request) throws -> Response {
@@ -96,6 +101,16 @@ final class FakeDaemonSystem: DaemonSystem {
     case .neverAnswers, .fails: break
     }
     return pid
+  }
+
+  /// The app behaves as `spawnBehaviour` says, except that it has no pid to watch, so exiting at
+  /// once shows only as never answering.
+  func launchApp(_ path: String, environment: [String: String]) throws(DaemonError) {
+    if let launchFailure { throw .spawnFailed(launchFailure) }
+    launchedApps.append((path, environment))
+    let pid = nextPID
+    nextPID += 1
+    if case .answersAfter(let count) = spawnBehaviour { pendingStart = (pid, pauses + count) }
   }
 
   func terminate(_ pid: Int32) -> Bool {

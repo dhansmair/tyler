@@ -32,6 +32,10 @@ package struct ServerStatus: Codable, Equatable, Sendable {
   package var access: WindowAccess?
   /// The event listeners tylerd keeps; `nil` from a server older than this report.
   package var input: [InputListener]?
+  /// The app whose Accessibility grant tylerd runs under when it is one, as System Settings lists
+  /// it (`Tyler.app`); `nil` when the app that started it holds the grant (a terminal), or from an
+  /// older server.
+  package var appName: String?
 
   package init(
     pid: Int32,
@@ -44,7 +48,8 @@ package struct ServerStatus: Codable, Equatable, Sendable {
     version: String? = nil,
     configChanges: [String]? = nil,
     access: WindowAccess? = nil,
-    input: [InputListener]? = nil
+    input: [InputListener]? = nil,
+    appName: String? = nil
   ) {
     self.pid = pid
     self.executablePath = executablePath
@@ -57,5 +62,6 @@ package struct ServerStatus: Codable, Equatable, Sendable {
     self.configChanges = configChanges
     self.access = access
     self.input = input
+    self.appName = appName
   }
 }

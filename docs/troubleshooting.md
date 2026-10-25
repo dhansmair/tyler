@@ -28,18 +28,22 @@ When something goes wrong, two commands put things right:
 terminal you ran `tyler start` in. Open System Settings > Privacy & Security > Accessibility and
 turn that terminal on (add it with `+` if it isn't listed). `tylerd` notices within a second; no
 restart needed. If you start `tylerd` from another terminal app later, that one needs the
-permission too.
+permission too. When `tylerd` runs as an app (`tyler status` shows a `binary` inside
+`Tyler.app`), the permission belongs to `Tyler.app` instead, whichever terminal you use; `tyler
+start` makes macOS ask for it. If `tylerd` doesn't notice within a few seconds, run `tyler
+restart`.
 
 If the terminal is listed and on but nothing happens, macOS may have kept a stale entry (after an
 app updates, or after restarting the Mac or logging in again). `tyler start` and `tyler status`
 then say `Accessibility calls refused although the permission is on` or `sees none of the windows
 on screen`. Run `tyler stop` first, then remove the terminal with `−`, add it again, and run
-`tyler start`.
+`tyler start`. For `Tyler.app`, remove it with `−` and run `tyler start`, which asks again.
 
 If `tyler status` says `waiting for the screen to be unlocked`, nothing is wrong: macOS shows no
 windows while the screen is locked, and `tylerd` starts once it is unlocked.
 
-**Always stop `tylerd` before you switch off or remove its terminal's Accessibility permission.**
+**Always stop `tylerd` before you switch off or remove its Accessibility permission** (its
+terminal's, or `Tyler.app`'s).
 macOS can stop all keyboard and mouse input when that permission is taken away from a process
 watching the mouse buttons, as `tylerd` does. The pointer still moves, but nothing can be clicked
 or typed, and only a forced restart (holding the power button) gets out of it.

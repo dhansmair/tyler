@@ -57,6 +57,11 @@ make install          # builds a release and copies tyler and tylerd to ~/.local
 Add `~/.local/bin` to your `PATH` if it isn't there yet (for zsh, in `~/.zshrc`:
 `export PATH="$HOME/.local/bin:$PATH"`). `make install PREFIX=/some/dir` installs elsewhere.
 
+With a code-signing identity of your own (a self-signed one is enough),
+`make install SIGN_ID=<identity>` also installs `Tyler.app`, and `tylerd` runs as an app with its
+own Accessibility permission instead of your terminal's (see the
+[manual](docs/manual.md#running-tylerd)). The signature keeps the permission across updates.
+
 Then start it:
 
 ```bash
@@ -93,11 +98,11 @@ Start it from the terminal app that has the Accessibility permission.
 
 ```bash
 tyler stop                                   # puts every window back
-rm ~/.local/bin/tyler ~/.local/bin/tylerd
+rm -r ~/.local/bin/tyler ~/.local/bin/tylerd ~/.local/bin/Tyler.app
 rm -r ~/.tyler ~/.config/tyler               # the socket, log and config
 ```
 
-Then remove your terminal from the Accessibility list if nothing else needs it.
+Then remove your terminal (or `Tyler.app`) from the Accessibility list if nothing else needs it.
 
 ## Keybindings
 

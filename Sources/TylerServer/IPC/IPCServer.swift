@@ -136,16 +136,20 @@ package final class IPCServer: @unchecked Sendable {
 
   private static func serve(client: Int32, handler: @escaping Handler) {
     defer { close(client) }
-    guard let line = UnixSocket.readLine(fd: client) else {
-      // `isServed` connects and hangs up without asking; there is nobody to answer.
-      log.debug("connection closing - without a request")
-      return
-    }
     let response: Response
-    do {
-      response = runBlocking(handler, on: try Wire.decode(Request.self, from: line))
-    } catch {
-      response = .error(describeUndecodable(line))
+    switch UnixSocket.readLineOrHangUp(fd: client) {
+    case .line(let line):
+      do {
+        response = runBlocking(handler, on: try Wire.decode(Request.self, from: line))
+      } catch {
+        response = .error(describeUndecodable(line))
+      }
+    case .hungUp:
+      // `isServed` connects and hangs up without asking; there is nobody to answer.
+      log.debug("connection closing - hung up without a request")
+      return
+    case .failed:
+      response = .error("no request received")
     }
     do {
       try UnixSocket.writeAll(fd: client, data: try Wire.encode(response))

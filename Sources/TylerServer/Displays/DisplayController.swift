@@ -80,15 +80,9 @@ struct DisplayController {
     // The windows macOS moved stay on their workspaces: only windows that came or went
     // meanwhile change the lists.
     let sync = SyncController(context: context).sync(model: &model, holding: model.rows.allWindows)
-    var parked: [WindowID] = []
-    for position in model.rows.entries.indices {
-      let row = model.rows[position]
-      for index in row.indices where index != row.currentIndex {
-        parked += row[index].windows
-      }
-    }
     return ending + sync.effects + [
-      .reconcile(force: true), context.parking(parked, in: model.rows),
+      .reconcile(force: true),
+      context.parking(model.rows.windowsOnParkedWorkspaces, in: model.rows),
     ]
   }
 

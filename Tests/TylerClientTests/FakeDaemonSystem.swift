@@ -64,6 +64,8 @@ final class FakeDaemonSystem: DaemonSystem {
   private(set) var terminated: [Int32] = []
   /// Pids asked to hand over (SIGUSR1).
   private(set) var handedOver: [Int32] = []
+  /// Pids asked to hand over with their windows put back (SIGUSR2).
+  private(set) var handedOverPuttingWindowsBack: [Int32] = []
   private(set) var pauses = 0
 
   private var pendingStart: (pid: Int32, readyAt: Int)?
@@ -74,14 +76,15 @@ final class FakeDaemonSystem: DaemonSystem {
   /// before 0.1.0.
   static func status(
     pid: Int32, executablePath: String = serverPath, startedAt: Date = start,
-    keepsWindows: Bool? = true,
+    keepsWindows: Bool? = true, putsWindowsBack: Bool? = true,
     version: String? = TylerVersion.current, configChanges: [String]? = [],
     access: WindowAccess? = .ok, input: [InputListener]? = nil, appName: String? = nil
   ) -> ServerStatus {
     ServerStatus(
       pid: pid, executablePath: executablePath, executableModified: start, startedAt: startedAt,
       configPath: "/home/.config/tyler/tyler.toml", tiling: .on,
-      keepsWindowsOnRestart: keepsWindows, version: version, configChanges: configChanges,
+      keepsWindowsOnRestart: keepsWindows, putsWindowsBackOnHandOver: putsWindowsBack,
+      version: version, configChanges: configChanges,
       access: access, input: input, appName: appName)
   }
 
@@ -147,13 +150,17 @@ final class FakeDaemonSystem: DaemonSystem {
     return true
   }
 
-  func requestHandOver(_ pid: Int32) -> Bool {
+  func requestHandOver(_ pid: Int32, puttingWindowsBack: Bool) -> Bool {
     guard quit(pid) else { return false }
-    handedOver.append(pid)
+    if puttingWindowsBack {
+      handedOverPuttingWindowsBack.append(pid)
+    } else {
+      handedOver.append(pid)
+    }
     return true
   }
 
-  /// SIGTERM and SIGUSR1 both end the server, following `stopBehaviour`.
+  /// SIGTERM, SIGUSR1 and SIGUSR2 all end the server, following `stopBehaviour`.
   private func quit(_ pid: Int32) -> Bool {
     if case .cannotBeSignalled = stopBehaviour { return false }
     if case .exitsAfter(let count) = stopBehaviour { stopping = (pid, pauses + count) }

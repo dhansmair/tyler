@@ -23,6 +23,9 @@ package struct ServerStatus: Codable, Equatable, Sendable {
   /// (SIGUSR1). Optional so a server from before hand-over existed decodes as `nil`: such a
   /// server would die on SIGUSR1 without cleaning up, so restart sends it SIGTERM instead.
   package var keepsWindowsOnRestart: Bool?
+  /// Whether the server, asked to hand over with SIGUSR2, puts every window back first and still
+  /// hands its workspaces over. Optional for the same reason: an older server would die on it.
+  package var putsWindowsBackOnHandOver: Bool?
   /// The server's `TylerVersion`; `nil` from a server older than 0.1.0.
   package var version: String?
   /// The settings `tyler config set` changed since the config was last read; `nil` from a server
@@ -45,6 +48,7 @@ package struct ServerStatus: Codable, Equatable, Sendable {
     configPath: String,
     tiling: Tiling = .waitingForPermission,
     keepsWindowsOnRestart: Bool? = nil,
+    putsWindowsBackOnHandOver: Bool? = nil,
     version: String? = nil,
     configChanges: [String]? = nil,
     access: WindowAccess? = nil,
@@ -58,6 +62,7 @@ package struct ServerStatus: Codable, Equatable, Sendable {
     self.configPath = configPath
     self.tiling = tiling
     self.keepsWindowsOnRestart = keepsWindowsOnRestart
+    self.putsWindowsBackOnHandOver = putsWindowsBackOnHandOver
     self.version = version
     self.configChanges = configChanges
     self.access = access

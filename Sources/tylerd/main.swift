@@ -124,6 +124,7 @@ let status = ServerStatus(
   startedAt: Date(),
   configPath: configSource.path,
   keepsWindowsOnRestart: true,
+  putsWindowsBackOnHandOver: true,
   version: TylerVersion.current,
   // System Settings lists the app by its file name, not its `CFBundleName` (measured).
   appName: Bundle.main.bundleIdentifier == nil ? nil : Bundle.main.bundleURL.lastPathComponent
@@ -189,11 +190,12 @@ let permissionPoll = Task { @MainActor in
   }
 }
 
-/// Leaves every window where it is and writes the workspaces down for the next tylerd (`tyler
-/// restart`). If the file can't be written, the next tylerd tiles the windows afresh.
+/// Writes the workspaces down for the next tylerd (`tyler restart`), leaving every window where it
+/// is, or first putting it back where it was. If the file can't be written, the next tylerd tiles
+/// the windows afresh.
 @MainActor
-func handOver() {
-  guard var saved = manager.handOver() else { return }
+func handOver(puttingWindowsBack: Bool) {
+  guard var saved = manager.handOver(puttingWindowsBack: puttingWindowsBack) else { return }
   saved.writtenAt = Date()
   do {
     try saved.write(to: statePath)
@@ -204,23 +206,28 @@ func handOver() {
 
 /// Shuts down cleanly: `manager.stop()` puts every window (parked ones included) back where it
 /// was before tylerd moved it, and the socket file doesn't linger. Handing over (`tyler restart`)
-/// leaves the windows in place instead.
+/// leaves the windows in place instead, or puts them back and still hands the workspaces over.
 @MainActor
-func shutDown(handingOver: Bool) {
+func shutDown(handingOver: Bool, puttingWindowsBack: Bool = false) {
   permissionPoll.cancel()
-  if handingOver { handOver() } else { manager.stop() }
+  if handingOver { handOver(puttingWindowsBack: puttingWindowsBack) } else { manager.stop() }
   server.stop()
   exit(0)
 }
 
-// SIGINT/SIGTERM stop, SIGUSR1 (sent by `tyler restart`) hands over. A crash or `kill -9` skips
-// both and leaves parked windows at the edge.
+// SIGINT/SIGTERM stop; `tyler restart` sends SIGUSR1 to hand over, or SIGUSR2 to hand over with
+// the windows put back. A crash or `kill -9` skips all of them and leaves parked windows at the
+// edge.
 var signalSources: [DispatchSourceSignal] = []
-for signalNumber in [SIGINT, SIGTERM, SIGUSR1] {
+for signalNumber in [SIGINT, SIGTERM, SIGUSR1, SIGUSR2] {
   signal(signalNumber, SIG_IGN)
   let source = DispatchSource.makeSignalSource(signal: signalNumber, queue: .main)
   source.setEventHandler {
-    MainActor.assumeIsolated { shutDown(handingOver: signalNumber == SIGUSR1) }
+    MainActor.assumeIsolated {
+      shutDown(
+        handingOver: signalNumber == SIGUSR1 || signalNumber == SIGUSR2,
+        puttingWindowsBack: signalNumber == SIGUSR2)
+    }
   }
   source.resume()
   signalSources.append(source)

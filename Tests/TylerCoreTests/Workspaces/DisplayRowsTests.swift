@@ -70,6 +70,13 @@ struct DisplayRowsTests {
     #expect(rows.allWindows.count == 8)
   }
 
+  @Test func theWindowsOfTheWorkspacesNotInViewAreTheParkedOnes() {
+    var rows = rows()
+    show(3, in: &rows)
+    #expect(
+      Set(rows.windowsOnParkedWorkspaces) == Set([11, 12, 14, 16, 17, 18].map(WindowID.init)))
+  }
+
   /// Three displays with the middle one focused: `prev` and `next` wrap around the ends.
   @Test(arguments: [
     (1, DisplayTarget.prev, 0), (1, .next, 2), (0, .prev, 2), (2, .next, 0),

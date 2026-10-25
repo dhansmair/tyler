@@ -130,8 +130,8 @@ package struct ProcessDaemonSystem: DaemonSystem {
     kill(pid, SIGTERM) == 0
   }
 
-  package func requestHandOver(_ pid: Int32) -> Bool {
-    kill(pid, SIGUSR1) == 0
+  package func requestHandOver(_ pid: Int32, puttingWindowsBack: Bool) -> Bool {
+    kill(pid, puttingWindowsBack ? SIGUSR2 : SIGUSR1) == 0
   }
 
   /// Reaps the child if it has exited; a zombie would otherwise still count as running.

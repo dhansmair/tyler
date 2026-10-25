@@ -163,10 +163,16 @@ package final class WindowManager {
     registry.replaceAll(windowSystem.snapshot())
     let restored = restorePending()
     state = .running
-    reconcile()
-    // A handed-over workspace beyond the configured count was merged into the last one, whose
-    // windows may still be parked; every other window is in its slot already, so nothing moves.
-    if restored && tilingEnabled { reconcileWindows() }
+    // The first sync holds the handed-over windows: one put back on another display than its
+    // workspace's (`handOver(puttingWindowsBack:)`) keeps its workspace, while windows that went
+    // away or were minimized meanwhile leave. Then every window goes to its slot or its parking
+    // spot; after a hand-over that left them in place, nothing moves here but the windows of a
+    // workspace beyond the configured count, merged into the last one.
+    reconcile(holding: restored ? rows.allWindows : [])
+    if restored && tilingEnabled {
+      reconcileWindows()
+      parkHandedOverWindows()
+    }
     if let focusedID = registry.focusedID {
       model.focusDisplay(of: focusedID, in: context)
       model.recordFocus(focusedID)
@@ -304,9 +310,9 @@ package final class WindowManager {
     }
   }
 
-  func reconcile() {
+  func reconcile(holding held: Set<WindowID> = []) {
     guard isTiling else { return }
-    run(tilingController.reconcile(model: &model))
+    run(tilingController.reconcile(model: &model, holding: held))
   }
 
 }

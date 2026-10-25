@@ -371,6 +371,16 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   `TYLER_SOCKET` and what a spawned tylerd inherited and uses (`TYLER_CONFIG`, `PATH`, `EDITOR`,
   `VISUAL`). The running tylerd names its app in `status` (`appName`), by its file name as System
   Settings lists it, so the advice names what to turn on.
+- **A restart onto a tylerd under another grant puts the windows back and still hands over.**
+  The new tylerd may not have its grant yet and couldn't move parked windows until it does, so
+  windows waiting parked meanwhile would look lost. The old one (SIGUSR2,
+  `handOver(puttingWindowsBack:)`) restores every original frame, as `stop` does, and writes the
+  same state; the new one, once granted, tiles the current workspaces and parks the windows of the
+  others that are in view (`parkHandedOverWindows`; after an ordinary hand-over none are, so
+  nothing moves). `ServerStatus.putsWindowsBackOnHandOver` says a tylerd knows SIGUSR2: an older
+  one would die of it without cleaning up, so it gets SIGTERM. Which restart needs it is, for
+  now, one from another place (the bare tylerd and the app, two copies of the app); comparing the
+  grants themselves (the designated requirement) is next.
 - **An installed Tyler.app runs from a copy in `~/Applications`, which `tyler` makes.** Spotlight
   finds a real app there, not one under Homebrew's Cellar, nor a symlink, and shows a Finder alias
   as "alias" (`macos-behaviour.md`, "tylerd as an app of its own"), while a formula can't install

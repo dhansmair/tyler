@@ -122,6 +122,13 @@ package struct DisplayRows: Equatable, Sendable {
     entries.reduce(into: []) { $0.formUnion($1.row.allWindows) }
   }
 
+  /// The windows of every workspace not in view on its display, which wait parked.
+  package var windowsOnParkedWorkspaces: [WindowID] {
+    entries.flatMap { entry in
+      entry.row.indices.filter { $0 != entry.row.currentIndex }.flatMap { entry.row[$0].windows }
+    }
+  }
+
   // MARK: - Changes
 
   /// Makes the display `key` the one commands act on. Returns false if it isn't connected.

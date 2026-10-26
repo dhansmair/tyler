@@ -10,132 +10,112 @@ import TylerTestSupport
 @Suite("Indicator updates")
 @MainActor
 struct IndicatorScenarios {
-  private let windowSystem = FakeWindowSystem(windows: spread([1, 2]))
-  private let indicator = FakeIndicator()
-  private let gate = FakeGate(isTrusted: false)
-  private let manager: WindowManager
-
-  init() {
-    manager = WindowManager(
-      windowSystem: windowSystem, displays: FakeDisplays(), gate: gate, indicator: indicator)
+  private func scenario(
+    config: Config = Config(), configFile: FakeConfigFile? = nil, isTrusted: Bool = true
+  ) async -> Scenario {
+    await Scenario(
+      openAtStart: spread([1, 2]), config: config, configFile: configFile,
+      gate: FakeGate(isTrusted: isTrusted))
   }
 
-  private var last: IndicatorSnapshot? { indicator.shown.last }
-
-  @Test func itShowsTheStateFromTheStartAndWhenPermissionArrives() {
-    #expect(indicator.shown.count == 1)
-    #expect(last?.tiling == .waitingForPermission)
-    gate.isTrusted = true
-    manager.startIfPermitted()
+  @Test func itShowsTheStateFromTheStartAndWhenPermissionArrives() async {
+    let scenario = await scenario(isTrusted: false)
+    #expect(scenario.indicator.shown.count == 1)
+    #expect(scenario.indicator.shown.last?.tiling == .waitingForPermission)
+    await scenario.grantPermission()
+    let last = scenario.indicator.shown.last
     #expect(last?.tiling == .on)
     #expect(last?.row.currentIndex == 0)
     #expect(last?.row.count == 4)
     #expect(last?.row[0].count == 2)
   }
 
-  @Test func itFollowsSwitchesLayoutsAndTiling() {
-    gate.isTrusted = true
-    manager.startIfPermitted()
-    _ = manager.switchWorkspace(.number(3))
-    #expect(last?.row.currentIndex == 2)
-    _ = manager.setLayout(.next)
-    #expect(last?.row.current.layout == .grid)
-    _ = manager.setTiling(.off)
-    #expect(last?.tiling == .off)
+  @Test func itFollowsSwitchesLayoutsAndTiling() async {
+    let scenario = await scenario()
+    await scenario.command("workspace focus 3")
+    #expect(scenario.indicator.shown.last?.row.currentIndex == 2)
+    await scenario.command("layout next")
+    #expect(scenario.indicator.shown.last?.row.current.layout == .grid)
+    await scenario.command("tiling off")
+    #expect(scenario.indicator.shown.last?.tiling == .off)
   }
 
   @Test func itCountsWindowsThatOpenAndClose() async {
-    gate.isTrusted = true
-    manager.startIfPermitted()
-    windowSystem.windows.append(makeWindow(id: 9))
-    windowSystem.send(.created(makeWindow(id: 9)))
-    await settle()
-    #expect(last?.row[0].count == 3)
-    windowSystem.send(.destroyed(WindowID(1)))
-    await settle()
-    #expect(last?.row[0].count == 2)
+    let scenario = await scenario()
+    await scenario.open(makeWindow(id: 9))
+    #expect(scenario.indicator.shown.last?.row[0].count == 3)
+    await scenario.close(1)
+    #expect(scenario.indicator.shown.last?.row[0].count == 2)
   }
 
   @Test func itIsToldAboutFocusButNotAboutNothing() async {
-    gate.isTrusted = true
-    manager.startIfPermitted()
-    _ = manager.focus(.next)
-    windowSystem.send(.focused(WindowID(2)))
-    await settle()
-    #expect(last?.row.current.focused == WindowID(2))
-    let count = indicator.shown.count
-    windowSystem.send(.focused(WindowID(2)))
-    await settle()
-    _ = manager.switchWorkspace(.number(1))
-    #expect(indicator.shown.count == count)
+    let scenario = await scenario()
+    await scenario.command("window focus next")
+    await scenario.focus(2)
+    #expect(scenario.indicator.shown.last?.row.current.focused == WindowID(2))
+    let count = scenario.indicator.shown.count
+    await scenario.focus(2)
+    await scenario.command("workspace focus 1")
+    #expect(scenario.indicator.shown.count == count)
   }
 
-  @Test func reloadingTheConfigReachesTheIndicators() {
+  @Test func reloadingTheConfigReachesTheIndicators() async {
     let textOff = Config.Indicators(text: .init(isEnabled: false))
-    let file = FakeConfigFile(.config(Config(indicators: textOff)))
-    let manager = WindowManager(
-      windowSystem: windowSystem, displays: FakeDisplays(), gate: gate, configSource: file.source,
-      indicator: indicator)
-    #expect(indicator.shown.last?.settings.text.isEnabled == true)
-    _ = manager.reload()
-    #expect(indicator.shown.last?.settings == textOff)
+    let scenario = await scenario(configFile: FakeConfigFile(.config(Config(indicators: textOff))))
+    #expect(scenario.indicator.shown.last?.settings.text.isEnabled == true)
+    await scenario.command("config reload")
+    #expect(scenario.indicator.shown.last?.settings == textOff)
   }
 
-  @Test func settingTheConfigReachesTheIndicators() {
-    _ = manager.setConfig("indicators.map.enabled", to: "false")
-    #expect(last?.settings == Config.Indicators(map: .init(isEnabled: false)))
-    _ = manager.setConfig("apps.App.icon", to: "terminal")
-    gate.isTrusted = true
-    manager.startIfPermitted()
-    #expect(last?.apps.values.map(\.icon) == [.symbol("terminal"), .symbol("terminal")])
+  @Test func settingTheConfigReachesTheIndicators() async {
+    let scenario = await scenario(isTrusted: false)
+    await scenario.command("config set indicators.map.enabled false")
+    #expect(
+      scenario.indicator.shown.last?.settings == Config.Indicators(map: .init(isEnabled: false)))
+    await scenario.command("config set apps.App.icon terminal")
+    await scenario.grantPermission()
+    #expect(
+      scenario.indicator.shown.last?.apps.values.map(\.icon)
+        == [.symbol("terminal"), .symbol("terminal")])
   }
 
-  @Test func theSnapshotHoldsEachTiledWindowsApp() {
-    gate.isTrusted = true
-    manager.startIfPermitted()
+  @Test func theSnapshotHoldsEachTiledWindowsApp() async {
+    let scenario = await scenario()
     let expected = Dictionary(
-      uniqueKeysWithValues: windowSystem.windows.map {
+      uniqueKeysWithValues: scenario.windowSystem.windows.map {
         (
           $0.id,
           IndicatorSnapshot.App(processID: $0.processID, name: $0.appName, bundleID: $0.bundleID)
         )
       })
-    #expect(last?.apps == expected)
+    #expect(scenario.indicator.shown.last?.apps == expected)
   }
 
-  @Test func theSnapshotHoldsTheIconTheConfigFileSetsForAnApp() {
-    let config = Config(apps: ["app": Config.App(icon: .symbol("terminal"))])
-    let manager = WindowManager(
-      windowSystem: windowSystem, displays: FakeDisplays(), gate: gate, config: config,
-      indicator: indicator)
-    gate.isTrusted = true
-    manager.startIfPermitted()
-    #expect(last?.apps.values.map(\.icon) == [.symbol("terminal"), .symbol("terminal")])
+  @Test func theSnapshotHoldsTheIconTheConfigFileSetsForAnApp() async {
+    let scenario = await scenario(
+      config: Config(apps: ["app": Config.App(icon: .symbol("terminal"))]))
+    #expect(
+      scenario.indicator.shown.last?.apps.values.map(\.icon)
+        == [.symbol("terminal"), .symbol("terminal")])
   }
 
-  @Test func theSnapshotHoldsTheDisplaysArea() {
-    #expect(last?.area == FakeDisplays().displays.first?.visibleFrame)
+  @Test func theSnapshotHoldsTheDisplaysArea() async {
+    let scenario = await scenario(isTrusted: false)
+    #expect(scenario.indicator.shown.last?.area == FakeDisplays.main.visibleFrame)
   }
 
   @Test func itShowsTheFocusedDisplaysRowAndFollowsFocusToTheExternalDisplay() async {
-    let external = FakeDisplays.secondary
-    windowSystem.windows.append(
-      makeWindow(id: 3, frame: CGRect(x: 100, y: -1000, width: 300, height: 200)))
-    let manager = WindowManager(
-      windowSystem: windowSystem, displays: FakeDisplays(displays: [FakeDisplays.main, external]),
-      gate: gate,
-      indicator: indicator)
-    gate.isTrusted = true
-    manager.startIfPermitted()
+    let scenario = await Scenario(
+      displays: [FakeDisplays.main, FakeDisplays.secondary], workspaces: [1: [1, 2], 5: [3]])
 
-    windowSystem.send(.focused(WindowID(3)))
-    await settle()
+    await scenario.focus(3)
+    var last = scenario.indicator.shown.last
     #expect(last?.row.numbers == [5, 6, 7, 8])
     #expect(last?.row.current.windows == [WindowID(3)])
-    #expect(last?.area == external.visibleFrame)
+    #expect(last?.area == FakeDisplays.secondary.visibleFrame)
 
-    windowSystem.send(.focused(WindowID(1)))
-    await settle()
+    await scenario.focus(1)
+    last = scenario.indicator.shown.last
     #expect(last?.row.numbers == [1, 2, 3, 4])
     #expect(last?.area == FakeDisplays.main.visibleFrame)
   }

@@ -56,14 +56,21 @@ One display, `tall`, a few windows on two workspaces.
 | | LIFE-SLOW-APP | `tyler restart` while an app with a parked window is stopped (`kill -STOP`, `kill -CONT` 1.5 s later) | The window is missing from the list, then back on its workspace and in its slot, unmoved | timing | RestartScenarios |
 | | LIFE-CONFIG | Start with a broken config file; fix it; change `gaps.inner` in the file and `tyler config reload`; break it again and reload | The start logs the error and uses the defaults; the reload retiles with the new gaps; the broken reload is an error and moves nothing | process | ConfigReloadScenarios |
 | | LIFE-CONFIG-EDIT | `tyler config edit` with `$EDITOR` set to a script that changes the file, and without a terminal | The editor runs in place and the config reloads after it; without a terminal, the file opens as with Open config | process | |
-| yes | LIFE-LOCKED | `sleep 10; tyler start`, then lock the screen; unlock | tylerd waits, and tiles once unlocked | macOS | WindowAccessScenarios |
-| yes | LIFE-LOCKED-RESTART | `sleep 10; tyler restart` with a workspace in the strip, then lock the screen; unlock | Every window is back on its workspace and in its place, nothing moves, and `tyler stop` still puts them back | macOS | RestartScenarios |
+| yes | LIFE-LOCKED | A job that waits for the lock, then runs `tyler start` (see below the table); lock the screen; unlock | tylerd waits, and tiles once unlocked | macOS | WindowAccessScenarios |
+| yes | LIFE-LOCKED-RESTART | A job that waits for the lock, then runs `tyler restart`, with a workspace in the strip; lock the screen; unlock | Every window is back on its workspace and in its place, nothing moves, and `tyler stop` still puts them back | macOS | RestartScenarios |
 | yes | LIFE-PERMISSION | After a new login, `tyler start`; then `tyler stop`, switch the terminal's Accessibility off, `tyler start` | `status` reports `access sees the windows`; without the grant, the start fails with the fix | process | WindowAccessScenarios |
 | yes | LIFE-INSTALL | `make install`, `tyler restart` from `~/.local/bin` | Every event tap works (a swipe, focus follows mouse, a modifier drag) without a new permission prompt | process | |
 | yes | LIFE-APP | With a code-signing identity: `make install SIGN_ID=<identity>`, `~/.local/bin/tyler start`, turn on `Tyler.app`; then `make install` of a changed build and `tyler restart` | The dialog appears and `Tyler.app` is listed; `start` copies the app into `~/Applications`, and Spotlight finds Tyler; once on, tylerd tiles by itself; the update copies the new build, restarts without a new prompt and nothing moves; every event tap works | process | DaemonControllerAppTests, DaemonControllerInstalledAppTests |
 | yes | LIFE-APP-ADHOC | Without `SIGN_ID`: `make install`, `~/.local/bin/tyler start`, turn on `Tyler.app`; then `make install` of a changed build and `~/.local/bin/tyler restart` | The update puts every window back, `restart` says why, the dialog appears and `Tyler.app` is listed once, switched off; once on, every window is back on its workspace and in its slot | process | DaemonControllerAdHocAppTests, RestartOntoAnotherGrantScenarios |
 | yes | LIFE-APP-SWITCH | `tyler restart` from a tylerd under the terminal's grant onto `Tyler.app`, and back (`make install` without `SIGN_ID`, `tyler restart`) | Each time the old tylerd puts its windows back first and `restart` says why; once the new one has its grant, every window is back on its workspace and in its slot, the other workspaces' windows parked | process | DaemonControllerAppTests, RestartOntoAnotherGrantScenarios |
 | yes | LIFE-FRESH | A fresh clone on another user account, following the README word for word | It builds, installs, asks for the grant and tiles | process | |
+
+For the locked rows, start the command from a job that waits for the lock rather than from a
+timer, which the person may miss:
+
+```sh
+until ioreg -n Root -d1 | grep -q '"IOConsoleLocked" = Yes'; do sleep 0.5; done; sleep 3; tyler start
+```
 
 Never switch the grant off while tylerd runs: macOS can then stop all input until a forced
 restart (`macos-behaviour.md`, "Events and taps").
@@ -81,7 +88,7 @@ One display, `tall`.
 | | WIN-MIN-SIZE | Tile System Settings and a terminal | Each ends where expected (System Settings keeps its minimum size, the terminal snaps to its cells), and `window list` shows the real frames | clamp | |
 | | WIN-BY-HAND | Move and resize a floated window with the mouse | `window list` shows its new frame | AX | WindowEventScenarios |
 | | WIN-CLOSE | `window close` on a tiled and a floated window, with tiling off, and on an edited TextEdit document | Each closes and the rest retile; the edited document asks to save and stays listed until it closes | AX | CloseWindowScenarios |
-| | WIN-CLOSE-QUIET | Close the last window of an app that quits with it (Find My), then `window swap` | The closed window's slot goes at that command | AX | |
+| | WIN-CLOSE-QUIET | Close the last window of an app that quits with it (Calculator, or Find My), then `window swap` | The closed window's slot goes at that command | AX | |
 | | WIN-CLOSE-FOCUS | Close a window whose app has another window on a parked workspace | tylerd stays on the current workspace (#12) | macOS | |
 | | WIN-SLOW-LAUNCH | Cold-launch a slow app; bring an app that ran out of attach attempts to the front | Its windows tile; the late one attaches when it comes to the front | timing | |
 
@@ -91,7 +98,7 @@ One display unless the action says otherwise.
 
 | Manual | Id | Action | Expected | Why | Logic in |
 |---|---|---|---|---|---|
-| | TALL-COMMANDS | `window focus next\|prev`, `window swap next\|prev\|master`, `layout next`, `layout ratio`, `window float on` and `off` (each twice), `workspace retile`, `tiling off` and `on` | The focus and the raise reach the right window, and the frames are those of `docs/layouts.md` | AX | TilingCommandScenarios |
+| | TALL-COMMANDS | `window focus next\|prev`, `window swap next\|prev\|master`, `layout next`, `layout ratio`, `window float on` and `off` (each twice), `workspace retile`, `tiling off` and `on` | The focus and the raise reach the right window, and the frames are those of `docs/layouts.md`. `tiling on` puts every window of every workspace on the current one (`manual.md`): put the others back after | AX | TilingCommandScenarios |
 | | TALL-ANIM | `window swap` between master and stack several times in a row; close a window (`window close` and its close button), minimize one, float one; all again with `animations.swap` and `animations.retile` at `0` | The windows slide and resize into their new slots without dropped frames (the `finished` lines at `info`); at `0` they jump | timing | SwapAnimationScenarios, RetileAnimationScenarios |
 | | TALL-FLOAT | `window float on` and `off` on the only window of a workspace, on the right one of two side by side, and on the top right one of three in `tall`; all again with `animations.retile` at `0` | Floated, the window slides 30 points toward the middle, shrinking by 60 points at both ends only along a side it spanned, and no edge lines up with a tiled window; the others slide into place with it; tiled again, it slides back into a slot; at `0` they jump | AX | FloatAnimationScenarios, FloatedFrameTests |
 | | TALL-RESIZE | Drag the main window's right edge, and the edge between stacked windows; `tyler restart` | The dividers move live and the dragged window snaps into its slot on release; the restart keeps the stack heights | timing | MouseResizeScenarios |
@@ -113,7 +120,7 @@ One display unless the action says otherwise.
 | Manual | Id | Action | Expected | Why | Logic in |
 |---|---|---|---|---|---|
 | | STRIP-SCROLL | `layout set strip` with more windows than fit; `window focus next` to the end and back; `window size quarter`, `half`, `full` | The view scrolls to the focused window and the rest wait parked; a `full` window after a `half` one shows its first half at the right edge; scrolling back brings every window back | clamp | StripScenarios |
-| | STRIP-DOCK | With the Dock on the left, scroll windows out on the left | They park beside the Dock and come back | clamp | StripScenarios |
+| | STRIP-DOCK | With the Dock on the left, scroll windows out on the left | They stop beside the Dock, park at the right edge (`strip-layout.md`) and come back | clamp | StripScenarios |
 | | STRIP-QUARTER-MIN | `window size quarter` on System Settings and its neighbour | No window overlaps another; `window list` shows the real frames | clamp | |
 | | STRIP-CLICK | Click a parked window's sliver, and the partly visible window | Each scrolls into view | tap | StripScenarios |
 | | STRIP-SIDE | Beside a display on the right, scroll windows out | The partly visible window parks instead | clamp | StripScenarios |
@@ -127,7 +134,7 @@ One display, `tall`.
 | | WS-SWITCH | `workspace focus next\|prev\|<n>` many times, an empty workspace included; `window move-to-workspace` with and without `--follow`; open a window after a switch | Each switch slides and ends with the right windows in view; parked windows stay hidden at the edge; an empty workspace leaves no parked window focused; the new window opens on the current workspace | clamp | WorkspaceSwitchScenarios, WorkspaceAnimationScenarios, MoveToWorkspaceScenarios |
 | | WS-CMD-TAB | cmd-tab to the app of a parked window (posted keys) | Its workspace comes into view | macOS | MoveToWorkspaceScenarios |
 | | WS-TILING-OFF | `tiling off` with parked windows | Every window is in view and the screen is usable | clamp | WorkspaceSwitchScenarios |
-| | WS-APPS | With `apps.<app>.workspace` set: a new window of the app, running and cold-launched; one opened with `open -g`; `tyler restart` with the app frontmost | The window lands on its workspace and the view follows; the background one stays parked; the restart puts the app's windows on its workspace | macOS | AppAssignmentScenarios |
+| | WS-APPS | With `apps.<app>.workspace` set: a new window of the app, running and cold-launched; one opened with `open -g`; `tyler restart` with the app frontmost | The window lands on its workspace and the view follows; the background one stays parked; after the restart every window is still on the workspace it was on | macOS | AppAssignmentScenarios |
 
 ## Swipes
 
@@ -164,7 +171,7 @@ One display.
 
 | Manual | Id | Action | Expected | Why | Logic in |
 |---|---|---|---|---|---|
-| | BAR-CLICKS | Click a map thumbnail (after a move onto it); right-click the map and pick Reload config, Open config (also with no config file) and Quit tyler; open the text item's menu | The click switches; the menus open under their item and each entry does what it says | menu bar | IndicatorScenarios |
+| yes | BAR-CLICKS | Click a map thumbnail (after a move onto it); right-click the map and pick Reload config, Open config (also with no config file) and Quit tyler; open the text item's menu | The click switches; the menus open under their item and each entry does what it says | menu bar | IndicatorScenarios |
 | | BAR-TEXT | Switch workspaces and layouts; `[indicators.text]` and `[indicators.map]` `enabled` with `tyler config reload`; `tiling off` | `live-check menubar` reads the text following each change; each item hides and shows; `tiling off` hides the map | menu bar | IndicatorScenarios, ConfigReloadScenarios |
 | yes | BAR-LOOKS | The map for `tall` with 1–3 windows, `full` and the strip, through `window focus next`, `layout ratio` and a mouse resize; 10 workspaces; light and dark menu bars | The map matches `tyler window list` and follows each change; empty workspaces are faint; 10 workspaces fit; it reads in both menu bars | menu bar | WorkspaceMapTests |
 

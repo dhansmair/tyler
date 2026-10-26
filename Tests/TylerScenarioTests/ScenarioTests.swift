@@ -90,6 +90,13 @@ struct ScenarioTests {
     #expect(next.isParked(1))
   }
 
+  @Test func windowsThatCloseDuringARestartAreGoneForTheNextTylerd() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    let next = await scenario.restart(closing: [1])
+    #expect(next.list(1) == [2])
+    #expect(next.frame(of: 1) == nil)
+  }
+
   @Test func aStartedSlideWaitsForTheClock() async {
     let scenario = await Scenario(
       workspaces: [1: [1]], animates: true, slide: .milliseconds(48),

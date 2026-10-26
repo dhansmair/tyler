@@ -104,13 +104,15 @@ struct Scenario {
   }
 
   /// The tylerd that `previous` hands over to on `tyler restart`, started with `config`. It finds
-  /// the windows where `previous` left them, and keeps the calls `previous` recorded.
-  private init(after previous: Scenario, config: Config) async {
+  /// the windows where `previous` left them, without those in `closed`, and keeps the calls
+  /// `previous` recorded.
+  private init(after previous: Scenario, config: Config, closing closed: [UInt32]) async {
     frameInterval = previous.frameInterval
     gate = previous.gate
     displays = FakeDisplays(displays: previous.displays.displays)
     harness = ManagerHarness(
-      windows: previous.windowSystem.windows, displays: displays, config: config,
+      windows: previous.windowSystem.windows.filter { !closed.contains($0.id.rawValue) },
+      displays: displays, config: config,
       pointer: pointer, stacking: stacking, gapCursor: gapCursor, indicator: indicator,
       clock: clock,
       restoring: previous.harness.manager.handOver(), clearRecordedCalls: false)
@@ -253,9 +255,10 @@ struct Scenario {
   }
 
   /// `tyler restart`: this tylerd hands its workspaces over, and the next one, with `config`,
-  /// takes over. Read the next one's view from the scenario returned.
-  func restart(config: Config = Config()) async -> Scenario {
-    await Scenario(after: self, config: config)
+  /// takes over. The windows in `closing` close in between, or belong to apps that haven't
+  /// answered the next tylerd yet. Read the next one's view from the scenario returned.
+  func restart(config: Config = Config(), closing: [UInt32] = []) async -> Scenario {
+    await Scenario(after: self, config: config, closing: closing)
   }
 
   /// The user grants Accessibility permission, and tylerd, which was waiting for it, starts.

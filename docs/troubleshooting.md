@@ -112,6 +112,13 @@ macOS moves windows when displays change, and tyler places every window again ab
 macOS is done. If something still looks wrong, `tyler workspace retile` puts the current workspace's
 windows back into their slots.
 
+## The map or the workspace numbers are missing from the menu bar
+
+On a Mac with a notch, macOS hides menu bar items that don't fit beside it, without saying so.
+tyler's items are among them when the menu bar is full: turn off an item you don't need
+(`indicators.text.enabled` or `indicators.map.enabled`, or another app's), or hold Command and
+drag tyler's item further right.
+
 ## Slides, swipes or resizes are jerky
 
 At `log.level` `info`, every slide, swipe and drag that moved windows leaves one line on what it

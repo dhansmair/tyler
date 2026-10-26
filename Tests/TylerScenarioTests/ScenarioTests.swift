@@ -1,3 +1,4 @@
+import CoreGraphics
 import Testing
 import TylerConfig
 import TylerTestSupport
@@ -104,6 +105,18 @@ struct ScenarioTests {
     #expect(next.tiling == .waitingForPermission)
     await next.grantPermission()
     #expect(next.list(1) == [1])
+  }
+
+  @Test func aWindowPickedUpIsHeldUntilReleased() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    let slot = scenario.frame(of: 2)
+    let held = CGRect(x: 600, y: 300, width: 300, height: 200)
+    let overItsSlot = CGPoint(x: scenario.rect(.rightHalf).midX, y: scenario.rect(.rightHalf).midY)
+    await scenario.pickUp(2, to: held)
+    await scenario.dragPointer(to: overItsSlot)
+    #expect(scenario.frame(of: 2) == held)
+    await scenario.release(at: overItsSlot)
+    #expect(scenario.frame(of: 2) == slot)
   }
 
   @Test func aStartedSlideWaitsForTheClock() async {

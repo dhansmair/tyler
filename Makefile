@@ -32,7 +32,7 @@ TEST_FLAGS := \
 	-Xlinker -rpath -Xlinker $(CLT_DEV)/usr/lib
 endif
 
-.PHONY: build test test-unit test-scenario lint check release install clean
+.PHONY: build test test-unit test-scenario format lint check release install clean
 
 build:
 	swift build
@@ -47,6 +47,9 @@ test-unit:
 
 test-scenario:
 	swift test $(TEST_FLAGS) --filter TylerScenarioTests
+
+format:
+	swift format --in-place --recursive Sources Tests Package.swift
 
 # SwiftLint needs the Command Line Tools' sourcekitd when full Xcode isn't installed.
 lint:

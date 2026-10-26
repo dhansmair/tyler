@@ -18,163 +18,149 @@ struct DragAcrossDisplaysScenarios {
   /// Over window 4, in the lower half of the right column: window 2 would go in last.
   private let lowerRight = CGPoint(x: 1500, y: -300)
   private var externalSlots: [CGRect] { TallLayout().frames(count: 3, in: external.visibleFrame) }
-  private let pointer = FakePointer()
-
-  private func onExternal(_ id: UInt32) -> WindowInfo {
-    makeWindow(id: id, frame: CGRect(x: 100 + CGFloat(id) * 50, y: -1000, width: 300, height: 200))
+  private let laptopHalves = TallLayout().frames(count: 2, in: FakeDisplays.main.visibleFrame)
+  private let lowerLeft = CGPoint(x: 0, y: -700)
+  private var twoMains: [CGRect] {
+    TallLayout().frames(count: 3, in: external.visibleFrame, state: TallLayoutState(mainCount: 2))
   }
 
-  private func harness(config: Config = Config()) async -> ManagerHarness {
-    let harness = ManagerHarness(
-      [1, 2], extra: [onExternal(3), onExternal(4)],
-      displays: FakeDisplays(displays: [FakeDisplays.main, FakeDisplays.secondary]),
-      config: config, pointer: pointer, clock: TestClock())
-    await harness.osFocus(2)
-    harness.windowSystem.clearRecordedCalls()
-    return harness
+  private func scenario(config: Config = Config()) async -> Scenario {
+    let scenario = await Scenario(
+      displays: [FakeDisplays.main, FakeDisplays.secondary], workspaces: [1: [1, 2], 5: [3, 4]],
+      config: config)
+    await scenario.focus(2)
+    scenario.windowSystem.clearRecordedCalls()
+    return scenario
   }
 
   /// The user picks window 2 up by its title bar and drags it over the external display to
   /// `location`. The window keeps its size: a drag that changed it would be a resize.
-  private func drag(in harness: ManagerHarness, to location: CGPoint) async {
-    let size = harness.frame(of: 2)?.size ?? .zero
-    pointer.isPrimaryButtonDown = true
-    await harness.windowSystem.userMoves(
-      2, to: CGRect(origin: CGPoint(x: 1000, y: 100), size: size))
-    await harness.windowSystem.userMoves(
+  private func drag(in scenario: Scenario, to location: CGPoint) async {
+    let size = scenario.frame(of: 2)?.size ?? .zero
+    await scenario.pickUp(2, to: CGRect(origin: CGPoint(x: 1000, y: 100), size: size))
+    await scenario.moveByHand(
       2, to: CGRect(origin: CGPoint(x: location.x - 400, y: location.y - 10), size: size))
-    pointer.drag(to: location)
-    await harness.settle()
-  }
-
-  private func release(in harness: ManagerHarness, at location: CGPoint) async {
-    pointer.release(at: location)
-    await harness.settle()
+    await scenario.dragPointer(to: location)
   }
 
   /// One slot is open at any time: the one a release would fill.
   @Test func overTheExternalDisplayItMakesRoomThereAndTheLaptopClosesUp() async {
-    let harness = await harness()
-    await drag(in: harness, to: upperRight)
-    #expect(harness.workspaces()[2] == 1, "still on the laptop's workspace")
-    #expect(harness.frame(of: 3) == externalSlots[0])
-    #expect(harness.frame(of: 4) == externalSlots[2], "the upper right is open for window 2")
-    #expect(harness.frame(of: 1) == harness.area, "window 2's slot on the laptop is closed")
+    let scenario = await scenario()
+    await drag(in: scenario, to: upperRight)
+    #expect(scenario.workspaces[2] == 1, "still on the laptop's workspace")
+    #expect(scenario.frame(of: 3) == externalSlots[0])
+    #expect(scenario.frame(of: 4) == externalSlots[2], "the upper right is open for window 2")
+    #expect(
+      scenario.frame(of: 1) == scenario.rect(.full), "window 2's slot on the laptop is closed")
   }
 
   @Test func theOpenSlotFollowsThePointerAcrossTheExternalDisplay() async {
-    let harness = await harness()
-    await drag(in: harness, to: upperRight)
-    pointer.drag(to: lowerRight)
-    await harness.settle()
-    #expect(harness.frame(of: 4) == externalSlots[1], "the lower right is open now")
+    let scenario = await scenario()
+    await drag(in: scenario, to: upperRight)
+    await scenario.dragPointer(to: lowerRight)
+    #expect(scenario.frame(of: 4) == externalSlots[1], "the lower right is open now")
     // The lower half of the left column: window 2 would join the master section below window 3.
-    pointer.drag(to: CGPoint(x: 0, y: -700))
-    await harness.settle()
-    let twoMains = TallLayout().frames(
-      count: 3, in: external.visibleFrame, state: TallLayoutState(mainCount: 2))
-    #expect(harness.frame(of: 3) == twoMains[0], "the master section makes room below it")
-    #expect(harness.frame(of: 4) == twoMains[2], "alone in the stack")
+    await scenario.dragPointer(to: lowerLeft)
+    #expect(scenario.frame(of: 3) == twoMains[0], "the master section makes room below it")
+    #expect(scenario.frame(of: 4) == twoMains[2], "alone in the stack")
   }
 
   @Test func droppedOnTheMainColumnItJoinsTheMainSectionThere() async {
-    let harness = await harness()
-    let lowerLeft = CGPoint(x: 0, y: -700)
-    await drag(in: harness, to: lowerLeft)
-    await release(in: harness, at: lowerLeft)
-    let twoMains = TallLayout().frames(
-      count: 3, in: external.visibleFrame, state: TallLayoutState(mainCount: 2))
-    #expect(harness.frame(of: 3) == twoMains[0])
-    #expect(harness.frame(of: 2) == twoMains[1])
-    #expect(harness.frame(of: 4) == twoMains[2])
+    let scenario = await scenario()
+    await drag(in: scenario, to: lowerLeft)
+    await scenario.release(at: lowerLeft)
+    #expect(scenario.frame(of: 3) == twoMains[0])
+    #expect(scenario.frame(of: 2) == twoMains[1])
+    #expect(scenario.frame(of: 4) == twoMains[2])
   }
 
   @Test func backOverTheLaptopEverythingIsAsItWas() async {
-    let harness = await harness()
-    let frames = [1, 3, 4].map { harness.frame(of: $0) }
-    await drag(in: harness, to: upperRight)
-    pointer.drag(to: CGPoint(x: 1300, y: 600))  // over window 2's own slot
-    await harness.settle()
-    #expect([1, 3, 4].map { harness.frame(of: $0) } == frames)
+    let scenario = await scenario()
+    let frames = [1, 3, 4].map { scenario.frame(of: $0) }
+    let overItsOwnSlot = CGPoint(x: 1300, y: 600)
+    await drag(in: scenario, to: upperRight)
+    await scenario.dragPointer(to: overItsOwnSlot)
+    #expect([1, 3, 4].map { scenario.frame(of: $0) } == frames)
 
-    await release(in: harness, at: CGPoint(x: 1300, y: 600))
-    #expect(harness.workspaces() == [1: 1, 2: 1, 3: 5, 4: 5])
-    #expect(harness.frame(of: 2) == TallLayout().frames(count: 2, in: harness.area)[1])
+    await scenario.release(at: overItsOwnSlot)
+    #expect(scenario.workspaces == [1: 1, 2: 1, 3: 5, 4: 5])
+    #expect(scenario.frame(of: 2) == laptopHalves[1])
   }
 
   @Test func aCommandMidDragPutsBothDisplaysBack() async {
-    let harness = await harness()
-    await drag(in: harness, to: upperRight)
-    _ = harness.manager.switchWorkspace(.number(6))
-    await harness.settle()
-    #expect(harness.frame(of: 1) == TallLayout().frames(count: 2, in: harness.area)[0])
+    let scenario = await scenario()
+    await drag(in: scenario, to: upperRight)
+    await scenario.command("workspace focus 6")
+    #expect(scenario.frame(of: 1) == laptopHalves[0])
   }
 
   @Test func droppedOverTheUpperRightItGoesInBeforeWindow4() async {
-    let harness = await harness()
-    await drag(in: harness, to: upperRight)
-    await release(in: harness, at: upperRight)
+    let scenario = await scenario()
+    await drag(in: scenario, to: upperRight)
+    await scenario.release(at: upperRight)
 
-    #expect(harness.workspaces() == [1: 1, 2: 5, 3: 5, 4: 5])
-    #expect(harness.manager.rows[1].current.windows == [3, 2, 4].map(WindowID.init))
-    #expect(harness.frame(of: 2) == externalSlots[1], "the dragged window snaps into its slot")
-    #expect(harness.frame(of: 1) == harness.area, "the laptop re-tiles")
-    #expect(harness.manager.rows.focusedKey == external.key)
+    #expect(scenario.workspaces == [1: 1, 2: 5, 3: 5, 4: 5])
+    #expect(scenario.list(5) == [3, 2, 4])
+    #expect(scenario.frame(of: 2) == externalSlots[1], "the dragged window snaps into its slot")
+    #expect(scenario.frame(of: 1) == scenario.rect(.full), "the laptop re-tiles")
+    #expect(scenario.focusedDisplay == 2)
   }
 
   @Test func droppedOverTheLowerRightItGoesLast() async {
-    let harness = await harness()
-    await drag(in: harness, to: lowerRight)
-    await release(in: harness, at: lowerRight)
-    #expect(harness.manager.rows[1].current.windows == [3, 4, 2].map(WindowID.init))
-    #expect(harness.frame(of: 2) == externalSlots[2])
-    #expect(harness.frame(of: 4) == externalSlots[1])
+    let scenario = await scenario()
+    await drag(in: scenario, to: lowerRight)
+    await scenario.release(at: lowerRight)
+    #expect(scenario.list(5) == [3, 4, 2])
+    #expect(scenario.frame(of: 2) == externalSlots[2])
+    #expect(scenario.frame(of: 4) == externalSlots[1])
   }
 
   @Test func droppedOnNoWindowItGoesLast() async {
-    let harness = await harness(config: Config(gaps: Config.Gaps(outer: 20)))
+    let scenario = await scenario(config: Config(gaps: Config.Gaps(outer: 20)))
     let inTheGap = CGPoint(x: external.visibleFrame.minX + 5, y: -700)
-    await drag(in: harness, to: inTheGap)
-    await release(in: harness, at: inTheGap)
-    #expect(harness.manager.rows[1].current.windows == [3, 4, 2].map(WindowID.init))
+    await drag(in: scenario, to: inTheGap)
+    await scenario.release(at: inTheGap)
+    #expect(scenario.list(5) == [3, 4, 2])
   }
 
   @Test func droppedOnAnEmptyWorkspaceItFillsTheDisplay() async {
-    let harness = await harness()
-    _ = harness.manager.switchWorkspace(.number(6))
-    await harness.osFocus(2)
-    await drag(in: harness, to: upperRight)
-    #expect(harness.frame(of: 1) == harness.area)
-    await release(in: harness, at: upperRight)
-    #expect(harness.workspaces()[2] == 6)
-    #expect(harness.frame(of: 2) == external.visibleFrame)
+    let scenario = await scenario()
+    await scenario.command("workspace focus 6")
+    await scenario.focus(2)
+    await drag(in: scenario, to: upperRight)
+    #expect(scenario.frame(of: 1) == scenario.rect(.full))
+    await scenario.release(at: upperRight)
+    #expect(scenario.workspaces[2] == 6)
+    #expect(scenario.frame(of: 2) == external.visibleFrame)
   }
 
   @Test func aDragStartedWhileTheOtherDisplayHasFocusIsStillHeldAndDropped() async {
-    let harness = await harness()
+    let scenario = await scenario()
     // The user was working on the external display; the laptop window's focus event hasn't arrived
     // yet.
-    await harness.osFocus(3)
-    await drag(in: harness, to: upperRight)
-    #expect(harness.workspaces()[2] == 1, "held on the laptop's workspace")
-    #expect(harness.frame(of: 4) == externalSlots[2], "room is made for it")
+    await scenario.focus(3)
+    await drag(in: scenario, to: upperRight)
+    #expect(scenario.workspaces[2] == 1, "held on the laptop's workspace")
+    #expect(scenario.frame(of: 4) == externalSlots[2], "room is made for it")
 
-    await release(in: harness, at: upperRight)
-    #expect(harness.manager.rows[1].current.windows == [3, 2, 4].map(WindowID.init))
-    #expect(harness.frame(of: 2) == externalSlots[1])
-    #expect(harness.frame(of: 1) == harness.area)
+    await scenario.release(at: upperRight)
+    #expect(scenario.list(5) == [3, 2, 4])
+    #expect(scenario.frame(of: 2) == externalSlots[1])
+    #expect(scenario.frame(of: 1) == scenario.rect(.full))
   }
 
   @Test func aSyncThatTakesAWindowOffAnotherDisplayLaysThatDisplayOut() async {
-    let harness = await harness()
-    await harness.osFocus(3)
-    // Window 2 is on the external display now, but only a switch's own sync finds out.
+    let scenario = await scenario()
+    await scenario.focus(3)
+    // Window 2 is on the external display now, but no event says so: only a switch's own sync
+    // finds out.
     let moved = makeWindow(id: 2, frame: CGRect(x: 1200, y: -800, width: 400, height: 300))
-    harness.windowSystem.windows[1] = moved
-    harness.manager.registry.apply(.updated(moved))
-    _ = harness.manager.switchWorkspace(.number(6))
-    await harness.settle()
-    #expect(harness.workspaces()[2] == 5)
-    #expect(harness.frame(of: 1) == harness.area, "the laptop re-tiles around the gap")
+    if let index = scenario.windowSystem.windows.firstIndex(where: { $0.id == moved.id }) {
+      scenario.windowSystem.windows[index] = moved
+    }
+    scenario.harness.manager.registry.apply(.updated(moved))
+    await scenario.command("workspace focus 6")
+    #expect(scenario.workspaces[2] == 5)
+    #expect(scenario.frame(of: 1) == scenario.rect(.full), "the laptop re-tiles around the gap")
   }
 }

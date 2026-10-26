@@ -24,12 +24,29 @@ extension Scenario {
     let target = rect(region, display: number)
     let start = CGPoint(x: frame.midX, y: frame.minY + 10)
     let end = CGPoint(x: target.midX, y: target.midY)
-    let offset = CGVector(dx: end.x - start.x, dy: end.y - start.y)
     pointer.isPrimaryButtonDown = true
-    await harness.windowSystem.userMoves(window, to: frame.offsetBy(dx: offset.dx, dy: offset.dy))
-    pointer.drag(to: end)
+    await harness.windowSystem.userMoves(
+      window, to: frame.offsetBy(dx: end.x - start.x, dy: end.y - start.y))
+    await dragPointer(to: end)
+    await release(at: end)
+  }
+
+  /// The user presses on `window`'s title bar and starts dragging it: its app moves it to `frame`
+  /// and reports it. The button stays down until `release(at:)`.
+  func pickUp(_ window: UInt32, to frame: CGRect) async {
+    pointer.isPrimaryButtonDown = true
+    await moveByHand(window, to: frame)
+  }
+
+  /// The user drags the pointer to `point`, the button still down.
+  func dragPointer(to point: CGPoint) async {
+    pointer.drag(to: point)
     await runUntilQuiet()
-    pointer.release(at: end)
+  }
+
+  /// The user lets go of the button at `point`.
+  func release(at point: CGPoint) async {
+    pointer.release(at: point)
     await runUntilQuiet()
   }
 

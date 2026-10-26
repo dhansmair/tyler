@@ -5,85 +5,68 @@ import TylerTestSupport
 
 @testable import TylerServer
 
-@Suite("WindowManager")
+@Suite("Starting and stopping")
 @MainActor
 struct StartupScenarios {
-  private func makeManager(
-    windowSystem: FakeWindowSystem = FakeWindowSystem(),
-    displays: FakeDisplays = FakeDisplays(),
-    gate: FakeGate = FakeGate(isTrusted: true)
-  ) -> WindowManager {
-    WindowManager(windowSystem: windowSystem, displays: displays, gate: gate)
-  }
-
-  private func listedWindows(_ manager: WindowManager) -> [WindowInfo]? {
-    guard case .windows(let windows) = manager.windows() else { return nil }
+  private func listed(_ scenario: Scenario) async -> [WindowInfo]? {
+    guard case .windows(let windows) = await scenario.command("window list") else { return nil }
     return windows
   }
 
-  @Test func withoutPermissionItWaitsAndExplains() {
-    let windowSystem = FakeWindowSystem()
-    let manager = makeManager(windowSystem: windowSystem, gate: FakeGate(isTrusted: false))
+  @Test func withoutPermissionItWaitsAndExplains() async {
+    let scenario = await Scenario(openAtStart: [], gate: FakeGate(isTrusted: false))
 
-    #expect(manager.startIfPermitted() == false)
-    #expect(manager.state == .waitingForPermission)
-    #expect(windowSystem.startCount == 0)
-    #expect(manager.windows() == .error(WindowManager.permissionMessage))
+    #expect(scenario.tiling == .waitingForPermission)
+    #expect(scenario.windowSystem.startCount == 0)
+    #expect(await scenario.command("window list") == .error(WindowManager.permissionMessage))
   }
 
-  @Test func startsOnceAndLoadsTheInitialSnapshot() {
-    let windowSystem = FakeWindowSystem(windows: [makeWindow(id: 1), makeWindow(id: 2)])
-    let manager = makeManager(windowSystem: windowSystem)
+  @Test func startsOnceAndLoadsTheInitialSnapshot() async {
+    let scenario = await Scenario(openAtStart: [makeWindow(id: 1), makeWindow(id: 2)])
 
-    #expect(manager.startIfPermitted())
-    #expect(manager.state == .running)
-    #expect(windowSystem.startCount == 1)
-    #expect(listedWindows(manager)?.map(\.id.rawValue) == [1, 2])
+    #expect(scenario.tiling == .on)
+    #expect(scenario.windowSystem.startCount == 1)
+    #expect(await listed(scenario)?.map(\.id.rawValue) == [1, 2])
 
-    #expect(manager.startIfPermitted())
-    #expect(windowSystem.startCount == 1, "a second call must not restart the window system")
+    await scenario.grantPermission()
+    #expect(
+      scenario.windowSystem.startCount == 1,
+      "finding the permission again must not restart the window system")
   }
 
-  @Test func startsLaterOnceThePermissionIsGranted() {
-    let gate = FakeGate(isTrusted: false)
-    let windowSystem = FakeWindowSystem(windows: [makeWindow(id: 1)])
-    let manager = makeManager(windowSystem: windowSystem, gate: gate)
-
-    #expect(manager.startIfPermitted() == false)
-    gate.isTrusted = true
-    #expect(manager.startIfPermitted())
-    #expect(listedWindows(manager)?.count == 1)
+  @Test func startsLaterOnceThePermissionIsGranted() async {
+    let scenario = await Scenario(
+      openAtStart: [makeWindow(id: 1)], gate: FakeGate(isTrusted: false))
+    await scenario.grantPermission()
+    #expect(scenario.tiling == .on)
+    #expect(await listed(scenario)?.count == 1)
   }
 
-  @Test func backendEventsChangeTheList() async {
-    let windowSystem = FakeWindowSystem()
-    let manager = makeManager(windowSystem: windowSystem)
-    manager.startIfPermitted()
+  @Test func windowEventsChangeTheList() async {
+    let scenario = await Scenario(openAtStart: [])
 
-    windowSystem.send(.created(makeWindow(id: 1, title: "a")))
-    windowSystem.send(.created(makeWindow(id: 2, title: "b")))
-    windowSystem.send(.updated(makeWindow(id: 1, title: "a2")))
-    windowSystem.send(.focused(WindowID(2)))
-    windowSystem.send(.destroyed(WindowID(1)))
-    await settle()
+    await scenario.open(makeWindow(id: 1, title: "a"))
+    await scenario.open(makeWindow(id: 2, title: "b"))
+    await scenario.change(makeWindow(id: 1, title: "a2"))
+    await scenario.focus(2)
+    await scenario.close(1)
 
-    let windows = listedWindows(manager)
+    let windows = await listed(scenario)
     #expect(windows?.map(\.id.rawValue) == [2])
     #expect(windows?.first?.isFocused == true)
   }
 
   @Test func eventsSentBeforeTheSnapshotAreNotDuplicated() async {
+    let scenario = await Scenario(
+      openAtStart: [makeWindow(id: 1)], gate: FakeGate(isTrusted: false))
     // The window system reports a window both in its snapshot and as a created event.
-    let windowSystem = FakeWindowSystem(windows: [makeWindow(id: 1)])
-    let manager = makeManager(windowSystem: windowSystem)
-    windowSystem.send(.created(makeWindow(id: 1)))
-    manager.startIfPermitted()
-    await settle()
+    scenario.windowSystem.send(.created(makeWindow(id: 1)))
+    await scenario.grantPermission()
 
-    #expect(listedWindows(manager)?.count == 1)
+    #expect(await listed(scenario)?.count == 1)
   }
 
-  @Test func windowsAreTaggedWithTheirDisplay() {
+  @Test func windowsAreTaggedWithTheirDisplay() async {
     let left = DisplayInfo(
       id: 10,
       frame: CGRect(x: 0, y: 0, width: 1000, height: 800),
@@ -94,43 +77,48 @@ struct StartupScenarios {
       frame: CGRect(x: 1000, y: 0, width: 1000, height: 800),
       visibleFrame: CGRect(x: 1000, y: 0, width: 1000, height: 800)
     )
-    let windowSystem = FakeWindowSystem(windows: [
-      makeWindow(id: 1, frame: CGRect(x: 100, y: 100, width: 300, height: 200)),
-      makeWindow(id: 2, frame: CGRect(x: 1200, y: 100, width: 300, height: 200)),
-    ])
-    let manager = makeManager(
-      windowSystem: windowSystem, displays: FakeDisplays(displays: [left, right]))
-    manager.startIfPermitted()
+    let scenario = await Scenario(
+      openAtStart: [
+        makeWindow(id: 1, frame: CGRect(x: 100, y: 100, width: 300, height: 200)),
+        makeWindow(id: 2, frame: CGRect(x: 1200, y: 100, width: 300, height: 200)),
+      ],
+      displays: [left, right])
 
-    #expect(listedWindows(manager)?.map(\.displayID) == [10, 20])
+    #expect(await listed(scenario)?.map(\.displayID) == [10, 20])
   }
 
-  @Test func withoutAnyDisplayTheTagIsNil() {
-    let windowSystem = FakeWindowSystem(windows: [makeWindow(id: 1)])
-    let manager = makeManager(windowSystem: windowSystem, displays: FakeDisplays(displays: []))
-    manager.startIfPermitted()
-    #expect(listedWindows(manager)?.first?.displayID == nil)
+  @Test func withoutAnyDisplayTheTagIsNil() async {
+    let scenario = await Scenario(openAtStart: [makeWindow(id: 1)], displays: [])
+    #expect(await listed(scenario)?.first?.displayID == nil)
   }
 
-  @Test func stopClearsStateAndStopsTheBackend() {
-    let windowSystem = FakeWindowSystem(windows: [makeWindow(id: 1)])
-    let manager = makeManager(windowSystem: windowSystem)
-    manager.startIfPermitted()
+  @Test func stopClearsStateAndStopsTheWindowSystem() async {
+    let scenario = await Scenario(openAtStart: [makeWindow(id: 1)])
 
-    manager.stop()
-    #expect(windowSystem.stopCount == 1)
-    #expect(manager.state == .waitingForPermission)
-    #expect(manager.windows() == .error(WindowManager.permissionMessage))
+    await scenario.stop()
+    #expect(scenario.windowSystem.stopCount == 1)
+    #expect(scenario.tiling == .waitingForPermission)
+    #expect(await scenario.command("window list") == .error(WindowManager.permissionMessage))
   }
 
-  @Test func theBackendStreamEndingLeavesTheLastKnownList() async {
-    let windowSystem = FakeWindowSystem(windows: [makeWindow(id: 1)])
-    let manager = makeManager(windowSystem: windowSystem)
-    manager.startIfPermitted()
+  @Test func theWindowSystemsEventsEndingLeavesTheLastKnownList() async {
+    let scenario = await Scenario(openAtStart: [makeWindow(id: 1)])
 
-    windowSystem.finish()
-    await settle()
-    #expect(listedWindows(manager)?.count == 1)
+    scenario.windowSystem.finish()
+    await scenario.runUntilQuiet()
+    #expect(await listed(scenario)?.count == 1)
+  }
+
+  // tylerd's main follows the permission on its own clock, which would never be quiet inside a
+  // Scenario, so these drive the manager.
+  @Test func startingSaysWhetherTylerdRuns() {
+    let gate = FakeGate(isTrusted: false)
+    let manager = WindowManager(
+      windowSystem: FakeWindowSystem(windows: spread([1])), displays: FakeDisplays(), gate: gate)
+    #expect(manager.startIfPermitted() == false)
+    gate.isTrusted = true
+    #expect(manager.startIfPermitted())
+    #expect(manager.startIfPermitted(), "already running")
   }
 
   @Test func itStartsOnceThePermissionIsGranted() async {

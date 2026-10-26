@@ -11,35 +11,59 @@ import TylerTestSupport
 struct RestartScenarios {
   /// Windows 1 and 2 on workspace 1 in the full layout, window 3 parked on workspace 2, and
   /// workspace 1 on screen.
-  private func arranged(animator: Animator = .snap) async -> ManagerHarness {
-    let harness = ManagerHarness([1, 2, 3], animator: animator)
+  private func arranged(
+    animates: Bool = false, slide: Duration = Animator.defaultDuration,
+    frameInterval: Duration = Animator.defaultFrameInterval
+  ) async -> Scenario {
+    let scenario = await Scenario(
+      openAtStart: spread([1, 2, 3]), animates: animates, slide: slide,
+      frameInterval: frameInterval)
+    await scenario.focus(3)
+    await scenario.command("window move-to-workspace next")
+    await scenario.command("layout set full")
+    scenario.windowSystem.clearRecordedCalls()
+    return scenario
+  }
+
+  /// `id` as `scenario`'s tylerd last saw it, to appear again for the next one.
+  private func window(_ id: UInt32, of scenario: Scenario) -> WindowInfo {
+    guard let window = scenario.windowSystem.windows.first(where: { $0.id == WindowID(id) })
+    else {
+      Issue.record("no window \(id)")
+      return makeWindow(id: id)
+    }
+    return window
+  }
+
+  private func isFloated(_ id: UInt32, in scenario: Scenario) -> Bool {
+    scenario.windowList.first { $0.id == WindowID(id) }?.isFloated == true
+  }
+
+  @Test func handingOverMovesNoWindow() async {
+    let scenario = await arranged()
+    let frames = scenario.windowSystem.windows.map(\.frame)
+    let next = await scenario.restart()
+    #expect(next.workspaces == [1: 1, 2: 1, 3: 2], "the workspaces were handed over")
+    #expect(scenario.windowSystem.moves.isEmpty)
+    #expect(scenario.windowSystem.windows.map(\.frame) == frames)
+    #expect(scenario.windowSystem.stopCount == 1)
+  }
+
+  @Test func theNextTylerdCarriesOnWithoutMovingAnything() async {
+    let next = await arranged().restart()
+    #expect(next.workspaces == [1: 1, 2: 1, 3: 2])
+    #expect(next.windowSystem.moves.isEmpty, "every window is already where it belongs")
+    #expect(await next.command("layout next") == .message("layout tall"), "the layout survived")
+  }
+
+  // A state file from before several displays can't be written through a Scenario.
+  @Test func aStateFromATylerdBeforeSeveralDisplaysIsTakenOver() async {
+    let harness = ManagerHarness([1, 2, 3])
     await harness.osFocus(3)
     _ = harness.manager.moveToWorkspace(.next, follow: false)
     _ = harness.manager.setLayout(.set(.full))
     await harness.settle()
     harness.windowSystem.clearRecordedCalls()
-    return harness
-  }
-
-  @Test func handingOverMovesNoWindow() async {
-    let harness = await arranged()
-    let frames = harness.windowSystem.windows.map(\.frame)
-    #expect(harness.manager.handOver() != nil)
-    #expect(harness.windowSystem.moves.isEmpty)
-    #expect(harness.windowSystem.windows.map(\.frame) == frames)
-    #expect(harness.windowSystem.stopCount == 1)
-  }
-
-  @Test func theNextTylerdCarriesOnWithoutMovingAnything() async {
-    let harness = await arranged()
-    let successor = harness.successor(saved: harness.manager.handOver())
-    #expect(successor.workspaces() == [1: 1, 2: 1, 3: 2])
-    #expect(successor.windowSystem.moves.isEmpty, "every window is already where it belongs")
-    #expect(successor.manager.setLayout(.next) == .message("layout tall"), "the layout survived")
-  }
-
-  @Test func aStateFromATylerdBeforeSeveralDisplaysIsTakenOver() async {
-    let harness = await arranged()
     let row = harness.manager.workspaces
     let old = SavedState(
       row: row, floated: [], tilingEnabled: true, originalFrames: [:],
@@ -51,60 +75,50 @@ struct RestartScenarios {
   }
 
   @Test func windowsThatClosedInBetweenAreLeftOut() async {
-    let harness = await arranged()
-    let successor = harness.successor(saved: harness.manager.handOver(), closing: [1])
-    #expect(successor.workspaces() == [2: 1, 3: 2])
+    let next = await arranged().restart(closing: [1])
+    #expect(next.workspaces == [2: 1, 3: 2])
   }
 
   @Test func theOriginalFramesSurviveSoStopStillUndoesEverything() async {
-    let harness = await arranged()
-    let successor = harness.successor(saved: harness.manager.handOver())
-    successor.manager.stop()
-    let frames = successor.windowSystem.windows.sorted { $0.id < $1.id }.map(\.frame)
+    let next = await arranged().restart()
+    await next.stop()
+    let frames = next.windowSystem.windows.sorted { $0.id < $1.id }.map(\.frame)
     #expect(frames == (0..<3).map(ManagerHarness.originalFrame(index:)))
   }
 
   @Test func theNextTylerdTilesTheHandedOverWorkspacesWithItsGaps() async {
-    let harness = await arranged()
     let gaps = Config(gaps: Config.Gaps(inner: 8, outer: 12))
-    let successor = harness.successor(saved: harness.manager.handOver(), config: gaps)
-    #expect(successor.manager.switchWorkspace(.next) == .message("workspace 2"))
-    await settle()
+    let next = await arranged().restart(config: gaps)
+    #expect(await next.command("workspace focus next") == .message("workspace 2"))
     let expected = TallLayout().frames(
       count: 1, in: FakeDisplays.main.visibleFrame,
       gaps: LayoutGaps(inner: 8, outer: 12))
-    #expect(successor.windowSystem.frame(of: 3) == expected.first)
+    #expect(next.frame(of: 3) == expected.first)
   }
 
   @Test func floatedWindowsAndTilingOffSurvive() async {
-    let harness = ManagerHarness([1, 2])
-    await harness.osFocus(2)
-    _ = harness.manager.setFloat(.toggle)
-    _ = harness.manager.setTiling(.off)
-    let successor = harness.successor(saved: harness.manager.handOver())
-    #expect(successor.manager.tilingStatus == .off)
-    _ = successor.manager.setTiling(.on)
-    guard case .windows(let windows) = successor.manager.windows() else {
-      Issue.record("no windows")
-      return
-    }
-    #expect(windows.first { $0.id == WindowID(2) }?.isFloated == true)
+    let scenario = await Scenario(openAtStart: spread([1, 2]))
+    await scenario.focus(2)
+    await scenario.command("window float toggle")
+    await scenario.command("tiling off")
+    let next = await scenario.restart()
+    #expect(next.tiling == .off)
+    await next.command("tiling on")
+    #expect(isFloated(2, in: next))
   }
 
   @Test func aSlideInProgressIsFinishedBeforeHandingOver() async {
-    let clock = TestClock()
-    let animator = Animator(
-      duration: .milliseconds(48), frameInterval: .milliseconds(16), clock: clock)
-    let harness = await arranged(animator: animator)
-    _ = harness.manager.switchWorkspace(.next)
-    clock.advance(by: .milliseconds(16))
-    await harness.settle()
-    let saved = harness.manager.handOver()
-    #expect(harness.isParked(1))
-    #expect(harness.isParked(2))
-    #expect(saved?.displays?.first?.currentIndex == 1)
+    let scenario = await arranged(
+      animates: true, slide: .milliseconds(48), frameInterval: .milliseconds(16))
+    await scenario.start("workspace focus next")
+    await scenario.wait(.milliseconds(16))
+    let next = await scenario.restart()
+    #expect(scenario.isParked(1))
+    #expect(scenario.isParked(2))
+    #expect(next.shown == [2])
   }
 
+  // Only the state itself shows every part of it passed on unchanged.
   @Test func beforePermissionTheHandedOverStateIsPassedOn() {
     let saved = SavedState(
       row: WorkspaceRow(), floated: [], tilingEnabled: false, originalFrames: [:])
@@ -113,52 +127,37 @@ struct RestartScenarios {
     #expect(harness.manager.handOver() == saved)
   }
 
-  /// The windows of `windows` named in `ids` appear one by one, as apps that answer late do.
-  private func appear(_ ids: [UInt32], of windows: [WindowInfo], in next: ManagerHarness) async {
-    for id in ids {
-      guard let window = windows.first(where: { $0.id == WindowID(id) }) else { continue }
-      next.windowSystem.windows.append(window)
-      next.windowSystem.send(.created(window))
-      await next.settle()
-    }
-  }
-
   @Test func aWindowWhoseAppAnswersLateGetsItsWorkspaceBack() async {
-    let harness = await arranged()
-    let windows = harness.windowSystem.windows
-    let successor = harness.successor(saved: harness.manager.handOver(), closing: [3])
-    #expect(successor.workspaces() == [1: 1, 2: 1])
-    await appear([3], of: windows, in: successor)
-    #expect(successor.workspaces() == [1: 1, 2: 1, 3: 2])
-    #expect(successor.isParked(3))
-    #expect(successor.windowSystem.moves.isEmpty)
-    successor.manager.stop()
-    #expect(successor.frame(of: 3) == ManagerHarness.originalFrame(index: 2), "stop puts it back")
+    let scenario = await arranged()
+    let next = await scenario.restart(closing: [3])
+    #expect(next.workspaces == [1: 1, 2: 1])
+    await next.open(window(3, of: scenario))
+    #expect(next.workspaces == [1: 1, 2: 1, 3: 2])
+    #expect(next.isParked(3))
+    #expect(next.windowSystem.moves.isEmpty)
+    await next.stop()
+    #expect(next.frame(of: 3) == ManagerHarness.originalFrame(index: 2), "stop puts it back")
   }
 
   @Test func aRestartOnALockedScreenGetsEveryWorkspaceBackAsTheWindowsAppear() async {
-    let harness = await arranged()
-    let windows = harness.windowSystem.windows
-    let successor = harness.successor(saved: harness.manager.handOver(), closing: [1, 2, 3])
-    await appear([2, 3, 1], of: windows, in: successor)
-    #expect(successor.workspaces() == [1: 1, 2: 1, 3: 2])
-    #expect(successor.manager.workspaces[0].windows == [WindowID(1), WindowID(2)])
-    #expect(successor.windowSystem.moves.isEmpty, "every window is already where it belongs")
-    #expect(successor.manager.setLayout(.next) == .message("layout tall"), "the layout survived")
+    let scenario = await arranged()
+    let next = await scenario.restart(closing: [1, 2, 3])
+    for id: UInt32 in [2, 3, 1] {
+      await next.open(window(id, of: scenario))
+    }
+    #expect(next.workspaces == [1: 1, 2: 1, 3: 2])
+    #expect(next.list(1) == [1, 2])
+    #expect(next.windowSystem.moves.isEmpty, "every window is already where it belongs")
+    #expect(await next.command("layout next") == .message("layout tall"), "the layout survived")
   }
 
   @Test func aFloatedWindowThatAppearsLateIsStillFloated() async {
-    let harness = ManagerHarness([1, 2])
-    await harness.osFocus(2)
-    _ = harness.manager.setFloat(.toggle)
-    let windows = harness.windowSystem.windows
-    let successor = harness.successor(saved: harness.manager.handOver(), closing: [2])
-    await appear([2], of: windows, in: successor)
-    #expect(successor.workspaces() == [1: 1])
-    guard case .windows(let listed) = successor.manager.windows() else {
-      Issue.record("no windows")
-      return
-    }
-    #expect(listed.first { $0.id == WindowID(2) }?.isFloated == true)
+    let scenario = await Scenario(openAtStart: spread([1, 2]))
+    await scenario.focus(2)
+    await scenario.command("window float toggle")
+    let next = await scenario.restart(closing: [2])
+    await next.open(window(2, of: scenario))
+    #expect(next.workspaces == [1: 1])
+    #expect(isFloated(2, in: next))
   }
 }

@@ -1,3 +1,4 @@
+import CoreGraphics
 import Testing
 import TylerConfig
 import TylerTestSupport
@@ -50,6 +51,7 @@ struct ScenarioTests {
   @Test func withoutPermissionNothingIsTiled() async {
     let scenario = await Scenario(openAtStart: spread([1]), gate: FakeGate(isTrusted: false))
     #expect(scenario.workspaces.isEmpty)
+    #expect(scenario.tiling == .waitingForPermission)
   }
 
   @Test func anOpenedWindowJoinsTheList() async {
@@ -87,6 +89,34 @@ struct ScenarioTests {
     #expect(next.list(1) == [1, 2])
     #expect(next.list(2) == [3])
     #expect(next.isParked(1))
+  }
+
+  @Test func windowsThatCloseDuringARestartAreGoneForTheNextTylerd() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    let next = await scenario.restart(closing: [1])
+    #expect(next.list(1) == [2])
+    #expect(next.frame(of: 1) == nil)
+  }
+
+  @Test func aRestartOntoAnotherGrantPutsTheWindowsBackAndWaitsForTheGrant() async {
+    let scenario = await Scenario(openAtStart: spread([1]))
+    let next = await scenario.restart(puttingWindowsBack: true, gate: FakeGate(isTrusted: false))
+    #expect(scenario.frame(of: 1) == spread([1]).first?.frame)
+    #expect(next.tiling == .waitingForPermission)
+    await next.grantPermission()
+    #expect(next.list(1) == [1])
+  }
+
+  @Test func aWindowPickedUpIsHeldUntilReleased() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    let slot = scenario.frame(of: 2)
+    let held = CGRect(x: 600, y: 300, width: 300, height: 200)
+    let overItsSlot = CGPoint(x: scenario.rect(.rightHalf).midX, y: scenario.rect(.rightHalf).midY)
+    await scenario.pickUp(2, to: held)
+    await scenario.dragPointer(to: overItsSlot)
+    #expect(scenario.frame(of: 2) == held)
+    await scenario.release(at: overItsSlot)
+    #expect(scenario.frame(of: 2) == slot)
   }
 
   @Test func aStartedSlideWaitsForTheClock() async {

@@ -2,6 +2,7 @@ import CoreGraphics
 import Testing
 import TylerConfig
 import TylerCore
+import TylerProtocol
 import TylerRuntime
 import TylerTestSupport
 
@@ -94,6 +95,16 @@ extension Scenario {
   var config: Config? {
     guard case .message(let text) = harness.manager.configValue(nil) else { return nil }
     return try? Config.parse(text)
+  }
+
+  /// Whether tiling is on, off, or waiting for permission, as `tyler status` shows it.
+  var tiling: ServerStatus.Tiling {
+    harness.manager.tilingStatus
+  }
+
+  /// Whether tylerd can reach the windows, as `tyler status` shows it.
+  var access: WindowAccess {
+    harness.manager.access
   }
 
   /// The settings `tyler status` lists as changed by `tyler config set`.

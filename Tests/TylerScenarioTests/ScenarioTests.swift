@@ -50,6 +50,7 @@ struct ScenarioTests {
   @Test func withoutPermissionNothingIsTiled() async {
     let scenario = await Scenario(openAtStart: spread([1]), gate: FakeGate(isTrusted: false))
     #expect(scenario.workspaces.isEmpty)
+    #expect(scenario.tiling == .waitingForPermission)
   }
 
   @Test func anOpenedWindowJoinsTheList() async {

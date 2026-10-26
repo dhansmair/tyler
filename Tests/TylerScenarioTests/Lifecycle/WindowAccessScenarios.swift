@@ -74,15 +74,14 @@ struct WindowAccessScenarios {
     await following.stop()
   }
 
-  @Test func seeingNoneOfTheWindowsOnScreenIsBlind() {
-    let stacking = FakeStacking()
-    let harness = ManagerHarness(windows: spread([1, 2]), stacking: stacking)
-    #expect(harness.manager.access == .ok)
+  @Test func seeingNoneOfTheWindowsOnScreenIsBlind() async {
+    let scenario = await Scenario(openAtStart: spread([1, 2]))
+    #expect(scenario.access == .ok)
 
-    stacking.listedWindows = [WindowID(7), WindowID(8)]
-    harness.windowSystem.isAttaching = true
-    #expect(harness.manager.access == .checking, "an app may still answer")
-    harness.windowSystem.isAttaching = false
-    #expect(harness.manager.access == .blind)
+    scenario.stacking.listedWindows = [WindowID(7), WindowID(8)]
+    scenario.windowSystem.isAttaching = true
+    #expect(scenario.access == .checking, "an app may still answer")
+    scenario.windowSystem.isAttaching = false
+    #expect(scenario.access == .blind)
   }
 }

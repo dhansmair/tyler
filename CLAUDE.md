@@ -78,6 +78,7 @@ make build     # swift build
 make test      # swift test with the flags below; use this, not plain `swift test`
 make test-unit / make test-scenario   # one layer of tests (devdocs/testing-strategy.md)
 make install   # release build, copied to ~/.local/bin (docs/install-from-source.md)
+make format    # swift format over the whole tree, in place
 make lint      # swift format lint and swiftlint (with TOOLCHAIN_DIR set) over the whole tree
 make check     # lint and test: what the pre-commit hook checks
 ```
@@ -90,7 +91,7 @@ make check     # lint and test: what the pre-commit hook checks
 - macOS has no `timeout`. To bound a command that might hang, use `perl -e 'alarm N; exec @ARGV' <command>`.
 - **SwiftLint needs `TOOLCHAIN_DIR`.** Without full Xcode, plain `swiftlint` crashes looking for sourcekitd; `make lint` and the pre-commit hook set `TOOLCHAIN_DIR=/Library/Developer/CommandLineTools`.
 - **Where swift-format and SwiftLint still disagree, write around it.** A one-element array literal whose element spans lines: SwiftLint wants a trailing comma, swift-format removes it (use a variadic parameter, or put the element on one line). A signature just over 100 columns: swift-format puts `{` on its own line, SwiftLint's `opening_brace` rejects that (shorten the signature). Also, SwiftLint's complexity limit (10) and 5-parameter limit apply: group parameters into a struct rather than splitting logic arbitrarily.
-- **Pre-commit** (`.pre-commit-config.yaml`) is installed in `.git/hooks`. A commit that touches Swift files runs format lint, SwiftLint and the tests, and is blocked if any fail. Don't bypass it with `--no-verify`.
+- **Pre-commit** (`.pre-commit-config.yaml`) is installed in `.git/hooks`. A commit that touches Swift files formats them, then runs format lint, SwiftLint and the tests, and is blocked at the first that fails. A commit blocked by formatting leaves the formatted files in the working tree: stage them and commit again. Don't bypass it with `--no-verify`.
 - **CI** (`.github/workflows/check.yml`) runs `make check` in a fresh checkout for every PR that isn't a draft and every push to `main`, with SwiftLint pinned to the local version: update the pin when SwiftLint changes.
 
 ## Design principles

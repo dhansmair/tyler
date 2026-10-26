@@ -1,7 +1,17 @@
 # Mirrors the checks in devdocs/coding-guidelines.md. Install with `pre-commit install`.
+# The first failing hook stops the run, so a formatting fix doesn't wait for the tests.
+fail_fast: true
 repos:
   - repo: local
     hooks:
+      # Changing a file fails the commit and leaves the fix in the working tree to stage.
+      - id: swift-format-fix
+        name: swift format
+        entry: swift format --in-place
+        language: system
+        types: [swift]
+
+      # What formatting can't fix, such as a line it can't break.
       - id: swift-format
         name: swift format lint
         entry: swift format lint --strict

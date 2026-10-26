@@ -97,6 +97,15 @@ struct ScenarioTests {
     #expect(next.frame(of: 1) == nil)
   }
 
+  @Test func aRestartOntoAnotherGrantPutsTheWindowsBackAndWaitsForTheGrant() async {
+    let scenario = await Scenario(openAtStart: spread([1]))
+    let next = await scenario.restart(puttingWindowsBack: true, gate: FakeGate(isTrusted: false))
+    #expect(scenario.frame(of: 1) == spread([1]).first?.frame)
+    #expect(next.tiling == .waitingForPermission)
+    await next.grantPermission()
+    #expect(next.list(1) == [1])
+  }
+
   @Test func aStartedSlideWaitsForTheClock() async {
     let scenario = await Scenario(
       workspaces: [1: [1]], animates: true, slide: .milliseconds(48),

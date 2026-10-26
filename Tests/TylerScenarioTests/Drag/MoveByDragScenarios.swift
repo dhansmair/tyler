@@ -25,52 +25,30 @@ struct MoveByDragScenarios {
   private let overLower = CGPoint(x: 1300, y: 900)
   private let outside = CGPoint(x: 10, y: 10)
 
-  private let pointer = FakePointer()
-  private let windowSystem: FakeWindowSystem
-  // Held here because the manager's event pumps only keep it weakly.
-  private let manager: WindowManager
+  private let scenario: Scenario
 
   init() async {
-    let harness = ManagerHarness([1, 2, 3], pointer: pointer, clock: TestClock())
-    (manager, windowSystem) = (harness.manager, harness.windowSystem)
-    await settle()
-    windowSystem.clearRecordedCalls()
+    scenario = await Scenario(workspaces: [1: [1, 2, 3]])
+    scenario.windowSystem.clearRecordedCalls()
   }
 
   /// The user drags window 3 by its title bar: the app moves it, keeping its size, and reports it.
   private func pickUpLowerWindow() async {
-    pointer.isPrimaryButtonDown = true
-    await moveWindow(3, to: CGRect(x: 600, y: 300, width: 872, height: 565))
+    await scenario.pickUp(3, to: CGRect(x: 600, y: 300, width: 872, height: 565))
   }
 
-  private func moveWindow(_ id: UInt32, to frame: CGRect) async {
-    await windowSystem.userMoves(id, to: frame)
-  }
+  private func frame(of id: UInt32) -> CGRect? { scenario.frame(of: id) }
 
-  private func dragPointer(to location: CGPoint) async {
-    pointer.drag(to: location)
-    await settle()
-  }
-
-  private func release(at location: CGPoint) async {
-    pointer.release(at: location)
-    await settle()
-  }
-
-  private func frame(of id: UInt32) -> CGRect? { windowSystem.frame(of: id) }
-
-  private var order: [UInt32] {
-    manager.workspaces.current.windows.map(\.rawValue)
-  }
+  private var order: [UInt32] { scenario.list(1) }
 
   // MARK: - Preview
 
   @Test func theMainSectionMakesRoomForAStackedWindow() async {
     await pickUpLowerWindow()
-    await dragPointer(to: overMain)
+    await scenario.dragPointer(to: overMain)
 
     #expect(
-      windowSystem.moves == [
+      scenario.windowSystem.moves == [
         Placement(id: WindowID(1), frame: mainLower),
         Placement(id: WindowID(2), frame: stackAlone),
       ])
@@ -79,16 +57,16 @@ struct MoveByDragScenarios {
 
   @Test func eachStepOverTheSameWindowMovesNothingMore() async {
     await pickUpLowerWindow()
-    await dragPointer(to: overMain)
-    await dragPointer(to: CGPoint(x: 400, y: 450))
+    await scenario.dragPointer(to: overMain)
+    await scenario.dragPointer(to: CGPoint(x: 400, y: 450))
 
-    #expect(windowSystem.moves.count == 2)
+    #expect(scenario.windowSystem.moves.count == 2)
   }
 
   @Test func movingOnToAnotherWindowPutsTheFirstOneBack() async {
     await pickUpLowerWindow()
-    await dragPointer(to: overMain)
-    await dragPointer(to: overUpper)
+    await scenario.dragPointer(to: overMain)
+    await scenario.dragPointer(to: overUpper)
 
     #expect(frame(of: 1) == main)
     #expect(frame(of: 2) == lower)
@@ -97,8 +75,8 @@ struct MoveByDragScenarios {
   @Test(arguments: [CGPoint(x: 1300, y: 900), CGPoint(x: 10, y: 10)])
   func leavingTheTargetForNoTargetPutsItBack(location: CGPoint) async {
     await pickUpLowerWindow()
-    await dragPointer(to: overMain)
-    await dragPointer(to: location)
+    await scenario.dragPointer(to: overMain)
+    await scenario.dragPointer(to: location)
 
     #expect(frame(of: 1) == main)
   }
@@ -107,8 +85,8 @@ struct MoveByDragScenarios {
 
   @Test func releasingOverTheMainColumnPutsItInTheMainSection() async {
     await pickUpLowerWindow()
-    await dragPointer(to: overMain)
-    await release(at: overMain)
+    await scenario.dragPointer(to: overMain)
+    await scenario.release(at: overMain)
 
     #expect(order == [3, 1, 2])
     #expect(frame(of: 3) == mainUpper)
@@ -118,7 +96,7 @@ struct MoveByDragScenarios {
 
   @Test func theReleaseLocationDecidesEvenWithoutAPreview() async {
     await pickUpLowerWindow()
-    await release(at: overUpper)
+    await scenario.release(at: overUpper)
 
     #expect(order == [1, 3, 2])
     #expect(frame(of: 3) == upper)
@@ -127,8 +105,8 @@ struct MoveByDragScenarios {
 
   @Test func releasingOverAnotherSlotThanThePreviewsGoesInThere() async {
     await pickUpLowerWindow()
-    await dragPointer(to: overMain)
-    await release(at: overUpper)
+    await scenario.dragPointer(to: overMain)
+    await scenario.release(at: overUpper)
 
     #expect(order == [1, 3, 2])
     #expect(frame(of: 1) == main)
@@ -139,8 +117,8 @@ struct MoveByDragScenarios {
   @Test(arguments: [CGPoint(x: 1300, y: 900), CGPoint(x: 10, y: 10)])
   func releasingOverNoTargetPutsEveryWindowBack(location: CGPoint) async {
     await pickUpLowerWindow()
-    await dragPointer(to: overMain)
-    await release(at: location)
+    await scenario.dragPointer(to: overMain)
+    await scenario.release(at: location)
 
     #expect(order == [1, 2, 3])
     #expect(frame(of: 1) == main)
@@ -148,62 +126,60 @@ struct MoveByDragScenarios {
   }
 
   @Test func theDraggedWindowKeepsFocus() async {
-    windowSystem.send(.focused(WindowID(3)))
-    await settle()
+    await scenario.focus(3)
     await pickUpLowerWindow()
-    await release(at: overMain)
+    await scenario.release(at: overMain)
 
-    #expect(manager.workspaces.current.focused == WindowID(3))
+    await scenario.command("window focus next")
+    #expect(scenario.focused == 1, "focus goes on from window 3, which is first now")
   }
 
   /// A window that keeps its size (System Settings keeps its width) is narrower than its slot
   /// before the drag: moving it is still a move, not a resize.
   @Test func aWindowSmallerThanItsSlotMovesToo() async {
     let size = CGSize(width: 700, height: 471)
-    windowSystem.fixedSizes[WindowID(3)] = size
-    await moveWindow(3, to: CGRect(origin: lower.origin, size: size))
-    windowSystem.clearRecordedCalls()
+    scenario.windowSystem.fixedSizes[WindowID(3)] = size
+    await scenario.moveByHand(3, to: CGRect(origin: lower.origin, size: size))
+    scenario.windowSystem.clearRecordedCalls()
 
-    pointer.isPrimaryButtonDown = true
-    await moveWindow(3, to: CGRect(origin: CGPoint(x: 600, y: 300), size: size))
-    await dragPointer(to: overMain)
-    #expect(windowSystem.moves.map(\.id) == [1, 2].map(WindowID.init))
+    await scenario.pickUp(3, to: CGRect(origin: CGPoint(x: 600, y: 300), size: size))
+    await scenario.dragPointer(to: overMain)
+    #expect(scenario.windowSystem.moves.map(\.id) == [1, 2].map(WindowID.init))
 
-    await release(at: overMain)
+    await scenario.release(at: overMain)
     #expect(order == [3, 1, 2])
   }
 
   // MARK: - No move
 
   @Test func aResizeNeverPreviewsOrMoves() async {
-    pointer.isPrimaryButtonDown = true
+    scenario.pointer.isPrimaryButtonDown = true
     // Window 3's top edge is the divider below window 2.
-    await moveWindow(3, to: CGRect(x: 928, y: 504, width: 872, height: 665))
-    windowSystem.clearRecordedCalls()
-    await dragPointer(to: overMain)
-    #expect(windowSystem.moves.isEmpty)
+    await scenario.moveByHand(3, to: CGRect(x: 928, y: 504, width: 872, height: 665))
+    scenario.windowSystem.clearRecordedCalls()
+    await scenario.dragPointer(to: overMain)
+    #expect(scenario.windowSystem.moves.isEmpty)
 
-    await release(at: overMain)
+    await scenario.release(at: overMain)
     #expect(order == [1, 2, 3])
   }
 
   @Test func inFullNothingMoves() async {
-    #expect(manager.setLayout(.set(.full)) == .message("layout full"))
-    windowSystem.clearRecordedCalls()
-    pointer.isPrimaryButtonDown = true
-    await moveWindow(2, to: CGRect(x: 300, y: 200, width: 1745, height: 1131))
-    await dragPointer(to: overMain)
-    #expect(windowSystem.moves.isEmpty)
+    #expect(await scenario.command("layout set full") == .message("layout full"))
+    scenario.windowSystem.clearRecordedCalls()
+    await scenario.pickUp(2, to: CGRect(x: 300, y: 200, width: 1745, height: 1131))
+    await scenario.dragPointer(to: overMain)
+    #expect(scenario.windowSystem.moves.isEmpty)
 
-    await release(at: overMain)
+    await scenario.release(at: overMain)
     #expect(order == [1, 2, 3])
   }
 
   @Test func withoutAWindowBeingDraggedThePointerMovesNothing() async {
-    await dragPointer(to: overMain)
-    await release(at: overMain)
+    await scenario.dragPointer(to: overMain)
+    await scenario.release(at: overMain)
 
-    #expect(windowSystem.moves.isEmpty)
+    #expect(scenario.windowSystem.moves.isEmpty)
     #expect(order == [1, 2, 3])
   }
 
@@ -211,34 +187,34 @@ struct MoveByDragScenarios {
 
   @Test func aCommandDuringTheDragPutsThePreviewBack() async {
     await pickUpLowerWindow()
-    await dragPointer(to: overMain)
-    #expect(manager.focus(.next) == .ok)
+    await scenario.dragPointer(to: overMain)
+    #expect(await scenario.command("window focus next") == .ok)
 
     #expect(frame(of: 1) == main)
     #expect(frame(of: 2) == upper)
-    await release(at: overMain)
+    await scenario.release(at: overMain)
     #expect(order == [1, 2, 3], "the command ended the drag")
   }
 
   @Test func turningTilingOffDuringTheDragPutsThePreviewBackFirst() async {
     await pickUpLowerWindow()
-    await dragPointer(to: overMain)
-    _ = manager.setTiling(.off)
+    await scenario.dragPointer(to: overMain)
+    await scenario.command("tiling off")
 
     #expect(frame(of: 1) == main)
   }
 
   @Test func aPreviewedWindowThatClosesIsForgotten() async {
     await pickUpLowerWindow()
-    await dragPointer(to: overMain)
+    await scenario.dragPointer(to: overMain)
     // Kept in the fake so that a move of it would succeed and show up.
-    windowSystem.send(.destroyed(WindowID(1)))
-    await settle()
-    windowSystem.clearRecordedCalls()
-    await release(at: outside)
+    scenario.windowSystem.send(.destroyed(WindowID(1)))
+    await scenario.runUntilQuiet()
+    scenario.windowSystem.clearRecordedCalls()
+    await scenario.release(at: outside)
 
     #expect(order == [2, 3])
-    #expect(!windowSystem.moves.contains { $0.id == WindowID(1) })
+    #expect(!scenario.windowSystem.moves.contains { $0.id == WindowID(1) })
   }
 
   @Test func droppingTheMainWindowOnTheStackPutsItThere() async {

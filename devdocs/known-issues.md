@@ -19,7 +19,6 @@ for users. A new one gets an issue and a line here.
 - [#11](https://github.com/dhansmair/tyler/issues/11) Echo tracking can go stale when an app never sends a focus event
 - [#12](https://github.com/dhansmair/tyler/issues/12) Closing a window may switch workspaces
 - [#72](https://github.com/dhansmair/tyler/issues/72) A window opened in the background on an assigned workspace brings that workspace into view
-- [#73](https://github.com/dhansmair/tyler/issues/73) A restart while a display is unplugged merges its workspaces into the last one
 - [#74](https://github.com/dhansmair/tyler/issues/74) A window moved alone onto a larger display arrives clamped to the old display's width
 
 ## Limitations

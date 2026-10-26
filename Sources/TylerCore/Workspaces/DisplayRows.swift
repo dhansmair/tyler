@@ -173,7 +173,9 @@ package struct DisplayRows: Equatable, Sendable {
   /// Takes new workspace numbers from the config, where `configured[n]` lists display n + 1's.
   /// Workspaces whose number the config no longer has go, their windows joining the last
   /// workspace of their row; new numbers start empty. Each workspace then moves to its home: the
-  /// display the config gives it, unless it was moved by hand and keeps its number.
+  /// display the config gives it, unless it was moved by hand and keeps its number. The config is
+  /// read for the connected displays only, so the workspaces of a display that isn't connected
+  /// keep waiting for it.
   package mutating func setConfigured(_ configured: [[Int]]) {
     var newHomes: [Int: WorkspaceHome] = [:]
     for (index, numbers) in configured.enumerated() {
@@ -181,8 +183,13 @@ package struct DisplayRows: Equatable, Sendable {
         newHomes[number] = .configured(index + 1)
       }
     }
-    for (number, home) in homes where newHomes[number] != nil {
-      if case .pinned = home { newHomes[number] = home }
+    for (number, home) in homes {
+      switch home {
+      case .pinned where newHomes[number] != nil: newHomes[number] = home
+      case .configured(let display) where display > entries.count && newHomes[number] == nil:
+        newHomes[number] = home
+      default: break
+      }
     }
     let existing = Set(entries.flatMap(\.row.numbers))
     var next = (Array(newHomes.keys) + existing).max().map { $0 + 1 } ?? 1

@@ -77,4 +77,14 @@ struct DisplayTilingScenarios {
     #expect(next.workspaces == [1: 1, 2: 1, 3: 5])
     #expect(next.windowSystem.moves.isEmpty, "every window is already where it belongs")
   }
+
+  @Test func aRestartWithTheExternalDisplayUnpluggedKeepsItsWorkspacesWaiting() async {
+    let scenario = await scenario()
+    await scenario.changeDisplays(to: [FakeDisplays.main])
+    let next = await scenario.restart()
+    #expect(next.workspaces == [1: 1, 2: 1, 3: 5])
+    await next.changeDisplays(to: [FakeDisplays.main, FakeDisplays.secondary])
+    #expect(next.shown == [1, 5])
+    #expect(!next.isParked(3), "workspace 5 is back on the external display")
+  }
 }

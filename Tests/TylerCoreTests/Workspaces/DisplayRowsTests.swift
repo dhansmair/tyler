@@ -230,6 +230,17 @@ struct DisplayRowsTests {
     #expect(rows.homes[4] == .configured(2))
   }
 
+  @Test func configuredNumbersForTheConnectedDisplaysKeepTheWorkspacesOfOneThatIsNot() {
+    var rows = rows()
+    rows.reassign(to: [laptop])
+    rows.setConfigured([[1, 2, 3, 4]])
+    #expect(numbers(rows) == [[1, 2, 3, 4, 5, 6, 7, 8]])
+    #expect(rows[0][4].windows == [WindowID(15)])
+    #expect(rows.homes[5] == .configured(2))
+    rows.reassign(to: [laptop, external])
+    #expect(numbers(rows) == [[1, 2, 3, 4], [5, 6, 7, 8]])
+  }
+
   @Test func aDisplayWhoseWorkspacesAllGoGetsANewOneWithTheirWindows() {
     var rows = rows()
     rows.setConfigured([[1, 2, 3, 4]])

@@ -292,6 +292,11 @@ tylerd does: app frontmost, `AXRaise`, main; then 150 ms later `AXRaise` on wind
 - A click posted with `maskControl` leaves later synthetic events with control held, unless a
   control key-up is posted.
 - A synthetic Escape doesn't close a status item menu.
+- Seen 2026-10-26 (macOS 26.7): posted moves onto tylerd's map item, then a posted click or a
+  150 ms press, didn't reach it (no switch, nothing logged), while posted clicks reached an app's
+  menu in the same session. Clicks on the item stay manual until that is understood.
+- On a display with a notch, a status item that doesn't fit beside it is hidden, without notice
+  (seen 2026-10-26, macOS 26.7: switching the text item on moved the map behind the notch).
 - Screen capture needs Screen Recording permission, so what the menu bar looks like needs a person's
   eyes.
 

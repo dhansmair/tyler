@@ -19,8 +19,16 @@ has its own list in [Layouts](layouts.md#strip--experimental).
   (seen once with Firefox). ([#5](https://github.com/dhansmair/tyler/issues/5))
 - **A minimized window may keep its place in the layout** (seen once), which then shows as an
   empty slot. Restoring and minimizing it again fixes it. ([#8](https://github.com/dhansmair/tyler/issues/8))
-- **Closing a window may switch workspaces** if macOS then focuses another window of the same app
-  that is parked on another workspace (not confirmed). ([#12](https://github.com/dhansmair/tyler/issues/12))
+- **Closing a window may switch workspaces** if macOS then focuses a window that is parked on
+  another workspace, of the same app or another. With two displays, focus follows mouse can do the
+  same when the app it focuses has windows parked on the other display. ([#12](https://github.com/dhansmair/tyler/issues/12))
+- **A window opened in the background** (`open -g`) of an app with a workspace in the config
+  brings that workspace into view, although the app you were using stays in front. ([#72](https://github.com/dhansmair/tyler/issues/72))
+- **`tyler restart` while a display is unplugged** puts the windows of that display's
+  workspaces on the last workspace of the display still connected. Plug the display in before
+  restarting. ([#73](https://github.com/dhansmair/tyler/issues/73))
+- **A window sent alone to a larger display** may arrive narrower than its slot;
+  `tyler workspace retile` fixes it. ([#74](https://github.com/dhansmair/tyler/issues/74))
 
 ## Limits
 

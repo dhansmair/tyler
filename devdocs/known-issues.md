@@ -38,7 +38,6 @@ for users. A new one gets an issue and a line here.
 - [#24](https://github.com/dhansmair/tyler/issues/24) Float rules in the config
 - [#25](https://github.com/dhansmair/tyler/issues/25) Animate snapshots instead of windows (ScreenCaptureKit)
 - [#26](https://github.com/dhansmair/tyler/issues/26) Signed releases
-- [#27](https://github.com/dhansmair/tyler/issues/27) A Homebrew package
 - [#28](https://github.com/dhansmair/tyler/issues/28) A cursor that shows a window can be dragged while the modifier is held
 
 ## Not tried

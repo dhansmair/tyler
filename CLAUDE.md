@@ -84,7 +84,7 @@ make lint      # swift format lint and swiftlint (with TOOLCHAIN_DIR set) over t
 make check     # lint and test: what the pre-commit hook checks
 ```
 
-- **Use `make test`.** The Makefile adds the flags the Command Line Tools need for Swift Testing and its macro plugin; `plugin for module 'TestingMacros' not found` means they were missing.
+- **Use `make test`.** The Makefile adds the flags the Command Line Tools need for Swift Testing and its macro plugin; `plugin for module 'TestingMacros' not found` means they were missing. A Claude Code hook (`.claude/hooks/guard-swift-test.sh`) refuses a bare `swift test`; for a few tests, pass `FILTER`.
 - **Run the pieces by hand:** `.build/debug/tyler start` (log in `~/.tyler/tyler.log`), then `.build/debug/tyler window list`. After `make build`, run `tyler restart`: a running `tylerd` keeps the old code. Restart keeps every window where it is; `stop` puts windows back. `TYLER_SOCKET=/tmp/x.sock` uses another socket.
 - **Accessibility permission** goes to `Tyler.app`, or to the terminal that runs a bare `tylerd`; which build runs which is in `docs/install-from-source.md` and the manual (Running tylerd). **Never suggest switching off or removing that grant while `tylerd` runs**: macOS can then stop all input until a forced restart (`devdocs/macos-behaviour.md`, "Events and taps"). Say `tyler stop` first.
 - **`tylerd` tiles your windows as soon as it has permission.** Stopping it puts every window back; a crash or `kill -9` leaves other workspaces' windows parked until the next `tyler start`. `tyler tiling off` leaves windows alone.

@@ -4,8 +4,6 @@ import TylerRuntime
 
 /// Switching between workspaces with a slide, and sending windows to another one.
 struct WorkspaceController {
-  private static let log = TylerLog(category: "manager")
-
   let context: ControllerContext
 
   /// The target's windows slide in while the current ones slide out and park, then focus goes
@@ -134,7 +132,7 @@ struct WorkspaceController {
       return [.animate(scroll)]
     }
     guard !isEcho, isTiling, let index, index != row.currentIndex else { return [] }
-    Self.log.info(
+    context.log.info(
       "workspace switching - \(row.number(at: index)) on display "
         + "\((model.rows.position(of: model.rows.focusedKey) ?? 0) + 1) - focus moved to "
         + WindowInfo.logName(windowID, context.registry.window(withID: windowID)))

@@ -5,7 +5,7 @@ import TylerProtocol
 extension WindowManager {
   var context: ControllerContext {
     ControllerContext(
-      registry: registry, displays: connectedDisplays, config: config,
+      registry: registry, displays: connectedDisplays, config: config, log: log,
       isRunning: state == .running, movingWindows: animatingWindows,
       dragSession: drag?.session, crossingWindows: mover.crossing,
       isSettling: displaySettling.isPending, slideDuration: animator.duration,
@@ -94,7 +94,7 @@ extension WindowManager {
       try mover.close(windowID, known: registry)
       return nil
     } catch {
-      Self.log.error("window closing failed - \(named(windowID)) - \(error.description)")
+      log.error("window closing failed - \(named(windowID)) - \(error.description)")
       return "cannot close window \(windowID.rawValue): \(error.description)"
     }
   }
@@ -111,7 +111,7 @@ extension WindowManager {
       return nil
     } catch {
       let problem = "cannot focus window \(target.rawValue): \(error.description)"
-      Self.log.error("window focusing failed - \(named(target)) - \(error.description)")
+      log.error("window focusing failed - \(named(target)) - \(error.description)")
       return problem
     }
   }
@@ -128,7 +128,7 @@ extension WindowManager {
       return nil
     } catch {
       let problem = "cannot take focus from window \(focusedID.rawValue): \(error.description)"
-      Self.log.error("window unfocusing failed - \(named(focusedID)) - \(error.description)")
+      log.error("window unfocusing failed - \(named(focusedID)) - \(error.description)")
       return problem
     }
   }

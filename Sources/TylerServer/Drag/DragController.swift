@@ -13,8 +13,6 @@ struct DragController {
     var pendingFrame: CGRect?
   }
 
-  private static let log = TylerLog(category: "manager")
-
   let context: ControllerContext
 
   /// Only one window counts per drag, the first that leaves its slot while the button is down,
@@ -45,7 +43,7 @@ struct DragController {
       guard !window.frame.isClose(to: slot.frame) else { return nil }
       step = Step(session: DragSession(windowID: window.id, startFrame: previous ?? slot.frame))
       model.rows.focus(model.rows.entries[position].key)
-      Self.log.info("window dragging started - \(named(window.id)) - on display \(position + 1)")
+      context.log.info("window dragging started - \(named(window.id)) - on display \(position + 1)")
     }
     // Over another display, a window can change size on its own (another scale, terminals
     // snapping to cells): that is still a move, not a resize.
@@ -53,7 +51,7 @@ struct DragController {
       !isOverAnotherDisplay(window, than: position, in: model.rows)
     else { return step }
     if !step.session.isResize {
-      Self.log.info("window resizing started - \(named(window.id)) - by its edges")
+      context.log.info("window resizing started - \(named(window.id)) - by its edges")
     }
     step.session.isResize = true
     step.pendingFrame = window.frame
@@ -99,13 +97,13 @@ struct DragController {
   func drop(at location: CGPoint, session: inout DragSession, model: inout Model) -> [Effect] {
     let windowID = session.windowID
     guard canFollow(session, model) else {
-      Self.log.info("window dropped - \(named(windowID)) - on its own display; not tiling it")
+      context.log.info("window dropped - \(named(windowID)) - on its own display; not tiling it")
       return endingEffects(&session, model: model)
     }
     let frame = context.registry.window(withID: windowID)?.frame
     switch session.drop(at: location, frame: frame, in: tiling(model.rows)) {
     case .arrive(let arrival):
-      Self.log.info(
+      context.log.info(
         "window dropped - \(named(windowID)) - on display \(arrival.position + 1) at "
           + "\(Int(location.x)),\(Int(location.y))")
       // The windows there are where the drop puts them already: they stay.
@@ -171,7 +169,7 @@ struct DragController {
     if let position {
       model.rows.focus(model.rows.entries[position].key)
     }
-    Self.log.info(
+    context.log.info(
       "window \(kind == .move ? "moving" : "resizing") started - \(named(windowID)) - "
         + "with the modifier")
     return (session, [.focus(windowID)])
@@ -196,7 +194,7 @@ struct DragController {
     session.isResize = true
     session.grab = ModifierGrab(
       kind: .gap, start: start, frame: slot.frame, edges: gap.edge, isFloated: false)
-    Self.log.info("window resizing started - \(named(gap.windowID)) - by the gap beside it")
+    context.log.info("window resizing started - \(named(gap.windowID)) - by the gap beside it")
     return session
   }
 
@@ -245,7 +243,7 @@ struct DragController {
   }
 
   private func logDroppedOnItsOwnDisplay(_ windowID: WindowID) {
-    Self.log.info("window dropped - \(named(windowID)) - on its own display; tiling it")
+    context.log.info("window dropped - \(named(windowID)) - on its own display; tiling it")
   }
 
   private func tiling(_ rows: DisplayRows) -> TilingSnapshot {

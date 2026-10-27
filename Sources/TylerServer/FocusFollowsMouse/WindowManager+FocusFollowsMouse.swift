@@ -15,10 +15,10 @@ extension WindowManager {
 
   private func focusWindow(under location: CGPoint) {
     let check = pointerCheck(at: location)
-    let effects = FocusFollowsMouseController().pointerRested(
+    let effects = FocusFollowsMouseController(log: log).pointerRested(
       check: check, at: self.pointerLogSubject(location, check))
     if let failure = run(effects).focusFailure {
-      Self.log.error(
+      log.error(
         "window focusing failed - \(named(failure.windowID)) - under the pointer: "
           + failure.error.description)
     }

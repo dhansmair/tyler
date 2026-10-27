@@ -4,8 +4,6 @@ import TylerRuntime
 
 /// The display commands, what happens once the displays have changed, and `window list`.
 struct DisplayController {
-  private static let log = TylerLog(category: "manager")
-
   let context: ControllerContext
 
   /// Focuses the window that last had focus on that display's current workspace (none if it is
@@ -69,7 +67,7 @@ struct DisplayController {
     guard context.isRunning else { return [] }
     let ending = [.findMissedWindows] + context.endInteractionEffects(model)
     let context = context.endingInteraction
-    Self.log.info(
+    context.log.info(
       "displays changed - \(context.displays.map(\.key.rawValue).joined(separator: ", "))")
     guard model.tilingEnabled else {
       model.rows.reassign(

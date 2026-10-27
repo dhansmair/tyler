@@ -70,7 +70,7 @@ extension WindowManager {
     }
     if !wasRunning {
       if !interaction.isIdle {
-        Self.log.error("interaction started - while another was still running")
+        log.error("interaction started - while another was still running")
         logMotionCost()
       }
       mover.startMeasuring()
@@ -89,7 +89,7 @@ extension WindowManager {
       case .swiping: "swipe"
       case .dragging: "drag"
       }
-    Self.log.info("\(kind) finished - \(cost.summary(naming: named))")
+    log.info("\(kind) finished - \(cost.summary(naming: named))")
   }
 }
 

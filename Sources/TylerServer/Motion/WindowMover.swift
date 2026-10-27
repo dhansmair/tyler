@@ -6,8 +6,7 @@ import TylerRuntime
 /// window was before tylerd first moved it, and the windows on their way to another display.
 @MainActor
 final class WindowMover {
-  private static let log = TylerLog(category: "manager")
-
+  private let log: TylerLog
   private let windowSystem: any WindowSystem
   private let displays: any DisplayProvider
   /// `stop()` puts every window back here, and `tiling off` does it for parked ones.
@@ -22,8 +21,9 @@ final class WindowMover {
 
   init(
     windowSystem: any WindowSystem, displays: any DisplayProvider,
-    clock: any Clock<Duration> = ContinuousClock()
+    clock: any Clock<Duration> = ContinuousClock(), log: TylerLog = TylerLog(category: "manager")
   ) {
+    self.log = log
     self.windowSystem = windowSystem
     self.displays = displays
     self.clock = clock
@@ -49,7 +49,7 @@ final class WindowMover {
         }
       } catch {
         failures += 1
-        Self.log.error(
+        log.error(
           "window placing failed - \(Self.named(placement.id, registry)) - \(error.description)")
       }
     }
@@ -72,7 +72,7 @@ final class WindowMover {
       }
     } catch {
       // One missed frame is invisible; the final placement reports real failures.
-      Self.log.debug(
+      log.debug(
         "window sliding failed - \(Self.named(windowID, registry)) - \(error.description)")
     }
   }
@@ -85,7 +85,7 @@ final class WindowMover {
         try windowSystem.setPosition(origin, of: windowID)
       }
     } catch {
-      Self.log.error(
+      log.error(
         "window moving failed - \(Self.named(windowID, registry)) - \(error.description)")
     }
   }
@@ -97,7 +97,7 @@ final class WindowMover {
         try windowSystem.setFrame(frame, of: windowID)
       }
     } catch {
-      Self.log.error(
+      log.error(
         "window resizing failed - \(Self.named(windowID, registry)) - \(error.description)")
     }
   }
@@ -112,12 +112,12 @@ final class WindowMover {
   }
 
   func focus(_ windowID: WindowID, known registry: WindowRegistry) throws(WindowSystemError) {
-    Self.log.info("window focusing - \(Self.named(windowID, registry))")
+    log.info("window focusing - \(Self.named(windowID, registry))")
     try windowSystem.focus(windowID)
   }
 
   func close(_ windowID: WindowID, known registry: WindowRegistry) throws(WindowSystemError) {
-    Self.log.info("window closing - \(Self.named(windowID, registry))")
+    log.info("window closing - \(Self.named(windowID, registry))")
     try windowSystem.close(windowID)
   }
 

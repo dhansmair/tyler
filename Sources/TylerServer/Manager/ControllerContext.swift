@@ -2,6 +2,7 @@ import CoreGraphics
 import TylerConfig
 import TylerCore
 import TylerProtocol
+import TylerRuntime
 
 extension Response {
   init(_ refusal: Refusal) {
@@ -19,6 +20,7 @@ struct ControllerContext {
   /// In the order tyler numbers them (see `DisplayArrangement`).
   let displays: [DisplayInfo]
   let config: Config
+  var log = TylerLog(category: "manager")
   var isRunning = true
   /// Sliding now, or that a swipe may move.
   var movingWindows: Set<WindowID> = []

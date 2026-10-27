@@ -22,7 +22,7 @@ extension WindowManager {
     let check = pointerCheck(at: location)
     let verdict = check?.grab
     if case .refused(let refusal) = verdict {
-      Self.log.info(
+      log.info(
         "modifier press passed on - \(pointerLogSubject(location, check)) - \(refusal.explanation)")
     }
     return verdict?.window != nil
@@ -37,7 +37,7 @@ extension WindowManager {
     var check = PointerCheck()
     check.topmost = stacking.topmostWindow(at: location)
     guard check.topmost == nil else {
-      Self.log.info("gap press passed on - \(pointerLogSubject(location, check)) - is in front")
+      log.info("gap press passed on - \(pointerLogSubject(location, check)) - is in front")
       return false
     }
     return true
@@ -51,12 +51,12 @@ extension WindowManager {
       let (session, effects) = DragController(context: context).beginGrab(
         kind, of: windowID, at: start, model: &model)
     else {
-      Self.log.info("modifier grab skipped - \(Int(start.x)),\(Int(start.y)) - nothing to grab")
+      log.info("modifier grab skipped - \(Int(start.x)),\(Int(start.y)) - nothing to grab")
       return
     }
     drag = Drag(session: session)
     if let failure = run(effects).focusFailure {
-      Self.log.error("window focusing failed - \(named(windowID)) - \(failure.error.description)")
+      log.error("window focusing failed - \(named(windowID)) - \(failure.error.description)")
     }
   }
 
@@ -65,7 +65,7 @@ extension WindowManager {
     guard interaction.isIdle, let gap = controller.gap(at: start, model: model),
       let session = controller.beginGapGrab(gap, at: start, model: model)
     else {
-      Self.log.info("gap grab skipped - \(Int(start.x)),\(Int(start.y)) - no gap there any more")
+      log.info("gap grab skipped - \(Int(start.x)),\(Int(start.y)) - no gap there any more")
       return
     }
     drag = Drag(session: session)

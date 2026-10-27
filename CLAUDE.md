@@ -77,6 +77,7 @@ Keep the executables thin. Logic goes in the libraries, and anything that touche
 make build     # swift build
 make test      # swift test with the flags below; use this, not plain `swift test`
 make test-unit / make test-scenario   # one layer of tests (devdocs/testing-strategy.md)
+make test-scenario FILTER=WorkspaceSwitch   # only the tests whose name matches; works with all three
 make install   # release build, copied to ~/.local/bin (docs/install-from-source.md)
 make format    # swift format over the whole tree, in place
 make lint      # swift format lint and swiftlint (with TOOLCHAIN_DIR set) over the whole tree

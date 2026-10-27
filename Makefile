@@ -38,15 +38,18 @@ build:
 	swift build
 	$(call bundle,$(shell swift build --show-bin-path),$(APP_ID).dev,Tyler (development),in-place)
 
+# FILTER, a regular expression, narrows any of the three to the tests whose name matches it:
+# `make test-scenario FILTER=FocusSwitchLog`.
 test:
-	swift test $(TEST_FLAGS)
+	swift test $(TEST_FLAGS) $(if $(FILTER),--filter '$(FILTER)')
 
 # The layers of devdocs/testing-strategy.md on their own: `test` runs both.
 test-unit:
-	swift test $(TEST_FLAGS) --skip TylerScenarioTests
+	swift test $(TEST_FLAGS) --skip TylerScenarioTests $(if $(FILTER),--filter '$(FILTER)')
 
+# One --filter, since several match any of them.
 test-scenario:
-	swift test $(TEST_FLAGS) --filter TylerScenarioTests
+	swift test $(TEST_FLAGS) --filter 'TylerScenarioTests\..*$(FILTER)'
 
 format:
 	swift format --in-place --recursive Sources Tests Package.swift

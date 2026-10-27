@@ -15,6 +15,8 @@ protocol AXClient: Sendable {
   func copyAttributeValue(_ attribute: String, of element: AXUIElement) -> CFTypeRef?
   /// `nil` if the call failed; an attribute that couldn't be read is an `AXValue` holding its error.
   func copyAttributeValues(_ attributes: [String], of element: AXUIElement) -> [AnyObject]?
+  /// `nil` if the call failed.
+  func isAttributeSettable(_ attribute: String, of element: AXUIElement) -> Bool?
   /// `_AXUIElementGetWindow`; `nil` if the call failed.
   func windowNumber(of element: AXUIElement) -> CGWindowID?
 

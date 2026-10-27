@@ -54,12 +54,16 @@ subrole, title-bar buttons and whether its size can be set:
 | A document opened from a file | `AXStandardWindow` | yes | yes | yes |
 | The About window | `AXDialog` | no | yes | no |
 | The Open panel (File > Open) | `AXStandardWindow` | no | no | yes |
+| Outlook's reminder popup (measured 2026-10-27) | `AXStandardWindow` | no | yes | no |
 
 - **The subrole changes when the app first becomes active**, with no notification tylerd hears, so
   a kind read from the subrole once stays wrong. The buttons are there from the start (read
   0.3 s after the window appeared).
-- **The normal windows of the other apps checked** (a terminal, an editor, a browser, an Electron
-  app) all have close, minimize and full screen buttons. `WindowKind.classify` relies on that.
+- **The normal windows of the other apps checked** (a terminal, an editor, browsers, Office apps,
+  an Electron app) all have close, minimize and full screen buttons and a size that can be set.
+  `WindowKind.classify` relies on that. Not measured: windows of apps whose green button only
+  zooms (an option of several terminals and editors) presumably lack the full screen button
+  while they can be resized, so a missing button alone doesn't make a dialog.
 
 ## Speed
 

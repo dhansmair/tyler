@@ -39,7 +39,7 @@ tyler sorts every window into one of three kinds:
 
 - **Tiled** windows belong to a workspace and are placed by its layout. Normal app windows are tiled.
 - **Floated** windows are ones you took out of tiling with `tyler window float`. tyler leaves them where you put them, after moving a floated window a little out of its slot so it is plain to see that it floats.
-- **Never-tiled** windows are dialogs, sheets, panels and other special windows. tyler leaves them alone.
+- **Never-tiled** windows are dialogs, sheets, panels and other special windows, and windows that can't be resized and have no full screen button (a reminder popup, Calculator). tyler leaves them alone, and `window float off` can't tile them.
 
 Floated and never-tiled windows belong to no workspace, so they stay visible whichever workspace is on screen. Minimized windows and windows in native fullscreen leave the tiling list. When they come back, they are tiled on the current workspace.
 

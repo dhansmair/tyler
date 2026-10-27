@@ -67,8 +67,9 @@ It is most likely parked: moved just past the edge of its display, with a one-po
 
 ## A window isn't tiled
 
-- Dialogs, sheets and panels are never tiled, nor are windows you floated with `tyler window float
-  toggle` (`window list` shows them as `dialog`, `float`, `other` or `floated`).
+- Dialogs, sheets and panels are never tiled, nor are windows that can't be resized and have no
+  full screen button (a reminder popup, Calculator), nor windows you floated with `tyler window
+  float toggle` (`window list` shows them as `dialog`, `float`, `other` or `floated`).
 - Windows of apps without a Dock icon (menu bar apps) aren't tracked.
 - Windows in native fullscreen, and windows on another macOS Space, are left alone. tyler works
   best with one Space per display: its workspaces replace Spaces.

@@ -80,6 +80,26 @@ struct AXBridgeTests {
     #expect(bridge.windowAttributes(of: window(buttons: buttons))?.buttons == buttons)
   }
 
+  @Test(arguments: [true, false])
+  func whetherAWindowWithoutFullScreenCanBeResizedIsRead(isResizable: Bool) {
+    accessibility.addWindow(
+      id: 1, frame: frame, buttons: [.close, .minimize], isResizable: isResizable, in: 100)
+    #expect(
+      bridge.windowAttributes(of: accessibility.element(of: 1))?.isResizable == isResizable)
+  }
+
+  @Test(arguments: [WindowButtons.all, []])
+  func whetherAWindowCanBeResizedIsReadOnlyWhenItsKindDependsOnIt(buttons: WindowButtons) {
+    #expect(bridge.windowAttributes(of: window(buttons: buttons))?.isResizable == nil)
+    #expect(accessibility.calls(on: 1).isEmpty)
+  }
+
+  @Test func aDialogIsNotAskedWhetherItCanBeResized() {
+    #expect(
+      bridge.windowAttributes(of: window(subrole: "AXDialog", buttons: []))?.isResizable == nil)
+    #expect(accessibility.calls(on: 1).isEmpty)
+  }
+
   @Test func observingAWindowTwiceIsHarmless() throws {
     let element = window()
     try bridge.observe(accessibility.createApplication(100), processID: 100) { _, _ in }

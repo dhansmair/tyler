@@ -68,6 +68,8 @@ struct AXBridge: Sendable {
     var isMinimized: Bool?
     var isFullscreen: Bool?
     var buttons: WindowButtons
+    /// Read only when `WindowKind.classify` depends on it.
+    var isResizable: Bool?
   }
 
   func windowAttributes(of element: AXUIElement) -> WindowAttributes? {
@@ -83,10 +85,15 @@ struct AXBridge: Sendable {
     where value != nil {
       buttons.insert(button)
     }
+    let role = values[3] as? String
+    let subrole = values[4] as? String
+    let isResizable =
+      WindowKind.dependsOnResizability(role: role, subrole: subrole, buttons: buttons)
+      ? client.isAttributeSettable(kAXSizeAttribute, of: element) : nil
     return WindowAttributes(
-      frame: frame, title: values[2] as? String, role: values[3] as? String,
-      subrole: values[4] as? String, isMinimized: values[5] as? Bool,
-      isFullscreen: values[6] as? Bool, buttons: buttons)
+      frame: frame, title: values[2] as? String, role: role, subrole: subrole,
+      isMinimized: values[5] as? Bool, isFullscreen: values[6] as? Bool, buttons: buttons,
+      isResizable: isResizable)
   }
 
   // MARK: - Writing

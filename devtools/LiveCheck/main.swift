@@ -172,6 +172,8 @@ enum TylerWindows {
   struct Info {
     let workspace: Int?
     let title: String
+    /// The window's kind, followed by `(floated)` for a window floated with `window float`.
+    let kind: String?
   }
 
   static func load() -> [Int: Info] {
@@ -193,8 +195,10 @@ enum TylerWindows {
     var result: [Int: Info] = [:]
     for window in windows {
       guard let windowID = window["id"] as? Int else { continue }
+      let isFloated = window["isFloated"] as? Bool ?? false
       result[windowID] = Info(
-        workspace: window["workspace"] as? Int, title: window["title"] as? String ?? "")
+        workspace: window["workspace"] as? Int, title: window["title"] as? String ?? "",
+        kind: (window["kind"] as? String).map { isFloated ? "\($0) (floated)" : $0 })
     }
     return result
   }
@@ -266,6 +270,7 @@ let usage = """
     stacking                      on-screen windows front to back, with tyler's workspace
     menubar                       what tylerd's menu bar item shows
     displays                      every display as tyler numbers it, with its parking edge
+    kinds [window-id]             what tyler reads to tell documents from dialogs, per window
     positions <window-id> [x y] [--display <n>]
                                   where macOS really puts a window at a display's edges
     resize <window-id> <x> <y> <width> <height> [--order size-first|move-first]
@@ -288,6 +293,7 @@ do {
   case "stacking": stacking()
   case "menubar": try menubar()
   case "displays": displays()
+  case "kinds": try kinds(Array(arguments.dropFirst()))
   case "positions": try positions(Array(arguments.dropFirst()))
   case "resize": try resize(Array(arguments.dropFirst()))
   case "slide": try slide(Array(arguments.dropFirst()))

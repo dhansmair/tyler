@@ -5,6 +5,7 @@ import Foundation
 package enum LogFile {
   /// Points stdout and stderr at `path`, emptied, if stderr goes to /dev/null or is closed. A
   /// terminal, a pipe, or the file `tyler start` opened is left alone. Returns whether it did.
+  /// The previous log is kept (`keepPrevious`).
   package static func takeDiscardedOutput(to path: String) throws(LogFileError) -> Bool {
     guard isDiscarded(STDERR_FILENO) else { return false }
     let directory = (path as NSString).deletingLastPathComponent
@@ -14,6 +15,7 @@ package enum LogFile {
     } catch {
       throw .cannotOpen(path, error.localizedDescription)
     }
+    try keepPrevious(at: path)
     let file = open(path, O_WRONLY | O_CREAT | O_TRUNC | O_APPEND, 0o644)
     guard file >= 0 else { throw .cannotOpen(path, String(cString: strerror(errno))) }
     // With stdout or stderr closed, `open` returns the lowest free number, which is then the one
@@ -23,6 +25,14 @@ package enum LogFile {
       throw .cannotOpen(path, String(cString: strerror(errno)))
     }
     return true
+  }
+
+  /// Renames the log at `path` to `<path>.1`, replacing the one there, so a restart after a bug
+  /// doesn't lose its lines.
+  package static func keepPrevious(at path: String) throws(LogFileError) {
+    guard rename(path, path + ".1") == 0 || errno == ENOENT else {
+      throw .cannotKeep(path, String(cString: strerror(errno)))
+    }
   }
 
   static func isDiscarded(_ descriptor: Int32) -> Bool {

@@ -1,6 +1,7 @@
 import Foundation
 import TylerCore
 import TylerProtocol
+import TylerRuntime
 
 /// The real `DaemonSystem`: the socket, POSIX processes, the file system and the wall clock.
 /// Not unit tested; keep it thin.
@@ -16,8 +17,8 @@ package struct ProcessDaemonSystem: DaemonSystem {
   }
 
   /// Runs `executable` in a new session (so closing the terminal doesn't hang it up), with
-  /// stdin from /dev/null and stdout and stderr in `logPath`, which starts empty. No other file
-  /// descriptors are inherited.
+  /// stdin from /dev/null and stdout and stderr in `logPath`, which starts empty (the previous
+  /// log is kept, see `LogFile.keepPrevious`). No other file descriptors are inherited.
   package func spawn(_ executable: String, logPath: String) throws(DaemonError) -> Int32 {
     let directory = (logPath as NSString).deletingLastPathComponent
     do {
@@ -25,6 +26,11 @@ package struct ProcessDaemonSystem: DaemonSystem {
         atPath: directory, withIntermediateDirectories: true)
     } catch {
       throw .spawnFailed("cannot create \(directory): \(error.localizedDescription)")
+    }
+    do {
+      try LogFile.keepPrevious(at: logPath)
+    } catch {
+      throw .spawnFailed(error.description)
     }
 
     var actions: posix_spawn_file_actions_t?

@@ -14,7 +14,8 @@ When something goes wrong, two commands put things right:
   where its picture of the windows differs from macOS's (see the
   [manual](manual.md#debug-at)).
 - `~/.tyler/tyler.log` holds what `tylerd` printed since `tyler start`, and its log at
-  `log.level`: warnings and errors unless you change it. For more while you look into
+  `log.level`: warnings and errors unless you change it. The run before, up to the last `tyler
+  start` or `restart`, is in `~/.tyler/tyler.log.1`. For more while you look into
   something, run `tyler config set log.level info` (or `debug`), reproduce the problem, and read
   the end of the file: `tail -n 30 ~/.tyler/tyler.log`, or `grep pointer ~/.tyler/tyler.log`.
   Each line has the date and time, the level, a category (`ax`, `manager`, `pointer`, `ipc`,
@@ -105,6 +106,13 @@ Option-click still reaches the app.
 
 You updated `tyler` but `tylerd` still runs the old version. Run `tyler restart`; windows stay where
 they are.
+
+## A workspace comes into view on its own
+
+Focus moved to a window on that workspace: an app focused one of its windows (as some do when a
+window closes or opens), or focus follows mouse moved the focus to an app. With `log.level` at
+`info`, the log says which window: `workspace switching - 2 on display 1 - focus moved to #7349
+(Firefox)`. At `debug` it also has a `window focused` line for each focus `tylerd` reads.
 
 ## Windows move on their own after plugging in a display
 

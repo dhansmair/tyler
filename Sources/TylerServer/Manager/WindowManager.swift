@@ -301,6 +301,9 @@ package final class WindowManager {
     case .listsMayHaveChanged:
       reconcile()
     case .focused(let windowID, let isEcho):
+      Self.log.debug(
+        "window focused - \(named(windowID)) - "
+          + (isEcho ? "tylerd's own focus coming back" : "not tylerd's own"))
       run(workspaceController.focusChanged(to: windowID, isEcho: isEcho, model: &model))
     case .closed(let windowID):
       if drag?.windowID == windowID { endDrag() }

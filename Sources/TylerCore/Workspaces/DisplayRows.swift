@@ -185,7 +185,8 @@ package struct DisplayRows: Equatable, Sendable {
     }
     for (number, home) in homes {
       switch home {
-      case .pinned where newHomes[number] != nil: newHomes[number] = home
+      case .pinned(let key) where newHomes[number] != nil || !keys.contains(key):
+        newHomes[number] = home
       case .configured(let display) where display > entries.count && newHomes[number] == nil:
         newHomes[number] = home
       default: break

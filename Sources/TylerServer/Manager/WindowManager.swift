@@ -39,7 +39,7 @@ package final class WindowManager {
   /// they were first changed.
   package internal(set) var configChanges: [String] = []
 
-  static let log = TylerLog(category: "manager")
+  let log: TylerLog
 
   var model: Model {
     didSet { updateIndicator() }
@@ -116,7 +116,8 @@ package final class WindowManager {
     restoring saved: SavedState? = nil
   ) {
     self.windowSystem = windowSystem
-    mover = WindowMover(windowSystem: windowSystem, displays: displays, clock: clock)
+    log = TylerLog(category: "manager", output: logOutput)
+    mover = WindowMover(windowSystem: windowSystem, displays: displays, clock: clock, log: log)
     self.displays = displays
     self.gate = gate
     self.screenLock = screenLock
@@ -210,10 +211,10 @@ package final class WindowManager {
     guard let previous = accessBeforeStart, previous != access else { return access }
     switch access {
     case .refused:
-      Self.log.warning(
+      log.warning(
         "permission refused - Accessibility calls fail although the permission is on")
-    case .screenLocked: Self.log.info("screen locked - windows tracking waits for it")
-    case .notTrusted: Self.log.info("permission waiting - Accessibility")
+    case .screenLocked: log.info("screen locked - windows tracking waits for it")
+    case .notTrusted: log.info("permission waiting - Accessibility")
     case .ok, .checking, .blind: break
     }
     return access
@@ -225,7 +226,7 @@ package final class WindowManager {
       if startIfPermitted() { started() }
     case .running:
       guard !gate.isTrusted else { return }
-      Self.log.warning("permission lost - Accessibility - event taps removed, waiting for it again")
+      log.warning("permission lost - Accessibility - event taps removed, waiting for it again")
       pendingRestore = handOver()
       accessBeforeStart = .notTrusted
     }
@@ -301,7 +302,7 @@ package final class WindowManager {
     case .listsMayHaveChanged:
       reconcile()
     case .focused(let windowID, let isEcho):
-      Self.log.debug(
+      log.debug(
         "window focused - \(named(windowID)) - "
           + (isEcho ? "tylerd's own focus coming back" : "not tylerd's own"))
       run(workspaceController.focusChanged(to: windowID, isEcho: isEcho, model: &model))

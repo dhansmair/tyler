@@ -116,4 +116,14 @@ extension Scenario {
   var logLevel: LogLevel {
     harness.manager.logOutput.level
   }
+
+  /// The lines that reached the log, each with its time, level and category.
+  var logLines: [String] {
+    harness.logLines.all
+  }
+
+  /// Whether a line with `message` reached the log, after its time, level and category.
+  func logged(_ message: String) -> Bool {
+    logLines.contains { $0.hasSuffix(" " + message) }
+  }
 }

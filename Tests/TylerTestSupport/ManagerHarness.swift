@@ -12,6 +12,7 @@ package struct ManagerHarness {
   package let manager: WindowManager
   package let windowSystem: FakeWindowSystem
   package let screenLock = FakeScreenLock()
+  package let logLines = LogLines()
   package let display = FakeDisplays.main
   package var area: CGRect { display.visibleFrame }
 
@@ -35,12 +36,14 @@ package struct ManagerHarness {
   ) {
     windowSystem = FakeWindowSystem(windows: windows)
     stacking?.windowSystem = windowSystem
+    let logOutput = LogOutput()
+    logOutput.setSink { [logLines] in logLines.append($0) }
     manager = WindowManager(
       windowSystem: windowSystem, displays: displays, gate: gate, screenLock: screenLock,
       animator: animator, config: config,
       configSource: configFile?.source, indicator: indicator, pointer: pointer, stacking: stacking,
       gapCursor: gapCursor, clock: clock,
-      logOutput: LogOutput(), restoring: saved)
+      logOutput: logOutput, restoring: saved)
     manager.startIfPermitted()
     if clearRecordedCalls { windowSystem.clearRecordedCalls() }
   }

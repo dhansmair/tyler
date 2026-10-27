@@ -87,7 +87,7 @@ extension WindowManager {
   /// them waits for the unlock.
   func displaysSettled() {
     guard !isScreenLocked else {
-      Self.log.debug("displays settling postponed - the screen is locked")
+      log.debug("displays settling postponed - the screen is locked")
       displaySettling.restart(after: Self.unlockCheckInterval) { [weak self] in
         self?.displaysSettled()
       }

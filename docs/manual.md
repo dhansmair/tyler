@@ -62,7 +62,7 @@ tyler restart  # after rebuilding or installing a new version; windows stay put
 tyler stop
 ```
 
-`tyler start` runs the `tylerd` that sits in the same folder as `tyler` (after following symlinks), detached from the terminal: closing the terminal doesn't stop it. Its output goes to `~/.tyler/tyler.log`, which starts empty on every start. `tyler start` waits until `tylerd` answers, at most 10 seconds, and shows the end of the log if `tylerd` exits right away. It then checks that `tylerd` can reach your windows (see `access` under [status](#status)), waiting up to 4 seconds for apps that haven't answered yet, and fails with the reason and the fix if it can't. `tylerd` keeps running then.
+`tyler start` runs the `tylerd` that sits in the same folder as `tyler` (after following symlinks), detached from the terminal: closing the terminal doesn't stop it. Its output goes to `~/.tyler/tyler.log`, which starts empty on every start; the previous run's log is kept as `~/.tyler/tyler.log.1`. `tyler start` waits until `tylerd` answers, at most 10 seconds, and shows the end of the log if `tylerd` exits right away. It then checks that `tylerd` can reach your windows (see `access` under [status](#status)), waiting up to 4 seconds for apps that haven't answered yet, and fails with the reason and the fix if it can't. `tylerd` keeps running then.
 
 You can also run `tylerd` yourself in a terminal, which keeps its output there; that's handy for debugging.
 

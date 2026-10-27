@@ -45,4 +45,23 @@ struct LogFileTests {
     }
     #expect(!LogFile.isDiscarded(file))
   }
+
+  @Test func thePreviousLogIsKeptBesideTheNewOne() throws {
+    let path = NSTemporaryDirectory() + "tyler-log-file-\(UUID().uuidString).log"
+    defer {
+      unlink(path)
+      unlink(path + ".1")
+    }
+    try "older\n".write(toFile: path + ".1", atomically: false, encoding: .utf8)
+    try "previous\n".write(toFile: path, atomically: false, encoding: .utf8)
+    try LogFile.keepPrevious(at: path)
+    #expect(try String(contentsOfFile: path + ".1", encoding: .utf8) == "previous\n")
+    #expect(!FileManager.default.fileExists(atPath: path))
+  }
+
+  @Test func withoutALogNothingIsKept() throws {
+    let path = NSTemporaryDirectory() + "tyler-log-file-\(UUID().uuidString).log"
+    try LogFile.keepPrevious(at: path)
+    #expect(!FileManager.default.fileExists(atPath: path + ".1"))
+  }
 }

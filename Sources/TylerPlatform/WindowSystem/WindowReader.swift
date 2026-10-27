@@ -23,7 +23,8 @@ struct WindowReader {
       title: attributes.title ?? "",
       frame: attributes.frame,
       kind: WindowKind.classify(
-        role: attributes.role, subrole: attributes.subrole, buttons: attributes.buttons),
+        role: attributes.role, subrole: attributes.subrole, buttons: attributes.buttons,
+        isResizable: attributes.isResizable),
       isMinimized: attributes.isMinimized ?? false,
       isFullscreen: attributes.isFullscreen ?? false,
       isFocused: false

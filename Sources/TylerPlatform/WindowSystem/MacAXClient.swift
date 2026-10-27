@@ -38,6 +38,13 @@ struct MacAXClient: AXClient {
     return result as [AnyObject]?
   }
 
+  func isAttributeSettable(_ attribute: String, of element: AXUIElement) -> Bool? {
+    var isSettable = DarwinBoolean(false)
+    guard AXUIElementIsAttributeSettable(element, attribute as CFString, &isSettable) == .success
+    else { return nil }
+    return isSettable.boolValue
+  }
+
   func windowNumber(of element: AXUIElement) -> CGWindowID? {
     var raw = CGWindowID(0)
     guard axGetWindow(element, &raw) == .success else { return nil }

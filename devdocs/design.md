@@ -121,8 +121,9 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
 - **New windows tile.** Dialogs and sheets float; `window float` switches any window. A new window
   goes after the focused one; windows present at startup are ordered left to right. What is a
   dialog comes from the subrole and the title bar together: a window with a full screen button
-  is a document, one without a close or minimize button isn't, since the subrole alone misleads
-  both ways (`macos-behaviour.md`, Window kinds).
+  is a document; one without a close or minimize button isn't, nor is one without full screen
+  whose size can't be set (a popup). The subrole alone misleads both ways, and so does a missing
+  full screen button alone, since some documents only zoom (`macos-behaviour.md`, Window kinds).
 - **Tiling reacts to commands and to windows appearing, disappearing or becoming un/tileable**
   (minimized, fullscreen), not to every move. A move by hand is handled as a mouse resize or a
   move by drag, otherwise the window snaps back on release.

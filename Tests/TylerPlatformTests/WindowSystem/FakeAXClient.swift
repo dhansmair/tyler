@@ -17,6 +17,7 @@ final class FakeAXClient: AXClient, @unchecked Sendable {
     case main
     case focused
     case pressClose
+    case isSettable(String)
   }
 
   private struct Window {
@@ -25,6 +26,7 @@ final class FakeAXClient: AXClient, @unchecked Sendable {
     var role: String? = "AXWindow"
     var subrole: String?
     var buttons: WindowButtons
+    var isResizable: Bool
     var isMinimized = false
     var minimumSize = CGSize.zero
   }
@@ -65,11 +67,11 @@ final class FakeAXClient: AXClient, @unchecked Sendable {
 
   func addWindow(
     id: UInt32, frame: CGRect, subrole: String? = "AXStandardWindow",
-    buttons: WindowButtons = .all, in app: pid_t
+    buttons: WindowButtons = .all, isResizable: Bool = true, in app: pid_t
   ) {
     lock.withLock {
       state.windows[WindowID(id)] = Window(
-        app: app, frame: frame, subrole: subrole, buttons: buttons)
+        app: app, frame: frame, subrole: subrole, buttons: buttons, isResizable: isResizable)
       state.appWindows[app, default: []].append(WindowID(id))
     }
   }
@@ -144,42 +146,6 @@ final class FakeAXClient: AXClient, @unchecked Sendable {
     lock.withLock { state.windows[WindowID(id)]?.minimumSize = size }
   }
 
-  // MARK: - Notifications
-
-  /// Delivers the notification, if it is registered: a window notification on the window's
-  /// element, an app notification on the app's. Returns whether it was delivered.
-  @MainActor
-  @discardableResult
-  func post(_ notification: String, for id: UInt32, in app: pid_t) -> Bool {
-    let element = Self.windowBase + pid_t(id)
-    let target = AXBridge.appNotifications.contains(notification) ? app : element
-    let handler = lock.withLock { () -> (@MainActor (String, AXUIElement) -> Void)? in
-      let registration = Registration(app: app, element: target, notification: notification)
-      return state.registered.contains(registration) ? state.handlers[app] : nil
-    }
-    handler?(notification, AXUIElementCreateApplication(element))
-    return handler != nil
-  }
-
-  func element(of id: UInt32) -> AXUIElement { Self.element(of: WindowID(id)) }
-
-  func isObserving(_ app: pid_t) -> Bool { lock.withLock { state.handlers[app] != nil } }
-
-  // MARK: - What was asked
-
-  func calls(on id: UInt32) -> [Call] { lock.withLock { state.calls[WindowID(id)] ?? [] } }
-
-  func frame(of id: UInt32) -> CGRect? { lock.withLock { state.windows[WindowID(id)]?.frame } }
-
-  var frontmostRequests: [pid_t] { lock.withLock { state.frontmostRequests } }
-
-  func forgetCalls() {
-    lock.withLock {
-      state.calls = [:]
-      state.frontmostRequests = []
-    }
-  }
-
   // MARK: - AXClient
 
   func createApplication(_ processID: pid_t) -> AXUIElement {
@@ -216,6 +182,17 @@ final class FakeAXClient: AXClient, @unchecked Sendable {
         let window = state.windows[id]
       else { return nil }
       return attributes.map { Self.value(attribute: $0, of: window) ?? Self.missing }
+    }
+  }
+
+  func isAttributeSettable(_ attribute: String, of element: AXUIElement) -> Bool? {
+    let key = Self.key(of: element)
+    return lock.withLock {
+      guard error(for: key) == nil, let id = Self.windowID(of: key),
+        let window = state.windows[id]
+      else { return nil }
+      state.calls[id, default: []].append(.isSettable(attribute))
+      return attribute == kAXSizeAttribute ? window.isResizable : false
     }
   }
 
@@ -320,6 +297,46 @@ final class FakeAXClient: AXClient, @unchecked Sendable {
     if let error = state.errors[key] { return error }
     guard let id = Self.windowID(of: key), let app = state.windows[id]?.app else { return nil }
     return state.isHidingWindows ? .invalidUIElement : state.errors[app]
+  }
+}
+
+// MARK: - Notifications
+
+extension FakeAXClient {
+  /// Delivers the notification, if it is registered: a window notification on the window's
+  /// element, an app notification on the app's. Returns whether it was delivered.
+  @MainActor
+  @discardableResult
+  func post(_ notification: String, for id: UInt32, in app: pid_t) -> Bool {
+    let element = Self.windowBase + pid_t(id)
+    let target = AXBridge.appNotifications.contains(notification) ? app : element
+    let handler = lock.withLock { () -> (@MainActor (String, AXUIElement) -> Void)? in
+      let registration = Registration(app: app, element: target, notification: notification)
+      return state.registered.contains(registration) ? state.handlers[app] : nil
+    }
+    handler?(notification, AXUIElementCreateApplication(element))
+    return handler != nil
+  }
+
+  func element(of id: UInt32) -> AXUIElement { Self.element(of: WindowID(id)) }
+
+  func isObserving(_ app: pid_t) -> Bool { lock.withLock { state.handlers[app] != nil } }
+}
+
+// MARK: - What was asked
+
+extension FakeAXClient {
+  func calls(on id: UInt32) -> [Call] { lock.withLock { state.calls[WindowID(id)] ?? [] } }
+
+  func frame(of id: UInt32) -> CGRect? { lock.withLock { state.windows[WindowID(id)]?.frame } }
+
+  var frontmostRequests: [pid_t] { lock.withLock { state.frontmostRequests } }
+
+  func forgetCalls() {
+    lock.withLock {
+      state.calls = [:]
+      state.frontmostRequests = []
+    }
   }
 }
 

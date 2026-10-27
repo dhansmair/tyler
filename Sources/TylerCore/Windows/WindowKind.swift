@@ -7,16 +7,22 @@ package enum WindowKind: String, Codable, Sendable {
 
   /// Maps raw Accessibility strings to a kind. Unknown or missing values are `.other`. The
   /// subrole alone misleads both ways (measured on macOS 26.7, `macos-behaviour.md`): TextEdit's
-  /// untitled documents are `AXDialog` until the app is first active, and its Open panel is an
-  /// `AXStandardWindow` without a close or minimize button. A dialog never offers full screen,
-  /// and a window you can neither close nor minimize isn't a document.
+  /// untitled documents are `AXDialog` until the app is first active, while its Open panel and
+  /// Outlook's reminder popup are `AXStandardWindow`s. A dialog never offers full screen; a
+  /// window you can neither close nor minimize, or one without full screen that can't be
+  /// resized, isn't a document. Some documents only zoom, so no full screen alone isn't enough.
+  /// `isResizable` is `nil` when it wasn't read.
   package static func classify(
-    role: String?, subrole: String?, buttons: WindowButtons
+    role: String?, subrole: String?, buttons: WindowButtons, isResizable: Bool?
   ) -> WindowKind {
     switch (role, subrole) {
     case ("AXWindow", "AXDialog") where buttons.contains(.fullScreen):
       return .standard
     case ("AXWindow", "AXStandardWindow") where buttons.isDisjoint(with: [.close, .minimize]):
+      return .dialog
+    case _
+    where isResizable == false
+      && dependsOnResizability(role: role, subrole: subrole, buttons: buttons):
       return .dialog
     case ("AXSheet", _), (_, "AXDialog"), (_, "AXSystemDialog"):
       return .dialog
@@ -27,5 +33,13 @@ package enum WindowKind: String, Codable, Sendable {
     default:
       return .other
     }
+  }
+
+  /// Whether `classify` needs `isResizable`, which costs a second round trip to the app.
+  package static func dependsOnResizability(
+    role: String?, subrole: String?, buttons: WindowButtons
+  ) -> Bool {
+    role == "AXWindow" && subrole == "AXStandardWindow" && !buttons.contains(.fullScreen)
+      && !buttons.isDisjoint(with: [.close, .minimize])
   }
 }

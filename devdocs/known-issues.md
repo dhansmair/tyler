@@ -17,7 +17,7 @@ for users. A new one gets an issue and a line here.
 - [#9](https://github.com/dhansmair/tyler/issues/9) Finder windows made by AppleScript were tiled, later listed as dialog
 - [#10](https://github.com/dhansmair/tyler/issues/10) Find out what a stale Accessibility entry looks like to tylerd
 - [#11](https://github.com/dhansmair/tyler/issues/11) Echo tracking can go stale when an app never sends a focus event
-- [#12](https://github.com/dhansmair/tyler/issues/12) Closing a window may switch workspaces
+- [#87](https://github.com/dhansmair/tyler/issues/87) Focusing a window can slide another display to the same app's parked window
 - [#72](https://github.com/dhansmair/tyler/issues/72) A window opened in the background on an assigned workspace brings that workspace into view
 - [#74](https://github.com/dhansmair/tyler/issues/74) A window moved alone onto a larger display arrives clamped to the old display's width
 

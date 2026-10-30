@@ -34,6 +34,11 @@ package final class MacWindowStacking: WindowStacking {
       }.map(\.window.id))
   }
 
+  package func containsWindow(_ windowID: WindowID) -> Bool {
+    let list = CGWindowListCopyWindowInfo([.optionIncludingWindow], windowID.rawValue)
+    return (list as? [[String: Any]])?.isEmpty == false
+  }
+
   private struct Listed {
     let window: StackedWindow
     let frame: CGRect

@@ -87,8 +87,10 @@ package final class WindowManager {
   let gapHover: GapHover?
   /// Waits for the pointer to rest before focus follows it (see `pointerMoved(to:)`).
   let pointerRest: Debounce
-  /// Waits for a focus on a parked window to last (see `followFocus(to:isEcho:)`).
-  let parkedFocus: Debounce
+  /// Waits for a focus on a parked window to last (see `followFocus(to:isEcho:from:)`).
+  let parkedFocus: ParkedFocusWait
+  /// How long a closed window counts as the one that held the focus (see `focusedWindowClosed`).
+  let closedFocus: Debounce
   /// Follows `displays.changes` while running.
   var displayPump: Task<Void, Never>?
   /// Waits for the displays to settle after a change (see `displaysChanged`).
@@ -135,7 +137,8 @@ package final class WindowManager {
     self.clock = clock
     pointerRest = Debounce(clock: clock)
     displaySettling = Debounce(clock: clock)
-    parkedFocus = Debounce(clock: clock)
+    parkedFocus = ParkedFocusWait(clock: clock)
+    closedFocus = Debounce(clock: clock)
     pendingRestore = saved
     model = Model(
       rows: DisplayRows(
@@ -180,6 +183,7 @@ package final class WindowManager {
     if let focusedID = registry.focusedID {
       model.focusDisplay(of: focusedID, in: context)
       model.recordFocus(focusedID)
+      registry.window(withID: focusedID).map { interpreter.holdFocus(on: $0) }
     }
     return true
   }
@@ -291,6 +295,8 @@ package final class WindowManager {
     if case .updated(let window) = event {
       known = registry.window(withID: window.id)
       mover.windowUpdated()
+    } else if case .focused(let windowID?) = event {
+      known = registry.window(withID: windowID)
     }
     registry.apply(event)
     for intent in interpreter.intents(for: event, known: known, displays: displays.displays) {
@@ -304,16 +310,17 @@ package final class WindowManager {
       followDrag(of: window, from: previous)
     case .listsMayHaveChanged:
       reconcile()
-    case .focused(let windowID, let isEcho):
+    case .focused(let windowID, let isEcho, let previous):
       log.debug(
         "window focused - \(named(windowID)) - "
           + (isEcho ? "tylerd's own focus coming back" : "not tylerd's own"))
-      followFocus(to: windowID, isEcho: isEcho)
+      followFocus(to: windowID, isEcho: isEcho, from: previous)
     case .closed(let windowID):
       if drag?.windowID == windowID { endDrag() }
       forgetMovePreview()
       bookkeeping.forget(windowID)
       mover.forget(windowID)
+      focusedWindowClosed(windowID)
     }
   }
 

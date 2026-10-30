@@ -131,6 +131,25 @@ struct WorkspaceController {
     return location.index != model.rows[location.position].currentIndex
   }
 
+  /// A focus on `windowID` lasted. If the window that held the focus went away, macOS chose this
+  /// one and nobody asked for it: its workspace stays parked and the focus comes back.
+  func focusSettled(
+    on windowID: WindowID, from previous: FocusedWindow?, previousIsGone: Bool, model: inout Model
+  ) -> [Effect] {
+    let verdict = ParkedFocusVerdict(
+      isParked: isParked(windowID, in: model), previous: previous, previousIsGone: previousIsGone)
+    switch verdict {
+    case .follow:
+      return focusChanged(to: windowID, isEcho: false, model: &model)
+    case .decline:
+      context.log.info(
+        "window focus not followed - "
+          + WindowInfo.logName(windowID, context.registry.window(withID: windowID))
+          + " - the focused window went away")
+      return [.focusCurrentWorkspace]
+    }
+  }
+
   /// The OS focused `windowID` (a click, cmd-tab, an app raising itself). If it lives on a
   /// parked workspace and the focus wasn't tylerd's own doing (`isEcho`), that workspace comes
   /// into view. If it is out of view in a scrolling layout on the current workspace, the view

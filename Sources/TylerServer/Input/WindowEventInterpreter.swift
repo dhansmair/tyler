@@ -8,7 +8,8 @@ struct WindowEventInterpreter {
     /// A window moved or was resized from `from`: a drag may have started or gone on.
     case moved(WindowInfo, from: CGRect?)
     case listsMayHaveChanged
-    case focused(WindowID, isEcho: Bool)
+    /// `from` held the focus before: the first thing to ask of a focus nobody asked for.
+    case focused(WindowID, isEcho: Bool, from: FocusedWindow?)
     case closed(WindowID)
   }
 
@@ -16,14 +17,29 @@ struct WindowEventInterpreter {
   /// mistaken for the user switching to a parked window.
   private(set) var expectedFocus: Set<WindowID> = []
 
+  /// The window the last focus event named, even once it has closed: macOS focuses the next one
+  /// after the close.
+  private(set) var lastFocused: FocusedWindow?
+
   mutating func expectFocus(of windowID: WindowID) {
     expectedFocus.insert(windowID)
+  }
+
+  /// The window that held the focus when tylerd started: no event names it.
+  mutating func holdFocus(on window: WindowInfo) {
+    lastFocused = FocusedWindow(id: window.id, kind: window.kind)
+  }
+
+  /// A closed window's focus that nothing took over: a focus from now on is a new one.
+  mutating func forgetFocus(of windowID: WindowID) {
+    if lastFocused?.id == windowID { lastFocused = nil }
   }
 
   /// `known` is the window as it was before the event.
   mutating func intents(
     for event: WindowEvent, known: WindowInfo?, displays: [DisplayInfo]
   ) -> [Intent] {
+    noteKind(from: event)
     if case .updated(let window) = event, let known {
       // Most updates are moves and resizes, many of them echoes of tylerd's own moves (several
       // per window placed, and one per window per slide step). Only these can change the lists.
@@ -35,16 +51,30 @@ struct WindowEventInterpreter {
     var intents: [Intent] = []
     switch event {
     case .focused(let windowID?):
-      intents.append(.focused(windowID, isEcho: expectedFocus.remove(windowID) != nil))
+      let isEcho = expectedFocus.remove(windowID) != nil
+      intents.append(.focused(windowID, isEcho: isEcho, from: lastFocused))
+      lastFocused = FocusedWindow(id: windowID, kind: known?.kind)
+    case .focused(nil):
+      lastFocused = nil
     case .destroyed(let windowID):
       expectedFocus.remove(windowID)
       intents.append(.closed(windowID))
-    case .created, .updated, .focused(nil):
+    case .created, .updated:
       break
     }
     intents.append(.listsMayHaveChanged)
     if case .updated(let window) = event { intents.append(.moved(window, from: nil)) }
     return intents
+  }
+
+  /// A focus can arrive before its window's `created`, and the kind is gone with the window.
+  private mutating func noteKind(from event: WindowEvent) {
+    switch event {
+    case .created(let window), .updated(let window):
+      if window.id == lastFocused?.id { lastFocused?.kind = window.kind }
+    case .destroyed, .focused:
+      break
+    }
   }
 
   /// The window became tileable or stopped being so, or moved onto another display.

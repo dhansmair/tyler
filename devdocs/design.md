@@ -207,6 +207,15 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   avoids it (`macos-behaviour.md`, "An app's focus across displays"). Waiting rather than ignoring
   the app's other windows for a while means a focus that stays is late, never lost (a newer focus
   or a command replaces it), and covers clicks, where tylerd asked for nothing.
+  A focus that lasted isn't followed if the standard window that held the focus before it is gone:
+  no longer in the registry (a close) or no longer known to the window server (a quit, before
+  Accessibility reports it). macOS chose that window, not the user, so tylerd focuses the current
+  workspace instead (`ParkedFocusVerdict`). Asking once, when the wait ends, works in either order
+  of close and focus and adds no delay. Only the window holding the focus counts, so a background
+  window closing takes nothing away, and only a standard one, since a dialog closing and then
+  focusing a parked window is the app's intent. A closed window counts for 60 ms: when an app's
+  last window closes macOS focuses nothing, and a cmd-tab long after is the user's. A splash window
+  closing as the main window opens on a parked workspace is declined, if the splash is standard.
   tylerd ignores the focus events its own focus calls cause, so a quick `next`, `prev` doesn't
   switch back late. On an empty workspace tylerd makes itself frontmost, so keys never go to a
   parked window. A floated window keeps the focus.

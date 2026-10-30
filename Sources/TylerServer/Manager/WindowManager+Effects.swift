@@ -100,10 +100,14 @@ extension WindowManager {
   }
 
   /// Focuses the current workspace's focused window, or takes the focus from a parked window if
-  /// the workspace is empty. Returns why that failed, if it did, for the command's reply.
+  /// the workspace has none. While the displays settle the lists keep windows that closed, so
+  /// only a window still there counts. Returns why that failed, if it did, for the command's
+  /// reply.
   @discardableResult
   func focusCurrentWorkspace() -> String? {
-    guard let target = workspaces.current.focused ?? workspaces.current.windows.first else {
+    let workspace = workspaces.current
+    let candidates = [workspace.focused].compactMap { $0 } + workspace.windows
+    guard let target = candidates.first(where: { registry.window(withID: $0) != nil }) else {
       return unfocusParkedWindow()
     }
     do {

@@ -204,6 +204,13 @@ struct Scenario {
     await runUntilQuiet()
   }
 
+  /// macOS focuses `windows` one after the other, faster than focus settles, as when an app comes
+  /// to the front on the window it remembers on its way to the one asked for.
+  func focusInTurn(_ windows: UInt32...) async {
+    for window in windows { harness.windowSystem.send(.focused(WindowID(window))) }
+    await runUntilQuiet()
+  }
+
   /// An app opens `window`.
   func open(_ window: WindowInfo) async {
     harness.windowSystem.windows.append(window)

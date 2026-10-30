@@ -87,6 +87,8 @@ package final class WindowManager {
   let gapHover: GapHover?
   /// Waits for the pointer to rest before focus follows it (see `pointerMoved(to:)`).
   let pointerRest: Debounce
+  /// Waits for a focus on a parked window to last (see `followFocus(to:isEcho:)`).
+  let parkedFocus: Debounce
   /// Follows `displays.changes` while running.
   var displayPump: Task<Void, Never>?
   /// Waits for the displays to settle after a change (see `displaysChanged`).
@@ -133,6 +135,7 @@ package final class WindowManager {
     self.clock = clock
     pointerRest = Debounce(clock: clock)
     displaySettling = Debounce(clock: clock)
+    parkedFocus = Debounce(clock: clock)
     pendingRestore = saved
     model = Model(
       rows: DisplayRows(
@@ -305,7 +308,7 @@ package final class WindowManager {
       log.debug(
         "window focused - \(named(windowID)) - "
           + (isEcho ? "tylerd's own focus coming back" : "not tylerd's own"))
-      run(workspaceController.focusChanged(to: windowID, isEcho: isEcho, model: &model))
+      followFocus(to: windowID, isEcho: isEcho)
     case .closed(let windowID):
       if drag?.windowID == windowID { endDrag() }
       forgetMovePreview()

@@ -202,6 +202,11 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   instant. Making only the windows that would cross jump was tried and looked worse than switching
   instantly.
 - **Focus.** Focusing a parked window (cmd-tab, a click on the Dock) switches to its workspace.
+  It switches only once that focus has lasted 60 ms: an app with windows on two displays can
+  report the window it remembers on the way to the one asked for, and no order of the focus calls
+  avoids it (`macos-behaviour.md`, "An app's focus across displays"). Waiting rather than ignoring
+  the app's other windows for a while means a focus that stays is late, never lost (a newer focus
+  or a command replaces it), and covers clicks, where tylerd asked for nothing.
   tylerd ignores the focus events its own focus calls cause, so a quick `next`, `prev` doesn't
   switch back late. On an empty workspace tylerd makes itself frontmost, so keys never go to a
   parked window. A floated window keeps the focus.

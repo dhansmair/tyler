@@ -23,4 +23,4 @@ Beyond the rows, also 3 tries each:
 - Closing an app's last window, the app staying: no focus event, no switch. A cmd-tab to a parked
   window right after (about 1.8 s) switched.
 
-Whether taking the focus back flickers wasn't judged: that needs a person watching.
+Taking the focus back didn't flicker: the maintainer watched the fixture runs by eye.

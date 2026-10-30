@@ -1,0 +1,67 @@
+#!/bin/bash
+# Switches which tyler install is in use, and restarts tylerd from it. ~/.tyler/current links to
+# the install's folder; with that link first on the PATH, `tyler` is always the install chosen
+# here, and a restart can't swap versions by accident. See docs/install-from-source.md.
+set -euo pipefail
+
+link="$HOME/.tyler/current"
+
+usage() {
+  echo "usage: tyler-use [brew|local|main|<folder or checkout>]" >&2
+  exit 2
+}
+
+# The main checkout, wherever this script runs from: the first worktree git lists.
+main_checkout() {
+  git -C "$(dirname "$0")" worktree list --porcelain | sed -n '1s/^worktree //p'
+}
+
+install_folder() {
+  case "$1" in
+    brew) echo "$(brew --prefix)/opt/tyler/libexec" ;;
+    local) echo "$HOME/.local/bin" ;;
+    main) echo "$(main_checkout)/.build/debug" ;;
+    *) if [[ -d "$1/.build/debug" ]]; then echo "$1/.build/debug"; else echo "$1"; fi ;;
+  esac
+}
+
+show() {
+  if [[ -L "$link" ]]; then
+    echo "active: $(readlink "$link")"
+    "$link/tyler" status 2>&1 | grep -E 'tylerd is|version|binary|warning' || true
+  else
+    echo "active: none (run tyler-use with an install)"
+  fi
+  if [[ "$(command -v tyler || true)" != "$link/tyler" ]]; then
+    echo "note: tyler on the PATH is $(command -v tyler || echo nothing); to use the active one, add"
+    echo "  export PATH=\"\$HOME/.tyler/current:\$PATH\""
+    echo "to the end of your shell's startup file"
+  fi
+}
+
+[[ $# -le 1 ]] || usage
+if [[ $# -eq 0 ]]; then
+  show
+  exit
+fi
+[[ "$1" != -* ]] || usage
+
+folder="$(install_folder "$1")"
+if [[ ! -x "$folder/tyler" || ! -x "$folder/tylerd" ]]; then
+  echo "tyler-use: no tyler and tylerd in $folder" >&2
+  exit 1
+fi
+folder="$(cd "$folder" && pwd)"
+# On a locked screen a new tylerd finds no windows (devdocs/macos-behaviour.md).
+if ioreg -n Root -d1 | grep -q '"IOConsoleLocked" = Yes'; then
+  echo "tyler-use: the screen is locked; try again once it is unlocked" >&2
+  exit 1
+fi
+if [[ "$folder" != "$(main_checkout)/.build/debug" && "$folder" == *"/.build/debug" ]]; then
+  echo "note: this replaces the one tylerd on this machine, also for any other agent using it"
+fi
+
+mkdir -p "$(dirname "$link")"
+ln -sfn "$folder" "$link"
+"$link/tyler" restart
+show

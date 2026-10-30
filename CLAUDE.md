@@ -65,7 +65,7 @@ Sources/
   TylerClient/   argv parsing, response formatting, IPC client
   tylerd/        server executable (thin)
   tyler/         CLI executable (thin)
-devtools/      live-check: checks against real windows (see .claude/skills/live-check)
+devtools/      live-check: checks against real windows (see .claude/skills/live-check); tyler-use: switch between installs
 Tests/         one test target per library (TylerRuntimeTests, TylerCoreTests, TylerConfigTests, TylerProtocolTests, …) that mirrors its sources: `<Type>Tests.swift` or `<Type>Tests+<Aspect>.swift` beside where `<Type>.swift` is (TylerCoreTests/Layouts/Tall/TallLayoutTests+Resize.swift); TylerScenarioTests holds the scenario tests, a folder per feature of TylerServer (`Drag/SwapScenarios.swift`); TylerTestSupport holds what the server test targets share (the fakes, `ManagerHarness`)
 ```
 
@@ -82,6 +82,7 @@ make install   # release build, copied to ~/.local/bin (docs/install-from-source
 make format    # swift format over the whole tree, in place
 make lint      # swift format lint and swiftlint (with TOOLCHAIN_DIR set) over the whole tree
 make check     # lint and test: what the pre-commit hook checks
+devtools/tyler-use [brew|local|main|<folder>]   # which install `tyler` is, and restart tylerd from it
 ```
 
 - **Use `make test`.** The Makefile adds the flags the Command Line Tools need for Swift Testing and its macro plugin; `plugin for module 'TestingMacros' not found` means they were missing. A Claude Code hook (`.claude/hooks/guard-swift-test.sh`) refuses a bare `swift test`; for a few tests, pass `FILTER`.

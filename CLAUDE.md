@@ -14,7 +14,7 @@ Windows are controlled through the macOS Accessibility API (no SIP changes). Wor
 
 **Keep this section current.** Whenever a feature is complete or its state changes (built, unit tested, checked against real windows, dropped), update it in the same commit.
 
-Every feature in `docs/manual.md` is built and unit tested, and most are in daily use on real windows; the strip layout is **experimental** (`devdocs/strip-layout.md`: its state, known issues and open questions; keep it current when the strip changes). The latest release is in `CHANGELOG.md`; how a release is made is in `devdocs/design.md` (Releases). 0.2.0 was released before a run of the testing catalogue; that run is in `devdocs/test-runs/0.2.0.md` (six rows fail, each with an issue). Next: `devtools/e2e`, running the catalogue's automated rows.
+Every feature in `docs/manual.md` is built and unit tested, and most are in daily use on real windows; the strip layout is **experimental** (`devdocs/strip-layout.md`: its state, known issues and open questions; keep it current when the strip changes). The latest release is in `CHANGELOG.md`; how a release is made is in `devdocs/design.md` (Releases). 0.2.0 was released before a run of the testing catalogue; that run is in `devdocs/test-runs/0.2.0.md` (six rows fail, each with an issue). 0.2.1 was checked only on the rows its fixes touch (`devdocs/test-runs/0.2.1.md`). Next: `devtools/e2e`, running the catalogue's automated rows.
 
 Where things are written down:
 - `devdocs/architecture.md`: the target architecture (the layers from input to effects, TylerCore's bounded contexts and which way their dependencies point, the rules), with a diagram, and how far the code is from it. Read it before adding a type, a folder or a dependency between parts.

@@ -236,7 +236,9 @@ from a terminal that held Accessibility itself:
   check after the reset; the first time (the very first entry for the bundle ID) it wasn't, and only
   a relaunch made tylerd trusted. Why the two differed isn't known. The probe above, a process
   without a run loop, never picked a grant up while it ran, only on its next launch: that may be
-  what a run loop changes, so it says nothing about tylerd.
+  what a run loop changes, so it says nothing about tylerd. Again on 2026-10-30 (macOS 26.7.2, an
+  update between two ad-hoc builds): a first grant was picked up by the waiting tylerd, the grant
+  after the update wasn't within a minute, and `tyler restart` of the same build was trusted.
 - **No Input Monitoring is needed.** With only the app's Accessibility grant, every tap came up
   (`input` in `tyler status`), and three-finger swipes, dragging and resizing with the modifier,
   and focus follows mouse all worked.

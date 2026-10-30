@@ -3,6 +3,17 @@
 tyler follows [semantic versioning](https://semver.org). Before 1.0, a minor version (0.x) may
 change commands, the config file and the socket protocol; the entry says how.
 
+## 0.2.1 (2026-10-30)
+
+Fixes, and a Homebrew formula for each release.
+
+- A window that can't be resized, such as a popup or a reminder, floats instead of being tiled.
+- `tyler restart` while a display is unplugged keeps that display's workspaces, instead of merging
+  them into the last workspace of the display that's left.
+- `~/.tyler/tyler.log.1` keeps the previous run's log.
+- Homebrew: each release from now on also gets a formula that stays at it,
+  `brew install dhansmair/tyler/tyler@<version>`.
+
 ## 0.2.0 (2026-10-25)
 
 An easier install.

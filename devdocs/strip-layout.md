@@ -81,7 +81,8 @@ Each window has a size (`WindowSize`), set with `tyler window size half|full|qua
 
 - On a strip workspace, the 3-finger swipe **scrolls the strip and never switches workspaces**,
   even when every window fits. Leaving a strip workspace takes
-  `tyler workspace focus`.
+  `tyler workspace focus`. On an empty strip the swipe has nothing to scroll, so it does nothing
+  at all (#40).
 - When the swipe begins, the views it can rest at are worked out (`ViewScroll`). The windows follow
   the fingers along the scroll between the two views the position lies between.
 - On release, `Snap` picks a view: the nearest one, or the next one for a flick. If the focused

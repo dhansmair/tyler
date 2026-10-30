@@ -117,6 +117,20 @@ struct WorkspaceController {
     return effects
   }
 
+  /// How long a focus on a parked window must last before its workspace comes into view. An app
+  /// with windows on two displays can report the one it remembers on its way to the one asked for
+  /// (`macos-behaviour.md`, "An app's focus across displays"): the wanted window followed within
+  /// 21 ms in every measured case.
+  static let parkedFocusSettling: Duration = .milliseconds(60)
+
+  /// Whether a focus on `windowID` would bring a parked workspace into view.
+  func isParked(_ windowID: WindowID, in model: Model) -> Bool {
+    guard context.isTiling(model), let location = model.rows.location(of: windowID) else {
+      return false
+    }
+    return location.index != model.rows[location.position].currentIndex
+  }
+
   /// The OS focused `windowID` (a click, cmd-tab, an app raising itself). If it lives on a
   /// parked workspace and the focus wasn't tylerd's own doing (`isEcho`), that workspace comes
   /// into view. If it is out of view in a scrolling layout on the current workspace, the view

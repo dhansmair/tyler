@@ -292,6 +292,30 @@ tylerd does: app frontmost, `AXRaise`, main; then 150 ms later `AXRaise` on wind
 - So keeping a window in front of the focused one (a floating layer) can't be done with public
   API: it takes focusing it, or setting its window level (private API, SIP changes).
 
+## An app's focus across displays
+
+Measured 2026-10-30 on macOS 26.7.2, two displays, with a one-off probe: an Electron editor with a
+window A on one display and a window B on the other, B the one it remembers as focused, and
+another app in front. Six tries each, the probe's own AX observer and a read on activation.
+
+| Focusing A | B reported on the way | Ends on B |
+|---|---|---|
+| Frontmost, raise, main, focused (`AXBridge.raise`) | 3 of 6 | 0 |
+| Main and focused, frontmost, raise | 6 of 6 | 4 of 6 |
+| Raise, main and focused, frontmost last | 6 of 6 | 6 of 6 |
+| A posted click on A's title bar | 6 of 6, from the read on activation; no notification | 0 |
+
+- **With both windows on one display, B never showed** after tylerd's calls, in the editor or in a
+  plain AppKit app; a posted click showed it once in about five tries in each. So it needs an
+  app with windows on two displays, not a parked window.
+- **The order of the calls can't avoid it:** frontmost first is the best of the three, and the
+  others leave the wrong window focused.
+- **A came within 21 ms of B** in every try that ended on A, and 18 ms in a log of tylerd itself.
+  `WorkspaceController.parkedFocusSettling` waits longer than that.
+- **Not a passing state:** opening a new window (`code -n`) focused a window parked on the other
+  display 12 ms later, and closing a window focused the same app's parked window (#12). No focus
+  event followed either, so these get past the wait.
+
 ## Synthetic input (for live checks)
 
 - A synthetic click on a status item only arrives after a mouse move onto it.

@@ -8,6 +8,7 @@ extension WindowManager {
   /// the window then belongs where it is.
   func beginCommand() -> Response? {
     endInteraction()
+    parkedFocus.cancel()
     mover.letGoOfCrossings()
     guard state == .running else { return .error(Self.permissionMessage) }
     guard tilingEnabled else { return .error(Self.tilingOffMessage) }

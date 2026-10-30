@@ -38,6 +38,31 @@ tyler restart         # windows stay where they are
 `tylerd` runs under the permission of the terminal that starts it: start it from a terminal app
 that has the Accessibility permission. The [manual](manual.md#running-tylerd) has the details.
 
+## Switching between installs
+
+With several installs (Homebrew, `make install`, a checkout), `devtools/tyler-use` picks one:
+
+```bash
+devtools/tyler-use brew      # the Homebrew install
+devtools/tyler-use local     # what make install copied to ~/.local/bin
+devtools/tyler-use main      # the main checkout's .build/debug
+devtools/tyler-use ../other  # another checkout, or a folder holding tyler and tylerd
+devtools/tyler-use           # which is active, and what runs
+```
+
+It links `~/.tyler/current` to that install and restarts `tylerd` from it. Put the link first on
+your PATH, at the end of your shell's startup file, so `tyler` is always the chosen install:
+
+```bash
+export PATH="$HOME/.tyler/current:$PATH"
+```
+
+A hotkey daemon such as skhd has a PATH of its own: use `~/.tyler/current/tyler` in its bindings,
+since a release may change the socket protocol. Each install has its own Accessibility permission,
+and going to another one puts the windows back until it has that permission, as `tyler restart`
+says. An older install can't read the state of a newer one: `tyler stop` first if the windows stay
+parked.
+
 ## Uninstalling
 
 ```bash

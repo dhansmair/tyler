@@ -150,6 +150,8 @@ final class AppConnection {
     windows.track(window, as: windowID, ownedBy: processID)
     let failures = bridge.observe(window: window, processID: processID)
     if let info = read(windowID) {
+      Self.log.info(
+        "window opened - \(named(info.id)) - at \(Self.describe(info.frame)), \(info.kind)")
       report(.created(info))
     }
     // After the first read, so the line names the window.
@@ -239,6 +241,11 @@ extension AppConnection {
       try check(bridge.setFrame(frame, of: element), for: windowID)
       actual = bridge.frame(of: element)
     }
+    if let actual, actual != frame {
+      Self.log.info(
+        "window placing off - \(named(windowID)) - asked for \(Self.describe(frame)), "
+          + "got \(Self.describe(actual))")
+    }
     // The app may have clamped the size; tell the manager what it really is.
     guard let actual, let info = note(actual, of: windowID) else { return }
     report(.updated(info))
@@ -250,6 +257,10 @@ extension AppConnection {
 
   /// Ordered from the frame last read, which lags behind the steps but grows or shrinks the same
   /// way along a straight track.
+  private static func describe(_ frame: CGRect) -> String {
+    "\(Int(frame.minX)),\(Int(frame.minY)) \(Int(frame.width))x\(Int(frame.height))"
+  }
+
   func setFrameStep(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
     let writes =
       windows.lastRead(of: windowID).flatMap { FrameWrite.inPassing(from: $0.frame, to: frame) }

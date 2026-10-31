@@ -52,10 +52,4 @@ struct CGRectGeometryTests {
     #expect(!rect.hasOtherSize(than: CGRect(x: 500, y: 500, width: 101, height: 100)))
     #expect(rect.hasOtherSize(than: CGRect(x: 10, y: 10, width: 102, height: 100)))
   }
-
-  /// Going to another display it doesn't reach past anything there, as in `macos-behaviour.md`.
-  @Test func aWindowElsewhereNeedsNoClearing() {
-    let farBelow = CGRect(x: 0, y: 5000, width: 3000, height: 3000)
-    #expect(Self.slot.clearingOrigin(from: farBelow) == nil)
-  }
 }

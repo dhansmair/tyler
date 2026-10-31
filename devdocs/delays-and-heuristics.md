@@ -81,9 +81,8 @@ is open. The Dock and Notification Centre count as overlays when they cover a wh
 
 ## Moving windows
 
-A window moved to another display is written a second time if it didn't land where asked. A position
-that didn't land is written again on any window. A size is only for a window crossing displays:
-terminals round theirs on their own display.
+A window crossing displays is written a second time, once, if it didn't land within a point of where
+it was asked to. Nothing else is: a window on its own display keeps the size its app chose.
 
 ## Displays and the lock screen
 

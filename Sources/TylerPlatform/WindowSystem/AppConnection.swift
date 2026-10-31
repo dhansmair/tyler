@@ -220,13 +220,13 @@ final class AppConnection {
 
 /// Moving, focusing and closing; here because it reads and updates the connection's private state.
 extension AppConnection {
-  func setFrame(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
+  @discardableResult
+  func setFrame(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) -> CGRect? {
     let element = try settledElement(windowID)
     // A window that already has the size only needs moving: one write instead of three. Should
     // the size turn out to differ after all (the last read is out of date), the full move
     // follows.
     var current = windows.lastRead(of: windowID)?.frame
-    let isCrossing = current.map { !frame.intersects($0) } ?? false
     var actual: CGRect?
     if current?.size == frame.size {
       try check(bridge.setPosition(frame.origin, of: element), for: windowID)
@@ -242,23 +242,15 @@ extension AppConnection {
       try check(bridge.setFrame(frame, of: element), for: windowID)
       actual = bridge.frame(of: element)
     }
-    // A window crossing displays can lose its position write, or stop at the old display's edge,
-    // and nothing follows that would put it right. A size the app chose on its own display stays:
-    // terminals round theirs.
-    if let landed = actual,
-      landed.origin != frame.origin || (isCrossing && landed.size != frame.size)
-    {
-      try check(bridge.setFrame(frame, of: element), for: windowID)
-      actual = bridge.frame(of: element)
-    }
-    if let actual, actual != frame {
+    if let actual, !actual.isClose(to: frame) {
       Self.log.info(
         "window placing off - \(named(windowID)) - asked for \(Self.describe(frame)), "
           + "got \(Self.describe(actual))")
     }
     // The app may have clamped the size; tell the manager what it really is.
-    guard let actual, let info = note(actual, of: windowID) else { return }
+    guard let actual, let info = note(actual, of: windowID) else { return actual }
     report(.updated(info))
+    return actual
   }
 
   func setPosition(_ origin: CGPoint, of windowID: WindowID) throws(WindowSystemError) {
@@ -267,10 +259,6 @@ extension AppConnection {
 
   /// Ordered from the frame last read, which lags behind the steps but grows or shrinks the same
   /// way along a straight track.
-  private static func describe(_ frame: CGRect) -> String {
-    "\(Int(frame.minX)),\(Int(frame.minY)) \(Int(frame.width))x\(Int(frame.height))"
-  }
-
   func setFrameStep(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
     let writes =
       windows.lastRead(of: windowID).flatMap { FrameWrite.inPassing(from: $0.frame, to: frame) }
@@ -282,7 +270,10 @@ extension AppConnection {
     let element = try settledElement(windowID)
     guard let current = windows.lastRead(of: windowID)?.frame,
       let writes = FrameWrite.inPassing(from: current, to: frame)
-    else { return try setFrame(frame, of: windowID) }
+    else {
+      try setFrame(frame, of: windowID)
+      return
+    }
     for write in writes {
       try check(bridge.write(write, to: element), for: windowID)
     }
@@ -346,6 +337,10 @@ extension AppConnection {
   // MARK: - Whether the app answers
 
   /// Skips the app for a while, from now: a call to it timed out.
+  private static func describe(_ frame: CGRect) -> String {
+    "\(Int(frame.minX)),\(Int(frame.minY)) \(Int(frame.width))x\(Int(frame.height))"
+  }
+
   private func noteTimeout() {
     guard pause.start() else { return }
     Self.log.warning(

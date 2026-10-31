@@ -68,35 +68,3 @@ extension [WindowEvent] {
     }
   }
 }
-
-extension FakeAXClient {
-  /// A window as the fake app holds it.
-  struct Window {
-    let app: pid_t
-    var frame: CGRect
-    var role: String? = "AXWindow"
-    var subrole: String?
-    var buttons: WindowButtons
-    var isResizable: Bool
-    var isMinimized = false
-    var minimumSize = CGSize.zero
-    var losesPosition = false
-    /// Size writes the old display still cuts down to this width.
-    var cappedWidth: (width: CGFloat, writes: Int)?
-
-    mutating func write(_ origin: CGPoint) {
-      if losesPosition {
-        losesPosition = false
-      } else {
-        frame.origin = origin
-      }
-    }
-
-    /// The width a size write gets.
-    mutating func width(for asked: CGFloat) -> CGFloat {
-      guard let cap = cappedWidth else { return asked }
-      cappedWidth = cap.writes > 1 ? (cap.width, cap.writes - 1) : nil
-      return min(asked, cap.width)
-    }
-  }
-}

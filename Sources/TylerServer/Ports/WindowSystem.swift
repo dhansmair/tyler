@@ -23,8 +23,10 @@ package protocol WindowSystem: AnyObject {
   var isAttaching: Bool { get }
 
   /// Moves and resizes a window. The frame is in Accessibility coordinates. Apps may clamp the
-  /// size, so the result is reported back through `events`, not assumed.
-  func setFrame(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError)
+  /// size, so the result is reported back through `events`, not assumed. Returns the frame it
+  /// landed on, if it could be read.
+  @discardableResult
+  func setFrame(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) -> CGRect?
   /// Moves a window without resizing it, in a single call to the app. Used for the steps of an
   /// animation, so it doesn't report the new frame back; the app's own notifications do that. It
   /// may return before the app has moved the window, and a newer move may replace one still

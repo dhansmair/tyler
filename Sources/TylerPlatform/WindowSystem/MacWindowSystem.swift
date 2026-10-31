@@ -175,8 +175,14 @@ package final class MacWindowSystem: WindowSystem {
     // became a regular app after launching gets another chance whenever it comes to the front.
     if let connection = connections[processID] {
       connection.readFocus()
+      Self.log.debug(
+        "app activated - pid \(processID) - focus read: "
+          + (focusedID.map { "#\($0.rawValue)" } ?? "none"))
     } else if retries[processID] == nil {
+      Self.log.debug("app activated - pid \(processID) - not observed yet, attaching")
       attach(processID: processID, attempt: 1)
+    } else {
+      Self.log.debug("app activated - pid \(processID) - not observed yet, a retry is waiting")
     }
   }
 

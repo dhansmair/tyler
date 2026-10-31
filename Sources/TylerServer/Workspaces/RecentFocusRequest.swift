@@ -13,8 +13,12 @@ final class RecentFocusRequest {
   }
 
   func note(_ windowID: WindowID) {
-    request = FocusRequest(window: windowID, isSecondTry: request?.window == windowID)
+    request = FocusRequest(window: windowID, isSecondTry: false)
     expiry.restart(after: memory) { [weak self] in self?.request = nil }
+  }
+
+  func markSecondTry() {
+    request = request.map { FocusRequest(window: $0.window, isSecondTry: true) }
   }
 
   func cancel() {

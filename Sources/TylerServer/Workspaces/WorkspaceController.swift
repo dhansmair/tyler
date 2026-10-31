@@ -147,27 +147,33 @@ struct WorkspaceController {
   func focusSettled(
     on windowID: WindowID, from previous: FocusedWindow?, previousIsGone: Bool,
     request: FocusRequest?, model: inout Model
-  ) -> [Effect] {
+  ) -> SettledFocus {
+    let isParked = isParked(windowID, in: model)
     let unmet = unmetRequest(request, focusedOn: windowID, model: model)
     let verdict = ParkedFocusVerdict(
-      isParked: isParked(windowID, in: model), previous: previous, previousIsGone: previousIsGone,
-      unmetRequest: unmet)
-    let focused = WindowInfo.logName(windowID, context.registry.window(withID: windowID))
+      isParked: isParked, previous: previous, previousIsGone: previousIsGone, unmetRequest: unmet)
     switch verdict {
     case .askAgain(let wanted):
-      let name = WindowInfo.logName(wanted, context.registry.window(withID: wanted))
-      context.log.info("window focus asked again - \(name) - the focus ended on \(focused)")
-      return [.focus(wanted)]
+      context.log.info(
+        "window focus asked again - \(name(of: wanted)) - the focus ended on \(name(of: windowID))")
+      return SettledFocus(effects: [.focus(wanted)], asksAgain: true)
     case .follow:
-      if let unmet {
-        let name = WindowInfo.logName(unmet.window, context.registry.window(withID: unmet.window))
-        context.log.info("window focus not held - \(name) - the focus stayed on \(focused)")
+      if isParked, let unmet {
+        context.log.info(
+          "window focus not held - \(name(of: unmet.window)) - "
+            + "the focus stayed on \(name(of: windowID))")
       }
-      return focusChanged(to: windowID, isEcho: false, model: &model)
+      return SettledFocus(
+        effects: focusChanged(to: windowID, isEcho: false, model: &model), asksAgain: false)
     case .decline:
-      context.log.info("window focus not followed - \(focused) - the focused window went away")
-      return [.focusCurrentWorkspace]
+      context.log.info(
+        "window focus not followed - \(name(of: windowID)) - the focused window went away")
+      return SettledFocus(effects: [.focusCurrentWorkspace], asksAgain: false)
     }
+  }
+
+  private func name(of windowID: WindowID) -> String {
+    WindowInfo.logName(windowID, context.registry.window(withID: windowID))
   }
 
   /// `request`, if the app it went to ended on its other window `windowID` instead, and the window

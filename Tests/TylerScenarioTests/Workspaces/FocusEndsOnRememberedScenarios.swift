@@ -33,9 +33,50 @@ struct FocusEndsOnRememberedScenarios {
   func tylerdAsksAgainInsteadOfSwitching(remembered: UInt32) async {
     let scenario = await twoDisplays()
     await askForTwoEndingOn(remembered, in: scenario)
+    scenario.harness.windowSystem.send(.focused(WindowID(2)))
     await scenario.runUntilQuiet()
     #expect(scenario.shown == [1, 5])
     #expect(scenario.windowSystem.focusCalls.suffix(2) == [WindowID(2), WindowID(2)])
+  }
+
+  /// macOS reports nothing when the focus doesn't change, so silence means the ask didn't land.
+  @Test func aSecondAskThatChangesNothingIsFollowed() async {
+    let scenario = await twoDisplays()
+    await askForTwoEndingOn(3, in: scenario)
+    await scenario.runUntilQuiet()
+    #expect(scenario.shown == [2, 5])
+  }
+
+  @Test func aSecondAskThatFailsIsFollowed() async {
+    let scenario = await twoDisplays()
+    await scenario.start("window focus next")
+    scenario.harness.windowSystem.send(.focused(WindowID(2)))
+    scenario.harness.windowSystem.send(.focused(WindowID(3)))
+    await scenario.harness.settle()
+    scenario.windowSystem.failingFocus = [WindowID(2)]
+    await scenario.runUntilQuiet()
+    #expect(scenario.shown == [2, 5])
+  }
+
+  @Test func aWantedWindowGoneFromTheWindowServerIsNotAskedForAgain() async {
+    let scenario = await twoDisplays()
+    scenario.stacking.goneWindows = [WindowID(2)]
+    await scenario.start("window focus next")
+    scenario.harness.windowSystem.send(.focused(WindowID(3)))
+    await scenario.runUntilQuiet()
+    #expect(scenario.shown == [2, 5])
+    #expect(scenario.windowSystem.focusCalls.filter { $0 == WindowID(2) }.count == 1)
+  }
+
+  /// Focusing the window that has the focus asks the app for nothing, so a real move right after
+  /// it is followed.
+  @Test func aRequestForTheFocusedWindowIsNoRequest() async {
+    let scenario = await twoDisplays()
+    await scenario.start("display focus 1")
+    let focusCalls = scenario.windowSystem.focusCalls.count
+    await scenario.focus(3)
+    #expect(scenario.shown == [2, 5])
+    #expect(scenario.windowSystem.focusCalls.count == focusCalls)
   }
 
   @Test func aSecondAskThatDoesntHoldIsFollowed() async {
@@ -85,6 +126,8 @@ struct FocusEndsOnRememberedScenarios {
     scenario.harness.windowSystem.send(.focused(WindowID(3)))
     await scenario.harness.settle()
     await scenario.wait(WorkspaceController.parkedFocusSettling)
+    scenario.harness.windowSystem.send(.focused(WindowID(2)))
+    await scenario.runUntilQuiet()
     #expect(scenario.shown == [1, 5])
     #expect(scenario.windowSystem.focusCalls.last == WindowID(2))
   }

@@ -11,17 +11,31 @@ extension WindowManager {
       run(workspaceController.focusChanged(to: windowID, isEcho: isEcho, model: &model))
       return
     }
+    waitForFocus(on: windowID, from: previous)
+  }
+
+  private func waitForFocus(on windowID: WindowID, from previous: FocusedWindow?) {
     parkedFocus.restart(after: WorkspaceController.parkedFocusSettling, from: previous) {
       [weak self] origin in
-      guard let self else { return }
-      let isGone = origin.map { !isStillThere($0.id) } ?? false
-      let effects = workspaceController.focusSettled(
-        on: windowID, from: origin, previousIsGone: isGone, request: focusRequest.request,
-        model: &model)
-      if let failure = run(effects).focusFailure {
-        log.error("window focusing failed - \(failure.description)")
-      }
+      self?.focusLasted(on: windowID, from: origin)
     }
+  }
+
+  private func focusLasted(on windowID: WindowID, from origin: FocusedWindow?) {
+    let settled = workspaceController.focusSettled(
+      on: windowID, from: origin, previousIsGone: origin.map { !isStillThere($0.id) } ?? false,
+      request: focusRequest.request.flatMap { isStillThere($0.window) ? $0 : nil },
+      model: &model)
+    let setbacks = run(settled.effects)
+    if let failure = setbacks.focusFailure {
+      log.error(
+        "window focusing failed - \(named(failure.windowID)) - \(failure.error.description)")
+    }
+    guard settled.asksAgain else { return }
+    // macOS reports nothing if the focus doesn't change, so the wait decides this time too. The
+    // wanted window's focus event ends it.
+    focusRequest.markSecondTry()
+    waitForFocus(on: windowID, from: origin)
   }
 
   /// macOS focuses the next window within 1 ms of a close (`macos-behaviour.md`, "An app's focus

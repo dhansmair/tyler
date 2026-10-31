@@ -345,8 +345,9 @@ tylerd declined these focuses:
   rest the pointer on the other. The remembered window came 23 ms after the request, the wanted one
   1 ms later, and the remembered one again 21 ms after that. AppKit fixture windows on two displays
   didn't do it in 12 tries (macOS 26.7.2, in a separate process, nothing parked).
-- **A second focus can land:** in the one case seen with VS Code, focusing the wanted window again
-  when the wait ended came back in 6 ms and no other focus followed.
+- **A second focus can land:** in the 4 cases seen with VS Code, focusing the wanted window again
+  when the wait ended came back in 6 to 12 ms and no other focus followed. The app ended on the
+  remembered window in 4 of about 15 repeats; in 16 other cases a focus only passed through it.
 
 ## Synthetic input (for live checks)
 

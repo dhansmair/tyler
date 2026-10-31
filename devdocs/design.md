@@ -216,11 +216,11 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   focusing a parked window is the app's intent. A closed window counts for 60 ms: when an app's
   last window closes macOS focuses nothing, and a cmd-tab long after is the user's. A splash window
   closing as the main window opens on a parked workspace is declined, if the splash is standard.
-  A focus that lasted on a window of the app tylerd asked for another window of, up to 300 ms ago,
+  A focus that lasted on a window of the app tylerd asked for another window of, up to 200 ms ago when the wait ends,
   isn't followed either: the app ended on the window it remembers, so tylerd asks for the wanted
   window again, once. If the focus stays, tylerd follows it, so keys never stay on a parked window.
-  A real move in that time (cmd-` right after focus follows mouse focused a window) is asked back
-  once, and the next one goes through.
+  cmd-` to a parked window is a real move and is followed: the 200 ms is short so that only one
+  within about 140 ms of tylerd's own focus on that app is asked back. The next one goes through.
   tylerd ignores the focus events its own focus calls cause, so a quick `next`, `prev` doesn't
   switch back late. On an empty workspace tylerd makes itself frontmost, so keys never go to a
   parked window. A floated window keeps the focus.

@@ -128,8 +128,9 @@ struct WorkspaceController {
   static let closedFocusMemory: Duration = .milliseconds(60)
 
   /// How long a focus on another window of the same app counts as the app's answer to a request.
-  /// It ended on the remembered window 45 ms after the request, and the wait adds 60 ms.
-  static let focusRequestMemory: Duration = .milliseconds(300)
+  /// The wait ended 88 to 120 ms after the request in the four cases measured. A real move to a
+  /// parked window (cmd-`) arriving in this time is asked back, so it stays short.
+  static let focusRequestMemory: Duration = .milliseconds(200)
 
   /// Whether a focus on `windowID` would bring a parked workspace into view.
   func isParked(_ windowID: WindowID, in model: Model) -> Bool {

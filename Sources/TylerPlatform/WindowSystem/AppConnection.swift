@@ -257,6 +257,10 @@ extension AppConnection {
     try move(windowID, by: [.position(origin)])
   }
 
+  private static func describe(_ frame: CGRect) -> String {
+    "\(Int(frame.minX)),\(Int(frame.minY)) \(Int(frame.width))x\(Int(frame.height))"
+  }
+
   /// Ordered from the frame last read, which lags behind the steps but grows or shrinks the same
   /// way along a straight track.
   func setFrameStep(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
@@ -337,10 +341,6 @@ extension AppConnection {
   // MARK: - Whether the app answers
 
   /// Skips the app for a while, from now: a call to it timed out.
-  private static func describe(_ frame: CGRect) -> String {
-    "\(Int(frame.minX)),\(Int(frame.minY)) \(Int(frame.width))x\(Int(frame.height))"
-  }
-
   private func noteTimeout() {
     guard pause.start() else { return }
     Self.log.warning(

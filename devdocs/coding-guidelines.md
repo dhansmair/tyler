@@ -5,12 +5,10 @@ Follow these rules for every change in this repository. If a rule conflicts with
 ## 1. Workflow
 1. Read the related code and tests before editing.
 2. Keep changes small and focused. Don't refactor or reformat code unless the task asks for it.
-3. Before you finish, run all of these and make sure they pass:
+3. Before you finish, run these and make sure they pass:
    ```bash
-   swift build
-   swift test
-   swift format lint --recursive --strict Sources Tests
-   swiftlint --strict
+   make build
+   make check
    ```
 4. Never commit generated files, secrets or changes to `Package.resolved` unless asked.
 5. In your summary, list what changed, why it changed, and anything you couldn't verify.
@@ -80,7 +78,7 @@ Follow these rules for every change in this repository. If a rule conflicts with
 
 ## 10. Don'ts
 - Don't disable lint rules or concurrency checks to get the build to pass.
-- Don't use `print` in production code. Use `Logger` (OSLog) or swift-log.
+- Don't use `print` in production code. Use `TylerLog` (see Logging).
 - Don't leave `TODO`s without context. Don't leave commented-out code.
 - Don't change the signatures other targets use unless the task asks for it.
 

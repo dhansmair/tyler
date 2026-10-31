@@ -72,6 +72,22 @@ struct FocusFollowsMouseScenarios {
     #expect(scenario.windowSystem.unfocusCount == 0)
   }
 
+  /// Notification Centre: the window list leaves it out, so nothing looks to be there.
+  @Test func aRestOnACoveredEmptyWorkspaceChangesNothing() async {
+    let scenario = await besideAnEmptyDisplay()
+    scenario.stacking.coveringOverlays = [FakeDisplays.secondary.frame]
+    await scenario.movePointer(to: Self.onEmptyDisplay)
+    #expect(scenario.focusedDisplay == 1)
+    #expect(scenario.windowSystem.unfocusCount == 0)
+  }
+
+  @Test func aRestWhileAFloatedWindowHasTheFocusChangesNothing() async {
+    let scenario = await besideAnEmptyDisplay()
+    await scenario.command("window float toggle")
+    await scenario.movePointer(to: Self.onEmptyDisplay)
+    #expect(scenario.focusedDisplay == 1)
+  }
+
   @Test func aRestOverAnOverlayOnAnEmptyWorkspaceChangesNothing() async {
     let scenario = await besideAnEmptyDisplay()
     let overlay = StackedWindow(id: WindowID(50), layer: 25)

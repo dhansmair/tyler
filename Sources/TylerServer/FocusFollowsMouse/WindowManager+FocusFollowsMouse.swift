@@ -10,14 +10,19 @@ extension WindowManager {
   func pointerMoved(to location: CGPoint) {
     guard config.mouse.focusFollows else { return }
     pointerRest.restart(after: .milliseconds(config.mouse.focusDelay)) { [weak self] in
-      self?.focusWindow(under: location)
+      self?.pointerRested(at: location)
     }
   }
 
-  private func focusWindow(under location: CGPoint) {
+  private func pointerRested(at location: CGPoint) {
     let check = pointerCheck(at: location)
-    let effects = FocusFollowsMouseController(context: context).pointerRested(
-      check: check, at: location, named: self.pointerLogSubject(location, check), model: &model)
+    let controller = FocusFollowsMouseController(context: context)
+    // Only this path may touch the model: each change of it updates the menu bar items.
+    let effects =
+      check?.focus == .emptyWorkspace
+      ? controller.pointerRestedOnEmptyWorkspace(
+        at: location, named: pointerLogSubject(location, check), model: &model)
+      : controller.pointerRested(check?.focus, named: pointerLogSubject(location, check))
     if let failure = run(effects).focusFailure {
       log.error(
         "window focusing failed - \(named(failure.windowID)) - under the pointer: "
@@ -49,13 +54,14 @@ extension WindowManager {
     check.inView = windowsInView
     check.focusedID = registry.focusedID
     check.isWorkspaceEmpty = isWorkspaceEmpty(at: location)
+    check.isCovered =
+      check.isWorkspaceEmpty && (isScreenLocked || stacking.isOverlaid(at: location))
+    check.isFocusOffWorkspaces = registry.focusedID.map { rows.location(of: $0) == nil } ?? false
     return check
   }
 
   private func isWorkspaceEmpty(at location: CGPoint) -> Bool {
-    guard let key = connectedDisplays.first(where: { $0.frame.contains(location) })?.key,
-      let position = rows.position(of: key)
-    else { return false }
+    guard let position = model.displayPosition(under: location, in: context) else { return false }
     return rows[position].current.count == 0
   }
 

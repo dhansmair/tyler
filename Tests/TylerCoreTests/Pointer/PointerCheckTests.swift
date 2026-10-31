@@ -79,17 +79,25 @@ struct PointerCheckTests {
   }
 
   @Test func aRestOverAnEmptyWorkspaceFocusesIt() {
-    #expect(Self.overAnEmptyWorkspace.focusesEmptyWorkspace)
+    #expect(Self.overAnEmptyWorkspace.focus == .emptyWorkspace)
   }
 
   @Test func aRestOverAWorkspaceWithWindowsDoesNot() {
-    #expect(!PointerCheck().focusesEmptyWorkspace)
+    #expect(PointerCheck().focus == .refused(.nothingThere))
   }
 
   @Test func aRestOverAnyWindowDoesNot() {
     var check = Self.overAnEmptyWorkspace
     check.topmost = StackedWindow(id: WindowID(1), layer: 25)
-    #expect(!check.focusesEmptyWorkspace)
+    #expect(check.focus != .emptyWorkspace)
+  }
+
+  @Test(arguments: [(true, false), (false, true)])
+  func aRestDoesNotWhenCoveredOrWithAFloatFocused(isCovered: Bool, isFloatFocused: Bool) {
+    var check = Self.overAnEmptyWorkspace
+    check.isCovered = isCovered
+    check.isFocusOffWorkspaces = isFloatFocused
+    #expect(check.focus == .refused(.nothingThere))
   }
 
   @Test func aRestDoesNotWithoutWhatFocusNeeds() {
@@ -99,7 +107,7 @@ struct PointerCheckTests {
     for path in required {
       var check = Self.overAnEmptyWorkspace
       check[keyPath: path] = false
-      #expect(!check.focusesEmptyWorkspace, "with \(path) false")
+      #expect(check.focus != .emptyWorkspace, "with \(path) false")
     }
   }
 
@@ -108,7 +116,7 @@ struct PointerCheckTests {
     for path in blocking {
       var check = Self.overAnEmptyWorkspace
       check[keyPath: path] = true
-      #expect(!check.focusesEmptyWorkspace, "with \(path) true")
+      #expect(check.focus != .emptyWorkspace, "with \(path) true")
     }
   }
 }

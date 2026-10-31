@@ -8,6 +8,10 @@ package protocol WindowStacking: AnyObject {
   /// The frontmost on-screen window containing `point` (in Accessibility coordinates), of any
   /// app and at any layer, or `nil` over nothing at all.
   func topmostWindow(at point: CGPoint) -> StackedWindow?
+  /// Whether a window above the normal layer covers `point`'s whole display, as Notification
+  /// Centre can. `topmostWindow(at:)` leaves those out, so it can't tell. The Dock doesn't count:
+  /// its window always covers its display.
+  func isOverlaid(at point: CGPoint) -> Bool
   /// Whether a menu is open: an app's menu, a context menu or a pop-up.
   var isMenuOpen: Bool { get }
   /// The on-screen windows of regular apps at the normal layer, tylerd's own left out: what

@@ -27,10 +27,12 @@ extension Model {
 
   @discardableResult
   mutating func focusDisplay(under location: CGPoint, in context: ControllerContext) -> Bool {
-    guard let key = context.displays.first(where: { $0.frame.contains(location) })?.key,
-      let position = rows.position(of: key)
-    else { return false }
+    guard let position = displayPosition(under: location, in: context) else { return false }
     return focusDisplay(at: position)
+  }
+
+  func displayPosition(under location: CGPoint, in context: ControllerContext) -> Int? {
+    context.displays.first { $0.frame.contains(location) }.flatMap { rows.position(of: $0.key) }
   }
 
   @discardableResult

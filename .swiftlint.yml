@@ -1,11 +1,13 @@
 excluded:
   - .build
 
-# swift-format moves a trailing closure's parameters onto the next line when the call before the
-# brace fills the line (`run(...) {` then `_, origin in ...`), and this rule rejects exactly that,
-# so code the formatter just produced fails the lint. The formatter has the final say on layout.
+# swift-format owns layout, and SwiftLint keeps what a formatter can't check. These rules reject
+# what the formatter produces: it moves a trailing closure's parameters onto the next line when the
+# call before the brace fills the line, and it removes the trailing comma of a one-element
+# collection spanning lines, while keeping it on longer ones.
 disabled_rules:
   - closure_parameter_position
+  - trailing_comma
 
 # One type per file, named after it, so the file tree is an index of the types. A private helper
 # type is nested in the type that uses it. Tests/.swiftlint.yml turns both off for the test suites,
@@ -14,10 +16,11 @@ opt_in_rules:
   - file_name
   - one_declaration_per_file
 
-# swift-format (the formatter) requires trailing commas in multi-line collections, while
-# SwiftLint forbids them by default. Make SwiftLint agree with the formatter.
-trailing_comma:
-  mandatory_comma: true
+# swift-format puts the brace of a multi-line condition, signature or type header on its own line.
+opening_brace:
+  ignore_multiline_statement_conditions: true
+  ignore_multiline_function_signatures: true
+  ignore_multiline_type_headers: true
 
 # `fd` is the standard name for a file descriptor, `id` is what `Identifiable` requires, and `ok`
 # and `on` are the natural names for a plain success response and the `tiling on` CLI mode.

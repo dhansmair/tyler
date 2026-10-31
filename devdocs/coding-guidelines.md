@@ -52,7 +52,7 @@ Follow these rules for every change in this repository. If a rule conflicts with
 - Names should read clearly at the call site: types are `UpperCamelCase`, everything else is `lowerCamelCase`.
 - Booleans read as assertions: `isEnabled`, `hasContent`.
 - No abbreviations except widely known ones (`URL`, `ID`).
-- `swift format` and SwiftLint have the final say on formatting. Don't hand-format against them.
+- `swift format` has the final say on layout. Don't hand-format against it.
 - **Comments earn their place.** Write one only for what the code can't show: a reason, a
   measured macOS behaviour, a constraint or an edge case that isn't visible. Before writing one,
   look for a name (of a variable, function or type) that makes it redundant, and rename instead.

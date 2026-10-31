@@ -29,6 +29,7 @@ package struct ManagerHarness {
     pointer: FakePointer? = nil,
     stacking: FakeStacking? = nil,
     gapCursor: FakeGapCursor? = nil,
+    layoutNotice: FakeLayoutNotice? = nil,
     indicator: FakeIndicator? = nil,
     clock: any Clock<Duration> = ContinuousClock(),
     restoring saved: SavedState? = nil,
@@ -42,7 +43,7 @@ package struct ManagerHarness {
       windowSystem: windowSystem, displays: displays, gate: gate, screenLock: screenLock,
       animator: animator, config: config,
       configSource: configFile?.source, indicator: indicator, pointer: pointer, stacking: stacking,
-      gapCursor: gapCursor, clock: clock,
+      gapCursor: gapCursor, layoutNotice: layoutNotice, clock: clock,
       logOutput: logOutput, restoring: saved)
     manager.startIfPermitted()
     if clearRecordedCalls { windowSystem.clearRecordedCalls() }

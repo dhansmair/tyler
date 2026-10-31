@@ -36,6 +36,7 @@ struct ConfigDocumentTests {
     [layouts]
     cycle = ["strip", "tall"]
     default = "full"
+    notice = false
 
     [log]
     level = "debug"

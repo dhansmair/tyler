@@ -85,6 +85,7 @@ package final class WindowManager {
   let stacking: (any WindowStacking)?
   /// The resize cursor over the gap under the pointer, or `nil` when there is none to show.
   let gapHover: GapHover?
+  let layoutNotice: (any LayoutNotice)?
   /// Waits for the pointer to rest before focus follows it (see `pointerMoved(to:)`).
   let pointerRest: Debounce
   /// Waits for a focus on a parked window to last (see `followFocus(to:isEcho:from:)`).
@@ -117,6 +118,7 @@ package final class WindowManager {
     pointer: (any PointerInput)? = nil,
     stacking: (any WindowStacking)? = nil,
     gapCursor: (any GapCursor)? = nil,
+    layoutNotice: (any LayoutNotice)? = nil,
     clock: any Clock<Duration> = ContinuousClock(),
     logOutput: LogOutput = .shared,
     restoring saved: SavedState? = nil
@@ -136,6 +138,7 @@ package final class WindowManager {
     self.pointer = pointer
     self.stacking = stacking
     gapHover = gapCursor.map(GapHover.init(cursor:))
+    self.layoutNotice = layoutNotice
     self.clock = clock
     pointerRest = Debounce(clock: clock)
     displaySettling = Debounce(clock: clock)
@@ -253,12 +256,6 @@ package final class WindowManager {
     tearDown()
   }
 
-  /// Whether tiling is running, for `tyler status`.
-  package var tilingStatus: ServerStatus.Tiling {
-    guard state == .running else { return .waitingForPermission }
-    return tilingEnabled ? .on : .off
-  }
-
   /// Whether tylerd can reach the windows, for `tyler status`: before it tracks them, why it
   /// doesn't; once it does, whether it sees the windows the window server shows.
   package var access: WindowAccess {
@@ -267,9 +264,6 @@ package final class WindowManager {
       onScreen: stacking?.appWindowsOnScreen ?? [], known: Set(registry.windows.map(\.id)),
       isAttaching: windowSystem.isAttaching)
   }
-
-  /// The event listeners in place, for `tyler status`.
-  package var inputListeners: [InputListener] { pointer?.listeners ?? [] }
 
   // MARK: - Requests
 

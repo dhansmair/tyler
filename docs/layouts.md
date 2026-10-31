@@ -6,7 +6,8 @@ layout: `tyler layout set` sets it by name, and `tyler layout next` goes to the 
 `layouts.cycle` in the [config file](manual.md#configuration) (by default `tall`, `grid`, then `full`: the
 experimental `strip` is left out unless you add it). From a layout the cycle doesn't list,
 `layout next` goes to the cycle's first. The menu bar shows the current layout's symbol, and its
-menu follows the cycle too. A new workspace starts in `layouts.default` (`tall` unless you change
+menu follows the cycle too. Choosing a layout also shows its name briefly in the middle of the display
+(`layouts.notice = false` turns that off). A new workspace starts in `layouts.default` (`tall` unless you change
 it); workspaces that already exist keep their layout across `tyler config reload` and `tyler restart`.
 
 ## tall (`▥`)

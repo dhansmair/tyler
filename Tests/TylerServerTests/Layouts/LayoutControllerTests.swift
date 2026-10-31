@@ -15,14 +15,14 @@ struct LayoutControllerTests {
 
   /// Windows 1 to 3 on workspace 1 in `layout`, window `focused` focused.
   private func setUp(
-    _ layout: LayoutKind = .tall, focused: UInt32 = 1
+    _ layout: LayoutKind = .tall, focused: UInt32 = 1, displays: [DisplayInfo] = [display]
   ) -> (LayoutController, Model) {
     var registry = WindowRegistry()
     registry.replaceAll((1...3).map { makeWindow(id: $0, isFocused: $0 == focused) })
     var rows = DisplayRows(keys: [Self.display.key], configured: [[1, 2]], newLayout: layout)
     for raw in 1...3 as ClosedRange<UInt32> { rows.focused.current.append(WindowID(raw)) }
     rows.focused.current.setFocus(WindowID(focused))
-    let context = ControllerContext(registry: registry, displays: [Self.display], config: Config())
+    let context = ControllerContext(registry: registry, displays: displays, config: Config())
     return (LayoutController(context: context), Model(rows: rows))
   }
 
@@ -31,6 +31,16 @@ struct LayoutControllerTests {
     let decision = controller.setLayout(.set(.grid), model: &model)
     #expect(model.rows.focused.current.layout == .grid)
     #expect(decision.summary == "layout grid")
+    #expect(
+      decision.effects == [
+        .reconcile(), .showLayoutNotice(.grid, over: Self.display.visibleFrame),
+      ])
+  }
+
+  @Test func aDisplayGoneMeanwhileShowsNoNotice() {
+    var (controller, model) = setUp(displays: [])
+    let decision = controller.setLayout(.set(.grid), model: &model)
+    #expect(model.rows.focused.current.layout == .grid)
     #expect(decision.effects == [.reconcile()])
   }
 

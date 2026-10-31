@@ -111,6 +111,7 @@ take_over_hotkeys() {
   fi
   skhd -c "$work_dir/skhdrc" >/dev/null 2>&1 &
   skhd_pid=$!
+  disown
 }
 
 cleanup() {

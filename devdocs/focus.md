@@ -13,7 +13,8 @@ closes moves into the table.
 2. **Keys always reach a window the user can see.** When tyler refuses a move, it also takes the
    focus off the parked window.
 3. **Focus stays on the user's display until they move it.** What they type or open next belongs
-   there, even if a close leaves its workspace empty.
+   there, even if a close leaves its workspace empty. A window that opens joins the workspace the
+   user is on, wherever macOS or the app put it, unless its app is assigned to a workspace.
 
 ## Why it is hard
 
@@ -44,6 +45,8 @@ check have only run on fakes.
 | Quit an app, another app's window is parked | Focuses it, possibly before the quit reaches tyler | macOS | Declines | `aFocusThatComesBeforeTheCloseAlsoStays` | Yes |
 | A close leaves the workspace empty | Focuses a parked window | macOS | Declines, takes the focus away | `theWorkspaceLeftEmptyStaysAndTakesTheFocusAway` | Yes |
 | Close an app's last window, later cmd-tab to a parked window | Focuses nothing, then that window | The user | Follows | `aFocusLongAfterTheCloseSwitches` | Yes |
+| Open a window that appears on the other display | Focuses it there | The user | Moves it to their workspace; its first focus doesn't move the display | `itsFocusDoesNotMoveTheFocusedDisplay` | Yes |
+| Drop a tab torn off a browser on the other display | Opens a window there, after the button comes up | The user | Leaves it there, as it opened under the pointer | `aWindowOpeningUnderThePointerStaysWhereItOpened` | Yes |
 | tyler focuses a window | Reports that focus back | tyler | Ignores it | `theEchoOfTylerdsOwnFocusDoesNotSwitchBack` | Yes |
 | A background window closes, then a focus on a parked window | Focuses it | The user | Follows | `aBackgroundWindowClosingTakesNothingAway` | No |
 | A dialog closes and its app focuses a parked window | Focuses it | The app, on purpose | Follows | `aDialogClosingAndFocusingAParkedWindowSwitches` | No |
@@ -55,8 +58,10 @@ check have only run on fakes.
   follows. Not measured.
 - **cmd-` just after tyler focused that app:** it is taken for the app ending on its remembered
   window and asked back once. The next press goes through.
-- **A new window:** `code -n` can focus a parked window, and a new window can open on another
-  display than the focused one. tyler has no rule for where a new window opens.
+- **Windows an app restores when it launches** count as new, so they all join the display the user
+  is on. So do older windows tracked late (#99).
+- **The pointer on an empty display:** tyler only knows the focused display, so a window opened
+  after moving the pointer there goes to the display that had the focus.
 - **`open -g`** can bring an assigned workspace into view (#72).
 - **A floated window on a workspace left empty:** it could take the keys after a decline, but
   nothing gives it the focus.

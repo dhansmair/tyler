@@ -220,7 +220,10 @@ struct WorkspaceController {
   /// into view. If it is out of view in a scrolling layout on the current workspace, the view
   /// scrolls to it.
   func focusChanged(to windowID: WindowID, isEcho: Bool, model: inout Model) -> [Effect] {
-    model.focusDisplay(of: windowID, in: context)
+    let isListed = model.rows.location(of: windowID) != nil
+    if isListed || !model.bookkeeping.takeFirstFocusOfNewWindow(windowID) {
+      model.focusDisplay(of: windowID, in: context)
+    }
     let isTiling = context.isTiling(model)
     let before = isTiling ? context.viewSnapshot(of: model.rows) : nil
     model.recordFocus(windowID)

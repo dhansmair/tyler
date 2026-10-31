@@ -10,6 +10,7 @@ extension WindowManager {
       dragSession: drag?.session, crossingWindows: mover.crossing,
       isSettling: displaySettling.isPending, slideDuration: animator.duration,
       isPrimaryButtonDown: pointer?.isPrimaryButtonDown ?? false,
+      mouseLocation: pointer?.location,
       allowsDrag: interaction.allowsDrag)
   }
 

@@ -268,12 +268,12 @@ play() {
   demo_ids="$demo_ids $opened_id"
   sleep "$pause"
 
-  open_pane narrator "#1f2933" "$workspace_a"
+  open_pane narrator "#111727" "$workspace_a"
   narrator="$opened_id"
   caption narrator "A workspace is a list of windows."
-  open_pane second "#2d3a2e" "$workspace_a"
+  open_pane second "#23344a" "$workspace_a"
   caption second "second"
-  open_pane third "#3a2d38" "$workspace_a"
+  open_pane third "#1e162e" "$workspace_a"
   list_window="$opened_id"
   caption third "third"
   sleep "$pause"
@@ -296,7 +296,7 @@ play() {
   caption third "Send me to another workspace."
   press send-b
   press go-b
-  open_pane fourth "#2d3440" "$workspace_b"
+  open_pane fourth "#144173" "$workspace_b"
   caption fourth "Workspaces sit side by side."
   sleep "$pause"
   press go-a

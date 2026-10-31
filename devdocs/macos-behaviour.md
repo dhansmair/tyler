@@ -357,6 +357,23 @@ tylerd declined these focuses:
 - Screen capture needs Screen Recording permission, so what the menu bar looks like needs a person's
   eyes.
 
+## A macOS virtual machine
+
+Measured 2026-10-31 with Tart 2.41.1 on a macOS 26.7 host, with a macOS 26 guest:
+
+- **A swipe reaches the guest without touches**, so tylerd can't recognise one there. A listen-only
+  tap for gesture events read the same three-finger swipes on host and guest at once: 264 of the
+  host's 2,378 events had three touches, and all 12,971 of the guest's had none, from both
+  `touches(matching:in:)` and `allTouches()`. The guest's events have a few fixed sizes (224 to
+  404 bytes, the host's reach 1,208), so no field looks like it holds the fingers. Starting the VM
+  with only the trackpad device (`tart run --suspendable`) gave the same: 0 touches in 296 events.
+- Two-finger scrolling and pinching work in the guest's apps, so the guest does get gestures, as
+  finished ones.
+- `tart exec` runs a command as the logged-in user in the GUI session (`launchctl managername`
+  says `Aqua`), and it could open that tap with the base image's settings.
+- The host's own event taps see input aimed at the VM's window, so a host tylerd and a host hotkey
+  daemon act on it too.
+
 ## Not measured yet
 
 Assumptions the Accessibility layer is built on that no measurement has confirmed:

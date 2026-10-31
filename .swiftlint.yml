@@ -4,9 +4,12 @@ excluded:
 # swift-format owns layout, and SwiftLint keeps what a formatter can't check. These rules reject
 # what the formatter produces: it moves a trailing closure's parameters onto the next line when the
 # call before the brace fills the line, and it removes the trailing comma of a one-element
-# collection spanning lines, while keeping it on longer ones.
+# collection spanning lines, while keeping it on longer ones; and it puts a brace on its own line
+# after a multi-line condition or header and after a signature that doesn't fit, which no option of
+# opening_brace covers.
 disabled_rules:
   - closure_parameter_position
+  - opening_brace
   - trailing_comma
 
 # One type per file, named after it, so the file tree is an index of the types. A private helper
@@ -15,12 +18,6 @@ disabled_rules:
 opt_in_rules:
   - file_name
   - one_declaration_per_file
-
-# swift-format puts the brace of a multi-line condition, signature or type header on its own line.
-opening_brace:
-  ignore_multiline_statement_conditions: true
-  ignore_multiline_function_signatures: true
-  ignore_multiline_type_headers: true
 
 # `fd` is the standard name for a file descriptor, `id` is what `Identifiable` requires, and `ok`
 # and `on` are the natural names for a plain success response and the `tiling on` CLI mode.

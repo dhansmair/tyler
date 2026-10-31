@@ -4,6 +4,13 @@ fail_fast: true
 repos:
   - repo: local
     hooks:
+      # Runs on every text file, docs included: the Swift checks skip a commit without Swift files.
+      - id: conflict-markers
+        name: no conflict markers
+        entry: bash -c '! grep -nE "^(<<<<<<<|>>>>>>>)( |$)" "$@"' --
+        language: system
+        types: [text]
+
       # Changing a file fails the commit and leaves the fix in the working tree to stage.
       - id: swift-format-fix
         name: swift format

@@ -95,6 +95,10 @@ it was asked to. Nothing else is: a window on its own display keeps the size its
 - A window counts as parked if 1 to 2 points of it still overlap the visible area.
 - A move is skipped if the window is already close enough to its target.
 
+## Layout notice
+
+The notice holds for 0.5 s and fades over 0.25 s (`MacLayoutNotice`): picked by eye on a real display, where 0.5 s in all was too short to read.
+
 ## Background and lifecycle
 
 | What | Value | Why |

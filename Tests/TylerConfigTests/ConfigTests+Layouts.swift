@@ -20,9 +20,17 @@ struct ConfigLayoutsTests {
     #expect(config.layouts == Config.Layouts(cycle: [.full, .strip, .tall], initial: .strip))
   }
 
+  @Test func theNoticeIsOnUnlessTurnedOff() throws {
+    #expect(try Config.parse("").layouts.showsNotice)
+    #expect(try !Config.parse("[layouts]\nnotice = false").layouts.showsNotice)
+  }
+
   @Test(arguments: [
-    ("layouts = 1", "layouts must be a table: write [layouts] and put cycle and default below it"),
-    ("[layouts]\norder = []", "unknown setting 'layouts.order' (use cycle or default)"),
+    (
+      "layouts = 1",
+      "layouts must be a table: write [layouts] and put cycle, default and notice below it"
+    ),
+    ("[layouts]\norder = []", "unknown setting 'layouts.order' (use cycle, default or notice)"),
     (
       "[layouts]\ncycle = []",
       "layouts.cycle must list layouts from \"tall\", \"grid\", \"full\", \"strip\", like [\"tall\", \"full\"]"
@@ -36,6 +44,7 @@ struct ConfigLayoutsTests {
       "layouts.cycle must list layouts from \"tall\", \"grid\", \"full\", \"strip\", like [\"tall\", \"full\"]"
     ),
     ("[layouts]\ncycle = [\"tall\", \"tall\"]", "layouts.cycle lists tall twice"),
+    ("[layouts]\nnotice = 1", "layouts.notice must be true or false"),
     (
       "[layouts]\ndefault = \"wide\"",
       "layouts.default must be one of \"tall\", \"grid\", \"full\", \"strip\""

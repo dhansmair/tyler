@@ -350,6 +350,10 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   swipe is unit tested without a manager. A drag works the same way: `DragSession` decides what
   the preview moves and what a drop does (`DragDrop`), and `+Drag` carries it out.
 
+## Layout notice
+
+Choosing a layout shows its name in the middle of the focused display for 0.75 s, since the menu bar's symbol is easy to miss. macOS has no public element for this (the volume and brightness overlays are private), so `MacLayoutNotice` is a borderless non-activating panel, click-through, with `NSGlassEffectView` from macOS 26 and a blur before it. It is a port of its own, like the gap cursor: `LayoutController` decides, an effect carries the name and the display's visible area, and the show and fade timing stay in the platform as a matter of looks. Setting the layout a workspace already has shows it too: it answers "which layout is this?". Workspace switches show nothing. `layouts.notice = false` turns it off.
+
 ## Menu bar
 
 - **Indicators get a snapshot.** The server hands every menu bar item an `IndicatorSnapshot`

@@ -105,6 +105,7 @@ let manager = WindowManager(
   pointer: MacPointerInput(),
   stacking: MacWindowStacking(),
   gapCursor: MacGapCursor(),
+  layoutNotice: MacLayoutNotice(),
   restoring: handedOver
 )
 // The binary's modification time at launch lets `tyler status` notice a rebuild since.

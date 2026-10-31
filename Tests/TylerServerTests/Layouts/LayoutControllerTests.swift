@@ -31,7 +31,10 @@ struct LayoutControllerTests {
     let decision = controller.setLayout(.set(.grid), model: &model)
     #expect(model.rows.focused.current.layout == .grid)
     #expect(decision.summary == "layout grid")
-    #expect(decision.effects == [.reconcile()])
+    #expect(
+      decision.effects == [
+        .reconcile(), .showLayoutNotice(.grid, over: Self.display.visibleFrame),
+      ])
   }
 
   @Test func theGridRefusesARatio() {

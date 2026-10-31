@@ -5,7 +5,7 @@ catalogue's rows weren't run.
 
 - Date: 2026-10-31
 - macOS: 26.7.2
-- Build: 5adb8d0
+- Build: 5adb8d0, then 363b4ec with the read narrowed to an app with no known focus
 - Displays: the built-in display, an external display above it
 - Skipped contexts: displays side by side
 

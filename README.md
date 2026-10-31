@@ -16,6 +16,10 @@ complicated, since I rarely want more than two or three windows on a workspace.
 > with a human deciding what to build, trying it on real windows and reviewing the result.
 > [`CLAUDE.md`](CLAUDE.md) and [`devdocs/`](devdocs) show how it is built.
 
+### Demo
+
+https://github.com/user-attachments/assets/ee6f163b-b495-4a65-b34a-2030451f2b55
+
 ## Features
 
 - Tiling: Provides basic layouts out of the box: `tall`, `grid`, `full`.
@@ -26,17 +30,11 @@ complicated, since I rarely want more than two or three windows on a workspace.
 - Swipe Gestures: swipe with three fingers to switch between workspaces.
 - Menu bar indicators: shows the workspaces as numbers or as a small map of every workspace and its
   windows.
-
 - No SIP changes. Tyler moves windows through the public Accessibility API, with no scripting
   additions, so System Integrity Protection stays on. It uses private calls in two
   places: to read a window's ID and for the resize cursor over a gap.
 
-
 See [Features](docs/features.md) for the details.
-
-### Demo
-
-https://github.com/user-attachments/assets/d168cf84-ab63-4a10-8923-fb79e0c58f3d
 
 ## Requirements
 

@@ -367,6 +367,11 @@ tylerd declined these focuses:
 - Screen capture needs Screen Recording permission, so what the menu bar looks like needs a person's
   eyes.
 
+## Following the log
+
+`/usr/bin/tail -F` follows a file that is renamed and created again: it prints what the new file
+holds and keeps following it, which is what a restart does to the log. Measured on a scratch file.
+
 ## Not measured yet
 
 Assumptions the Accessibility layer is built on that no measurement has confirmed:

@@ -14,9 +14,10 @@ it is made, and change it here when it changes.
 - **Server plus CLI.** `tylerd` owns all window state; `tyler` sends one command and prints the
   reply. **No hotkeys in tylerd**: skhd, Karabiner-Elements or Raycast bind keys to `tyler`
   commands, so tylerd needs no keyboard access and users keep their key tool.
-- **Accessibility API only.** No private WindowServer API, no scripting additions, so SIP stays on.
-  The price: tylerd can't hide a window or move it across Spaces, and every move is one AX call per
-  window.
+- **Windows move through the Accessibility API only.** No scripting additions, so SIP stays on.
+  Private calls are kept to two small places: `_AXUIElementGetWindow` reads a window's ID, and
+  `SetsCursorInBackground` is part of the resize cursor over a gap (#16). The price: tylerd can't
+  hide a window or move it across Spaces, and every move is one AX call per window.
 
 ## Architecture
 

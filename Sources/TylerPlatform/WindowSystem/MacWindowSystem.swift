@@ -86,7 +86,7 @@ package final class MacWindowSystem: WindowSystem {
     try owner(of: windowID).close(windowID)
   }
 
-  /// Makes tylerd frontmost. It has no windows, so keys go nowhere until the user or a command
+  /// Makes tylerd frontmost. No window of its own can become key, so keys go nowhere until the user or a command
   /// focuses a window again.
   package func unfocus() throws(WindowSystemError) {
     let status = bridge.makeFrontmost(processID: workspace.ownProcessID)

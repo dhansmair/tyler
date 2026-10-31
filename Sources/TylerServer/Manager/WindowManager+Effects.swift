@@ -34,6 +34,8 @@ extension WindowManager {
         setbacks.closeFailure = close(windowID)
       case .findMissedWindows:
         windowSystem.trackUntrackedWindows()
+      case .showLayoutNotice(let layout, let area):
+        layoutNotice?.show(layout.rawValue, in: area)
       }
     }
     return setbacks
@@ -52,7 +54,8 @@ extension WindowManager {
     case .preview(let placements, let duration): preview(placements, over: duration)
     case .restoreOriginalFrames(let windowIDs): restoreOriginalFrames(of: windowIDs)
     case .focus, .focusCurrentWorkspace, .endSlideOrSwipe, .forgetDrag, .releaseCrossings,
-      .applyPointerSettings, .rememberOriginalFrames, .close, .findMissedWindows:
+      .applyPointerSettings, .rememberOriginalFrames, .close, .findMissedWindows,
+      .showLayoutNotice:
       0
     }
   }
@@ -70,7 +73,7 @@ extension WindowManager {
     case .reconcile, .place, .placeInPassing, .nudge, .carry, .carryFrame, .animate, .preview,
       .restoreOriginalFrames,
       .endSlideOrSwipe, .forgetDrag, .releaseCrossings, .applyPointerSettings,
-      .rememberOriginalFrames, .close, .findMissedWindows:
+      .rememberOriginalFrames, .close, .findMissedWindows, .showLayoutNotice:
       break
     }
   }
@@ -84,7 +87,7 @@ extension WindowManager {
     case .applyPointerSettings: applyPointerSettings()
     case .reconcile, .place, .placeInPassing, .nudge, .carry, .carryFrame, .animate, .preview,
       .restoreOriginalFrames,
-      .focus, .focusCurrentWorkspace, .close, .findMissedWindows:
+      .focus, .focusCurrentWorkspace, .close, .findMissedWindows, .showLayoutNotice:
       break
     }
   }

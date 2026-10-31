@@ -14,9 +14,10 @@ it is made, and change it here when it changes.
 - **Server plus CLI.** `tylerd` owns all window state; `tyler` sends one command and prints the
   reply. **No hotkeys in tylerd**: skhd, Karabiner-Elements or Raycast bind keys to `tyler`
   commands, so tylerd needs no keyboard access and users keep their key tool.
-- **Accessibility API only.** No private WindowServer API, no scripting additions, so SIP stays on.
-  The price: tylerd can't hide a window or move it across Spaces, and every move is one AX call per
-  window.
+- **Windows move through the Accessibility API only.** No scripting additions, so SIP stays on.
+  Private calls are kept to two small places: `_AXUIElementGetWindow` reads a window's ID, and
+  `SetsCursorInBackground` is part of the resize cursor over a gap (#16). The price: tylerd can't
+  hide a window or move it across Spaces, and every move is one AX call per window.
 
 ## Architecture
 
@@ -351,6 +352,10 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   values (`SwipeStep`, `SwipeEnding`); the server only paces the steps and carries them out, so the
   swipe is unit tested without a manager. A drag works the same way: `DragSession` decides what
   the preview moves and what a drop does (`DragDrop`), and `+Drag` carries it out.
+
+## Layout notice
+
+Choosing a layout shows its name in the middle of the focused display for 0.75 s, since the menu bar's symbol is easy to miss. macOS has no public element for this (the volume and brightness overlays are private), so `MacLayoutNotice` is a borderless non-activating panel, click-through, with the HUD blur material at 60% opacity, a bright edge, a highlight along the top and a shadow: compared on a real display with `NSGlassEffectView` in its styles and tints and with the other blur materials and opacities, it read best, and it needs no check of the macOS version. It is a port of its own, like the gap cursor: `LayoutController` decides, an effect carries the name and the display's visible area, and the show and fade timing stay in the platform as a matter of looks. Setting the layout a workspace already has shows it too: it answers "which layout is this?". Workspace switches show nothing. `layouts.notice = false` turns it off.
 
 ## Menu bar
 

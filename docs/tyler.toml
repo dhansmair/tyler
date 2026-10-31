@@ -11,6 +11,7 @@ outer = 0   # points between the tiled windows and the edge of the display
 [layouts]
 cycle = ["tall", "grid", "full"]   # what `tyler layout next` goes through; add "strip" (experimental)
 default = "tall"                   # the layout new workspaces start with: "tall", "grid", "full" or "strip"
+notice = true                      # briefly show a layout's name in the middle of the display when you choose it
 
 [workspaces]
 count = 4   # workspaces per display, 1 to 10

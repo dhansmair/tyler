@@ -1,6 +1,11 @@
 import CoreGraphics
 
 package enum DisplayGeometry {
+  /// The flip between the two coordinate systems is its own inverse.
+  package static func appKitRect(fromAX rect: CGRect, primaryScreenHeight: CGFloat) -> CGRect {
+    axRect(fromAppKit: rect, primaryScreenHeight: primaryScreenHeight)
+  }
+
   /// Converts an AppKit rectangle (origin bottom-left of the primary display, y grows upwards)
   /// to Accessibility coordinates (origin top-left, y grows downwards).
   package static func axRect(fromAppKit rect: CGRect, primaryScreenHeight: CGFloat) -> CGRect {

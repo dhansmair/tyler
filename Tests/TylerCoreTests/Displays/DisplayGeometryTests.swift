@@ -69,4 +69,10 @@ struct DisplayGeometryTests {
   @Test func noDisplaysMeansNoAnswer() {
     #expect(DisplayGeometry.display(containing: .zero, in: []) == nil)
   }
+
+  @Test func appKitRectUndoesAxRect() {
+    let rect = CGRect(x: 10, y: 20, width: 300, height: 200)
+    let flipped = DisplayGeometry.axRect(fromAppKit: rect, primaryScreenHeight: 1000)
+    #expect(DisplayGeometry.appKitRect(fromAX: flipped, primaryScreenHeight: 1000) == rect)
+  }
 }

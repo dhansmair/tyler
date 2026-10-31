@@ -10,7 +10,18 @@ struct LayoutController {
     case .set(let kind): model.rows.focused.current.layout = kind
     case .next: model.rows.focused.current.cycleLayout(through: context.config.layouts.cycle)
     }
-    return Decision("layout \(model.rows.focused.current.layout.rawValue)", effects: [.reconcile()])
+    let layout = model.rows.focused.current.layout
+    return Decision(
+      "layout \(layout.rawValue)", effects: [.reconcile()] + notice(of: layout, in: model.rows))
+  }
+
+  private func notice(of layout: LayoutKind, in rows: DisplayRows) -> [Effect] {
+    guard context.config.layouts.showsNotice else { return [] }
+    guard let display = context.display(for: rows.focusedKey) else {
+      context.log.info("layout notice skipped - the focused display is not connected")
+      return []
+    }
+    return [.showLayoutNotice(layout, over: display.visibleFrame)]
   }
 
   func adjustRatio(by delta: Double, model: inout Model) throws(Refusal) -> Decision {

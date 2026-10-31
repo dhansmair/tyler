@@ -125,6 +125,14 @@ One display unless the action says otherwise.
 | | STRIP-CLICK | Click a parked window's sliver, and the partly visible window | Each scrolls into view | tap | StripScenarios |
 | | STRIP-SIDE | Beside a display on the right, scroll windows out | The partly visible window parks instead | clamp | StripScenarios |
 
+## Layout notice
+
+| Manual | Id | Action | Expected | Why | Logic in |
+|---|---|---|---|---|---|
+| | NOTICE-SHOW | `layout next`, then several times quickly; `layout set` with the layout already set | The name shows in the middle of the focused display for about 0.75 s and fades, in the system's look, light or dark. Quick repeats show one notice with the latest name, then one fade. The focused window keeps the focus | The look and the fade are AppKit's and the window server's | `MacLayoutNotice` |
+| | NOTICE-POINTER | While it shows, `debug at` at its middle, and a click there | The window beneath is on top, grab and focus as without the notice, and the click reaches that window | Only the window server shows what is under the pointer | `MacWindowStacking` |
+| | NOTICE-OFF | `config set layouts.notice false`, then `layout next` | No notice | Scenario tests cover the decision; this checks the file's setting end to end | `LayoutController` |
+
 ## Workspaces
 
 One display, `tall`.

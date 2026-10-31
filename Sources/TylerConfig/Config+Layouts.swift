@@ -9,10 +9,17 @@ extension Config {
     package var cycle: [LayoutKind]
     /// The layout a new workspace starts with (`default` in the file).
     package var initial: LayoutKind
+    /// Whether choosing a layout briefly shows its name in the middle of the display (`notice` in
+    /// the file).
+    package var showsNotice: Bool
 
-    package init(cycle: [LayoutKind] = LayoutKind.defaultCycle, initial: LayoutKind = .tall) {
+    package init(
+      cycle: [LayoutKind] = LayoutKind.defaultCycle, initial: LayoutKind = .tall,
+      showsNotice: Bool = true
+    ) {
       self.cycle = cycle.isEmpty ? LayoutKind.defaultCycle : cycle
       self.initial = initial
+      self.showsNotice = showsNotice
     }
   }
 }
@@ -34,6 +41,11 @@ extension Config.Layouts {
       read: { layouts, value, name throws(ConfigError) in
         layouts.initial = try Self.layout(value, name)
       }, write: { .string($0.initial.rawValue) }),
+    Setting(
+      "notice",
+      read: { layouts, value, name throws(ConfigError) in
+        layouts.showsNotice = try Section.boolean(value, name)
+      }, write: { .boolean($0.showsNotice) }),
   ]
 }
 

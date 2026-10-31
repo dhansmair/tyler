@@ -13,7 +13,8 @@ package final class MacWindowStacking: WindowStacking {
 
   package init() {}
 
-  /// tylerd's own windows (the gap cursor's) are left out: they are never in front of a gap.
+  /// tylerd's own windows are left out: the gap cursor's is never in front of a gap, and clicks
+  /// go through the layout notice.
   package func topmostWindow(at point: CGPoint) -> StackedWindow? {
     // Bounds are in global display coordinates with a top-left origin, like Accessibility's.
     Self.onScreen().first { !$0.isOwn && $0.frame.contains(point) }?.window

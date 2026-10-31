@@ -47,4 +47,6 @@ enum Effect: Equatable {
   /// Every observed app's windows are read again: those not tracked arrive as new windows, after
   /// the decision.
   case findMissedWindows
+  /// Names `layout` in the middle of `area`, in Accessibility coordinates.
+  case showLayoutNotice(LayoutKind, over: CGRect)
 }

@@ -26,8 +26,11 @@ complicated, since I rarely want more than two or three windows on a workspace.
 - Swipe Gestures: swipe with three fingers to switch between workspaces.
 - Menu bar indicators: shows the workspaces as numbers or as a small map of every workspace and its
   windows.
-- No SIP changes: Tyler uses only the public Accessibility API: no private APIs, no scripting
-  additions, System Integrity Protection stays on.
+
+- No SIP changes. Tyler moves windows through the public Accessibility API, with no scripting
+  additions, so System Integrity Protection stays on. It uses private calls in two
+  places: to read a window's ID and for the resize cursor over a gap.
+
 
 See [Features](docs/features.md) for the details.
 

@@ -24,8 +24,9 @@ Tyler offers a variety of layouts and supports mouse events, trackpad gestures a
 - **Swipe Gestures**: swipe with three fingers to switch between workspaces.
 - **Menu bar indicators**: shows the workspaces as numbers or as a small map of every workspace and its
   windows.
-- **No SIP changes.** tyler uses only the public Accessibility API: no private APIs, no scripting
-  additions, System Integrity Protection stays on.
+- **No SIP changes.** tyler moves windows through the public Accessibility API, with no scripting
+  additions, so System Integrity Protection stays on. It uses private calls in only two small
+  places: to read a window's ID and for the resize cursor over a gap.
 
 See [Features](docs/features.md) for the details.
 

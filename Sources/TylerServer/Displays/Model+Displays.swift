@@ -9,16 +9,20 @@ extension Model {
     return focusDisplay(at: location.position)
   }
 
-  /// The display of the window's workspace, or, for a window on no workspace (floated, a
-  /// dialog), the display it is on.
   @discardableResult
   mutating func focusDisplay(of windowID: WindowID, in context: ControllerContext) -> Bool {
-    if let location = rows.location(of: windowID) { return focusDisplay(at: location.position) }
-    guard let frame = context.registry.window(withID: windowID)?.frame,
-      let key = DisplayGeometry.display(containing: frame, in: context.displays)?.key,
-      let position = rows.position(of: key)
-    else { return false }
+    guard let position = displayPosition(of: windowID, in: context) else { return false }
     return focusDisplay(at: position)
+  }
+
+  /// The position of the display of the window's workspace, or, for a window on no workspace
+  /// (floated, a dialog), of the display it is on.
+  func displayPosition(of windowID: WindowID, in context: ControllerContext) -> Int? {
+    if let location = rows.location(of: windowID) { return location.position }
+    guard let frame = context.registry.window(withID: windowID)?.frame,
+      let key = DisplayGeometry.display(containing: frame, in: context.displays)?.key
+    else { return nil }
+    return rows.position(of: key)
   }
 
   @discardableResult

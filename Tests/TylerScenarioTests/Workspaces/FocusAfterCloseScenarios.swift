@@ -86,6 +86,83 @@ struct FocusAfterCloseScenarios {
     #expect(scenario.shown == [2, 5])
   }
 
+  // macOS picks across displays: the window it focuses may be in view on the other one.
+
+  @Test func aCloseKeepsTheFocusOnItsDisplay() async {
+    let scenario = await twoDisplays()
+    await scenario.closeThenFocus(1, next: 4)
+    #expect(scenario.focusedDisplay == 1)
+    #expect(scenario.windowSystem.focusCalls.last == WindowID(2))
+  }
+
+  @Test func aQuitKeepsTheFocusOnItsDisplay() async {
+    let scenario = await twoDisplays()
+    scenario.stacking.goneWindows = [WindowID(1)]
+    await scenario.focus(4)
+    #expect(scenario.focusedDisplay == 1)
+    #expect(scenario.windowSystem.focusCalls.last == WindowID(2))
+  }
+
+  /// The user is on that display, so what they open next belongs there.
+  @Test func aDisplayLeftEmptyKeepsTheFocus() async {
+    let scenario = await twoDisplays()
+    await scenario.close(2)
+    await scenario.closeThenFocus(1, next: 4)
+    #expect(scenario.focusedDisplay == 1)
+    #expect(scenario.windowSystem.unfocusCount == 1)
+  }
+
+  @Test func aChainThroughAParkedWindowKeepsTheFocusOnItsDisplay() async {
+    let scenario = await twoDisplays()
+    await scenario.closeThenFocus(1, next: 3, 4)
+    #expect(scenario.focusedDisplay == 1)
+    #expect(scenario.windowSystem.focusCalls.last == WindowID(2))
+  }
+
+  /// A swipe or a command can focus a display while the focus stays on a window elsewhere.
+  @Test func aFocusOnTheClosedWindowsOwnDisplayFollows() async {
+    let scenario = await Scenario(
+      displays: [FakeDisplays.main, FakeDisplays.secondary], workspaces: [1: [1, 2], 5: []])
+    await scenario.focus(1)
+    await scenario.command("display focus 2")
+    let focusCalls = scenario.windowSystem.focusCalls.count
+    await scenario.closeThenFocus(1, next: 2)
+    #expect(scenario.focusedDisplay == 1)
+    #expect(scenario.windowSystem.focusCalls.count == focusCalls)
+  }
+
+  @Test func aFocusOnTheOtherDisplayWithTheOldWindowThereFollows() async {
+    let scenario = await twoDisplays()
+    await scenario.focus(4)
+    #expect(scenario.focusedDisplay == 2)
+  }
+
+  @Test func aSiblingOnTheSameDisplayNeedsNoFocusCall() async {
+    let scenario = await twoDisplays()
+    let focusCalls = scenario.windowSystem.focusCalls.count
+    await scenario.closeThenFocus(1, next: 2)
+    #expect(scenario.focusedDisplay == 1)
+    #expect(scenario.windowSystem.focusCalls.count == focusCalls)
+  }
+
+  @Test func aDialogClosingAndFocusingTheOtherDisplayFollows() async {
+    let scenario = await twoDisplays()
+    let dialog = makeWindow(
+      id: 9, frame: CGRect(x: 100, y: 100, width: 200, height: 100), kind: .dialog)
+    await scenario.open(dialog)
+    await scenario.focus(9)
+    await scenario.closeThenFocus(9, next: 4)
+    #expect(scenario.focusedDisplay == 2)
+  }
+
+  @Test func aFocusOnTheOtherDisplayLongAfterTheCloseFollows() async {
+    let scenario = await twoDisplays()
+    await scenario.close(2)
+    await scenario.close(1)
+    await scenario.focus(4)
+    #expect(scenario.focusedDisplay == 2)
+  }
+
   // Each of these still follows the focus.
 
   @Test func aBackgroundWindowClosingTakesNothingAway() async {

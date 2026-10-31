@@ -3,7 +3,7 @@ import TylerCore
 import TylerServer
 
 /// The real `LayoutNotice`: a borderless panel that takes no focus and lets clicks through, with
-/// a blur behind the name. Pointer checks skip it as one of tylerd's own
+/// a see-through blur behind the name. Pointer checks skip it as one of tylerd's own
 /// windows (`MacWindowStacking`).
 @MainActor
 package final class MacLayoutNotice: LayoutNotice {
@@ -12,7 +12,6 @@ package final class MacLayoutNotice: LayoutNotice {
   private static let height: CGFloat = 96
   private static let minimumWidth: CGFloat = 200
   private static let sideMargin: CGFloat = 36
-  private static let cornerRadius: CGFloat = 24
 
   private let panel: NSPanel
   private let label = NSTextField(labelWithString: "")
@@ -34,7 +33,7 @@ package final class MacLayoutNotice: LayoutNotice {
     ]
     label.font = .systemFont(ofSize: 30, weight: .semibold)
     label.textColor = .labelColor
-    panel.contentView = Self.background(around: Self.centring(label))
+    panel.contentView = Background(around: Self.centring(label))
   }
 
   package func show(_ name: String, in area: CGRect) {
@@ -83,22 +82,63 @@ package final class MacLayoutNotice: LayoutNotice {
     return content
   }
 
-  private static func background(around content: NSView) -> NSView {
-    let blur = NSVisualEffectView()
-    blur.material = .hudWindow
-    blur.blendingMode = .behindWindow
-    blur.state = .active
-    blur.wantsLayer = true
-    blur.layer?.cornerRadius = cornerRadius
-    blur.layer?.masksToBounds = true
-    content.translatesAutoresizingMaskIntoConstraints = false
-    blur.addSubview(content)
-    NSLayoutConstraint.activate([
-      content.leadingAnchor.constraint(equalTo: blur.leadingAnchor),
-      content.trailingAnchor.constraint(equalTo: blur.trailingAnchor),
-      content.topAnchor.constraint(equalTo: blur.topAnchor),
-      content.bottomAnchor.constraint(equalTo: blur.bottomAnchor),
-    ])
-    return blur
+  /// The HUD blur, half see-through so that what lies behind shows, with a bright edge and a
+  /// highlight along the top. The two layers drawn over the blur follow the view's size here:
+  /// nothing lays out a view's extra layers.
+  private final class Background: NSView {
+    private static let cornerRadius: CGFloat = 24
+    private let highlight = CAGradientLayer()
+    private let edge = CALayer()
+
+    init(around content: NSView) {
+      super.init(frame: .zero)
+      wantsLayer = true
+      layer?.cornerRadius = Self.cornerRadius
+      layer?.masksToBounds = true
+
+      let blur = NSVisualEffectView()
+      blur.material = .hudWindow
+      blur.blendingMode = .behindWindow
+      blur.state = .active
+      blur.alphaValue = 0.5
+      fill(with: blur)
+
+      highlight.colors = [
+        NSColor.white.withAlphaComponent(0.22).cgColor,
+        NSColor.white.withAlphaComponent(0).cgColor,
+      ]
+      highlight.startPoint = CGPoint(x: 0.5, y: 1)
+      highlight.endPoint = CGPoint(x: 0.5, y: 0.45)
+      layer?.addSublayer(highlight)
+
+      edge.cornerRadius = Self.cornerRadius
+      edge.borderWidth = 1
+      edge.borderColor = NSColor.white.withAlphaComponent(0.3).cgColor
+      layer?.addSublayer(edge)
+
+      fill(with: content)
+      content.wantsLayer = true
+      content.layer?.zPosition = 1
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
+
+    override func layout() {
+      super.layout()
+      highlight.frame = bounds
+      edge.frame = bounds
+    }
+
+    private func fill(with view: NSView) {
+      view.translatesAutoresizingMaskIntoConstraints = false
+      addSubview(view)
+      NSLayoutConstraint.activate([
+        view.leadingAnchor.constraint(equalTo: leadingAnchor),
+        view.trailingAnchor.constraint(equalTo: trailingAnchor),
+        view.topAnchor.constraint(equalTo: topAnchor),
+        view.bottomAnchor.constraint(equalTo: bottomAnchor),
+      ])
+    }
   }
 }

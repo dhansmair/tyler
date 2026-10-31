@@ -193,6 +193,9 @@ package final class MacWindowSystem: WindowSystem {
     case .created(let info):
       owners[info.id] = processID
       continuation.yield(.created(focusing(info)))
+      // An app that came to the front before it had a window read no focus then, and macOS doesn't
+      // report the focus of the window it opens next.
+      if workspace.frontmostProcessID == processID { connections[processID]?.readFocus() }
     case .updated(let info):
       continuation.yield(.updated(focusing(info)))
     case .destroyed(let windowID):

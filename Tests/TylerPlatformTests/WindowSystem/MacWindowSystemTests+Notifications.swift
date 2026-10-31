@@ -78,6 +78,26 @@ struct MacWindowSystemNotificationsTests {
     #expect(await harness.takeEvents().focused == [1])
   }
 
+  /// An app can come to the front before it has a window. macOS focuses the window it then opens
+  /// without saying so, and no activation follows.
+  @Test func aWindowOpeningInTheFrontAppReportsItsFocus() async {
+    let harness = await started()
+    harness.workspace.activate(100)
+    _ = await harness.takeEvents()
+    harness.accessibility.addWindow(id: 3, frame: WindowSystemHarness.frame(of: 3), in: 100)
+    harness.accessibility.focus(3, in: 100)
+    harness.accessibility.post(kAXWindowCreatedNotification, for: 3, in: 100)
+    #expect(await harness.takeEvents().focused == [3])
+  }
+
+  @Test func aWindowOpeningBehindTheFrontAppTakesNoFocus() async {
+    let harness = await started()
+    harness.accessibility.addWindow(id: 3, frame: WindowSystemHarness.frame(of: 3), in: 100)
+    harness.accessibility.focus(3, in: 100)
+    harness.accessibility.post(kAXWindowCreatedNotification, for: 3, in: 100)
+    #expect(await harness.takeEvents().focused.isEmpty)
+  }
+
   @Test func theFocusOfAWindowNotSeenYetCreatesIt() async {
     let harness = await started()
     harness.accessibility.addWindow(id: 3, frame: WindowSystemHarness.frame(of: 3), in: 100)

@@ -359,6 +359,11 @@ tylerd declined these focuses:
   when the wait ended came back in 6 to 12 ms and no other focus followed. The app ended on the
   remembered window in 4 of about 15 repeats; in 16 other cases a focus only passed through it.
 
+- **An app can come to the front before it has a window.** A terminal started with `open -n` did,
+  in a burst of them: its activation arrived 185 ms before its window, the read then found no focused
+  window, and neither a focus notification nor an activation followed, though macOS showed the window
+  as focused. So a window opening in the frontmost app has its focus read too.
+
 ## Synthetic input (for live checks)
 
 - A synthetic click on a status item only arrives after a mouse move onto it.

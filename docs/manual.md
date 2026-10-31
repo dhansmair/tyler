@@ -23,7 +23,7 @@ tyler arranges windows on displays. Each display holds a row of workspaces, each
 
 A physical screen: the built-in screen of a laptop or an external display. Displays are numbered: the main display (the one with the menu bar) is 1, the others follow from left to right, then from top to bottom. Each display has its own row of workspaces and tiles its own windows.
 
-Commands act on the *focused display*: the display of the focused window, or the one a command last went to. See [Several displays](features.md#several-displays).
+Commands act on the *focused display*: the display of the focused window, or the one a command or a rest of the pointer last went to. See [Several displays](features.md#several-displays).
 
 ### Workspace
 
@@ -136,8 +136,8 @@ icon = "terminal"                # or an SF Symbol
 | `gaps.inner` | Space between neighbouring tiled windows | `0` |
 | `gaps.outer` | Space between the tiled windows and the edge of the display's visible area | `0` |
 | `mouse.follow-interval` | Least time between two steps of following the mouse (a window resized by its edge, a gap dragged, a window moved or resized with the modifier), in milliseconds (0 to 1000) | `16` |
-| `mouse.focus-follows` | Whether the window the pointer rests on gets the focus (`true` or `false`, see [Focus follows mouse](features.md#focus-follows-mouse)) | `false` |
-| `mouse.focus-delay` | How long the pointer rests on a window before it gets the focus, in milliseconds (0 to 1000) | `100` |
+| `mouse.focus-follows` | Whether the window or empty workspace the pointer rests on gets the focus (`true` or `false`, see [Focus follows mouse](features.md#focus-follows-mouse)) | `false` |
+| `mouse.focus-delay` | How long the pointer rests on a window or empty workspace before it gets the focus, in milliseconds (0 to 1000) | `100` |
 | `mouse.modifier` | The keys that, held while dragging anywhere in a window, move it (left button) or resize it (right): `"none"`, or names from `ctrl`, `option`, `cmd` and `shift` joined by `+` (see [Moving and resizing with the modifier](features.md#moving-and-resizing-with-the-modifier)) | `"option"` |
 | `mouse.gap-resize` | Whether dragging the gap between two tiled windows moves the divider between them (`true` or `false`, see [Resizing with the mouse](features.md#resizing-with-the-mouse)); needs `gaps.inner` | `true` |
 | `layouts.cycle` | The layouts `tyler layout next` and the menu go through, in order: a list of `"tall"`, `"grid"`, `"full"` and `"strip"`, each at most once. Any layout can still be set by name | `["tall", "grid", "full"]` |

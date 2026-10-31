@@ -96,7 +96,7 @@ devtools/tyler-use [brew|local|main|<folder>]   # which install `tyler` is, and 
 - macOS has no `timeout`. To bound a command that might hang, use `perl -e 'alarm N; exec @ARGV' <command>`.
 - **SwiftLint needs `TOOLCHAIN_DIR`.** Without full Xcode, plain `swiftlint` crashes looking for sourcekitd; `make lint` and the pre-commit hook set `TOOLCHAIN_DIR=/Library/Developer/CommandLineTools`.
 - **swift-format owns layout.** Where SwiftLint rejects what the formatter produces, turn that check off in `.swiftlint.yml`; don't write the code around it. SwiftLint keeps what a formatter can't check. Its complexity limit (10) and 5-parameter limit apply: group parameters into a struct rather than splitting logic arbitrarily.
-- **Pre-commit** (`.pre-commit-config.yaml`) is installed in `.git/hooks`. A commit that touches Swift files formats them, then runs format lint, SwiftLint and the tests, and is blocked at the first that fails. A commit blocked by formatting leaves the formatted files in the working tree: stage them and commit again. Don't bypass it with `--no-verify`.
+- **Pre-commit** (`.pre-commit-config.yaml`) is installed in `.git/hooks`. Every commit is checked for conflict markers. One that touches Swift files also formats them, then runs format lint, SwiftLint and the tests, and is blocked at the first that fails. A commit blocked by formatting leaves the formatted files in the working tree: stage them and commit again. Don't bypass it with `--no-verify`.
 - **CI** (`.github/workflows/check.yml`) runs `make check` in a fresh checkout for every PR that isn't a draft and every push to `main`, with SwiftLint pinned to the local version: update the pin when SwiftLint changes.
 
 ## Design principles

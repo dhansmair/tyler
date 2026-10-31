@@ -253,6 +253,10 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
 - **Display numbers**: the one with the menu bar is 1, the others follow left to right, then top
   to bottom. Displays are recognised by UUID (`DisplayKey`), which survives replugging, clamshell
   mode and reboots.
+- **A rest on an empty workspace focuses it, keys included,** with focus follows mouse on, as
+  switching to it would. Moving only the focused display left it and the keys apart: `window swap`
+  followed the pointer while `window close` followed the keys. A workspace with windows gets the
+  focus through the window rested on, so a rest over its wallpaper does nothing.
 - **Commands and the menu bar act on the focused display; swipes on the display under the
   pointer.** Each display's menu bar can't show different content through public API (the other
   copy is a replicant), so the items show the focused display's row.

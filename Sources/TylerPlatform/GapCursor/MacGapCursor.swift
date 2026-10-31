@@ -35,13 +35,22 @@ package final class MacGapCursor: GapCursor {
     let frame = DisplayGeometry.appKitRect(fromAX: area, primaryScreenHeight: primaryHeight)
     window.setFrame(frame, display: false)
     window.orderFrontRegardless()
-    content.cursor = area.height >= area.width ? .resizeLeftRight : .resizeUpDown
+    content.cursor = Self.resizeCursor(isColumnGap: area.height >= area.width)
     content.cursor.set()
   }
 
   package func hide() {
     window.orderOut(nil)
     NSCursor.arrow.set()
+  }
+
+  /// The cursor of a window's own edge, as dragging a gap resizes windows too. The older
+  /// `resizeLeftRight` and `resizeUpDown`, all macOS 14 has, have a bar between the arrows.
+  private static func resizeCursor(isColumnGap: Bool) -> NSCursor {
+    guard #available(macOS 15, *) else {
+      return isColumnGap ? .resizeLeftRight : .resizeUpDown
+    }
+    return .frameResize(position: isColumnGap ? .right : .bottom, directions: .all)
   }
 
   private static func setsCursorInBackground() {
@@ -58,7 +67,7 @@ package final class MacGapCursor: GapCursor {
   /// Sets its cursor whenever the pointer enters or moves over it, even with tylerd in the
   /// background.
   private final class CursorView: NSView {
-    var cursor = NSCursor.resizeLeftRight
+    var cursor = NSCursor.arrow
 
     override func updateTrackingAreas() {
       super.updateTrackingAreas()

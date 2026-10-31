@@ -468,7 +468,8 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
 - **End-to-end runs belong in a macOS virtual machine.** Only the socket keeps a second tylerd out,
   so a test tylerd beside the developer's would tile the same windows, and rows that stop tylerd
   or turn tiling off act on every window on screen. In a VM nothing reaches the machine in use,
-  and switching the Accessibility grant off can't freeze it. Not built yet.
+  and switching the Accessibility grant off can't freeze it. Not built yet; `macos-vm.md` has
+  how to run one by hand and what was measured in it.
 
 ## Releases
 

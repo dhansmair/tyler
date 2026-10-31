@@ -18,6 +18,10 @@ macOS version and the setup described in general terms.
   external display). Maximised windows there stop below it.
 - **`NSScreen.visibleFrame` is only right once the process has created `NSApplication.shared`**;
   before that it reports the whole display.
+- **A position write can be lost on a window crossing displays.** A new terminal moved from the
+  built-in display to the external one above it stayed at the position of the write before, with
+  the size asked for, 1 window in a dozen or so (macOS 26.7.2, 2026-10-31, opening several in a row).
+  What loses it isn't known. `AppConnection.setFrame` writes the position again if it didn't land.
 - **A window that crosses onto a shorter display is cut to that display's height** and keeps that
   size when it comes back. Another reason nothing slides onto a neighbouring display.
 - **A window that reaches past the bottom of its display onto the display below is clamped when it

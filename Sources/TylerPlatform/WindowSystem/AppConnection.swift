@@ -241,6 +241,12 @@ extension AppConnection {
       try check(bridge.setFrame(frame, of: element), for: windowID)
       actual = bridge.frame(of: element)
     }
+    // Seen with a window crossing displays: its last position write didn't land, and nothing
+    // follows that would put it right.
+    if let landed = actual, landed.origin != frame.origin {
+      try check(bridge.setPosition(frame.origin, of: element), for: windowID)
+      actual = bridge.frame(of: element)
+    }
     if let actual, actual != frame {
       Self.log.info(
         "window placing off - \(named(windowID)) - asked for \(Self.describe(frame)), "

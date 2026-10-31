@@ -40,6 +40,23 @@ struct MacWindowSystemMovingTests {
     #expect(harness.accessibility.calls(on: 1).first == .position(CGPoint(x: -100, y: 50)))
   }
 
+  @Test func aPositionThatDidNotLandIsWrittenAgain() async throws {
+    let harness = await started()
+    harness.accessibility.losePosition(of: 1)
+    let frame = CGRect(x: 600, y: 90, width: 500, height: 400)
+    try harness.windowSystem.setFrame(frame, of: WindowID(1))
+    #expect(harness.accessibility.calls(on: 1).last == .position(frame.origin))
+    #expect(harness.windowSystem.snapshot().first?.frame == frame)
+  }
+
+  @Test func aSizeTheAppChoseIsNotWrittenAgain() async throws {
+    let harness = await started()
+    harness.accessibility.clamp(1, toAtLeast: CGSize(width: 600, height: 400))
+    try harness.windowSystem.setFrame(
+      CGRect(x: 0, y: 0, width: 500, height: 400), of: WindowID(1))
+    #expect(harness.accessibility.calls(on: 1).count == 3)
+  }
+
   @Test func aClampedSizeIsReported() async throws {
     let harness = await started()
     harness.accessibility.clamp(1, toAtLeast: CGSize(width: 350, height: 300))

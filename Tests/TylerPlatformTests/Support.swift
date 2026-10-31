@@ -68,3 +68,26 @@ extension [WindowEvent] {
     }
   }
 }
+
+extension FakeAXClient {
+  /// A window as the fake app holds it.
+  struct Window {
+    let app: pid_t
+    var frame: CGRect
+    var role: String? = "AXWindow"
+    var subrole: String?
+    var buttons: WindowButtons
+    var isResizable: Bool
+    var isMinimized = false
+    var minimumSize = CGSize.zero
+    var losesPosition = false
+
+    mutating func write(_ origin: CGPoint) {
+      if losesPosition {
+        losesPosition = false
+      } else {
+        frame.origin = origin
+      }
+    }
+  }
+}

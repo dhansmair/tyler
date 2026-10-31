@@ -20,17 +20,6 @@ final class FakeAXClient: AXClient, @unchecked Sendable {
     case isSettable(String)
   }
 
-  private struct Window {
-    let app: pid_t
-    var frame: CGRect
-    var role: String? = "AXWindow"
-    var subrole: String?
-    var buttons: WindowButtons
-    var isResizable: Bool
-    var isMinimized = false
-    var minimumSize = CGSize.zero
-  }
-
   private struct State {
     var appWindows: [pid_t: [WindowID]] = [:]
     var focused: [pid_t: WindowID] = [:]
@@ -141,6 +130,11 @@ final class FakeAXClient: AXClient, @unchecked Sendable {
     }
   }
 
+  /// The next position write on the window is lost.
+  func losePosition(of id: UInt32) {
+    lock.withLock { state.windows[WindowID(id)]?.losesPosition = true }
+  }
+
   /// The app won't make the window smaller than `size`.
   func clamp(_ id: UInt32, toAtLeast size: CGSize) {
     lock.withLock { state.windows[WindowID(id)]?.minimumSize = size }
@@ -223,7 +217,7 @@ final class FakeAXClient: AXClient, @unchecked Sendable {
       switch name {
       case kAXPositionAttribute:
         let origin = Self.point(value)
-        state.windows[id]?.frame.origin = origin
+        state.windows[id]?.write(origin)
         state.calls[id, default: []].append(.position(origin))
       case kAXSizeAttribute:
         let size = Self.size(value)

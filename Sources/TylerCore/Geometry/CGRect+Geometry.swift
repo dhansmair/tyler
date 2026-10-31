@@ -22,7 +22,7 @@ extension CGRect {
   package func clearingOrigin(from current: CGRect) -> CGPoint? {
     let isPastRight = current.maxX > maxX + 1
     let isPastBottom = current.maxY > maxY + 1
-    guard isPastRight || isPastBottom else { return nil }
+    guard isPastRight || isPastBottom, intersects(current) else { return nil }
     return CGPoint(
       x: isPastRight ? maxX - current.width : current.minX,
       y: isPastBottom ? maxY - current.height : current.minY)

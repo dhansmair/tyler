@@ -82,7 +82,7 @@ package final class MacLayoutNotice: LayoutNotice {
     return content
   }
 
-  /// The HUD blur, half see-through so that what lies behind shows, with a bright edge and a
+  /// The HUD blur, partly see-through so that what lies behind shows, with a bright edge and a
   /// highlight along the top. The two layers drawn over the blur follow the view's size here:
   /// nothing lays out a view's extra layers.
   private final class Background: NSView {
@@ -100,7 +100,7 @@ package final class MacLayoutNotice: LayoutNotice {
       blur.material = .hudWindow
       blur.blendingMode = .behindWindow
       blur.state = .active
-      blur.alphaValue = 0.5
+      blur.alphaValue = 0.6
       fill(with: blur)
 
       highlight.colors = [

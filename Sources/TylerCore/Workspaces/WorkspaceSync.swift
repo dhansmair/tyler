@@ -44,6 +44,14 @@ package struct WorkspaceSync: Equatable, Sendable {
       self.foundAtStart = foundAtStart
       self.focusedDisplay = focusedDisplay
     }
+
+    /// Whether a window on no workspace just opened: it has never been on one, and it wasn't
+    /// there when tylerd started.
+    package static func isNew(
+      _ windowID: WindowID, seen: Set<WindowID>, foundAtStart: Set<WindowID>
+    ) -> Bool {
+      !seen.contains(windowID) && !foundAtStart.contains(windowID)
+    }
   }
 
   /// One sync per display of `rows`, in their order; `nil` while no display is connected: then
@@ -167,7 +175,7 @@ extension WorkspaceSync {
       if let location = number.flatMap(rows.location(ofNumber:)) {
         return Place(position: location.position, index: location.index)
       }
-      let isNew = !marks.seen.contains(window.id) && !marks.foundAtStart.contains(window.id)
+      let isNew = Marks.isNew(window.id, seen: marks.seen, foundAtStart: marks.foundAtStart)
       let focused = isNew ? marks.focusedDisplay.flatMap(rows.position(of:)) : nil
       return current(at: focused ?? onPosition)
     }

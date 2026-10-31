@@ -105,9 +105,9 @@ Every display is tiled, with its own row of workspaces. Workspace numbers are sh
 - **Displays side by side.** Parked windows wait at an edge of their display that touches no other display: the right edge, or the left one if another display lies to the right. On a display with another display beside it, switching workspaces is instant rather than a slide, so no window passes over the other display.
 - **Displays that come and go.** When a display is unplugged, its workspaces wait on the main display's row; when it comes back, they go back to it. tylerd waits about a second after macOS reports a change, then places every window again.
 
-## App assignments
+**New windows.** A new window opens on the workspace you are on, even if macOS or the app first puts it on another display, where it may show for a moment. This includes windows an app restores when it launches. A window that opens while a mouse button is down, such as a tab torn off a browser, stays where you dropped it, and so do windows opened while tiling is off and windows that were open when `tylerd` started. An app's `workspace` setting wins.
 
-A new window opens on the workspace you are on, even if macOS or the app first puts it on another display, where it may show for a moment. This includes windows an app restores when it launches. Windows that were open when `tylerd` started stay on their display.
+## App assignments
 
 `workspace` in an app's table of the config file sends its new windows to a workspace, for example `workspace = 3` under `[apps.Firefox]`. An assignment applies once, when a window is tiled for the first time: when it opens, or when `tylerd` starts and finds it open. If the workspace isn't on screen, the window is parked there. Apps usually focus a window they open, and focusing a parked window switches to its workspace, so you follow the window there; a window that opens in the background just waits on its workspace. After that, the window behaves like any other: `window move-to-workspace` moves it, and it stays where you put it. See [Configuration](manual.md#configuration) for how to name apps.
 

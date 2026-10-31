@@ -13,6 +13,8 @@ struct WindowBookkeeping: Equatable {
   /// Windows open when tylerd started. Every other window that has never been on a workspace just
   /// opened, so it joins the display the user is on.
   var foundAtStart: Set<WindowID> = []
+  /// New windows that had their first focus.
+  private var focusedOnce: Set<WindowID> = []
 
   init() {}
 
@@ -27,10 +29,17 @@ struct WindowBookkeeping: Equatable {
     floated.remove(windowID)
     seen.remove(windowID)
     foundAtStart.remove(windowID)
+    focusedOnce.remove(windowID)
   }
 
-  /// Whether `windowID` opened since tylerd started and hasn't been on a workspace yet.
-  func hasJustOpened(_ windowID: WindowID) -> Bool {
-    !seen.contains(windowID) && !foundAtStart.contains(windowID) && !floated.contains(windowID)
+  /// Whether this is the first focus on a window that just opened. It may be on any display and
+  /// about to join the focused one, so that focus says nothing about where the user is. A window
+  /// that never joins a workspace, such as a dialog, gets one such focus only.
+  mutating func takeFirstFocusOfNewWindow(_ windowID: WindowID) -> Bool {
+    guard !floated.contains(windowID), !focusedOnce.contains(windowID),
+      WorkspaceSync.Marks.isNew(windowID, seen: seen, foundAtStart: foundAtStart)
+    else { return false }
+    focusedOnce.insert(windowID)
+    return true
   }
 }

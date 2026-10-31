@@ -65,6 +65,45 @@ struct NewWindowDisplayScenarios {
     #expect(scenario.list(1) == [1])
   }
 
+  /// A tab torn off a browser and dropped: the user put it there.
+  @Test func aWindowOpenedWithTheButtonDownStaysWhereItOpened() async {
+    let scenario = await twoDisplays()
+    scenario.pointer.isPrimaryButtonDown = true
+    await scenario.open(makeWindow(id: 9, frame: Self.onOtherDisplay))
+    #expect(scenario.list(5) == [2, 9])
+    #expect(scenario.list(1) == [1])
+  }
+
+  @Test func windowsOpenedWithTilingOffStayOnTheirDisplay() async {
+    let scenario = await twoDisplays()
+    await scenario.command("tiling off")
+    await scenario.open(makeWindow(id: 9, frame: Self.onOtherDisplay))
+    await scenario.command("tiling on")
+    #expect(scenario.list(5) == [2, 9])
+  }
+
+  /// A window that never tiles keeps its first focus from moving the display, not every focus.
+  @Test func aLaterFocusOnADialogMovesTheFocusedDisplay() async {
+    let scenario = await twoDisplays()
+    await scenario.open(makeWindow(id: 9, frame: Self.onOtherDisplay, kind: .dialog))
+    await scenario.focus(9)
+    #expect(scenario.focusedDisplay == 1)
+    await scenario.focus(1)
+    await scenario.focus(9)
+    #expect(scenario.focusedDisplay == 2)
+  }
+
+  @Test func aFocusedWindowAssignedToTheOtherDisplayMovesTheFocusedDisplay() async {
+    let scenario = await twoDisplays(config: Config(apps: ["app": Config.App(workspace: 5)]))
+    var opening = makeWindow(id: 9, frame: Self.onOtherDisplay)
+    opening.isMinimized = true
+    await scenario.open(opening)
+    await scenario.focus(9)
+    await scenario.change(makeWindow(id: 9, frame: Self.onOtherDisplay))
+    #expect(scenario.list(5) == [2, 9])
+    #expect(scenario.focusedDisplay == 2)
+  }
+
   @Test func aDialogStaysWhereItOpened() async {
     let scenario = await twoDisplays()
     await scenario.open(makeWindow(id: 9, frame: Self.onOtherDisplay, kind: .dialog))

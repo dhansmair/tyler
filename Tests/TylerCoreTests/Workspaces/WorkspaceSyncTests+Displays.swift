@@ -32,6 +32,44 @@ struct WorkspaceSyncDisplaysTests {
     return rows
   }
 
+  private func planOpening(
+    _ window: WindowInfo, seen: Set<WindowID> = [], foundAtStart: Set<WindowID> = [],
+    focusedDisplay: DisplayKey? = nil
+  ) -> [WorkspaceSync]? {
+    WorkspaceSync.plan(
+      for: rows(), windows: [self.window(1), self.window(2, left: 2000), window],
+      displays: [primary, secondary],
+      marks: WorkspaceSync.Marks(
+        floated: [], seen: seen, sliding: [], foundAtStart: foundAtStart,
+        focusedDisplay: focusedDisplay),
+      assignedWorkspace: { $0.appName == "Firefox" ? 6 : nil })
+  }
+
+  @Test func aNewWindowJoinsTheFocusedDisplay() throws {
+    let syncs = try #require(planOpening(window(4, left: 2000), focusedDisplay: primary.key))
+    #expect(syncs[0].eligible[0] == [WindowID(1), WindowID(4)])
+  }
+
+  @Test func withoutAFocusedDisplayANewWindowStaysOnItsOwn() throws {
+    let syncs = try #require(planOpening(window(4, left: 2000)))
+    #expect(syncs[1].eligible[0] == [WindowID(2), WindowID(4)])
+  }
+
+  @Test(arguments: [true, false])
+  func aKnownWindowStaysOnItsDisplay(wasSeen: Bool) throws {
+    let known: Set<WindowID> = [WindowID(4)]
+    let syncs = try #require(
+      planOpening(
+        window(4, left: 2000), seen: wasSeen ? known : [], foundAtStart: wasSeen ? [] : known,
+        focusedDisplay: primary.key))
+    #expect(syncs[1].eligible[0] == [WindowID(2), WindowID(4)])
+  }
+
+  @Test func anAssignmentWinsOverTheFocusedDisplay() throws {
+    let syncs = try #require(planOpening(window(9, left: 100), focusedDisplay: primary.key))
+    #expect(syncs[1].arrivals == [WindowID(9)])
+  }
+
   private func plan(
     _ rows: DisplayRows, _ windows: [WindowInfo], seen: Set<WindowID> = [],
     sliding: Set<WindowID> = [], held: Set<WindowID> = []

@@ -43,7 +43,7 @@ tyler sorts every window into one of three kinds:
 
 Floated and never-tiled windows belong to no workspace, so they stay visible whichever workspace is on screen. Minimized windows and windows in native fullscreen leave the tiling list. When they come back, they are tiled on the current workspace.
 
-New windows are tiled on the current workspace, right after the focused window (in `tall`, never in the master section: a window opened while a master has the focus goes to the top of the stack), unless the [config file](#configuration) assigns their app to another workspace ([`apps.<app>.workspace`](features.md#app-assignments)).
+New windows are tiled on the current workspace of the focused display, wherever they first appear, right after the focused window (in `tall`, never in the master section: a window opened while a master has the focus goes to the top of the stack), unless the [config file](#configuration) assigns their app to another workspace ([`apps.<app>.workspace`](features.md#app-assignments)).
 
 ### Tiling list
 

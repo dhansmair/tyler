@@ -109,6 +109,8 @@ struct TilingController {
     var effects: [Effect] = []
     if !model.tilingEnabled && wasEnabled { effects = unparkAll(model: &model) }
     if model.tilingEnabled && !wasEnabled {
+      // Windows opened meanwhile were arranged without tiling, so they keep their display.
+      model.bookkeeping.foundAtStart.formUnion(context.registry.windows.map(\.id))
       effects = SyncController(context: context).sync(model: &model).effects
       effects.append(.reconcile(force: true))
     }

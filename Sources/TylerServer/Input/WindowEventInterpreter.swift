@@ -27,7 +27,7 @@ struct WindowEventInterpreter {
 
   /// The window that held the focus when tylerd started: no event names it.
   mutating func holdFocus(on window: WindowInfo) {
-    lastFocused = FocusedWindow(id: window.id, kind: window.kind)
+    lastFocused = FocusedWindow(id: window.id, kind: window.kind, frame: window.frame)
   }
 
   /// A closed window's focus that nothing took over: a focus from now on is a new one.
@@ -39,7 +39,7 @@ struct WindowEventInterpreter {
   mutating func intents(
     for event: WindowEvent, known: WindowInfo?, displays: [DisplayInfo]
   ) -> [Intent] {
-    noteKind(from: event)
+    noteLastFocused(from: event)
     if case .updated(let window) = event, let known {
       // Most updates are moves and resizes, many of them echoes of tylerd's own moves (several
       // per window placed, and one per window per slide step). Only these can change the lists.
@@ -53,7 +53,7 @@ struct WindowEventInterpreter {
     case .focused(let windowID?):
       let isEcho = expectedFocus.remove(windowID) != nil
       intents.append(.focused(windowID, isEcho: isEcho, from: lastFocused))
-      lastFocused = FocusedWindow(id: windowID, kind: known?.kind)
+      lastFocused = FocusedWindow(id: windowID, kind: known?.kind, frame: known?.frame)
     case .focused(nil):
       lastFocused = nil
     case .destroyed(let windowID):
@@ -67,11 +67,14 @@ struct WindowEventInterpreter {
     return intents
   }
 
-  /// A focus can arrive before its window's `created`, and the kind is gone with the window.
-  private mutating func noteKind(from event: WindowEvent) {
+  /// A focus can arrive before its window's `created`, and what is known of it is gone with the
+  /// window.
+  private mutating func noteLastFocused(from event: WindowEvent) {
     switch event {
     case .created(let window), .updated(let window):
-      if window.id == lastFocused?.id { lastFocused?.kind = window.kind }
+      guard window.id == lastFocused?.id else { return }
+      lastFocused?.kind = window.kind
+      lastFocused?.frame = window.frame
     case .destroyed, .focused:
       break
     }

@@ -112,6 +112,25 @@ struct FocusAfterCloseScenarios {
     #expect(scenario.windowSystem.unfocusCount == 1)
   }
 
+  @Test func aChainThroughAParkedWindowKeepsTheFocusOnItsDisplay() async {
+    let scenario = await twoDisplays()
+    await scenario.closeThenFocus(1, next: 3, 4)
+    #expect(scenario.focusedDisplay == 1)
+    #expect(scenario.windowSystem.focusCalls.last == WindowID(2))
+  }
+
+  /// A swipe or a command can focus a display while the focus stays on a window elsewhere.
+  @Test func aFocusOnTheClosedWindowsOwnDisplayFollows() async {
+    let scenario = await Scenario(
+      displays: [FakeDisplays.main, FakeDisplays.secondary], workspaces: [1: [1, 2], 5: []])
+    await scenario.focus(1)
+    await scenario.command("display focus 2")
+    let focusCalls = scenario.windowSystem.focusCalls.count
+    await scenario.closeThenFocus(1, next: 2)
+    #expect(scenario.focusedDisplay == 1)
+    #expect(scenario.windowSystem.focusCalls.count == focusCalls)
+  }
+
   @Test func aFocusOnTheOtherDisplayWithTheOldWindowThereFollows() async {
     let scenario = await twoDisplays()
     await scenario.focus(4)

@@ -59,7 +59,7 @@ struct WindowEventInterpreterTests {
     _ = interpreter.intents(for: .focused(first.id), known: first, displays: [])
     _ = interpreter.intents(for: .destroyed(first.id), known: nil, displays: [])
     let intents = interpreter.intents(for: .focused(WindowID(2)), known: nil, displays: [])
-    let previous = FocusedWindow(id: first.id, kind: .standard)
+    let previous = FocusedWindow(id: first.id, kind: .standard, frame: first.frame)
     #expect(intents.first == .focused(WindowID(2), isEcho: false, from: previous))
   }
 

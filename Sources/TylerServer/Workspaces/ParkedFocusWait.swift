@@ -5,7 +5,7 @@ import TylerCore
 @MainActor
 final class ParkedFocusWait {
   private let debounce: Debounce
-  private var origin: FocusedWindow?
+  private(set) var origin: FocusedWindow?
 
   var isPending: Bool { debounce.isPending }
 

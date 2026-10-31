@@ -39,7 +39,8 @@ check have only run on fakes.
 | Focus a window of an app with another window on the other display | Passes through the remembered window | The app, in passing | Ignores it | `aPassingFocusOnAParkedWindowSwitchesNothing` | Yes |
 | The same, right after that other window was swiped away | Ends on the remembered window | The app | Asks again, once | `tylerdAsksAgainInsteadOfSwitching` | Yes |
 | Close a window, the app has another one parked | Focuses the parked one | macOS | Declines, focuses the current workspace | `aCloseThenAFocusOnAParkedWindowStaysAndFocusesTheSibling` | Yes |
-| Close or quit with a window in view on the other display | Focuses that window, whichever was used last | macOS | Declines, keeps the focus on the display, even on an empty workspace | `aCloseKeepsTheFocusOnItsDisplay` | No |
+| Close a window with another in view on the other display | Can focus that one | macOS | Declines, keeps the focus on the display, even on an empty workspace | `aCloseKeepsTheFocusOnItsDisplay` | Yes |
+| Quit an app with a window in view on the other display | Can focus that one | macOS | Declines | `aQuitKeepsTheFocusOnItsDisplay` | No |
 | Quit an app, another app's window is parked | Focuses it, possibly before the quit reaches tyler | macOS | Declines | `aFocusThatComesBeforeTheCloseAlsoStays` | Yes |
 | A close leaves the workspace empty | Focuses a parked window | macOS | Declines, takes the focus away | `theWorkspaceLeftEmptyStaysAndTakesTheFocusAway` | Yes |
 | Close an app's last window, later cmd-tab to a parked window | Focuses nothing, then that window | The user | Follows | `aFocusLongAfterTheCloseSwitches` | Yes |
@@ -61,5 +62,12 @@ check have only run on fakes.
   nothing gives it the focus.
 - **An expected focus that never comes** goes stale, and a later real focus is taken for tyler's own
   (#11).
+- **A close whose focus arrives before the close does,** with the next window in view on another
+  display: the check there has no wait, so the focus is followed. Not seen; quits are caught by the
+  window server.
+- **The app ending on another window than tyler asked for, in view on another display:** the focus
+  is followed. The second request only covers parked windows.
+- **A floated window on another display taking the focus after a close** keeps it, while commands
+  stay on the old display.
 - **A dialog holding the focus when its app quits:** only standard windows count as gone, so tyler
   follows.

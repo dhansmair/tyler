@@ -7,11 +7,11 @@ extension WindowManager {
       log.debug("window focus dropped - the focus moved on to \(named(windowID))")
     }
     guard !isEcho, workspaceController.isParked(windowID, in: model) else {
+      let origin = parkedFocus.origin ?? previous
       parkedFocus.cancel()
       run(
         workspaceController.focusInView(
-          on: windowID, isEcho: isEcho, from: previous, isGone: { !isStillThere($0) },
-          model: &model))
+          on: windowID, isEcho: isEcho, from: origin, isGone: { !isStillThere($0) }, model: &model))
       return
     }
     waitForFocus(on: windowID, from: previous)
@@ -41,8 +41,8 @@ extension WindowManager {
     waitForFocus(on: windowID, from: origin)
   }
 
-  /// macOS focuses the next window within 1 ms of a close (`macos-behaviour.md`, "An app's focus
-  /// across displays"). If it focuses none, as when an app's last window closes, the closed window
+  /// macOS focuses the next window soon after a close (`macos-behaviour.md`, "An app's focus across
+  /// displays"). If it focuses none, as when an app's last window closes, the closed window
   /// must not count against a focus long after, which is the user's.
   func focusedWindowClosed(_ windowID: WindowID) {
     guard interpreter.lastFocused?.id == windowID else { return }

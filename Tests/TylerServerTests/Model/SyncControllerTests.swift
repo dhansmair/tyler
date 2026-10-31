@@ -63,6 +63,7 @@ struct SyncControllerTests {
       registry: registry, displays: [Self.display, other], config: Config())
     var model = Model(
       rows: DisplayRows(keys: [Self.display.key, other.key], configured: [[1, 2], [3, 4]]))
+    model.bookkeeping.foundAtStart = [WindowID(2)]
     let outcome = SyncController(context: context).sync(model: &model)
     #expect(
       outcome.effects.contains(

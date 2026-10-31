@@ -7,9 +7,10 @@ import CoreGraphics
 /// windows keep their place whatever their frame says. A window on a display's current workspace
 /// that moves to another display goes last in that display's current workspace, or leaves the
 /// workspaces if that display has no row. Tileable windows that belong to no workspace join the
-/// current workspace of the display they are on, unless they have never been tiled and their app
-/// is assigned to a workspace: then they go there, and arrive (to be parked) if it isn't on
-/// screen. Windows on a display without a row are left alone.
+/// current workspace of the display they are on. If they have never been tiled and their app is
+/// assigned to a workspace, they go there instead, and arrive (to be parked) if it isn't on
+/// screen; a window that opened since tylerd started joins the display the user is on, since
+/// macOS or the app picks where it appears. Windows on a display without a row are left alone.
 package struct WorkspaceSync: Equatable, Sendable {
   /// Per workspace, the windows it should hold, as `Workspace.sync(eligible:)` takes them.
   package var eligible: [[WindowID]]
@@ -26,15 +27,30 @@ package struct WorkspaceSync: Equatable, Sendable {
     package var sliding: Set<WindowID>
     /// A window the user is dragging; it keeps its place until it is dropped.
     package var held: Set<WindowID>
+    /// Windows that were open when tylerd started; they keep the display they are on.
+    package var foundAtStart: Set<WindowID>
+    /// The display the user is on, where a window that just opened goes.
+    package var focusedDisplay: DisplayKey?
 
     package init(
       floated: Set<WindowID>, seen: Set<WindowID>, sliding: Set<WindowID>,
-      held: Set<WindowID> = []
+      held: Set<WindowID> = [], foundAtStart: Set<WindowID> = [],
+      focusedDisplay: DisplayKey? = nil
     ) {
       self.floated = floated
       self.seen = seen
       self.sliding = sliding
       self.held = held
+      self.foundAtStart = foundAtStart
+      self.focusedDisplay = focusedDisplay
+    }
+
+    /// Whether a window on no workspace just opened: it has never been on one, and it wasn't
+    /// there when tylerd started.
+    package static func isNew(
+      _ windowID: WindowID, seen: Set<WindowID>, foundAtStart: Set<WindowID>
+    ) -> Bool {
+      !seen.contains(windowID) && !foundAtStart.contains(windowID)
     }
   }
 
@@ -159,7 +175,9 @@ extension WorkspaceSync {
       if let location = number.flatMap(rows.location(ofNumber:)) {
         return Place(position: location.position, index: location.index)
       }
-      return current(at: onPosition)
+      let isNew = Marks.isNew(window.id, seen: marks.seen, foundAtStart: marks.foundAtStart)
+      let focused = isNew ? marks.focusedDisplay.flatMap(rows.position(of:)) : nil
+      return current(at: focused ?? onPosition)
     }
   }
 }

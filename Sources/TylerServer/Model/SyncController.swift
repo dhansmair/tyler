@@ -40,7 +40,10 @@ struct SyncController {
           // Windows out of view in a scrolling layout are parked like other workspaces' windows.
           sliding: context.movingWindows.union(tiling.offViewWindows),
           held: held.union(context.draggedWindow.map { [$0] } ?? [])
-            .union(context.crossingWindows.subtracting(arrived))),
+            .union(context.crossingWindows.subtracting(arrived)),
+          foundAtStart: model.bookkeeping.foundAtStart,
+          // A window that opens under a held button was put there, as a tab torn off a browser.
+          focusedDisplay: context.isPrimaryButtonDown ? nil : model.rows.focusedKey),
         assignedWorkspace: {
           context.config.assignedWorkspace(bundleID: $0.bundleID, appName: $0.appName)
         })
@@ -90,7 +93,12 @@ struct SyncController {
     wasUnlisted: Bool, arrivals: Set<WindowID>, model: inout Model
   ) -> (key: DisplayKey, index: Int)? {
     guard let focusedID = context.registry.focusedID else { return nil }
-    if wasUnlisted { model.recordFocus(focusedID) }
+    if wasUnlisted {
+      model.recordFocus(focusedID)
+      if model.rows.location(of: focusedID) != nil {
+        model.focusDisplay(of: focusedID, in: context)
+      }
+    }
     guard arrivals.contains(focusedID) else { return nil }
     return model.rows.location(of: focusedID).map { location in
       (model.rows.entries[location.position].key, location.index)

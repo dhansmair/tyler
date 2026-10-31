@@ -20,6 +20,7 @@ Where things are written down:
 - `devdocs/architecture.md`: the target architecture (the layers from input to effects, TylerCore's bounded contexts and which way their dependencies point, the rules), with a diagram, and how far the code is from it. Read it before adding a type, a folder or a dependency between parts.
 - `devdocs/design.md`: the design decisions and why. Add a decision when it is made.
 - `devdocs/macos-behaviour.md`: what macOS was measured to do (parking limits, display changes, event taps). Record new measurements there.
+- `devdocs/macos-vm.md`: running tyler in a macOS VM (setup, input from the host, `tart exec`) and what was measured there.
 - `devdocs/testing-strategy.md`: the three layers of tests (unit, scenario, end to end) and where a new test goes. Read it before writing a test.
 - `devdocs/testing-catalogue.md`: the end-to-end catalogue, what to run on real windows before every release; `devdocs/test-runs/` holds each run.
 - `devdocs/known-issues.md`: bugs, limitations and what isn't built, each a GitHub issue that holds the details (`gh issue view <n>`); the strip's are in `devdocs/strip-layout.md`. A commit that fixes one says `Fixes #<n>` and removes its line, also from its user-facing twin `docs/known-issues.md`. A new one gets an issue and a line.

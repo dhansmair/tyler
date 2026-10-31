@@ -19,8 +19,6 @@ has its own list in [Layouts](layouts.md#strip--experimental).
   (seen once with Firefox). ([#5](https://github.com/dhansmair/tyler/issues/5))
 - **A minimized window may keep its place in the layout** (seen once), which then shows as an
   empty slot. Restoring and minimizing it again fixes it. ([#8](https://github.com/dhansmair/tyler/issues/8))
-- **Focusing a window may slide the other display** with two displays, when the app also has a
-  window parked there that it last had focused. ([#87](https://github.com/dhansmair/tyler/issues/87))
 - **A window opened in the background** (`open -g`) of an app with a workspace in the config
   brings that workspace into view, although the app you were using stays in front. ([#72](https://github.com/dhansmair/tyler/issues/72))
 - **A window sent alone to a larger display** may arrive narrower than its slot;

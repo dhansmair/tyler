@@ -127,6 +127,11 @@ struct WorkspaceController {
   /// focused the next window within 1 ms of a close in every measured case.
   static let closedFocusMemory: Duration = .milliseconds(60)
 
+  /// How long a focus on another window of the same app counts as the app's answer to a request.
+  /// The wait ended 88 to 120 ms after the request in the four cases measured. A real move to a
+  /// parked window (cmd-`) arriving in this time is asked back, so it stays short.
+  static let focusRequestMemory: Duration = .milliseconds(200)
+
   /// Whether a focus on `windowID` would bring a parked workspace into view.
   func isParked(_ windowID: WindowID, in model: Model) -> Bool {
     guard context.isTiling(model), let location = model.rows.location(of: windowID) else {
@@ -136,22 +141,52 @@ struct WorkspaceController {
   }
 
   /// A focus on `windowID` lasted. If the window that held the focus went away, macOS chose this
-  /// one and nobody asked for it: its workspace stays parked and the focus comes back.
+  /// one and nobody asked for it: its workspace stays parked and the focus comes back. If tylerd
+  /// just asked its app for another window, the app ended on the one it remembers: tylerd asks
+  /// again, once.
   func focusSettled(
-    on windowID: WindowID, from previous: FocusedWindow?, previousIsGone: Bool, model: inout Model
-  ) -> [Effect] {
+    on windowID: WindowID, from previous: FocusedWindow?, previousIsGone: Bool,
+    request: FocusRequest?, model: inout Model
+  ) -> SettledFocus {
+    let isParked = isParked(windowID, in: model)
+    let unmet = unmetRequest(request, focusedOn: windowID, model: model)
     let verdict = ParkedFocusVerdict(
-      isParked: isParked(windowID, in: model), previous: previous, previousIsGone: previousIsGone)
+      isParked: isParked, previous: previous, previousIsGone: previousIsGone, unmetRequest: unmet)
     switch verdict {
+    case .askAgain(let wanted):
+      context.log.info(
+        "window focus asked again - \(name(of: wanted)) - the focus ended on \(name(of: windowID))")
+      return SettledFocus(effects: [.focus(wanted)], asksAgain: true)
     case .follow:
-      return focusChanged(to: windowID, isEcho: false, model: &model)
+      if isParked, let unmet {
+        context.log.info(
+          "window focus not held - \(name(of: unmet.window)) - "
+            + "the focus stayed on \(name(of: windowID))")
+      }
+      return SettledFocus(
+        effects: focusChanged(to: windowID, isEcho: false, model: &model), asksAgain: false)
     case .decline:
       context.log.info(
-        "window focus not followed - "
-          + WindowInfo.logName(windowID, context.registry.window(withID: windowID))
-          + " - the focused window went away")
-      return [.focusCurrentWorkspace]
+        "window focus not followed - \(name(of: windowID)) - the focused window went away")
+      return SettledFocus(effects: [.focusCurrentWorkspace], asksAgain: false)
     }
+  }
+
+  private func name(of windowID: WindowID) -> String {
+    WindowInfo.logName(windowID, context.registry.window(withID: windowID))
+  }
+
+  /// `request`, if the app it went to ended on its other window `windowID` instead, and the window
+  /// asked for can still take the focus.
+  private func unmetRequest(
+    _ request: FocusRequest?, focusedOn windowID: WindowID, model: Model
+  ) -> FocusRequest? {
+    guard let request, request.window != windowID,
+      let wanted = context.registry.window(withID: request.window),
+      wanted.processID == context.registry.window(withID: windowID)?.processID,
+      !isParked(request.window, in: model)
+    else { return nil }
+    return request
   }
 
   /// The OS focused `windowID` (a click, cmd-tab, an app raising itself). If it lives on a

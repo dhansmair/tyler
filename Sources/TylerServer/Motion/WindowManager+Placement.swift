@@ -29,7 +29,9 @@ extension WindowManager {
   func requestFocus(_ windowID: WindowID) throws(WindowSystemError) {
     let expectsEvent = registry.focusedID != windowID
     try mover.focus(windowID, known: registry)
-    if expectsEvent { interpreter.expectFocus(of: windowID) }
+    guard expectsEvent else { return }
+    interpreter.expectFocus(of: windowID)
+    focusRequest.note(windowID)
   }
 
   func outcome(failures: Int) -> Response {

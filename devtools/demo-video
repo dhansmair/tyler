@@ -1,0 +1,337 @@
+#!/bin/bash
+# Plays the scripted part of the README's demo video on two empty workspaces, with real key presses
+# so a keystroke overlay shows them. It then waits while the rest is done by hand, and Option+Escape
+# ends it. Needs skhd, Ghostty, Safari, jq and a terminal allowed to post events. The script's own
+# terminal must be on another workspace, and the two workspaces should be neighbours on one display
+# so a swipe goes between them.
+#
+# Before each key press it checks that a demo window has the focus, and stops if not, so a press
+# never reaches another window: clicking anything else during the scripted part ends the run.
+set -euo pipefail
+
+here="$(cd "$(dirname "$0")" && pwd)"
+url="https://www.swift.org"
+pause=1.2
+workspace_a=5
+workspace_b=6
+preflight_only=false
+
+work_dir=""
+stop_file=""
+skhd_pid=""
+restore_skhd_service=false
+started_safari=false
+start_workspace=""
+demo_ids=""
+pane_files=""
+
+usage() {
+  cat >&2 <<EOF
+usage: demo-video [--workspaces <a> <b>] [--url <url>] [--pause <seconds>] [--preflight]
+       --preflight only checks that a run can start, and changes nothing
+EOF
+  exit 2
+}
+
+die() {
+  echo "demo-video: $1" >&2
+  exit 1
+}
+
+# One line per action: name, key combination as `live-check key` takes it, tyler arguments. The
+# hotkeys and the key presses both come from here, so the two can't drift apart.
+actions() {
+  cat <<EOF
+focus-next option+j window focus next
+swap-next option+shift+j window swap next
+swap-main option+return window swap master
+layout-next option+space layout next
+go-a option+$workspace_a workspace focus $workspace_a
+go-b option+$workspace_b workspace focus $workspace_b
+send-b option+shift+$workspace_b window move-to-workspace $workspace_b
+EOF
+}
+
+combination_of() {
+  actions | awk -v name="$1" '$1 == name { print $2 }'
+}
+
+# option+shift+j -> alt + shift - j
+skhd_keys() {
+  local modifiers="${1%+*}" key="${1##*+}"
+  modifiers="${modifiers//option/alt}"
+  echo "${modifiers//+/ + } - $key"
+}
+
+write_hotkeys() {
+  local tyler_path name combination arguments
+  tyler_path="$(command -v tyler)"
+  while read -r name combination arguments; do
+    echo "$(skhd_keys "$combination") : \"$tyler_path\" $arguments"
+  done < <(actions)
+  echo "alt - escape : touch \"$stop_file\""
+}
+
+windows() {
+  tyler window list --json
+}
+
+window_count_on() {
+  windows | jq --argjson workspace "$1" '[.[] | select(.workspace == $workspace)] | length'
+}
+
+preflight() {
+  local tool setting
+  for tool in tyler jq skhd; do
+    command -v "$tool" >/dev/null || die "$tool isn't on the PATH"
+  done
+  open -Ra Ghostty 2>/dev/null || die "Ghostty isn't installed"
+  open -Ra Safari 2>/dev/null || die "Safari isn't installed"
+
+  [[ "$(tyler status)" == *"tiling  on"* ]] || die "tylerd isn't running with tiling on"
+  setting="$(tyler config get layouts.cycle)"
+  [[ "$setting" == '["tall", "grid", "full"]' ]] || die "layouts.cycle should be tall, grid, full"
+  setting="$(tyler config get workspaces.count)"
+  ((workspace_a <= setting && workspace_b <= setting)) ||
+    die "workspaces.count is $setting: run tyler config set workspaces.count $workspace_b"
+  ((workspace_a != workspace_b)) || die "the two workspaces must differ"
+
+  local count
+  for count in "$workspace_a" "$workspace_b"; do
+    (($(window_count_on "$count") == 0)) || die "workspace $count isn't empty"
+  done
+  ! pgrep -x Safari >/dev/null || die "quit Safari first: the run quits it at the end"
+}
+
+take_over_hotkeys() {
+  write_hotkeys >"$work_dir/skhdrc"
+  if launchctl list com.koekeishiya.skhd >/dev/null 2>&1; then
+    skhd --stop-service
+    restore_skhd_service=true
+  fi
+  skhd -c "$work_dir/skhdrc" >/dev/null 2>&1 &
+  skhd_pid=$!
+}
+
+cleanup() {
+  local file
+  trap - EXIT INT TERM HUP
+  if [[ -n "$skhd_pid" ]]; then
+    kill "$skhd_pid" 2>/dev/null || true
+  fi
+  for file in $pane_files; do
+    echo "__end__" >>"$file"
+  done
+  if [[ "$started_safari" == true ]]; then
+    osascript -e 'quit app "Safari"' || echo "demo-video: quitting Safari failed" >&2
+  fi
+  if [[ "$restore_skhd_service" == true ]]; then
+    skhd --start-service || echo "demo-video: starting the skhd service failed" >&2
+  fi
+  if [[ -n "$start_workspace" ]]; then
+    tyler workspace focus "$start_workspace" || true
+  fi
+  sleep 0.5
+  rm -rf "$work_dir"
+}
+
+# The ID of a window of `app` on `workspace` that isn't one of the demo's yet, once it is tiled.
+wait_for_new_window() {
+  local app="$1" workspace="$2" known id attempt
+  known="[$(echo "$demo_ids" | xargs | tr ' ' ',')]"
+  for attempt in $(seq 200); do
+    id="$(windows | jq --arg app "$app" --argjson workspace "$workspace" --argjson known "$known" \
+      'first(.[] | select(.appName == $app and .workspace == $workspace and .slot != null)
+        | select(.id as $id | $known | index($id) | not) | .id)')"
+    if [[ -n "$id" ]]; then
+      echo "$id"
+      return
+    fi
+    sleep 0.05
+  done
+  die "no new $app window on workspace $workspace after $attempt tries"
+}
+
+# Opens a terminal with a neutral look that shows what `caption` writes to it. Each is a Ghostty of
+# its own that quits when its pane ends. Sets `opened_id` to its window.
+open_pane() {
+  local name="$1" background="$2" workspace="$3"
+  local file="$work_dir/$name.text" launcher="$work_dir/$name.command"
+  local config="$work_dir/$name.ghostty"
+  : >"$file"
+  pane_files="$pane_files $file"
+  printf '#!/bin/bash\nexec "%s" --pane "%s"\n' "$here/demo-video" "$file" >"$launcher"
+  chmod +x "$launcher"
+  cat >"$config" <<EOF
+command = direct:$launcher
+title = tyler
+background = $background
+foreground = #f5f5f5
+font-size = 22
+window-save-state = never
+confirm-close-surface = false
+quit-after-last-window-closed = true
+EOF
+  open -na Ghostty --args --config-default-files=false --config-file="$config"
+  opened_id="$(wait_for_new_window Ghostty "$workspace")"
+  demo_ids="$demo_ids $opened_id"
+}
+
+run_pane() {
+  local file="$1" line index
+  printf '\033[?25l'
+  exec 3<"$file"
+  while true; do
+    if ! IFS= read -r -u 3 line; then
+      sleep 0.05
+      continue
+    fi
+    case "$line" in
+      __end__) exit 0 ;;
+      __clear__) printf '\033[2J\033[H' ;;
+      *)
+        for ((index = 0; index < ${#line}; index++)); do
+          printf '%s' "${line:index:1}"
+          sleep 0.03
+        done
+        printf '\n'
+        ;;
+    esac
+  done
+}
+
+caption() {
+  local name="$1" text="$2"
+  printf '__clear__\n%s\n' "$text" >>"$work_dir/$name.text"
+  sleep "$(echo "${#text} * 0.03 + 0.3" | bc)"
+}
+
+stop_if_interrupted() {
+  local focused
+  [[ ! -e "$stop_file" ]] || die "stopped with Option+Escape"
+  focused="$(windows | jq 'first(.[] | select(.isFocused) | .id) // 0')"
+  case " $demo_ids " in
+    *" $focused "*) ;;
+    *) die "the focus left the demo's windows" ;;
+  esac
+}
+
+press() {
+  stop_if_interrupted
+  "$here/live-check" key "$(combination_of "$1")"
+  sleep "$pause"
+}
+
+# Presses focus-next until `id` has the focus: swaps have moved the windows along the list by then.
+focus_window() {
+  local id="$1" attempt focused
+  for attempt in 1 2 3 4 5; do
+    focused="$(windows | jq 'first(.[] | select(.isFocused) | .id) // 0')"
+    [[ "$focused" != "$id" ]] || return 0
+    press focus-next
+  done
+  die "window #$id didn't get the focus after $attempt presses"
+}
+
+play() {
+  local narrator list_window
+  tyler workspace focus "$workspace_a"
+  tyler layout set tall
+  sleep 2
+
+  open -a Safari "$url"
+  started_safari=true
+  opened_id="$(wait_for_new_window Safari "$workspace_a")"
+  demo_ids="$demo_ids $opened_id"
+  sleep "$pause"
+
+  open_pane narrator "#1f2933" "$workspace_a"
+  narrator="$opened_id"
+  caption narrator "A workspace is a list of windows."
+  open_pane second "#2d3a2e" "$workspace_a"
+  caption second "second"
+  open_pane third "#3a2d38" "$workspace_a"
+  list_window="$opened_id"
+  caption third "third"
+  sleep "$pause"
+
+  caption narrator "Move along the list."
+  focus_window "$narrator"
+  press focus-next
+  caption narrator "Swap with the next window."
+  press swap-next
+  caption narrator "Swap with the main window."
+  press swap-main
+
+  caption narrator "Change the layout."
+  press layout-next
+  press layout-next
+  press focus-next
+  press layout-next
+
+  focus_window "$list_window"
+  caption third "Send me to another workspace."
+  press send-b
+  press go-b
+  open_pane fourth "#2d3440" "$workspace_b"
+  caption fourth "Workspaces sit side by side."
+  sleep "$pause"
+  press go-a
+  press go-b
+  press go-a
+
+  afplay /System/Library/Sounds/Glass.aiff
+  echo "demo-video: the scripted part is done. Do the rest by hand, then press Option+Escape."
+  until [[ -e "$stop_file" ]]; do
+    sleep 0.2
+  done
+}
+
+if [[ "${1:-}" == "--pane" ]]; then
+  run_pane "$2"
+  exit 0
+fi
+
+while (($# > 0)); do
+  case "$1" in
+    --workspaces)
+      (($# >= 3)) || usage
+      workspace_a="$2"
+      workspace_b="$3"
+      shift 3
+      ;;
+    --url)
+      (($# >= 2)) || usage
+      url="$2"
+      shift 2
+      ;;
+    --pause)
+      (($# >= 2)) || usage
+      pause="$2"
+      shift 2
+      ;;
+    --preflight)
+      preflight_only=true
+      shift
+      ;;
+    *) usage ;;
+  esac
+done
+
+preflight
+if [[ "$preflight_only" == true ]]; then
+  echo "demo-video: ready"
+  exit 0
+fi
+
+work_dir="$(mktemp -d -t tyler-demo-video)"
+stop_file="$work_dir/stop"
+start_workspace="$(windows | jq -r 'first(.[] | select(.isFocused) | .workspace) // empty')"
+trap cleanup EXIT
+trap 'exit 130' INT TERM HUP
+
+"$here/live-check" key >/dev/null 2>&1 || true
+take_over_hotkeys
+read -r -p "Start recording, then press Enter. The windows start moving 3 seconds later. "
+sleep 3
+play

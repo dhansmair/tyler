@@ -16,8 +16,8 @@ When something goes wrong, two commands put things right:
 - `~/.tyler/tyler.log` holds what `tylerd` printed since `tyler start`, and its log at
   `log.level`: warnings and errors unless you change it. The run before, up to the last `tyler
   start` or `restart`, is in `~/.tyler/tyler.log.1`. For more while you look into
-  something, run `tyler config set log.level info` (or `debug`), reproduce the problem, and read
-  the end of the file: `tail -n 30 ~/.tyler/tyler.log`, or `grep pointer ~/.tyler/tyler.log`.
+  something, run `tyler logs --level info` (or `debug`), reproduce the problem, and watch the
+  lines arrive. `grep pointer ~/.tyler/tyler.log` searches the whole file.
   Each line has the date and time, the level, a category (`ax`, `manager`, `pointer`, `ipc`,
   `indicator`, `tylerd`) and what happened, such as `window focusing - #7349 (Firefox)`: a window by its number and app, never its title. `tyler restart` or `config reload` puts the level back.
 - `log stream --predicate 'subsystem == "tyler"'` shows the same lines and more in the unified log

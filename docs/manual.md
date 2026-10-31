@@ -212,6 +212,7 @@ Commands are grouped by what they act on: `tyler window focus next` focuses a wi
 | `layout next` | Switch to the next layout of `layouts.cycle` |
 | `layout ratio +<step>\|-<step>` | Widen or narrow the master column |
 | `display focus prev\|next\|<n>` | Focus another display |
+| `logs [--level debug\|info\|warning\|error]` | Show `tylerd`'s log and follow it |
 | `config get [<setting>]` | Show a setting, or every setting |
 | `config set <setting> <value>` | Change a setting until `tylerd` stops or the config is reloaded |
 | `config reload` | Read the config file again and apply it |
@@ -219,7 +220,7 @@ Commands are grouped by what they act on: `tyler window focus next` focuses a wi
 | `debug at [<x> <y>] [--json]` | Show what `tylerd` sees and does at a point on screen |
 | `debug windows [--json]` | Show where `tylerd`'s picture of the windows differs from what macOS reports |
 
-Commands that change windows act on the current workspace. All of them except `start`, `stop`, `restart`, `status`, `ping`, `tiling`, `window list`, `window close` and the `config` commands need tiling to be on; with tiling off they print ``tiling is off (use `tyler tiling on`)``.
+Commands that change windows act on the current workspace. All of them except `start`, `stop`, `restart`, `status`, `logs`, `ping`, `tiling`, `window list`, `window close` and the `config` commands need tiling to be on; with tiling off they print ``tiling is off (use `tyler tiling on`)``.
 
 ### start, stop, restart
 
@@ -267,6 +268,18 @@ tylerd is running (pid 4711, up 2h 5m)
 `input` lists what `tylerd` listens for, as the config asks: `swipes` (`gestures`), `pointer moves` (focus follows mouse and the resize cursor over gaps), `modifier key` and `mouse buttons` (dragging with the modifier or in a gap); `none` when it listens for nothing. `(refused by macOS)` follows a listener macOS wouldn't allow. macOS turns a listener off when `tylerd` is slow to answer it (just after waking from sleep, say); `tylerd` turns it back on within 2 seconds, and a line under `input` says how often and when last, such as `swipes turned off by macOS once (last 5m ago), turned back on`.
 
  If the `tylerd` binary has changed since it started, or `tylerd` is another version than `tyler`, a warning suggests `tyler restart`. Exits with status 1 if `tylerd` isn't running.
+
+### logs
+
+```bash
+tyler logs                  # the last 50 lines, then new ones as they come; Ctrl-C ends it
+tyler logs | grep pointer   # the last 50 lines
+tyler logs --level debug    # more detail, from now on
+```
+
+Shows the end of `~/.tyler/tyler.log` (with `TYLER_SOCKET`, the log next to that socket) and keeps following it, across `tyler restart` too. When its output isn't a terminal, it prints the last 50 lines and exits. It reads the file, so it works while `tylerd` isn't running, and shows what the last run wrote. A `tylerd` run by hand in a terminal logs to that terminal, not to the file.
+
+The log holds warnings and errors unless you change [`log.level`](#configuration), so it can stay quiet for a long time. `--level` first does `tyler config set log.level <level>`, and needs `tylerd` running. The level stays after you press Ctrl-C, until `tyler config reload` or until `tylerd` stops or restarts: `debug` writes many lines a second to the file while it lasts.
 
 ### ping
 

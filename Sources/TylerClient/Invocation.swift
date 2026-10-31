@@ -1,4 +1,5 @@
 import TylerProtocol
+import TylerRuntime
 
 /// A parsed command line: what to do, and how to show the answer.
 package struct Invocation: Equatable, Sendable {
@@ -9,6 +10,8 @@ package struct Invocation: Equatable, Sendable {
     case daemon(DaemonCommand)
     /// Open the config file: in this terminal, or through tylerd (`ConfigEditing`).
     case editConfig
+    /// Show the log, after setting `log.level` if a level is given.
+    case showLog(level: LogLevel?)
     /// Print the client's version (`--version`).
     case printVersion
   }

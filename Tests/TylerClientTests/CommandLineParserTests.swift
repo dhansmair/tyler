@@ -3,6 +3,7 @@ import Foundation
 import Testing
 import TylerCore
 import TylerProtocol
+import TylerRuntime
 
 @testable import TylerClient
 
@@ -109,6 +110,8 @@ struct CommandLineParserTests {
           stop                           stop tylerd (windows go back where they were)
           restart                        stop tylerd and start it again, for example after a rebuild
           status                         show whether tylerd is running, and which build
+          logs [--level debug|info|warning|error]
+                                         show tylerd's log and follow it
           ping                           check that tylerd is running
           tiling on|off|toggle           start or stop tiling (off unparks hidden windows)
 
@@ -219,6 +222,33 @@ struct CommandLineParserTests {
     #expect(throws: CommandLineError.usage("unknown command '--version'")) {
       try CommandLineParser.parse(["--version", "now"])
     }
+  }
+
+  @Test func logsTakesNoArguments() throws {
+    #expect(try CommandLineParser.parse(["logs"]) == Invocation(action: .showLog(level: nil)))
+  }
+
+  @Test(arguments: LogLevel.allCases)
+  func logsSetsALevel(level: LogLevel) throws {
+    #expect(
+      try CommandLineParser.parse(["logs", "--level", level.rawValue])
+        == Invocation(action: .showLog(level: level)))
+  }
+
+  @Test(arguments: [
+    (["logs", "--level"], "logs --level takes exactly one argument: debug|info|warning|error"),
+    (
+      ["logs", "--level", "loud"],
+      "unknown logs --level argument 'loud' (use debug|info|warning|error)"
+    ),
+    (
+      ["logs", "--level", "info", "extra"],
+      "logs --level takes exactly one argument: debug|info|warning|error"
+    ),
+    (["logs", "extra"], "logs takes only --level, not 'extra'"),
+  ])
+  func logsRefuses(command: [String], message: String) {
+    #expect(throws: CommandLineError.usage(message)) { try CommandLineParser.parse(command) }
   }
 
   /// Every command has a section in the manual's command reference, and every section there is

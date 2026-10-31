@@ -103,6 +103,25 @@ preflight() {
   ! pgrep -x Safari >/dev/null || die "quit Safari first: the run quits it at the end"
 }
 
+# A cold start takes seconds, which would show in the video, so it happens before the recording.
+# Even a hidden launch opens a window, so it happens on the empty workspace and the window goes.
+launch_safari() {
+  local attempt
+  tyler workspace focus "$workspace_a" >/dev/null
+  started_safari=true
+  open -gja Safari
+  wait_for_new_window Safari "$workspace_a" >/dev/null
+  osascript -e 'tell application "Safari" to close every window'
+  for attempt in $(seq 100); do
+    (($(window_count_on "$workspace_a") == 0)) && break
+    sleep 0.05
+  done
+  (($(window_count_on "$workspace_a") == 0)) || die "Safari's first window didn't close"
+  if [[ -n "$start_workspace" ]]; then
+    tyler workspace focus "$start_workspace" >/dev/null
+  fi
+}
+
 take_over_hotkeys() {
   write_hotkeys >"$work_dir/skhdrc"
   if launchctl list com.koekeishiya.skhd >/dev/null 2>&1; then
@@ -168,7 +187,11 @@ command = direct:$launcher
 title = tyler
 background = $background
 foreground = #f5f5f5
-font-size = 22
+font-size = 28
+background-opacity = 0.93
+background-blur = true
+window-padding-x = 20
+window-padding-y = 20
 window-save-state = never
 confirm-close-surface = false
 quit-after-last-window-closed = true
@@ -241,7 +264,6 @@ play() {
   sleep 2
 
   open -a Safari "$url"
-  started_safari=true
   opened_id="$(wait_for_new_window Safari "$workspace_a")"
   demo_ids="$demo_ids $opened_id"
   sleep "$pause"
@@ -280,6 +302,7 @@ play() {
   press go-a
   press go-b
   press go-a
+  caption narrator "Tyler also supports mouse movements"
 
   afplay /System/Library/Sounds/Glass.aiff
   echo "demo-video: the scripted part is done. Do the rest by hand, then press Option+Escape."
@@ -333,6 +356,7 @@ trap 'exit 130' INT TERM HUP
 
 "$here/live-check" key >/dev/null 2>&1 || true
 take_over_hotkeys
+launch_safari
 read -r -p "Start recording, then press Enter. The windows start moving 3 seconds later. "
 sleep 3
 play

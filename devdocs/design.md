@@ -352,7 +352,7 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
 
 ## Layout notice
 
-Choosing a layout shows its name in the middle of the focused display for 0.75 s, since the menu bar's symbol is easy to miss. macOS has no public element for this (the volume and brightness overlays are private), so `MacLayoutNotice` is a borderless non-activating panel, click-through, with `NSGlassEffectView` from macOS 26 and a blur before it. It is a port of its own, like the gap cursor: `LayoutController` decides, an effect carries the name and the display's visible area, and the show and fade timing stay in the platform as a matter of looks. Setting the layout a workspace already has shows it too: it answers "which layout is this?". Workspace switches show nothing. `layouts.notice = false` turns it off.
+Choosing a layout shows its name in the middle of the focused display for 0.75 s, since the menu bar's symbol is easy to miss. macOS has no public element for this (the volume and brightness overlays are private), so `MacLayoutNotice` is a borderless non-activating panel, click-through, with the HUD blur material and a shadow: compared on a real display with `NSGlassEffectView` in its styles and tints and with the other blur materials, it read best, and it needs no check of the macOS version. It is a port of its own, like the gap cursor: `LayoutController` decides, an effect carries the name and the display's visible area, and the show and fade timing stay in the platform as a matter of looks. Setting the layout a workspace already has shows it too: it answers "which layout is this?". Workspace switches show nothing. `layouts.notice = false` turns it off.
 
 ## Menu bar
 

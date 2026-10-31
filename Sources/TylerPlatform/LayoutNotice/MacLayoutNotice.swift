@@ -3,7 +3,7 @@ import TylerCore
 import TylerServer
 
 /// The real `LayoutNotice`: a borderless panel that takes no focus and lets clicks through, with
-/// Liquid Glass behind the name where macOS has it. Pointer checks skip it as one of tylerd's own
+/// a blur behind the name. Pointer checks skip it as one of tylerd's own
 /// windows (`MacWindowStacking`).
 @MainActor
 package final class MacLayoutNotice: LayoutNotice {
@@ -25,7 +25,7 @@ package final class MacLayoutNotice: LayoutNotice {
     panel.isReleasedWhenClosed = false
     panel.isOpaque = false
     panel.backgroundColor = .clear
-    panel.hasShadow = false
+    panel.hasShadow = true
     panel.ignoresMouseEvents = true
     panel.hidesOnDeactivate = false
     panel.level = .statusBar
@@ -84,12 +84,6 @@ package final class MacLayoutNotice: LayoutNotice {
   }
 
   private static func background(around content: NSView) -> NSView {
-    if #available(macOS 26.0, *) {
-      let glass = NSGlassEffectView()
-      glass.cornerRadius = cornerRadius
-      glass.contentView = content
-      return glass
-    }
     let blur = NSVisualEffectView()
     blur.material = .hudWindow
     blur.blendingMode = .behindWindow
@@ -97,8 +91,14 @@ package final class MacLayoutNotice: LayoutNotice {
     blur.wantsLayer = true
     blur.layer?.cornerRadius = cornerRadius
     blur.layer?.masksToBounds = true
-    content.autoresizingMask = [.width, .height]
+    content.translatesAutoresizingMaskIntoConstraints = false
     blur.addSubview(content)
+    NSLayoutConstraint.activate([
+      content.leadingAnchor.constraint(equalTo: blur.leadingAnchor),
+      content.trailingAnchor.constraint(equalTo: blur.trailingAnchor),
+      content.topAnchor.constraint(equalTo: blur.topAnchor),
+      content.bottomAnchor.constraint(equalTo: blur.bottomAnchor),
+    ])
     return blur
   }
 }

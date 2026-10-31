@@ -1,41 +1,40 @@
 # Tyler
 
-A dynamic tiling window manager for macOS with an XMonad-style layout system. Each window's 
-position is determined by its index in a virtual list, so you rearrange windows simply by moving
-them within that list or by adjusting layout parameters. 
-Tyler offers a variety of layouts and supports mouse events, trackpad gestures and animations.
+Tyler is a dynamic tiling window manager for macOS. It arranges your windows using preset layouts,
+and you can rearrange them with the keyboard or the mouse. It also supports animations and
+trackpad gestures.
+
+Why dynamic tiling? Because the mental model is extremely simple: each workspace is a single list of
+windows, and you move windows up and down that list. I always found tree-based tilers too
+complicated, since I rarely want more than two or three windows on a workspace.
 
 > [!WARNING]
-> **tyler is alpha software.**
+> **Tyler is alpha software.**
 > Expect bugs, and expect commands and settings to change before 1.0.
 >
-> **It is almost entirely written by [Claude Code](https://claude.com/claude-code)**,
-> with a human deciding what to build, trying it on real windows and reviewing the result. The code
-> is unit tested and linted, but no human has read every line. [`CLAUDE.md`](CLAUDE.md) and
-> [`devdocs/`](devdocs) show how it is built.
-
-## Features
-
-- **Tiling**: Provides basic layouts out of the box: `tall`, `grid`, `full`.
-  See [Layouts](docs/layouts.md).
-- **Animations**: window swapping, resizing, closing or moving between workspaces can be animated.
-- **Several displays**: each display has its own workspaces.
-- **Mouse Support**: resize tiled windows or drag a window onto another to swap them.
-- **Swipe Gestures**: swipe with three fingers to switch between workspaces.
-- **Menu bar indicators**: shows the workspaces as numbers or as a small map of every workspace and its
-  windows.
-- **No SIP changes.** tyler moves windows through the public Accessibility API, with no scripting
-  additions, so System Integrity Protection stays on. It uses private calls in only two small
-  places: to read a window's ID and for the resize cursor over a gap.
-
-See [Features](docs/features.md) for the details.
+> It is largely written by Claude Code,
+> with a human deciding what to build, trying it on real windows and reviewing the result.
+> [`CLAUDE.md`](CLAUDE.md) and [`devdocs/`](devdocs) show how it is built.
 
 ### Demo
 
-https://github.com/user-attachments/assets/d168cf84-ab63-4a10-8923-fb79e0c58f3d
+https://github.com/user-attachments/assets/ee6f163b-b495-4a65-b34a-2030451f2b55
 
-### Workspace Indicators
-<img width="310" height="34" alt="image" src="https://github.com/user-attachments/assets/c031ff86-a4e3-4fa3-9488-6656dc0749dd" />
+## Features
+
+- Tiling: Provides basic layouts out of the box: `tall`, `grid`, `full`.
+  See [Layouts](docs/layouts.md).
+- Animations: window swapping, resizing, closing or moving between workspaces can be animated.
+- Several displays: each display has its own workspaces.
+- Mouse Support: resize tiled windows or drag a window onto another to swap them.
+- Swipe Gestures: swipe with three fingers to switch between workspaces.
+- Menu bar indicators: shows the workspaces as numbers or as a small map of every workspace and its
+  windows.
+- No SIP changes. Tyler moves windows through the public Accessibility API, with no scripting
+  additions, so System Integrity Protection stays on. It uses private calls in two
+  places: to read a window's ID and for the resize cursor over a gap.
+
+See [Features](docs/features.md) for the details.
 
 ## Requirements
 
@@ -53,7 +52,7 @@ brew install dhansmair/tyler/tyler@v0.x.y # install specific version
 brew install --HEAD dhansmair/tyler/tyler # builds from main
 ```
 
-To build tyler yourself, see [Installing from source](docs/install-from-source.md).
+To build Tyler yourself, see [Installing from source](docs/install-from-source.md).
 
 Installing adds `Tyler.app`, which runs `tylerd` in the background (see the [manual](docs/manual.md#running-tylerd)).
 
@@ -67,7 +66,7 @@ tyler start
 > The daemon `tylerd` now runs in the background and keeps running when you close
 > the terminal. It will prompt for Accessibility permission: System Settings > Privacy &
 > Security > Accessibility lists `Tyler.app`; turn it on.
-> tyler tiles your windows once it notices (if it doesn't within a few seconds, run `tyler restart`).
+> Tyler tiles your windows once it notices (if it doesn't within a few seconds, run `tyler restart`).
 
 Check the status:
 ```bash
@@ -108,25 +107,24 @@ Reset the permission before deleting the app: `tccutil` only finds an app that i
 
 ## Keybindings
 
-tyler has no hotkeys of its own: every action is a `tyler` command, and you bind keys to them with
+Tyler has no hotkeys of its own: every action is a `tyler` command, and you bind keys to them with
 [skhd](https://github.com/koekeishiya/skhd),
 [Karabiner-Elements](https://karabiner-elements.pqrs.org) or [Raycast](https://www.raycast.com).
 With skhd, for example:
 
 ```
-alt - j : ~/.local/bin/tyler window focus next
-alt - k : ~/.local/bin/tyler window focus prev
-alt - return : ~/.local/bin/tyler window swap master
-alt - 1 : ~/.local/bin/tyler workspace focus 1
-alt + shift - 1 : ~/.local/bin/tyler window move-to-workspace 1
+alt - j : tyler window focus next
+alt - k : tyler window focus prev
+alt - return : tyler window swap master
+alt - 1 : tyler workspace focus 1
+alt + shift - 1 : tyler window move-to-workspace 1
 ```
 
 [Keybindings](docs/keybindings.md) has a full suggested set for all three tools.
 
 ## Configuration
 
-tyler reads `~/.config/tyler/tyler.toml`. The file is optional; every setting has a default. After
-editing it, run `tyler config reload`. [`docs/tyler.toml`](docs/tyler.toml) is a sample with every
+Tyler reads `~/.config/tyler/tyler.toml`. After editing it, run `tyler config reload`. [`docs/tyler.toml`](docs/tyler.toml) is a sample with every
 setting at its default and a comment each, to copy and edit; the
 [manual](docs/manual.md#configuration) explains every setting.
 

@@ -42,8 +42,7 @@ struct SyncController {
           held: held.union(context.draggedWindow.map { [$0] } ?? [])
             .union(context.crossingWindows.subtracting(arrived)),
           foundAtStart: model.bookkeeping.foundAtStart,
-          // A window that opens under a held button was put there, as a tab torn off a browser.
-          focusedDisplay: context.isPrimaryButtonDown ? nil : model.rows.focusedKey),
+          focusedDisplay: model.rows.focusedKey, mouseLocation: context.mouseLocation),
         assignedWorkspace: {
           context.config.assignedWorkspace(bundleID: $0.bundleID, appName: $0.appName)
         })

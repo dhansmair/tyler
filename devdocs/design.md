@@ -122,7 +122,9 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   joins the workspace the user is on, unless its app is assigned to one: macOS or the app picks
   where it appears, often on another display, and tyler can't choose before that, so it moves the
   window. Windows an app restores at launch can't be told apart and join too; windows open when
-  tylerd starts keep their display. A new window goes after the focused one; windows present at startup are ordered left to right. What is a
+  tylerd starts keep their display, and so does a window opening under the pointer, as a tab torn
+  off a browser, whose window appears only after the button comes up. A new window goes after the
+  focused one; windows present at startup are ordered left to right. What is a
   dialog comes from the subrole and the title bar together: a window with a full screen button
   is a document; one without a close or minimize button isn't, nor is one without full screen
   whose size can't be set (a popup). The subrole alone misleads both ways, and so does a missing

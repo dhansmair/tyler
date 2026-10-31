@@ -65,10 +65,11 @@ struct NewWindowDisplayScenarios {
     #expect(scenario.list(1) == [1])
   }
 
-  /// A tab torn off a browser and dropped: the user put it there.
-  @Test func aWindowOpenedWithTheButtonDownStaysWhereItOpened() async {
+  /// A tab torn off a browser and dropped: the user put it there. Browsers open the window after
+  /// the button comes up, so only the pointer tells.
+  @Test func aWindowOpeningUnderThePointerStaysWhereItOpened() async {
     let scenario = await twoDisplays()
-    scenario.pointer.isPrimaryButtonDown = true
+    scenario.pointer.move(to: CGPoint(x: Self.onOtherDisplay.midX, y: Self.onOtherDisplay.midY))
     await scenario.open(makeWindow(id: 9, frame: Self.onOtherDisplay))
     #expect(scenario.list(5) == [2, 9])
     #expect(scenario.list(1) == [1])

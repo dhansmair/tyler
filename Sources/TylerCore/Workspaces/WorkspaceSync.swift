@@ -31,11 +31,14 @@ package struct WorkspaceSync: Equatable, Sendable {
     package var foundAtStart: Set<WindowID>
     /// The display the user is on, where a window that just opened goes.
     package var focusedDisplay: DisplayKey?
+    /// Where the pointer is. A window opening under it was put there, as a tab dropped from a
+    /// browser, whose window appears after the button comes up.
+    package var mouseLocation: CGPoint?
 
     package init(
       floated: Set<WindowID>, seen: Set<WindowID>, sliding: Set<WindowID>,
       held: Set<WindowID> = [], foundAtStart: Set<WindowID> = [],
-      focusedDisplay: DisplayKey? = nil
+      focusedDisplay: DisplayKey? = nil, mouseLocation: CGPoint? = nil
     ) {
       self.floated = floated
       self.seen = seen
@@ -43,6 +46,7 @@ package struct WorkspaceSync: Equatable, Sendable {
       self.held = held
       self.foundAtStart = foundAtStart
       self.focusedDisplay = focusedDisplay
+      self.mouseLocation = mouseLocation
     }
 
     /// Whether a window on no workspace just opened: it has never been on one, and it wasn't
@@ -176,7 +180,9 @@ extension WorkspaceSync {
         return Place(position: location.position, index: location.index)
       }
       let isNew = Marks.isNew(window.id, seen: marks.seen, foundAtStart: marks.foundAtStart)
-      let focused = isNew ? marks.focusedDisplay.flatMap(rows.position(of:)) : nil
+      let isUnderPointer = marks.mouseLocation.map(window.frame.contains) ?? false
+      let focused =
+        isNew && !isUnderPointer ? marks.focusedDisplay.flatMap(rows.position(of:)) : nil
       return current(at: focused ?? onPosition)
     }
   }

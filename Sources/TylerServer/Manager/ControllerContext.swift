@@ -31,6 +31,7 @@ struct ControllerContext {
   var isSettling = false
   var slideDuration = Animator.defaultDuration
   var isPrimaryButtonDown = false
+  var mouseLocation: CGPoint?
   /// No slide or swipe moves the windows.
   var allowsDrag = true
 

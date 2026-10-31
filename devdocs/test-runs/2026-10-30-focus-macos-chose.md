@@ -5,12 +5,12 @@ A run between releases, for the rows that the fix for #12 touches; the other row
 - Date: 2026-10-30
 - macOS: 26.7.2
 - Build: 80bb0c0
-- Displays: the built-in display
-- Skipped contexts: two displays
+- Displays: the built-in display; an external display above it for the VS Code popup close
+- Skipped contexts: displays side by side
 
 | Id | Result | Notes |
 |---|---|---|
-| WIN-CLOSE-FOCUS | pass | AppKit fixture apps, 3 tries of each, focus declined every time: a close with a sibling in view (the sibling got the focus), a close leaving the workspace empty (no window kept the focus). VS Code, one try by hand: closing a window with the same app parked on another workspace, macOS focused the parked window and tylerd declined it. Not run: the parked window on another display, and a close that shows VS Code's confirmation popup. |
+| WIN-CLOSE-FOCUS | pass | AppKit fixture apps, 3 tries of each, focus declined every time: a close with a sibling in view (the sibling got the focus), a close leaving the workspace empty (no window kept the focus). VS Code, one try by hand: closing a window with the same app parked on another workspace, macOS focused the parked window and tylerd declined it. With two displays, one try by hand: closing a VS Code window through its confirmation popup, the same app parked on the other display. The popup closed, the focus went back to the window, the window closed, macOS focused the parked window, and tylerd declined it: no display switched. Not run: two closes in a row. |
 | WS-CMD-TAB | pass | Posted cmd-tab to a fixture app's parked window, 5 of 5. A sixth try was dropped: another focus had got in first. |
 | DISP-TILE | skipped | Needs two displays. |
 

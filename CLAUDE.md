@@ -24,6 +24,7 @@ Where things are written down:
 - `devdocs/testing-strategy.md`: the three layers of tests (unit, scenario, end to end) and where a new test goes. Read it before writing a test.
 - `devdocs/testing-catalogue.md`: the end-to-end catalogue, what to run on real windows before every release; `devdocs/test-runs/` holds each run.
 - `devdocs/known-issues.md`: bugs, limitations and what isn't built, each a GitHub issue that holds the details (`gh issue view <n>`); the strip's are in `devdocs/strip-layout.md`. A commit that fixes one says `Fixes #<n>` and removes its line, also from its user-facing twin `docs/known-issues.md`. A new one gets an issue and a line.
+- `devdocs/focus.md`: what focus should do and which real situations each rule exists for, each with its test. Read it before changing how tyler reacts to a focus.
 - `devdocs/delays-and-heuristics.md`: every timer and rule of thumb, why it is there and what it is based on. Update it when one changes.
 - `devdocs/REFACTORING.md`: the ranked refactoring and performance backlog.
 - `docs/`: for users. `docs/manual.md` is the manual (concepts, running tylerd, the config file and the command reference); `install-from-source.md`, `layouts.md`, `features.md`, `keybindings.md`, `troubleshooting.md` and `known-issues.md` sit beside it. Keep them in step when behaviour, settings or commands change.

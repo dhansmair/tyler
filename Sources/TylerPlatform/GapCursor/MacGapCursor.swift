@@ -1,5 +1,4 @@
 import AppKit
-import TylerCore
 import TylerRuntime
 import TylerServer
 
@@ -31,8 +30,10 @@ package final class MacGapCursor: GapCursor {
   }
 
   package func show(over area: CGRect) {
-    let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
-    let frame = DisplayGeometry.appKitRect(fromAX: area, primaryScreenHeight: primaryHeight)
+    guard let frame = PrimaryScreen.appKitRect(fromAX: area) else {
+      Self.log.warning("gap cursor skipped - no screen listed")
+      return
+    }
     window.setFrame(frame, display: false)
     window.orderFrontRegardless()
     content.cursor = Self.resizeCursor(isColumnGap: area.height >= area.width)

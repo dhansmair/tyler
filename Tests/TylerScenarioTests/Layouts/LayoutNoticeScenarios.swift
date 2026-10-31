@@ -23,6 +23,23 @@ struct LayoutNoticeScenarios {
     #expect(scenario.layoutNotice.shown.map(\.name) == ["grid"])
   }
 
+  @Test func settingTheLayoutAlreadySetNamesItToo() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+
+    _ = scenario.harness.manager.setLayout(.set(.tall))
+
+    #expect(scenario.layoutNotice.shown.map(\.name) == ["tall"])
+  }
+
+  @Test func aRefusedCommandShowsNothing() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    _ = scenario.harness.manager.setTiling(.off)
+
+    _ = scenario.harness.manager.setLayout(.next)
+
+    #expect(scenario.layoutNotice.shown.isEmpty)
+  }
+
   @Test func showsOnTheFocusedDisplay() async {
     let right = DisplayInfo(
       id: 2, frame: CGRect(x: 1800, y: 0, width: 1920, height: 1080),

@@ -55,7 +55,7 @@ case .broken(let error): warn("config broken - \(configSource.path) - \(error); 
 }
 
 // AX observers, NSWorkspace notifications and the menu bar item all go through the main run
-// loop, so the process runs a real (windowless) AppKit application instead of `dispatchMain()`.
+// loop, so the process runs a real AppKit application instead of `dispatchMain()`.
 // The application exists before the menu bar item is created.
 let application = NSApplication.shared
 application.setActivationPolicy(.accessory)

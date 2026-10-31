@@ -1,5 +1,5 @@
 import AppKit
-import TylerCore
+import TylerRuntime
 import TylerServer
 
 /// The real `LayoutNotice`: a borderless panel that takes no focus and lets clicks through, with
@@ -12,6 +12,8 @@ package final class MacLayoutNotice: LayoutNotice {
   private static let height: CGFloat = 96
   private static let minimumWidth: CGFloat = 200
   private static let sideMargin: CGFloat = 36
+
+  private static let log = TylerLog(category: "indicator")
 
   private let panel: NSPanel
   private let label = NSTextField(labelWithString: "")
@@ -37,10 +39,12 @@ package final class MacLayoutNotice: LayoutNotice {
   }
 
   package func show(_ name: String, in area: CGRect) {
+    guard let visible = PrimaryScreen.appKitRect(fromAX: area) else {
+      Self.log.warning("layout notice skipped - \(name) - no screen listed")
+      return
+    }
     hiding?.cancel()
     label.stringValue = name
-    let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
-    let visible = DisplayGeometry.appKitRect(fromAX: area, primaryScreenHeight: primaryHeight)
     let width = max(Self.minimumWidth, label.intrinsicContentSize.width + 2 * Self.sideMargin)
     let origin = CGPoint(x: visible.midX - width / 2, y: visible.midY - Self.height / 2)
     panel.setFrame(
@@ -51,6 +55,8 @@ package final class MacLayoutNotice: LayoutNotice {
       panel.animator().alphaValue = 1
     }
     panel.orderFrontRegardless()
+    // The shadow follows the panel's rounded content, which it may not have drawn until now.
+    panel.invalidateShadow()
     hiding = Task { [weak self] in
       do {
         try await Task.sleep(for: Self.hold)

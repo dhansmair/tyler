@@ -47,7 +47,8 @@ check have only run on fakes.
 | A close leaves the workspace empty | Focuses a parked window | macOS | Declines, takes the focus away | `theWorkspaceLeftEmptyStaysAndTakesTheFocusAway` | Yes |
 | Close an app's last window, later cmd-tab to a parked window | Focuses nothing, then that window | The user | Follows | `aFocusLongAfterTheCloseSwitches` | Yes |
 | Open a window that appears on the other display | Focuses it there | The user | Moves it to their workspace; its first focus doesn't move the display | `itsFocusDoesNotMoveTheFocusedDisplay` | Yes |
-| Rest the pointer on an empty workspace on another display | Nothing | The user | Focuses that workspace, keys included | `aRestOnAnEmptyWorkspaceTakesTheKeys` | No |
+| Rest the pointer on an empty workspace on another display | Nothing | The user | Focuses that workspace, keys included | `aRestOnAnEmptyWorkspaceTakesTheKeys` | Yes |
+| Drop a tab torn off a browser on the other display | Opens a window there, after the button comes up | The user | Leaves it there, as it opened under the pointer | `aWindowOpeningUnderThePointerStaysWhereItOpened` | Yes |
 | tyler focuses a window | Reports that focus back | tyler | Ignores it | `theEchoOfTylerdsOwnFocusDoesNotSwitchBack` | Yes |
 | A background window closes, then a focus on a parked window | Focuses it | The user | Follows | `aBackgroundWindowClosingTakesNothingAway` | No |
 | A dialog closes and its app focuses a parked window | Focuses it | The app, on purpose | Follows | `aDialogClosingAndFocusingAParkedWindowSwitches` | No |

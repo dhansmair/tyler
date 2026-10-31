@@ -45,8 +45,24 @@ struct MacWindowSystemMovingTests {
     harness.accessibility.losePosition(of: 1)
     let frame = CGRect(x: 600, y: 90, width: 500, height: 400)
     try harness.windowSystem.setFrame(frame, of: WindowID(1))
-    #expect(harness.accessibility.calls(on: 1).last == .position(frame.origin))
     #expect(harness.windowSystem.snapshot().first?.frame == frame)
+  }
+
+  /// Seen going to a wider display: the sizes written from the old one stop at its right edge.
+  @Test func aWindowCrossingDisplaysGetsTheSizeItAskedFor() async throws {
+    let harness = await started()
+    harness.accessibility.capWidth(of: 1, to: 700, writes: 2)
+    let frame = CGRect(x: 2000, y: -1400, width: 2500, height: 1300)
+    try harness.windowSystem.setFrame(frame, of: WindowID(1))
+    #expect(harness.windowSystem.snapshot().first?.frame == frame)
+  }
+
+  @Test func aWindowStayingOnItsDisplayIsNotWrittenTwiceForItsSize() async throws {
+    let harness = await started()
+    harness.accessibility.capWidth(of: 1, to: 450, writes: 2)
+    try harness.windowSystem.setFrame(
+      CGRect(x: 100, y: 50, width: 500, height: 300), of: WindowID(1))
+    #expect(harness.accessibility.calls(on: 1).count == 3)
   }
 
   @Test func aSizeTheAppChoseIsNotWrittenAgain() async throws {

@@ -81,6 +81,8 @@ extension FakeAXClient {
     var isMinimized = false
     var minimumSize = CGSize.zero
     var losesPosition = false
+    /// Size writes the old display still cuts down to this width.
+    var cappedWidth: (width: CGFloat, writes: Int)?
 
     mutating func write(_ origin: CGPoint) {
       if losesPosition {
@@ -88,6 +90,13 @@ extension FakeAXClient {
       } else {
         frame.origin = origin
       }
+    }
+
+    /// The width a size write gets.
+    mutating func width(for asked: CGFloat) -> CGFloat {
+      guard let cap = cappedWidth else { return asked }
+      cappedWidth = cap.writes > 1 ? (cap.width, cap.writes - 1) : nil
+      return min(asked, cap.width)
     }
   }
 }

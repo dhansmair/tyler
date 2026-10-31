@@ -226,6 +226,7 @@ extension AppConnection {
     // the size turn out to differ after all (the last read is out of date), the full move
     // follows.
     var current = windows.lastRead(of: windowID)?.frame
+    let isCrossing = current.map { !frame.intersects($0) } ?? false
     var actual: CGRect?
     if current?.size == frame.size {
       try check(bridge.setPosition(frame.origin, of: element), for: windowID)
@@ -241,10 +242,13 @@ extension AppConnection {
       try check(bridge.setFrame(frame, of: element), for: windowID)
       actual = bridge.frame(of: element)
     }
-    // Seen with a window crossing displays: its last position write didn't land, and nothing
-    // follows that would put it right.
-    if let landed = actual, landed.origin != frame.origin {
-      try check(bridge.setPosition(frame.origin, of: element), for: windowID)
+    // A window crossing displays can lose its position write, or stop at the old display's edge,
+    // and nothing follows that would put it right. A size the app chose on its own display stays:
+    // terminals round theirs.
+    if let landed = actual,
+      landed.origin != frame.origin || (isCrossing && landed.size != frame.size)
+    {
+      try check(bridge.setFrame(frame, of: element), for: windowID)
       actual = bridge.frame(of: element)
     }
     if let actual, actual != frame {

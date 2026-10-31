@@ -337,7 +337,9 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   to take mouse events (so a click in a gap lands on it, not the desktop) and the private
   `SetsCursorInBackground` call; `NSCursor.set()` alone, from the background, is undone at once
   (see `macos-behaviour.md`). A white bar drawn in the gap was tried first and dropped: the
-  cursor alone says enough.
+  cursor alone says enough. It is the cursor of a window's own edge, not the divider cursor with a
+  bar between its arrows, since dragging a gap resizes windows too; macOS 14, which lacks that
+  cursor, gets the older one with the bar.
 - **Focus follows mouse** (off by default): focus and raise the window the pointer comes to rest
   over, through the same call as `tyler window focus`. Only pointer movement triggers it, so a keyboard
   focus is never undone by a still pointer; only windows in view count, and only inside a display's

@@ -14,6 +14,8 @@ held so they repeat. 32 windows opened and 29 closed, each close followed by a f
 Before the fix, a close after such a burst took a window behind the front one, and the next closes
 did nothing until a window was focused by hand.
 
+On 363b4ec: 21 windows opened and 21 closed, with no stall.
+
 Close commands repeating on a window already closing fail (41 in this run). It does no harm.
 
 `displays changed` appeared in the log during the bursts (2 times), with no display touched. It had

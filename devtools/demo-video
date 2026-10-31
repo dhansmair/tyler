@@ -184,7 +184,7 @@ open_pane() {
   chmod +x "$launcher"
   cat >"$config" <<EOF
 command = direct:$launcher
-title = tyler
+title = " "
 background = $background
 foreground = #f5f5f5
 font-size = 28

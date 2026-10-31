@@ -3,10 +3,10 @@ import TylerCore
 /// Following a focus tylerd didn't ask for, and waiting for one on a parked window to last.
 extension WindowManager {
   func followFocus(to windowID: WindowID, isEcho: Bool, from previous: FocusedWindow?) {
+    if parkedFocus.isPending {
+      log.debug("window focus dropped - the focus moved on to \(named(windowID))")
+    }
     guard !isEcho, workspaceController.isParked(windowID, in: model) else {
-      if parkedFocus.isPending {
-        log.debug("window focus dropped - the focus moved on to \(named(windowID))")
-      }
       parkedFocus.cancel()
       run(workspaceController.focusChanged(to: windowID, isEcho: isEcho, model: &model))
       return
@@ -26,12 +26,12 @@ extension WindowManager {
   /// must not count against a focus long after, which is the user's.
   func focusedWindowClosed(_ windowID: WindowID) {
     guard interpreter.lastFocused?.id == windowID else { return }
-    closedFocus.restart(after: WorkspaceController.parkedFocusSettling) { [weak self] in
+    closedFocus.restart(after: WorkspaceController.closedFocusMemory) { [weak self] in
       self?.interpreter.forgetFocus(of: windowID)
     }
   }
 
-  private func isStillThere(_ windowID: WindowID) -> Bool {
+  func isStillThere(_ windowID: WindowID) -> Bool {
     registry.window(withID: windowID) != nil && stacking?.containsWindow(windowID) != false
   }
 }

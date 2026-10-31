@@ -38,7 +38,7 @@ struct FocusAfterCloseScenarios {
     scenario.stacking.goneWindows = [WindowID(1)]
     await scenario.focus(3)
     #expect(scenario.shown == [1, 5])
-    #expect(scenario.windowSystem.focusCalls.last == WindowID(1))
+    #expect(scenario.windowSystem.focusCalls.last == WindowID(2))
   }
 
   @Test func theWorkspaceLeftEmptyStaysAndTakesTheFocusAway() async {

@@ -123,6 +123,10 @@ struct WorkspaceController {
   /// 21 ms in every measured case.
   static let parkedFocusSettling: Duration = .milliseconds(60)
 
+  /// How long a window that closed with the focus counts as where the next focus came from. macOS
+  /// focused the next window within 1 ms of a close in every measured case.
+  static let closedFocusMemory: Duration = .milliseconds(60)
+
   /// Whether a focus on `windowID` would bring a parked workspace into view.
   func isParked(_ windowID: WindowID, in model: Model) -> Bool {
     guard context.isTiling(model), let location = model.rows.location(of: windowID) else {

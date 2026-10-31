@@ -36,7 +36,8 @@ package final class MacWindowStacking: WindowStacking {
 
   package func containsWindow(_ windowID: WindowID) -> Bool {
     let list = CGWindowListCopyWindowInfo([.optionIncludingWindow], windowID.rawValue)
-    return (list as? [[String: Any]])?.isEmpty == false
+    // No list says nothing about the window: only an empty one says it is gone.
+    return (list as? [[String: Any]])?.isEmpty != true
   }
 
   private struct Listed {

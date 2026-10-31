@@ -27,6 +27,53 @@ struct FocusFollowsMouseScenarios {
 
   private static var following: Config { config(followingFocus: true) }
 
+  /// Window 1 focused on display 1, and an empty workspace on display 2.
+  private func besideAnEmptyDisplay(config: Config = Self.following) async -> Scenario {
+    let scenario = await Scenario(
+      displays: [FakeDisplays.main, FakeDisplays.secondary], workspaces: [1: [1]], config: config)
+    await scenario.focus(1)
+    return scenario
+  }
+
+  private static let onEmptyDisplay = CGPoint(
+    x: FakeDisplays.secondary.visibleFrame.midX, y: FakeDisplays.secondary.visibleFrame.midY)
+
+  @Test func aRestOnAnEmptyDisplayFocusesThatDisplay() async {
+    let scenario = await besideAnEmptyDisplay()
+    await scenario.movePointer(to: Self.onEmptyDisplay)
+    #expect(scenario.focusedDisplay == 2)
+  }
+
+  /// The keys stay with the window until another one takes them.
+  @Test func aRestOnAnEmptyDisplayLeavesTheFocusedWindow() async {
+    let scenario = await besideAnEmptyDisplay()
+    let focusCalls = scenario.windowSystem.focusCalls.count
+    await scenario.movePointer(to: Self.onEmptyDisplay)
+    #expect(scenario.windowSystem.focusCalls.count == focusCalls)
+    #expect(scenario.windowSystem.unfocusCount == 0)
+  }
+
+  @Test func aWindowOpenedAfterARestOnAnEmptyDisplayGoesThere() async {
+    let scenario = await besideAnEmptyDisplay()
+    await scenario.movePointer(to: Self.onEmptyDisplay)
+    await scenario.open(
+      makeWindow(id: 9, frame: FakeDisplays.main.visibleFrame.insetBy(dx: 50, dy: 50)))
+    #expect(scenario.list(5) == [9])
+  }
+
+  @Test func withoutFocusFollowsARestLeavesTheFocusedDisplay() async {
+    let scenario = await besideAnEmptyDisplay(config: Self.config(followingFocus: false))
+    await scenario.movePointer(to: Self.onEmptyDisplay)
+    #expect(scenario.focusedDisplay == 1)
+  }
+
+  @Test func aRestWithTheButtonDownLeavesTheFocusedDisplay() async {
+    let scenario = await besideAnEmptyDisplay()
+    scenario.pointer.isPrimaryButtonDown = true
+    await scenario.movePointer(to: Self.onEmptyDisplay)
+    #expect(scenario.focusedDisplay == 1)
+  }
+
   /// Without the resize cursor over gaps, which watches the pointer's moves too.
   private static func config(followingFocus: Bool) -> Config {
     var config = Config()

@@ -19,6 +19,13 @@ package struct PointerCheck: Codable, Equatable, Sendable {
 
   package init() {}
 
+  /// Whether the pointer resting here makes its display the focused one, so that a display with
+  /// nothing to focus can be reached by moving there: the conditions of `focus` that aren't about
+  /// a window.
+  package var focusesDisplay: Bool {
+    focusFollows && isTiling && isIdle && !isButtonHeld && isInsideDisplay && !isMenuOpen
+  }
+
   /// Whether a press with the modifier grabs the window: one in view, at the normal layer,
   /// inside a display's visible frame, with tiling on and nothing else moving the windows.
   package var grab: PointerVerdict {

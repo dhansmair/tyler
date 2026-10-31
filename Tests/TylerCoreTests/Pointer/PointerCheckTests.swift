@@ -71,4 +71,28 @@ struct PointerCheckTests {
   func everyReasonIsExplained(refusal: PointerRefusal) {
     #expect(!refusal.explanation.isEmpty)
   }
+
+  @Test func aRestFocusesItsDisplayOverNothing() {
+    #expect(PointerCheck().focusesDisplay)
+  }
+
+  @Test func aRestLeavesTheDisplayWithoutWhatItNeeds() {
+    let required: [WritableKeyPath<PointerCheck, Bool>] = [
+      \.focusFollows, \.isTiling, \.isIdle, \.isInsideDisplay,
+    ]
+    for path in required {
+      var check = PointerCheck()
+      check[keyPath: path] = false
+      #expect(!check.focusesDisplay)
+    }
+  }
+
+  @Test func aRestLeavesTheDisplayWithAButtonHeldOrAMenuOpen() {
+    let blocking: [WritableKeyPath<PointerCheck, Bool>] = [\.isButtonHeld, \.isMenuOpen]
+    for path in blocking {
+      var check = PointerCheck()
+      check[keyPath: path] = true
+      #expect(!check.focusesDisplay)
+    }
+  }
 }

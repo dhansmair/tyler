@@ -59,8 +59,8 @@ check have only run on fakes.
   window and asked back once. The next press goes through.
 - **Windows an app restores when it launches** count as new, so they all join the display the user
   is on. So do older windows tracked late (#99).
-- **The pointer on an empty display:** tyler only knows the focused display, so a window opened
-  after moving the pointer there goes to the display that had the focus.
+- **With focus follows mouse off,** moving the pointer to another display doesn't focus it, so a
+  window opened then goes to the display that had the focus.
 - **`open -g`** can bring an assigned workspace into view (#72).
 - **A floated window on a workspace left empty:** it could take the keys after a decline, but
   nothing gives it the focus.

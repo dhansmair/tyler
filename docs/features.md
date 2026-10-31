@@ -65,6 +65,8 @@ Nothing is grabbed, and the press goes to the app, outside the area windows tile
 
 With `mouse.focus-follows = true`, moving the pointer onto a window and letting it rest there for a moment (`mouse.focus-delay`, 100 milliseconds by default) focuses that window and brings it to the front, as clicking it would. Sweeping the pointer across windows on the way somewhere else focuses none of them. It works on every display: resting on a window of another display focuses that display too. It is off by default.
 
+A rest also makes the display under the pointer the focused display, even if there is nothing to focus: move to an empty workspace on another display, and commands and new windows go there. The window you were typing in keeps the keys until another window takes them.
+
 Only moving the pointer moves the focus. Windows that slide or re-tile under a pointer that stays still change nothing, so focus you set from the keyboard (`tyler window focus`, `tyler workspace focus`) stays where it is until you move the mouse. Nothing is focused:
 
 - over a parked window's one-point column at the edge of the display, or a `strip` window out of view, so the pointer never switches workspaces. A `strip` window partly in view is focused like any other, which scrolls the strip to show it whole

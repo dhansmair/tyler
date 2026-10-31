@@ -4,7 +4,8 @@ import TylerCore
 /// Following the pointer: waiting for it to rest, and what is under it.
 extension WindowManager {
   /// Starts waiting for the pointer to rest at `location`: if it hasn't moved again after
-  /// `mouse.focus-delay`, the window under it gets focus. Only movement starts the wait, so
+  /// `mouse.focus-delay`, its display becomes the focused one and the window under it gets focus.
+  /// Only movement starts the wait, so
   /// windows sliding or re-tiling under a still pointer never take the focus from the keyboard.
   func pointerMoved(to location: CGPoint) {
     guard config.mouse.focusFollows else { return }
@@ -15,6 +16,7 @@ extension WindowManager {
 
   private func focusWindow(under location: CGPoint) {
     let check = pointerCheck(at: location)
+    if check?.focusesDisplay == true { model.focusDisplay(under: location, in: context) }
     let effects = FocusFollowsMouseController(log: log).pointerRested(
       check: check, at: self.pointerLogSubject(location, check))
     if let failure = run(effects).focusFailure {

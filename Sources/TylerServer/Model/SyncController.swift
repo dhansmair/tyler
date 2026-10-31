@@ -40,7 +40,8 @@ struct SyncController {
           // Windows out of view in a scrolling layout are parked like other workspaces' windows.
           sliding: context.movingWindows.union(tiling.offViewWindows),
           held: held.union(context.draggedWindow.map { [$0] } ?? [])
-            .union(context.crossingWindows.subtracting(arrived))),
+            .union(context.crossingWindows.subtracting(arrived)),
+          foundAtStart: model.bookkeeping.foundAtStart, focusedDisplay: model.rows.focusedKey),
         assignedWorkspace: {
           context.config.assignedWorkspace(bundleID: $0.bundleID, appName: $0.appName)
         })

@@ -173,6 +173,7 @@ package final class WindowManager {
     startDisplays()
     registry.replaceAll(windowSystem.snapshot())
     let restored = restorePending()
+    bookkeeping.foundAtStart = Set(registry.windows.map(\.id))
     state = .running
     // The first sync holds the handed-over windows: one put back on another display than its
     // workspace's (`handOver(puttingWindowsBack:)`) keeps its workspace, while windows that went

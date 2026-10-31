@@ -10,6 +10,9 @@ struct WindowBookkeeping: Equatable {
   /// Windows that have been on a workspace. App assignments only place windows not in here, so a
   /// window you moved, floated or minimized doesn't jump back to its app's workspace.
   var seen: Set<WindowID> = []
+  /// Windows open when tylerd started. Every other window that has never been on a workspace just
+  /// opened, so it joins the display the user is on.
+  var foundAtStart: Set<WindowID> = []
 
   init() {}
 
@@ -23,5 +26,11 @@ struct WindowBookkeeping: Equatable {
   mutating func forget(_ windowID: WindowID) {
     floated.remove(windowID)
     seen.remove(windowID)
+    foundAtStart.remove(windowID)
+  }
+
+  /// Whether `windowID` opened since tylerd started and hasn't been on a workspace yet.
+  func hasJustOpened(_ windowID: WindowID) -> Bool {
+    !seen.contains(windowID) && !foundAtStart.contains(windowID) && !floated.contains(windowID)
   }
 }

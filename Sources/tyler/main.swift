@@ -27,15 +27,28 @@ func show(_ response: Response) {
   }
 }
 
-func send(_ request: Request) {
+func answer(to request: Request) -> Response {
   do {
-    show(try IPCClient().send(request))
+    return try IPCClient().send(request)
   } catch IPCClientError.serverNotRunning(let path) {
     fail(
       "tyler: tylerd is not running (no server at \(path)); start it with `tyler start`", code: 1)
   } catch {
     fail("tyler: \(error)", code: 1)
   }
+}
+
+func send(_ request: Request) {
+  show(answer(to: request))
+}
+
+/// On stderr, so that a pipe gets only the log.
+func setLogLevel(_ level: LogLevel) {
+  let request = Request.configSet(name: "log.level", value: level.rawValue)
+  let (text, success) = ResponseFormatter.format(answer(to: request), as: .text)
+  guard success else { fail("tyler: \(text)", code: 1) }
+  let note = "tyler: log.level is \(level.rawValue) until `tyler config reload` or tylerd stops\n"
+  FileHandle.standardError.write(Data(note.utf8))
 }
 
 /// Edits tylerd's config file here and reloads it; without tylerd, the file it would read.
@@ -67,6 +80,13 @@ case .editConfig:
   switch ConfigEditing.choose(isTerminal: isTerminal, environment: environment) {
   case .inTerminal(let editor): editInTerminal(with: editor)
   case .byServer: send(.configEdit)
+  }
+case .showLog(let level):
+  if let level { setLogLevel(level) }
+  do {
+    try LogViewer.show(Paths.logPath(), isTerminal: isatty(STDOUT_FILENO) == 1)
+  } catch {
+    fail("tyler: \(error)", code: 1)
   }
 case .printVersion:
   FileHandle.standardOutput.write(Data("tyler \(TylerVersion.current)\n".utf8))

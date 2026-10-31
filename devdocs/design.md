@@ -528,10 +528,16 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
 - **`tyler debug windows` only reports.** It reads every window afresh and shows where tylerd's
   picture differs; fixing drift on each sync waits until it shows what drifts and how often.
 - **The log is the file tylerd already writes**, `~/.tyler/tyler.log`, by level (`log.level`,
-  default `warning`): nothing grows in memory, `tail -f` watches it, and it starts empty at each
+  default `warning`): nothing grows in memory, `tyler logs` watches it, and it starts empty at each
   start. Writes are plain and synchronous (a write to a regular file only copies into the page
   cache), and lines below the level aren't built (`@autoclosure`). The `debug` commands' output
   may change in any release.
+- **`tyler logs` runs `tail -F` on that file**, and streams nothing over the socket: the file
+  already is the live output, it can be read while tylerd is down or after a crash, and it holds
+  macOS's own lines too. The socket's one request, one reply would need a streaming mode for
+  nothing more. It follows only in a terminal, so a script doesn't wait forever. `--level` is
+  `config set log.level` and isn't undone on exit: that would take a client that stays alive to
+  catch Ctrl-C, and a killed one would leave the level set anyway.
 
 ## Considered and dropped
 

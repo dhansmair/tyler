@@ -1,5 +1,6 @@
 import TylerCore
 import TylerProtocol
+import TylerRuntime
 
 /// Parses `tyler` argv (without the program name) into an `Invocation`. Every command is one
 /// entry in `commands`, which also builds the usage text; `docs/manual.md` has a section for each
@@ -12,6 +13,7 @@ package enum CommandLineParser {
       daemon(.stop, "stop tylerd (windows go back where they were)"),
       daemon(.restart, "stop tylerd and start it again, for example after a rebuild"),
       daemon(.status, "show whether tylerd is running, and which build"),
+      logs,
       simple("ping", .ping, "check that tylerd is running"),
       CommandSpec(
         name: "tiling", arguments: choices(TilingMode.allCases),
@@ -52,6 +54,18 @@ package enum CommandLineParser {
   }
 
   // MARK: - Commands
+
+  private static let logs = CommandSpec(
+    name: "logs", arguments: "[--level \(choices(LogLevel.allCases))]",
+    summary: "show tylerd's log and follow it"
+  ) { arguments in
+    guard let option = arguments.first else { return Invocation(action: .showLog(level: nil)) }
+    guard option == "--level" else {
+      throw CommandLineError.usage("logs takes only --level, not '\(option)'")
+    }
+    let level: LogLevel = try parseChoice(Array(arguments.dropFirst()), for: "logs --level")
+    return Invocation(action: .showLog(level: level))
+  }
 
   /// Where a command's summary starts in the usage text; a longer command line puts its summary
   /// on the next line.

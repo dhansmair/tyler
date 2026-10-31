@@ -90,6 +90,31 @@ struct MacWindowSystemNotificationsTests {
     #expect(await harness.takeEvents().focused == [3])
   }
 
+  /// The app reports its own focus: the notification says when it moves.
+  @Test func aWindowOpeningInAnAppWithAReportedFocusReadsNoFocus() async {
+    let harness = await started()
+    harness.accessibility.focus(1, in: 100)
+    harness.workspace.activate(100)
+    _ = await harness.takeEvents()
+    harness.accessibility.addWindow(id: 3, frame: WindowSystemHarness.frame(of: 3), in: 100)
+    harness.accessibility.focus(3, in: 100)
+    harness.accessibility.post(kAXWindowCreatedNotification, for: 3, in: 100)
+    #expect(await harness.takeEvents().focused.isEmpty)
+  }
+
+  /// The read can come up empty while the window opens: that says nothing about the focus known.
+  @Test func anEmptyReadLeavesTheFocusKnown() async {
+    harness.addApp(100, windows: [1])
+    harness.addApp(200, windows: [5])
+    await harness.start()
+    harness.accessibility.post(kAXFocusedWindowChangedNotification, for: 1, in: 100)
+    _ = await harness.takeEvents()
+    harness.workspace.frontmostProcessID = 200
+    harness.accessibility.addWindow(id: 6, frame: WindowSystemHarness.frame(of: 6), in: 200)
+    harness.accessibility.post(kAXWindowCreatedNotification, for: 6, in: 200)
+    #expect(await harness.takeEvents().focused.isEmpty)
+  }
+
   @Test func aWindowOpeningBehindTheFrontAppTakesNoFocus() async {
     let harness = await started()
     harness.accessibility.addWindow(id: 3, frame: WindowSystemHarness.frame(of: 3), in: 100)

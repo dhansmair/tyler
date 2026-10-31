@@ -177,7 +177,7 @@ package final class MacWindowSystem: WindowSystem {
       connection.readFocus()
       Self.log.debug(
         "app activated - pid \(processID) - focus read: "
-          + (focusedID.map { "#\($0.rawValue)" } ?? "none"))
+          + (focusedID.map { WindowInfo.logName($0, nil) } ?? "none"))
     } else if retries[processID] == nil {
       Self.log.debug("app activated - pid \(processID) - not observed yet, attaching")
       attach(processID: processID, attempt: 1)
@@ -193,9 +193,7 @@ package final class MacWindowSystem: WindowSystem {
     case .created(let info):
       owners[info.id] = processID
       continuation.yield(.created(focusing(info)))
-      // An app that came to the front before it had a window read no focus then, and macOS doesn't
-      // report the focus of the window it opens next.
-      if workspace.frontmostProcessID == processID { connections[processID]?.readFocus() }
+      readFocusOfFirstWindow(of: processID)
     case .updated(let info):
       continuation.yield(.updated(focusing(info)))
     case .destroyed(let windowID):
@@ -205,6 +203,15 @@ package final class MacWindowSystem: WindowSystem {
     case .focused(let windowID):
       setFocus(windowID)
     }
+  }
+
+  /// An app that came to the front before it had a window read no focus then, and macOS doesn't
+  /// report the focus of the window it opens next. Other apps report theirs themselves.
+  private func readFocusOfFirstWindow(of processID: pid_t) {
+    guard workspace.frontmostProcessID == processID,
+      focusedID.flatMap({ owners[$0] }) != processID
+    else { return }
+    connections[processID]?.readFocusIfAny()
   }
 
   private func setFocus(_ windowID: WindowID?) {

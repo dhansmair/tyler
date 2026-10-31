@@ -97,6 +97,13 @@ final class AppConnection {
     report(.focused(bridge.focusedWindow(of: application).flatMap { register(window: $0) }))
   }
 
+  /// Reports the window the app has focused, if it has one: a read can come up empty while a
+  /// window opens, which says nothing about the focus known.
+  func readFocusIfAny() {
+    guard let window = bridge.focusedWindow(of: application) else { return }
+    report(.focused(register(window: window)))
+  }
+
   /// Forgets a window that is gone, and reports it.
   func forget(_ windowID: WindowID, because reason: ForgetReason) {
     let name = named(windowID)

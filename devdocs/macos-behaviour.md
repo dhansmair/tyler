@@ -362,7 +362,8 @@ tylerd declined these focuses:
 - **An app can come to the front before it has a window.** A terminal started with `open -n` did,
   in a burst of them: its activation arrived 185 ms before its window, the read then found no focused
   window, and neither a focus notification nor an activation followed, though macOS showed the window
-  as focused. So a window opening in the frontmost app has its focus read too.
+  as focused. So when a window opens in the frontmost app and tylerd knows no focus in that app, it
+  reads one.
 
 ## Synthetic input (for live checks)
 

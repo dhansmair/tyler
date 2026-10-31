@@ -49,7 +49,7 @@ check have only run on fakes.
 | Open a window that appears on the other display | Focuses it there | The user | Moves it to their workspace; its first focus doesn't move the display | `itsFocusDoesNotMoveTheFocusedDisplay` | Yes |
 | Rest the pointer on an empty workspace on another display | Nothing | The user | Focuses that workspace, keys included | `aRestOnAnEmptyWorkspaceTakesTheKeys` | Yes |
 | Drop a tab torn off a browser on the other display | Opens a window there, after the button comes up | The user | Leaves it there, as it opened under the pointer | `aWindowOpeningUnderThePointerStaysWhereItOpened` | Yes |
-| Start an app that comes to the front before its window exists | Focuses the window, without saying so | The user | Reads the focus when the window opens, or commands hit the window behind it | `aWindowOpeningInTheFrontAppReportsItsFocus` | No |
+| Start an app that comes to the front before its window exists | Focuses the window, without saying so | The user | Reads the focus when the window opens, or commands hit the window behind it | `aWindowOpeningInTheFrontAppReportsItsFocus` | Yes |
 | tyler focuses a window | Reports that focus back | tyler | Ignores it | `theEchoOfTylerdsOwnFocusDoesNotSwitchBack` | Yes |
 | A background window closes, then a focus on a parked window | Focuses it | The user | Follows | `aBackgroundWindowClosingTakesNothingAway` | No |
 | A dialog closes and its app focuses a parked window | Focuses it | The app, on purpose | Follows | `aDialogClosingAndFocusingAParkedWindowSwitches` | No |

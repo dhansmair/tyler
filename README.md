@@ -12,21 +12,21 @@ complicated, since I rarely want more than two or three windows on a workspace.
 > **Tyler is alpha software.**
 > Expect bugs, and expect commands and settings to change before 1.0.
 >
-> **It is largely written by Claude Code**,
+> It is largely written by Claude Code,
 > with a human deciding what to build, trying it on real windows and reviewing the result.
 > [`CLAUDE.md`](CLAUDE.md) and [`devdocs/`](devdocs) show how it is built.
 
 ## Features
 
-- **Tiling**: Provides basic layouts out of the box: `tall`, `grid`, `full`.
+- Tiling: Provides basic layouts out of the box: `tall`, `grid`, `full`.
   See [Layouts](docs/layouts.md).
-- **Animations**: window swapping, resizing, closing or moving between workspaces can be animated.
-- **Several displays**: each display has its own workspaces.
-- **Mouse Support**: resize tiled windows or drag a window onto another to swap them.
-- **Swipe Gestures**: swipe with three fingers to switch between workspaces.
-- **Menu bar indicators**: shows the workspaces as numbers or as a small map of every workspace and its
+- Animations: window swapping, resizing, closing or moving between workspaces can be animated.
+- Several displays: each display has its own workspaces.
+- Mouse Support: resize tiled windows or drag a window onto another to swap them.
+- Swipe Gestures: swipe with three fingers to switch between workspaces.
+- Menu bar indicators: shows the workspaces as numbers or as a small map of every workspace and its
   windows.
-- **No SIP changes.** tyler uses only the public Accessibility API: no private APIs, no scripting
+- No SIP changes: Tyler uses only the public Accessibility API: no private APIs, no scripting
   additions, System Integrity Protection stays on.
 
 See [Features](docs/features.md) for the details.
@@ -34,9 +34,6 @@ See [Features](docs/features.md) for the details.
 ### Demo
 
 https://github.com/user-attachments/assets/d168cf84-ab63-4a10-8923-fb79e0c58f3d
-
-### Workspace Indicators
-<img width="310" height="34" alt="image" src="https://github.com/user-attachments/assets/c031ff86-a4e3-4fa3-9488-6656dc0749dd" />
 
 ## Requirements
 

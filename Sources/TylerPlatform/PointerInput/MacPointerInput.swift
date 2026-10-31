@@ -81,7 +81,7 @@ package final class MacPointerInput: PointerInput {
     guard let fingers else { return }
     gestureListener = TrackpadGestureListener(fingers: fingers) { [weak self] update in
       guard let self else { return }
-      continuation.yield(.swipe(update, location: pointerLocation()))
+      continuation.yield(.swipe(update, location: location))
     }
   }
 
@@ -207,15 +207,16 @@ package final class MacPointerInput: PointerInput {
   /// Reports a drag step or the release with where the pointer is, in Accessibility coordinates
   /// (top-left origin on the primary display).
   private func report(isRelease: Bool) {
-    let location = pointerLocation()
+    let location = location
     continuation.yield(
       isRelease
         ? .primaryButtonReleased(location: location) : .primaryButtonDragged(location: location))
   }
 
-  /// Where the pointer is, in Accessibility coordinates (top-left origin on the primary display).
-  private func pointerLocation() -> CGPoint {
-    let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
+  /// Top-left origin on the primary display.
+  package var location: CGPoint {
+    // Read for every event, so without the array `NSScreen.screens` builds.
+    let primaryHeight = CGDisplayBounds(CGMainDisplayID()).height
     return DisplayGeometry.axRect(
       fromAppKit: CGRect(origin: NSEvent.mouseLocation, size: .zero),
       primaryScreenHeight: primaryHeight

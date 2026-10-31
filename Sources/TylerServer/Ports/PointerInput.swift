@@ -9,6 +9,8 @@ package protocol PointerInput: AnyObject {
   var events: AsyncStream<PointerEvent> { get }
   /// Whether the primary button is held down right now.
   var isPrimaryButtonDown: Bool { get }
+  /// Where the pointer is now, in Accessibility coordinates.
+  var location: CGPoint { get }
   func start()
   func stop()
   func watch(_ watch: PointerWatch)

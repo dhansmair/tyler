@@ -32,8 +32,9 @@ Rules with no timer:
 Which window counts as new:
 
 - **New:** a window on no workspace that has never been on one, and wasn't there when tylerd started
-  or when tiling came back on. It joins the focused display, unless its app has a workspace or a
-  mouse button is down.
+  or when tiling came back on. It joins the focused display, unless its app has a workspace or it
+  opens under the pointer: browsers open a torn-off tab's window after the button comes up, up to
+  1.6 s later.
 - **Its first focus** doesn't move the focused display: the window may be anywhere, and it is about
   to move.
 

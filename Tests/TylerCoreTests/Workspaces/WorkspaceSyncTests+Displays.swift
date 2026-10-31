@@ -65,6 +65,18 @@ struct WorkspaceSyncDisplaysTests {
     #expect(syncs[1].eligible[0] == [WindowID(2), WindowID(4)])
   }
 
+  @Test func aNewWindowUnderThePointerStaysOnItsDisplay() throws {
+    let syncs = try #require(
+      WorkspaceSync.plan(
+        for: rows(), windows: [window(1), window(2, left: 2000), window(4, left: 2000)],
+        displays: [primary, secondary],
+        marks: WorkspaceSync.Marks(
+          floated: [], seen: [], sliding: [], focusedDisplay: primary.key,
+          mouseLocation: CGPoint(x: 2100, y: 200)),
+        assignedWorkspace: { _ in nil }))
+    #expect(syncs[1].eligible[0] == [WindowID(2), WindowID(4)])
+  }
+
   @Test func anAssignmentWinsOverTheFocusedDisplay() throws {
     let syncs = try #require(planOpening(window(9, left: 100), focusedDisplay: primary.key))
     #expect(syncs[1].arrivals == [WindowID(9)])

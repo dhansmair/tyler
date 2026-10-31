@@ -91,6 +91,8 @@ package final class WindowManager {
   let parkedFocus: ParkedFocusWait
   /// How long a closed window counts as the one that held the focus (see `focusedWindowClosed`).
   let closedFocus: Debounce
+  /// The window tylerd just asked to focus (see `followFocus(to:isEcho:from:)`).
+  let focusRequest: RecentFocusRequest
   /// Follows `displays.changes` while running.
   var displayPump: Task<Void, Never>?
   /// Waits for the displays to settle after a change (see `displaysChanged`).
@@ -139,6 +141,8 @@ package final class WindowManager {
     displaySettling = Debounce(clock: clock)
     parkedFocus = ParkedFocusWait(clock: clock)
     closedFocus = Debounce(clock: clock)
+    focusRequest = RecentFocusRequest(
+      remembering: WorkspaceController.focusRequestMemory, clock: clock)
     pendingRestore = saved
     model = Model(
       rows: DisplayRows(

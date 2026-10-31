@@ -15,9 +15,12 @@ extension WindowManager {
       [weak self] origin in
       guard let self else { return }
       let isGone = origin.map { !isStillThere($0.id) } ?? false
-      run(
-        workspaceController.focusSettled(
-          on: windowID, from: origin, previousIsGone: isGone, model: &model))
+      let effects = workspaceController.focusSettled(
+        on: windowID, from: origin, previousIsGone: isGone, request: focusRequest.request,
+        model: &model)
+      if let failure = run(effects).focusFailure {
+        log.error("window focusing failed - \(failure.description)")
+      }
     }
   }
 

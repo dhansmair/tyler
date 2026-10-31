@@ -30,6 +30,7 @@ extension WindowManager {
     let expectsEvent = registry.focusedID != windowID
     try mover.focus(windowID, known: registry)
     if expectsEvent { interpreter.expectFocus(of: windowID) }
+    focusRequest.note(windowID)
   }
 
   func outcome(failures: Int) -> Response {

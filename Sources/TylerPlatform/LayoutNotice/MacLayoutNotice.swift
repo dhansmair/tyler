@@ -40,8 +40,7 @@ package final class MacLayoutNotice: LayoutNotice {
     hiding?.cancel()
     label.stringValue = name
     let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
-    // The flip between Accessibility and AppKit coordinates is its own inverse.
-    let visible = DisplayGeometry.axRect(fromAppKit: area, primaryScreenHeight: primaryHeight)
+    let visible = DisplayGeometry.appKitRect(fromAX: area, primaryScreenHeight: primaryHeight)
     let width = max(Self.minimumWidth, label.intrinsicContentSize.width + 2 * Self.sideMargin)
     let origin = CGPoint(x: visible.midX - width / 2, y: visible.midY - Self.height / 2)
     panel.setFrame(
@@ -58,6 +57,8 @@ package final class MacLayoutNotice: LayoutNotice {
       } catch {
         return
       }
+      // A sleep that had already ended when a new notice cancelled this task doesn't throw.
+      guard !Task.isCancelled else { return }
       await self?.fadeOut()
     }
   }
@@ -126,8 +127,11 @@ package final class MacLayoutNotice: LayoutNotice {
 
     override func layout() {
       super.layout()
+      CATransaction.begin()
+      CATransaction.setDisableActions(true)
       highlight.frame = bounds
       edge.frame = bounds
+      CATransaction.commit()
     }
 
     private func fill(with view: NSView) {

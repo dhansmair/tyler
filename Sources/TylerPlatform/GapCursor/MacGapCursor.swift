@@ -32,8 +32,7 @@ package final class MacGapCursor: GapCursor {
 
   package func show(over area: CGRect) {
     let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
-    // The flip between Accessibility and AppKit coordinates is its own inverse.
-    let frame = DisplayGeometry.axRect(fromAppKit: area, primaryScreenHeight: primaryHeight)
+    let frame = DisplayGeometry.appKitRect(fromAX: area, primaryScreenHeight: primaryHeight)
     window.setFrame(frame, display: false)
     window.orderFrontRegardless()
     content.cursor = area.height >= area.width ? .resizeLeftRight : .resizeUpDown

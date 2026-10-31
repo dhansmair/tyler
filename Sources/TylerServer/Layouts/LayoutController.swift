@@ -16,8 +16,11 @@ struct LayoutController {
   }
 
   private func notice(of layout: LayoutKind, in rows: DisplayRows) -> [Effect] {
-    guard context.config.layouts.showsNotice, let display = context.display(for: rows.focusedKey)
-    else { return [] }
+    guard context.config.layouts.showsNotice else { return [] }
+    guard let display = context.display(for: rows.focusedKey) else {
+      context.log.info("layout notice skipped - the focused display is not connected")
+      return []
+    }
     return [.showLayoutNotice(layout, over: display.visibleFrame)]
   }
 

@@ -23,8 +23,6 @@ has its own list in [Layouts](layouts.md#strip--experimental).
   app that wasn't answering when `tylerd` started. ([#99](https://github.com/dhansmair/tyler/issues/99))
 - **A window opened in the background** (`open -g`) of an app with a workspace in the config
   brings that workspace into view, although the app you were using stays in front. ([#72](https://github.com/dhansmair/tyler/issues/72))
-- **A window sent alone to a larger display** may arrive narrower than its slot;
-  `tyler workspace retile` fixes it. ([#74](https://github.com/dhansmair/tyler/issues/74))
 
 ## Limits
 

@@ -228,7 +228,10 @@ package final class MacWindowSystem: WindowSystem {
 }
 
 extension MacWindowSystem {
-  package func setFrame(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
+  @discardableResult
+  package func setFrame(
+    _ frame: CGRect, of windowID: WindowID
+  ) throws(WindowSystemError) -> CGRect? {
     try owner(of: windowID).setFrame(frame, of: windowID)
   }
 

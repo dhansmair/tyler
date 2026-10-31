@@ -75,6 +75,24 @@ struct NewWindowDisplayScenarios {
     #expect(scenario.list(1) == [1])
   }
 
+  /// macOS can lose the position of a window crossing displays, or stop it at the old one's edge.
+  @Test func aWindowLandingOffWhileCrossingIsPlacedAgain() async {
+    let scenario = await twoDisplays()
+    scenario.windowSystem.offLandings[WindowID(9)] = Self.onOtherDisplay
+    await scenario.open(makeWindow(id: 9, frame: Self.onOtherDisplay))
+    #expect(scenario.frame(of: 9).map(FakeDisplays.main.frame.contains) == true)
+  }
+
+  /// Terminals round their size: nothing would come of asking again.
+  @Test func aWindowLandingOffOnItsOwnDisplayIsLeft() async {
+    let scenario = await twoDisplays()
+    let onMain = CGRect(x: 300, y: 300, width: 400, height: 300)
+    scenario.windowSystem.clearRecordedCalls()
+    scenario.windowSystem.offLandings[WindowID(9)] = onMain
+    await scenario.open(makeWindow(id: 9, frame: onMain))
+    #expect(scenario.windowSystem.moves.filter { $0.id == WindowID(9) }.count == 1)
+  }
+
   @Test func windowsOpenedWithTilingOffStayOnTheirDisplay() async {
     let scenario = await twoDisplays()
     await scenario.command("tiling off")

@@ -150,6 +150,8 @@ final class AppConnection {
     windows.track(window, as: windowID, ownedBy: processID)
     let failures = bridge.observe(window: window, processID: processID)
     if let info = read(windowID) {
+      Self.log.info(
+        "window opened - \(named(info.id)) - at \(Self.describe(info.frame)), \(info.kind)")
       report(.created(info))
     }
     // After the first read, so the line names the window.
@@ -218,7 +220,8 @@ final class AppConnection {
 
 /// Moving, focusing and closing; here because it reads and updates the connection's private state.
 extension AppConnection {
-  func setFrame(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
+  @discardableResult
+  func setFrame(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) -> CGRect? {
     let element = try settledElement(windowID)
     // A window that already has the size only needs moving: one write instead of three. Should
     // the size turn out to differ after all (the last read is out of date), the full move
@@ -239,13 +242,23 @@ extension AppConnection {
       try check(bridge.setFrame(frame, of: element), for: windowID)
       actual = bridge.frame(of: element)
     }
+    if let actual, !actual.isClose(to: frame) {
+      Self.log.info(
+        "window placing off - \(named(windowID)) - asked for \(Self.describe(frame)), "
+          + "got \(Self.describe(actual))")
+    }
     // The app may have clamped the size; tell the manager what it really is.
-    guard let actual, let info = note(actual, of: windowID) else { return }
+    guard let actual, let info = note(actual, of: windowID) else { return actual }
     report(.updated(info))
+    return actual
   }
 
   func setPosition(_ origin: CGPoint, of windowID: WindowID) throws(WindowSystemError) {
     try move(windowID, by: [.position(origin)])
+  }
+
+  private static func describe(_ frame: CGRect) -> String {
+    "\(Int(frame.minX)),\(Int(frame.minY)) \(Int(frame.width))x\(Int(frame.height))"
   }
 
   /// Ordered from the frame last read, which lags behind the steps but grows or shrinks the same
@@ -261,7 +274,10 @@ extension AppConnection {
     let element = try settledElement(windowID)
     guard let current = windows.lastRead(of: windowID)?.frame,
       let writes = FrameWrite.inPassing(from: current, to: frame)
-    else { return try setFrame(frame, of: windowID) }
+    else {
+      try setFrame(frame, of: windowID)
+      return
+    }
     for write in writes {
       try check(bridge.write(write, to: element), for: windowID)
     }

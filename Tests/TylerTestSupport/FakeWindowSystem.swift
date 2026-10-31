@@ -28,6 +28,8 @@ package final class FakeWindowSystem: WindowSystem {
   package var failingMoves: Set<WindowID> = []
   /// Windows that keep their size whatever `setFrame` asks, as System Settings keeps its width.
   package var fixedSizes: [WindowID: CGSize] = [:]
+  /// Where the next placement of a window lands instead of where it was asked to.
+  package var offLandings: [WindowID: CGRect] = [:]
   /// Whether moves wait, as `MacWindowSystem`'s queues let them: `setPosition` and `setFrameStep` keep
   /// only the newest
   /// move of each window in `heldMoves` until `releaseHeldMoves()`, and a `setFrame` (or
@@ -77,12 +79,18 @@ package final class FakeWindowSystem: WindowSystem {
     untracked = []
   }
 
-  package func setFrame(_ frame: CGRect, of windowID: WindowID) throws(WindowSystemError) {
+  @discardableResult
+  package func setFrame(
+    _ frame: CGRect, of windowID: WindowID
+  ) throws(WindowSystemError) -> CGRect? {
     settle(windowID)
     let index = try movableIndex(of: windowID)
     moves.append(Placement(id: windowID, frame: frame))
-    windows[index].frame = CGRect(origin: frame.origin, size: fixedSizes[windowID] ?? frame.size)
+    windows[index].frame =
+      offLandings.removeValue(forKey: windowID)
+      ?? CGRect(origin: frame.origin, size: fixedSizes[windowID] ?? frame.size)
     continuation.yield(.updated(windows[index]))
+    return windows[index].frame
   }
 
   /// Like `setFrame`, but recorded in `passingMoves`: the app's own notifications report it.

@@ -38,12 +38,17 @@ final class WindowMover {
     var failures = 0
     for placement in placements {
       rememberOriginalFrame(of: placement.id, known: registry)
-      noteCrossing(placement, known: registry)
+      let isCrossing = noteCrossing(placement, known: registry)
       do {
         try timed(placement.id) { () throws(WindowSystemError) in
           if inPassing {
             try windowSystem.setFrameInPassing(placement.frame, of: placement.id)
-          } else {
+            return
+          }
+          let landed = try windowSystem.setFrame(placement.frame, of: placement.id)
+          // A crossing window can lose its position, or stop at the old display's edge
+          // (`macos-behaviour.md`), and a second write lands. Nothing else would put it right.
+          if isCrossing, landed?.isClose(to: placement.frame) == false {
             try windowSystem.setFrame(placement.frame, of: placement.id)
           }
         }
@@ -200,12 +205,14 @@ final class WindowMover {
     return { start.duration(to: clock.now) }
   }
 
-  private func noteCrossing(_ placement: Placement, known registry: WindowRegistry) {
-    guard let frame = registry.window(withID: placement.id)?.frame else { return }
+  /// Returns whether the window is crossing to another display.
+  private func noteCrossing(_ placement: Placement, known registry: WindowRegistry) -> Bool {
+    guard let frame = registry.window(withID: placement.id)?.frame else { return false }
     let connected = displays.displays
     let source = DisplayGeometry.display(containing: frame, in: connected)?.key
     let target = DisplayGeometry.display(containing: placement.frame, in: connected)?.key
     if source != target { crossing.insert(placement.id) }
+    return source != target
   }
 
   /// A window found at a parking spot (left there by a tylerd that crashed or was killed) is

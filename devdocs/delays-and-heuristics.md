@@ -79,6 +79,11 @@ is open. The Dock and Notification Centre count as overlays when they cover a wh
 | An app that timed out is left alone for | 5 s | Otherwise it costs a second per window on every switch |
 | Connecting to a new app | 6 tries, 500 ms apart | Apps aren't always ready when launched |
 
+## Moving windows
+
+A window crossing displays is written a second time, once, if it didn't land within a point of where
+it was asked to. Nothing else is: a window on its own display keeps the size its app chose.
+
 ## Displays and the lock screen
 
 | What | Value | Why |

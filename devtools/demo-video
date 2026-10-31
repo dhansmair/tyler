@@ -192,6 +192,7 @@ background-opacity = 0.93
 background-blur = true
 window-padding-x = 20
 window-padding-y = 20
+resize-overlay = never
 window-save-state = never
 confirm-close-surface = false
 quit-after-last-window-closed = true

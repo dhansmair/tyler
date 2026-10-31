@@ -12,6 +12,8 @@ closes moves into the table.
    parked workspace brings it into view.
 2. **Keys always reach a window the user can see.** When tyler refuses a move, it also takes the
    focus off the parked window.
+3. **Focus stays on the user's display until they move it.** What they type or open next belongs
+   there, even if a close leaves its workspace empty.
 
 ## Why it is hard
 
@@ -37,6 +39,7 @@ check have only run on fakes.
 | Focus a window of an app with another window on the other display | Passes through the remembered window | The app, in passing | Ignores it | `aPassingFocusOnAParkedWindowSwitchesNothing` | Yes |
 | The same, right after that other window was swiped away | Ends on the remembered window | The app | Asks again, once | `tylerdAsksAgainInsteadOfSwitching` | Yes |
 | Close a window, the app has another one parked | Focuses the parked one | macOS | Declines, focuses the current workspace | `aCloseThenAFocusOnAParkedWindowStaysAndFocusesTheSibling` | Yes |
+| Close or quit with a window in view on the other display | Focuses that window, whichever was used last | macOS | Declines, keeps the focus on the display, even on an empty workspace | `aCloseKeepsTheFocusOnItsDisplay` | No |
 | Quit an app, another app's window is parked | Focuses it, possibly before the quit reaches tyler | macOS | Declines | `aFocusThatComesBeforeTheCloseAlsoStays` | Yes |
 | A close leaves the workspace empty | Focuses a parked window | macOS | Declines, takes the focus away | `theWorkspaceLeftEmptyStaysAndTakesTheFocusAway` | Yes |
 | Close an app's last window, later cmd-tab to a parked window | Focuses nothing, then that window | The user | Follows | `aFocusLongAfterTheCloseSwitches` | Yes |

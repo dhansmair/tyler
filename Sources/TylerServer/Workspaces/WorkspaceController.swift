@@ -176,6 +176,29 @@ struct WorkspaceController {
     WindowInfo.logName(windowID, context.registry.window(withID: windowID))
   }
 
+  /// A focus on `windowID`, which needs no wait: it isn't parked, or it is tylerd's own. macOS picks
+  /// the next window across displays, so after a close it can land in view on another display.
+  /// The user is still on theirs, and what they type or open next belongs there, so the focus
+  /// comes back, even to an empty workspace. `isGone` asks whether a window went away.
+  func focusInView(
+    on windowID: WindowID, isEcho: Bool, from previous: FocusedWindow?,
+    isGone: (WindowID) -> Bool, model: inout Model
+  ) -> [Effect] {
+    guard !isEcho, context.isTiling(model), let previous,
+      isOnAnotherDisplay(windowID, in: model),
+      previous.leftTheChoiceToMacOS(isGone: isGone(previous.id))
+    else { return focusChanged(to: windowID, isEcho: isEcho, model: &model) }
+    context.log.info(
+      "window focus not followed - \(name(of: windowID)) - "
+        + "the focused window went away on another display")
+    return [.focusCurrentWorkspace]
+  }
+
+  private func isOnAnotherDisplay(_ windowID: WindowID, in model: Model) -> Bool {
+    var trial = model
+    return trial.focusDisplay(of: windowID, in: context)
+  }
+
   /// `request`, if the app it went to ended on its other window `windowID` instead, and the window
   /// asked for can still take the focus.
   private func unmetRequest(

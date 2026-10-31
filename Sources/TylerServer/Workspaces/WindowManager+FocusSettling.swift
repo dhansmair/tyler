@@ -8,7 +8,10 @@ extension WindowManager {
     }
     guard !isEcho, workspaceController.isParked(windowID, in: model) else {
       parkedFocus.cancel()
-      run(workspaceController.focusChanged(to: windowID, isEcho: isEcho, model: &model))
+      run(
+        workspaceController.focusInView(
+          on: windowID, isEcho: isEcho, from: previous, isGone: { !isStillThere($0) },
+          model: &model))
       return
     }
     waitForFocus(on: windowID, from: previous)

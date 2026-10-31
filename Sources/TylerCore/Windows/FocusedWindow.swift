@@ -8,4 +8,10 @@ package struct FocusedWindow: Equatable, Sendable {
     self.id = id
     self.kind = kind
   }
+
+  /// Whether macOS chose the next window because this one went away. A dialog is different:
+  /// closing one and focusing another window is what its app meant to do.
+  package func leftTheChoiceToMacOS(isGone: Bool) -> Bool {
+    kind == .standard && isGone
+  }
 }

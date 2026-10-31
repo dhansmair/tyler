@@ -337,6 +337,9 @@ tylerd declined these focuses:
   forward and the window staying, it was on screen. **A close is the other way round:** the window
   server keeps the window for about 265 ms, but `.destroyed` reaches tylerd first. So between them
   the two sources tell at the end of the 60 ms wait, in either order.
+- **macOS picks across displays:** closing a terminal, the last window of its process, focused a
+  window in view on the other display 16 ms later, with windows left on the closing display
+  (macOS 26.7.2, 2026-10-31, read from tylerd's log). It seems to pick the most recent window.
 - **A sibling on the closing display, the parked window on the other one:** macOS focused the
   sibling, though the parked window was the more recent, in 6 of 6 tries (fixture apps only).
 - **Focus can end on the remembered window after tylerd's own focus:** the echo came, the parked

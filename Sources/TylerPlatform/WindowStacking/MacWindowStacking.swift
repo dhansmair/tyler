@@ -19,6 +19,10 @@ package final class MacWindowStacking: WindowStacking {
     Self.onScreen().first { !$0.isOwn && $0.frame.contains(point) }?.window
   }
 
+  package func isOverlaid(at point: CGPoint) -> Bool {
+    Self.listed().contains { $0.isOverlay && $0.window.owner != "Dock" && $0.frame.contains(point) }
+  }
+
   package var isMenuOpen: Bool {
     Self.onScreen().contains { $0.window.layer == Self.menuLayer }
   }
@@ -45,11 +49,16 @@ package final class MacWindowStacking: WindowStacking {
     let frame: CGRect
     let ownerID: pid_t
     let isOwn: Bool
+    let isOverlay: Bool
   }
 
   /// The on-screen windows, front to back, without the overlays clicks go through (the Dock's,
   /// Notification Centre's, the cursor while the screen is shared; see `PointerFocus.isOverlay`).
   private static func onScreen() -> [Listed] {
+    listed().filter { !$0.isOverlay }
+  }
+
+  private static func listed() -> [Listed] {
     let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
     let list = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] ?? []
     let displays = displayFrames()
@@ -62,11 +71,12 @@ package final class MacWindowStacking: WindowStacking {
         let height = bounds["Height"]
       else { return nil }
       let frame = CGRect(x: originX, y: originY, width: width, height: height)
-      if PointerFocus.isOverlay(layer: layer, frame: frame, displayFrames: displays) { return nil }
       let owner = entry[kCGWindowOwnerName as String] as? String
       let window = StackedWindow(id: WindowID(number), layer: layer, owner: owner)
       let ownerID = entry[kCGWindowOwnerPID as String] as? Int ?? 0
-      return Listed(window: window, frame: frame, ownerID: pid_t(ownerID), isOwn: ownerID == ownID)
+      return Listed(
+        window: window, frame: frame, ownerID: pid_t(ownerID), isOwn: ownerID == ownID,
+        isOverlay: PointerFocus.isOverlay(layer: layer, frame: frame, displayFrames: displays))
     }
   }
 

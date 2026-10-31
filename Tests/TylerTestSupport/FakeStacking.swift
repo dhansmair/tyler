@@ -14,6 +14,8 @@ package final class FakeStacking: WindowStacking {
   /// The window system's windows from front to back; the others follow in the window system's order.
   package var front: [UInt32] = []
   package var isMenuOpen = false
+  /// Windows covering a whole display, which `topmostWindow(at:)` leaves out.
+  package var coveringOverlays: [CGRect] = []
   /// The windows the window server shows; the window system's that aren't minimized when `nil`.
   package var listedWindows: Set<WindowID>?
   /// Windows the window server no longer has, though Accessibility hasn't said so.
@@ -29,6 +31,10 @@ package final class FakeStacking: WindowStacking {
 
   package func containsWindow(_ windowID: WindowID) -> Bool {
     !goneWindows.contains(windowID)
+  }
+
+  package func isOverlaid(at point: CGPoint) -> Bool {
+    coveringOverlays.contains { $0.contains(point) }
   }
 
   package func topmostWindow(at point: CGPoint) -> StackedWindow? {

@@ -79,6 +79,7 @@ extension ResponseFormatter {
 
   private static func verdict(_ verdict: PointerVerdict) -> String {
     switch verdict {
+    case .emptyWorkspace: "yes, the empty workspace"
     case .window(let windowID): "yes, window \(windowID.rawValue)"
     case .refused(let refusal): "no: \(refusal.explanation)"
     }

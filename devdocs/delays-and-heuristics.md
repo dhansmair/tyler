@@ -46,7 +46,8 @@ Which window counts as new:
 | A modifier press becomes a drag | 4 points of movement | Below that it is a click, which is passed on to the app |
 | Smallest side when resizing | 50 points | Keeps a window usable |
 
-Focus follows mouse skips parked windows, windows above the normal layer, and anything while a menu
+A rest on an empty workspace focuses it, keys included; a rest over the wallpaper of a workspace with
+windows does nothing. Focus follows mouse skips parked windows, windows above the normal layer, and anything while a menu
 is open. The Dock and Notification Centre count as overlays when they cover a whole display.
 
 ## Swipes

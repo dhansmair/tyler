@@ -16,8 +16,16 @@ package struct PointerCheck: Codable, Equatable, Sendable {
   /// The windows in their slots on each display's current workspace, and the floated ones.
   package var inView: Set<WindowID> = []
   package var focusedID: WindowID?
+  /// The current workspace of the display at the point holds no window.
+  package var isWorkspaceEmpty = false
 
   package init() {}
+
+  /// Whether a rest here focuses the empty workspace under the pointer. A workspace with windows
+  /// gets the focus through the window rested on, so the focused display and the keys never part.
+  package var focusesEmptyWorkspace: Bool {
+    isWorkspaceEmpty && topmost == nil && restRefusal == nil
+  }
 
   /// Whether a press with the modifier grabs the window: one in view, at the normal layer,
   /// inside a display's visible frame, with tiling on and nothing else moving the windows.
@@ -31,16 +39,22 @@ package struct PointerCheck: Codable, Equatable, Sendable {
   /// Whether focus follows the mouse to the window: as for `grab`, and also not while a button is
   /// held or a menu is open (moving off a menu would close it), and not to the focused window.
   package var focus: PointerVerdict {
-    if !focusFollows { return .refused(.focusFollowsOff) }
-    if !isTiling { return .refused(.tilingOff) }
-    if !isIdle { return .refused(.busy) }
-    if isButtonHeld { return .refused(.buttonHeld) }
-    if !isInsideDisplay { return .refused(.outsideDisplays) }
-    if isMenuOpen { return .refused(.menuOpen) }
+    if let restRefusal { return .refused(restRefusal) }
     if let topmost, topmost.id == focusedID, topmost.layer == PointerFocus.normalLayer {
       return .refused(.alreadyFocused)
     }
     return windowOnTop
+  }
+
+  /// Why a rest does nothing here, whatever is under the pointer.
+  private var restRefusal: PointerRefusal? {
+    if !focusFollows { return .focusFollowsOff }
+    if !isTiling { return .tilingOff }
+    if !isIdle { return .busy }
+    if isButtonHeld { return .buttonHeld }
+    if !isInsideDisplay { return .outsideDisplays }
+    if isMenuOpen { return .menuOpen }
+    return nil
   }
 
   private var windowOnTop: PointerVerdict {

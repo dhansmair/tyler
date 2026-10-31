@@ -72,27 +72,43 @@ struct PointerCheckTests {
     #expect(!refusal.explanation.isEmpty)
   }
 
-  @Test func aRestFocusesItsDisplayOverNothing() {
-    #expect(PointerCheck().focusesDisplay)
+  private static var overAnEmptyWorkspace: PointerCheck {
+    var check = PointerCheck()
+    check.isWorkspaceEmpty = true
+    return check
   }
 
-  @Test func aRestLeavesTheDisplayWithoutWhatItNeeds() {
+  @Test func aRestOverAnEmptyWorkspaceFocusesIt() {
+    #expect(Self.overAnEmptyWorkspace.focusesEmptyWorkspace)
+  }
+
+  @Test func aRestOverAWorkspaceWithWindowsDoesNot() {
+    #expect(!PointerCheck().focusesEmptyWorkspace)
+  }
+
+  @Test func aRestOverAnyWindowDoesNot() {
+    var check = Self.overAnEmptyWorkspace
+    check.topmost = StackedWindow(id: WindowID(1), layer: 25)
+    #expect(!check.focusesEmptyWorkspace)
+  }
+
+  @Test func aRestDoesNotWithoutWhatFocusNeeds() {
     let required: [WritableKeyPath<PointerCheck, Bool>] = [
       \.focusFollows, \.isTiling, \.isIdle, \.isInsideDisplay,
     ]
     for path in required {
-      var check = PointerCheck()
+      var check = Self.overAnEmptyWorkspace
       check[keyPath: path] = false
-      #expect(!check.focusesDisplay)
+      #expect(!check.focusesEmptyWorkspace, "with \(path) false")
     }
   }
 
-  @Test func aRestLeavesTheDisplayWithAButtonHeldOrAMenuOpen() {
+  @Test func aRestDoesNotWithAButtonHeldOrAMenuOpen() {
     let blocking: [WritableKeyPath<PointerCheck, Bool>] = [\.isButtonHeld, \.isMenuOpen]
     for path in blocking {
-      var check = PointerCheck()
+      var check = Self.overAnEmptyWorkspace
       check[keyPath: path] = true
-      #expect(!check.focusesDisplay)
+      #expect(!check.focusesEmptyWorkspace, "with \(path) true")
     }
   }
 }

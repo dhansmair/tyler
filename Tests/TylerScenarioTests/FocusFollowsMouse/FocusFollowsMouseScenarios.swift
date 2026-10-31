@@ -44,13 +44,40 @@ struct FocusFollowsMouseScenarios {
     #expect(scenario.focusedDisplay == 2)
   }
 
-  /// The keys stay with the window until another one takes them.
-  @Test func aRestOnAnEmptyDisplayLeavesTheFocusedWindow() async {
+  /// As switching to an empty workspace does: the focused display and the keys never part.
+  @Test func aRestOnAnEmptyWorkspaceTakesTheKeys() async {
     let scenario = await besideAnEmptyDisplay()
-    let focusCalls = scenario.windowSystem.focusCalls.count
     await scenario.movePointer(to: Self.onEmptyDisplay)
-    #expect(scenario.windowSystem.focusCalls.count == focusCalls)
+    #expect(scenario.windowSystem.unfocusCount == 1)
+  }
+
+  @Test func aSecondRestOnTheSameEmptyWorkspaceChangesNothing() async {
+    let scenario = await besideAnEmptyDisplay()
+    await scenario.movePointer(to: Self.onEmptyDisplay)
+    await scenario.movePointer(to: CGPoint(x: Self.onEmptyDisplay.x + 40, y: Self.onEmptyDisplay.y))
+    #expect(scenario.windowSystem.unfocusCount == 1)
+  }
+
+  @Test func aRestOverWallpaperOnAWorkspaceWithWindowsChangesNothing() async {
+    let scenario = await Scenario(
+      displays: [FakeDisplays.main, FakeDisplays.secondary], workspaces: [1: [1], 5: [2]],
+      config: Self.following)
+    await scenario.focus(1)
+    let bottomRight = CGPoint(
+      x: FakeDisplays.secondary.visibleFrame.maxX - 5,
+      y: FakeDisplays.secondary.visibleFrame.maxY - 5)
+    scenario.harness.windowSystem.windows.removeAll { $0.id == WindowID(2) }
+    await scenario.movePointer(to: bottomRight)
+    #expect(scenario.focusedDisplay == 1)
     #expect(scenario.windowSystem.unfocusCount == 0)
+  }
+
+  @Test func aRestOverAnOverlayOnAnEmptyWorkspaceChangesNothing() async {
+    let scenario = await besideAnEmptyDisplay()
+    let overlay = StackedWindow(id: WindowID(50), layer: 25)
+    scenario.stacking.overlays = [(overlay, FakeDisplays.secondary.visibleFrame)]
+    await scenario.movePointer(to: Self.onEmptyDisplay)
+    #expect(scenario.focusedDisplay == 1)
   }
 
   @Test func aWindowOpenedAfterARestOnAnEmptyDisplayGoesThere() async {

@@ -111,7 +111,7 @@ they are.
 ## A workspace comes into view on its own
 
 Focus moved to a window on that workspace: an app focused one of its windows (as some do when a
-window closes or opens), or focus follows mouse moved the focus to an app. With `log.level` at
+window opens), or focus follows mouse moved the focus to an app. With `log.level` at
 `info`, the log says which window: `workspace switching - 2 on display 1 - focus moved to #7349
 (Firefox)`. At `debug` it also has a `window focused` line for each focus `tylerd` reads.
 

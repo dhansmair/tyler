@@ -316,6 +316,33 @@ another app in front. Six tries each, the probe's own AX observer and a read on 
   display 12 ms later, and closing a window focused the same app's parked window (#12). No focus
   event followed either, so these get past the wait.
 
+Measured 2026-10-30 on macOS 26.7.2, two displays, AppKit fixture apps, three tries each, before
+tylerd declined these focuses:
+
+| Case | macOS | tylerd |
+|---|---|---|
+| Close a window, same app parked on the same display | Focuses the parked window within 1 ms | Switched, 3 of 3 |
+| The same, a sibling in view, the parked window used more recently | Focuses the parked window | Switched, 3 of 3 |
+| Close a window, same app parked on the other display | Focuses the parked window within 1 ms | Switched, 3 of 3 |
+| Quit an app, another app's window parked | Focuses that window | Switched, 3 of 3 |
+| Close an app's last window, the app stays | No focus event | No switch, 3 of 3 |
+
+- **The focus can come before the quit reaches tylerd:** 14 to 22 ms before in 2 of 3 fixture
+  quits, 41 to 49 ms before in 3 of 3 TextEdit quits. Closes came first in all 12 fixture tries and
+  in the one logged on VS Code windows. A quit of VS Code wasn't measured: an isolated instance
+  never showed a window.
+- **The window server knows of a quit first:** asked with `CGWindowListCopyWindowInfo` when the next
+  app's activation arrived, the quitting app's window was already gone in 6 of 6 quits (fixtures
+  and TextEdit, 0.2 to 2 ms before the activation). In 3 of 3 controls, with the other app brought
+  forward and the window staying, it was on screen. **A close is the other way round:** the window
+  server keeps the window for about 265 ms, but `.destroyed` reaches tylerd first. So between them
+  the two sources tell at the end of the 60 ms wait, in either order.
+- **A sibling on the closing display, the parked window on the other one:** macOS focused the
+  sibling, though the parked window was the more recent, in 6 of 6 tries (fixture apps only).
+- **Focus can end on the remembered window after tylerd's own focus:** the echo came, the parked
+  window's focus 1 ms later, then nothing for 700 ms, so the wait ran out and the display switched
+  (#87).
+
 ## Synthetic input (for live checks)
 
 - A synthetic click on a status item only arrives after a mouse move onto it.

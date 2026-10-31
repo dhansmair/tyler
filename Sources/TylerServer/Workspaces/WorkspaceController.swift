@@ -123,12 +123,35 @@ struct WorkspaceController {
   /// 21 ms in every measured case.
   static let parkedFocusSettling: Duration = .milliseconds(60)
 
+  /// How long a window that closed with the focus counts as where the next focus came from. macOS
+  /// focused the next window within 1 ms of a close in every measured case.
+  static let closedFocusMemory: Duration = .milliseconds(60)
+
   /// Whether a focus on `windowID` would bring a parked workspace into view.
   func isParked(_ windowID: WindowID, in model: Model) -> Bool {
     guard context.isTiling(model), let location = model.rows.location(of: windowID) else {
       return false
     }
     return location.index != model.rows[location.position].currentIndex
+  }
+
+  /// A focus on `windowID` lasted. If the window that held the focus went away, macOS chose this
+  /// one and nobody asked for it: its workspace stays parked and the focus comes back.
+  func focusSettled(
+    on windowID: WindowID, from previous: FocusedWindow?, previousIsGone: Bool, model: inout Model
+  ) -> [Effect] {
+    let verdict = ParkedFocusVerdict(
+      isParked: isParked(windowID, in: model), previous: previous, previousIsGone: previousIsGone)
+    switch verdict {
+    case .follow:
+      return focusChanged(to: windowID, isEcho: false, model: &model)
+    case .decline:
+      context.log.info(
+        "window focus not followed - "
+          + WindowInfo.logName(windowID, context.registry.window(withID: windowID))
+          + " - the focused window went away")
+      return [.focusCurrentWorkspace]
+    }
   }
 
   /// The OS focused `windowID` (a click, cmd-tab, an app raising itself). If it lives on a

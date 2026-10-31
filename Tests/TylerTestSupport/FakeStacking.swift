@@ -16,6 +16,8 @@ package final class FakeStacking: WindowStacking {
   package var isMenuOpen = false
   /// The windows the window server shows; the window system's that aren't minimized when `nil`.
   package var listedWindows: Set<WindowID>?
+  /// Windows the window server no longer has, though Accessibility hasn't said so.
+  package var goneWindows: Set<WindowID> = []
   /// Every point asked about.
   package private(set) var queries: [CGPoint] = []
 
@@ -23,6 +25,10 @@ package final class FakeStacking: WindowStacking {
 
   package var appWindowsOnScreen: Set<WindowID> {
     listedWindows ?? Set((windowSystem?.windows ?? []).filter { !$0.isMinimized }.map(\.id))
+  }
+
+  package func containsWindow(_ windowID: WindowID) -> Bool {
+    !goneWindows.contains(windowID)
   }
 
   package func topmostWindow(at point: CGPoint) -> StackedWindow? {

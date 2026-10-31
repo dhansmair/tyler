@@ -13,4 +13,7 @@ package protocol WindowStacking: AnyObject {
   /// The on-screen windows of regular apps at the normal layer, tylerd's own left out: what
   /// tylerd should be able to see through Accessibility.
   var appWindowsOnScreen: Set<WindowID> { get }
+  /// Whether the window server still has `windowID`, on screen or not. It knows of a quit before
+  /// Accessibility does (`macos-behaviour.md`, "An app's focus across displays").
+  func containsWindow(_ windowID: WindowID) -> Bool
 }

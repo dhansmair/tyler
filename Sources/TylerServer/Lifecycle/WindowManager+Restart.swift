@@ -36,6 +36,7 @@ extension WindowManager {
     pointerPump = nil
     pointerRest.cancel()
     parkedFocus.cancel()
+    closedFocus.cancel()
     gapHover?.show(over: nil)
     pointer?.stop()
     stopDisplays()

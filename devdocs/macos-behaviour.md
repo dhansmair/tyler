@@ -371,6 +371,13 @@ Measured 2026-10-31 with Tart 2.41.1 on a macOS 26.7 host, with a macOS 26 guest
   finished ones.
 - `tart exec` runs a command as the logged-in user in the GUI session (`launchctl managername`
   says `Aqua`), and it could open that tap with the base image's settings.
+- **`tart run --vnc` with a Screen Sharing client gives a second display.** The guest reported two
+  1920x1080 "Screen Sharing Virtual Display"s side by side, where the default view has one. tylerd
+  numbered both, tiled a workspace on the second and switched workspaces there. With the second
+  display on the right, it parked the first display's windows past its left edge (x = -950) and the
+  second's past its right edge (x = 3839), the sides that touch no display. `tyler debug windows`
+  showed no differences.
+- tylerd started through `tart exec` could see the windows, with no grant added for it.
 - The host's own event taps see input aimed at the VM's window, so a host tylerd and a host hotkey
   daemon act on it too.
 

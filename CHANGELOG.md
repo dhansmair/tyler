@@ -3,6 +3,27 @@
 tyler follows [semantic versioning](https://semver.org). Before 1.0, a minor version (0.x) may
 change commands, the config file and the socket protocol; the entry says how.
 
+## 0.3.0 (unreleased)
+
+Focus and new windows that stay on the display in use. Commands, the config file and the socket
+protocol stay compatible.
+
+- `tyler logs` shows `tylerd`'s log and follows it, also across `tyler restart`.
+- Choosing a layout briefly shows its name in the middle of the display. `layouts.notice = false`
+  turns this off.
+- A new window opens on the current workspace of the focused display, wherever macOS or the app
+  first put it.
+- The focused display follows the pointer: with `mouse.focus-follows` on, resting on an empty
+  workspace focuses its display.
+- Closing a window or quitting an app no longer switches to a parked workspace, and the focus stays
+  on that display while it has windows left.
+- With an app's windows on two displays, focusing one no longer slides the other display to the
+  app's parked window.
+- A window moved to another display lands in its slot, instead of staying tiled in the lists but
+  floating on screen.
+- After a burst of new windows, `tyler window close` closes the right window and keeps working.
+- From macOS 15 on, a gap between windows shows the same resize cursor as a window's own edge.
+
 ## 0.2.1 (2026-10-30)
 
 Fixes, and a Homebrew formula for each release.

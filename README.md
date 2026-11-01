@@ -41,6 +41,9 @@ See [Features](docs/features.md) for the details.
 - macOS 14 or later. Only macOS 26 on an Apple silicon Mac has been tried so far.
 - The Xcode Command Line Tools with Swift 6 (`xcode-select --install`)
 - Accessibility permission for `Tyler.app`, which is requested on the first start.
+- One macOS Space per display. Tyler's workspaces replace Spaces: it leaves windows on other Spaces
+  alone, and with more than one Space a three-finger swipe can switch the Space too, unless macOS's
+  swipe is set to four fingers ([details](docs/troubleshooting.md#a-swipe-also-switches-spaces-or-goes-back-a-page)).
 
 ## Installation
 

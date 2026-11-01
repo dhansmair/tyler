@@ -378,6 +378,15 @@ tylerd declined these focuses:
   (seen 2026-10-26, macOS 26.7: switching the text item on moved the map behind the notch).
 - Screen capture needs Screen Recording permission, so what the menu bar looks like needs a person's
   eyes.
+- Input a person makes can be told from posted input (measured 2026-11-01, macOS 26.7.2): in a
+  listen-only tap, a posted event carries the poster's process in `eventSourceUnixProcessID`, and a
+  person's has 0. `CGEventSource.secondsSinceLastEventType` can't tell them apart: a posted move
+  resets it, even from a private event source.
+- `NSCursor.currentSystem` reads the cursor on screen without Screen Recording (measured 2026-11-01,
+  macOS 26.7.2): its image size and hot spot tell tylerd's resize cursor over a gap (24×18) from
+  the others, so that check needs no eyes.
+- The window server's list gives the alpha of a window fading out, sampled every 20 ms, without
+  Screen Recording (the same day): enough to time the layout notice.
 
 ## Following the log
 

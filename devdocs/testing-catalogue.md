@@ -151,7 +151,6 @@ One display.
 | Manual | Id | Action | Expected | Why | Logic in |
 |---|---|---|---|---|---|
 | yes | SWIPE-SWITCH | A full, a slow and a short three-finger swipe; a four-finger and a vertical swipe | The full and slow swipes switch smoothly; the short one goes back; the others do nothing | tap | SwipeScenarios, SwipeRecognizerTests |
-| yes | SWIPE-SPACES | Swipe with a Space or a full-screen app to switch to | macOS doesn't also act on the swipe | macOS | |
 | yes | SWIPE-STRIP | Swipe across a strip | The windows follow the fingers, the partly visible one too | tap | StripSwipeScenarios |
 | yes | SWIPE-SLOW-APP | Swipe, on workspaces and across a strip, with a slow app (Firefox) on screen | The windows keep up with the fingers | timing | |
 

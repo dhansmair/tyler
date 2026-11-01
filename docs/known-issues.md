@@ -23,6 +23,10 @@ has its own list in [Layouts](layouts.md#strip--experimental).
   app that wasn't answering when `tylerd` started. ([#99](https://github.com/dhansmair/tyler/issues/99))
 - **A window opened in the background** (`open -g`) of an app with a workspace in the config
   brings that workspace into view, although the app you were using stays in front. ([#72](https://github.com/dhansmair/tyler/issues/72))
+- **The tabs of a native tab group count as separate windows** (Ghostty's Cmd-T, for example):
+  each hidden tab keeps a slot, which shows as an empty slot, and clicking a tab can swap two
+  slots. A tab moved to a new window stays where macOS put it until the next layout, such as
+  `tyler workspace retile`. ([#114](https://github.com/dhansmair/tyler/issues/114))
 
 ## Limits
 

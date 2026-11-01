@@ -71,6 +71,25 @@ subrole, title-bar buttons and whether its size can be set:
   zooms (an option of several terminals and editors) presumably lack the full screen button
   while they can be resized, so a missing button alone doesn't make a dialog.
 
+## Native tabs
+
+Measured with Ghostty on macOS 26.7, November 2026, recording the Accessibility notifications and
+the window server's list side by side. Finder and TextEdit not measured yet ([#114](https://github.com/dhansmair/tyler/issues/114)).
+
+- **Each tab is a window, and `AXWindows` lists only the selected one.** The selected tab has an
+  `AXTabGroup` child with one `AXTabButton` per tab. A hidden tab keeps its window number and stays
+  in the window server's list, off screen, and nothing is destroyed when it is hidden.
+- **Selecting a tab with the app active sends `AXMainWindowChanged`, not
+  `AXFocusedWindowChanged`.** The tab being shown also moves and resizes to the frame of the tab it
+  replaces.
+- **A hidden tab's frame doesn't matter.** Writing it changes nothing on screen, and it is
+  replaced when the tab is shown.
+- **`cmd+t` sends `AXMainWindowChanged`, then `AXWindowCreated`,** and the new tab has the frame of
+  the selected tab.
+- **Closing the selected tab shows the next tab** within about 30 ms of `AXUIElementDestroyed`.
+- **Move Tab to New Window sends no `AXWindowCreated`.** Both windows lose the tab group and are
+  listed, and the moved one sits at an offset position, near the top left of the display.
+
 ## Speed
 
 - **An AX position write takes 1–3 ms.** A slide is limited by the number of windows and by slow

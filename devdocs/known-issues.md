@@ -19,6 +19,7 @@ for users. A new one gets an issue and a line here.
 - [#11](https://github.com/dhansmair/tyler/issues/11) Echo tracking can go stale when an app never sends a focus event
 - [#99](https://github.com/dhansmair/tyler/issues/99) Older windows tracked late count as new and join the focused display
 - [#72](https://github.com/dhansmair/tyler/issues/72) A window opened in the background on an assigned workspace brings that workspace into view
+- [#114](https://github.com/dhansmair/tyler/issues/114) Native tabs tile as separate windows
 
 ## Limitations
 

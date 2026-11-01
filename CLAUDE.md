@@ -68,7 +68,7 @@ Sources/
   TylerClient/   argv parsing, response formatting, IPC client
   tylerd/        server executable (thin)
   tyler/         CLI executable (thin)
-devtools/      live-check: checks against real windows (see .claude/skills/live-check); tyler-use: switch between installs
+devtools/      live-check: checks against real windows (see .claude/skills/live-check); tyler-use: switch between installs; demo-video: the scripted part of the README's video
 Tests/         one test target per library (TylerRuntimeTests, TylerCoreTests, TylerConfigTests, TylerProtocolTests, …) that mirrors its sources: `<Type>Tests.swift` or `<Type>Tests+<Aspect>.swift` beside where `<Type>.swift` is (TylerCoreTests/Layouts/Tall/TallLayoutTests+Resize.swift); TylerScenarioTests holds the scenario tests, a folder per feature of TylerServer (`Drag/SwapScenarios.swift`); TylerTestSupport holds what the server test targets share (the fakes, `ManagerHarness`)
 ```
 

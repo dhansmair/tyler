@@ -3,7 +3,7 @@
 tyler follows [semantic versioning](https://semver.org). Before 1.0, a minor version (0.x) may
 change commands, the config file and the socket protocol; the entry says how.
 
-## 0.3.0 (unreleased)
+## 0.3.0 (2026-11-01)
 
 Focus and new windows that stay on the display in use. Commands, the config file and the socket
 protocol stay compatible.

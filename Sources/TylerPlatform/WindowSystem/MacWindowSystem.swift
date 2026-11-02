@@ -202,6 +202,8 @@ package final class MacWindowSystem: WindowSystem {
       readFocusOfFirstWindow(of: processID)
     case .updated(let info):
       continuation.yield(.updated(focusing(info)))
+    case .updatedTogether(let infos):
+      continuation.yield(.updatedTogether(infos.map(focusing)))
     case .destroyed(let windowID):
       owners[windowID] = nil
       if focusedID == windowID { focusedID = nil }

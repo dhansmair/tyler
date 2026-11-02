@@ -12,6 +12,7 @@ final class AppConnection {
   enum Report {
     case created(WindowInfo)
     case updated(WindowInfo)
+    case updatedTogether([WindowInfo])
     case destroyed(WindowID)
     /// The app's focused window is now this one.
     case focused(WindowID?)
@@ -87,16 +88,17 @@ final class AppConnection {
     windows.read(windowID, by: reader)
   }
 
-  /// Reports every window afresh: hiding or showing the app changes all of them, and none of them
-  /// says so itself.
+  /// Reports every window afresh, in one report: hiding or showing the app changes all of them,
+  /// and none of them says so itself.
   func reportWindows() {
-    for windowID in windows.ids {
-      guard let info = read(windowID) else {
+    let infos = windows.ids.compactMap { windowID in
+      let info = read(windowID)
+      if info == nil {
         Self.log.warning("window update dropped - \(named(windowID)) - the read failed")
-        continue
       }
-      report(.updated(info))
+      return info
     }
+    report(.updatedTogether(infos))
   }
 
   /// The last read with a new frame.

@@ -59,7 +59,7 @@ struct WindowEventInterpreter {
     case .destroyed(let windowID):
       expectedFocus.remove(windowID)
       intents.append(.closed(windowID))
-    case .created, .updated:
+    case .created, .updated, .updatedTogether:
       break
     }
     intents.append(.listsMayHaveChanged)
@@ -75,6 +75,10 @@ struct WindowEventInterpreter {
       guard window.id == lastFocused?.id else { return }
       lastFocused?.kind = window.kind
       lastFocused?.frame = window.frame
+    case .updatedTogether(let windows):
+      guard let focused = windows.first(where: { $0.id == lastFocused?.id }) else { return }
+      lastFocused?.kind = focused.kind
+      lastFocused?.frame = focused.frame
     case .destroyed, .focused:
       break
     }

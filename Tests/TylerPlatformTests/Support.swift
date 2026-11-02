@@ -62,6 +62,11 @@ extension [WindowEvent] {
     compactMap { if case .updated(let info) = $0 { info } else { nil } }
   }
 
+  /// The windows of each report of several together.
+  var updatedTogether: [[WindowInfo]] {
+    compactMap { if case .updatedTogether(let infos) = $0 { infos } else { nil } }
+  }
+
   var focused: [UInt32?] {
     reduce(into: []) { ids, event in
       if case .focused(let id) = event { ids.append(id?.rawValue) }

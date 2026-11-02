@@ -126,6 +126,9 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   moves with its workspace and can't drift. Each window stays before the one that followed it. Unlike
   a minimized window, it returns to its own workspace. tylerd hears of a hide from `NSWorkspace`, not
   Accessibility: an app need not answer, and a refused AX registration would refuse the whole app.
+  All of the app's windows change in one event (`updatedTogether`): one by one, each reconcile would
+  compare against frames from before the last one's moves, whose reports are still queued, and leave
+  a window at the wrong size.
   Floated windows are meant to join `members` with a mark of their own.
 - **New windows tile.** Dialogs and sheets float; `window float` switches any window. A new window
   joins the workspace the user is on, unless its app is assigned to one: macOS or the app picks

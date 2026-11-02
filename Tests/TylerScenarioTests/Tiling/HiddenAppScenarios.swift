@@ -12,15 +12,20 @@ import TylerTestSupport
 struct HiddenAppScenarios {
   private let area = FakeDisplays.main.visibleFrame
 
+  /// As `MacWindowSystem` reports an app hidden or shown: all its windows in one event.
   private func setHidden(_ isHidden: Bool, _ ids: [UInt32], in scenario: Scenario) async {
+    var changed: [WindowInfo] = []
     for id in ids {
-      guard var window = scenario.windowSystem.windows.first(where: { $0.id.rawValue == id }) else {
+      guard let index = scenario.windowSystem.windows.firstIndex(where: { $0.id.rawValue == id })
+      else {
         Issue.record("no window \(id)")
         return
       }
-      window.isHidden = isHidden
-      await scenario.change(window)
+      scenario.windowSystem.windows[index].isHidden = isHidden
+      changed.append(scenario.windowSystem.windows[index])
     }
+    scenario.windowSystem.send(.updatedTogether(changed))
+    await scenario.runUntilQuiet()
   }
 
   @Test func hidingFreesTheSlotAndTheOthersTileAcrossIt() async {
@@ -71,6 +76,16 @@ struct HiddenAppScenarios {
     await setHidden(false, [2], in: scenario)
     #expect(scenario.list(1) == [1, 2])
     #expect(scenario.shown == [1])
+  }
+
+  @Test func windowsComingBackTogetherEachFillTheirSlot() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2, 3, 4]])
+    let windows: [UInt32] = [1, 2, 3, 4]
+    let settled = windows.map(scenario.frame(of:))
+    await setHidden(true, [2, 3], in: scenario)
+    await setHidden(false, [2, 3], in: scenario)
+    await scenario.wait(.seconds(1))
+    #expect(windows.map(scenario.frame(of:)) == settled)
   }
 
   @Test func aWindowClosedWhileHiddenIsForgotten() async {

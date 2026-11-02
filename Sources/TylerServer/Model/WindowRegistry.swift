@@ -38,6 +38,8 @@ struct WindowRegistry: Sendable {
     switch event {
     case .created(let window), .updated(let window):
       upsert(window)
+    case .updatedTogether(let windows):
+      for window in windows { upsert(window) }
     case .destroyed(let windowID):
       storage[windowID] = nil
       order.removeAll { $0 == windowID }

@@ -296,6 +296,8 @@ package final class WindowManager {
       mover.windowUpdated()
     } else if case .focused(let windowID?) = event {
       known = registry.window(withID: windowID)
+    } else if case .updatedTogether = event {
+      mover.windowUpdated()
     }
     registry.apply(event)
     for intent in interpreter.intents(for: event, known: known, displays: displays.displays) {

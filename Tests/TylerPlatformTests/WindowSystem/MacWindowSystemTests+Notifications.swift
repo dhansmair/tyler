@@ -55,15 +55,16 @@ struct MacWindowSystemNotificationsTests {
     #expect(updated.first?.isMinimized == true)
   }
 
-  @Test func hidingAnAppReportsEachOfItsWindows() async {
+  @Test func hidingAnAppReportsAllItsWindowsAtOnce() async {
     let harness = await started()
     harness.workspace.setHidden(true, 100)
-    let updated = await harness.takeEvents().updated
-    #expect(updated.map(\.id.rawValue).sorted() == [1, 2])
-    #expect(updated.map(\.isHidden) == [true, true])
+    let hidden = await harness.takeEvents().updatedTogether
+    #expect(hidden.map { $0.map(\.id.rawValue) } == [[1, 2]])
+    #expect(hidden.first?.map(\.isHidden) == [true, true])
 
     harness.workspace.setHidden(false, 100)
-    #expect(await harness.takeEvents().updated.map(\.isHidden) == [false, false])
+    let shown = await harness.takeEvents().updatedTogether
+    #expect(shown.first?.map(\.isHidden) == [false, false])
   }
 
   @Test func anAppAlreadyHiddenIsReadAsHidden() async {

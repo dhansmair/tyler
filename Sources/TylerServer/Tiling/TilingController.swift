@@ -194,7 +194,7 @@ struct TilingController {
     for position in model.rows.entries.indices {
       restored += model.rows[position].current.windows.filter(offView.contains)
       for index in model.rows[position].indices where index != model.rows[position].currentIndex {
-        restored += model.rows[position][index].windows
+        restored += model.rows[position][index].members
         model.rows[position][index].sync(eligible: [])
       }
     }

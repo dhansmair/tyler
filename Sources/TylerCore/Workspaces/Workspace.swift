@@ -3,7 +3,14 @@ import CoreGraphics
 /// An ordered list of tiled windows, xmonad style: the first window is the master, every window
 /// has a clear next and previous (wrapping around), and the layout turns list order into frames.
 package struct Workspace: Equatable, Sendable {
-  package private(set) var windows: [WindowID] = []
+  package private(set) var windows: [WindowID] = [] {
+    didSet { placeHiddenMembers() }
+  }
+  /// Every window of the workspace in order: the tiled ones and, between them, the hidden ones.
+  package private(set) var members: [WindowID] = []
+  /// Members that take no slot, as their app is hidden. Each keeps its place before the member
+  /// that followed it, so it comes back there.
+  package private(set) var hidden: Set<WindowID> = []
   /// The tiled window that `focus` and `swap` are relative to.
   package internal(set) var focused: WindowID?
   package var layout: LayoutKind {
@@ -66,6 +73,14 @@ package struct Workspace: Equatable, Sendable {
   /// window's column mate goes back to `half`.
   @discardableResult
   package mutating func remove(_ windowID: WindowID) -> Bool {
+    if hidden.remove(windowID) != nil {
+      members.removeAll { $0 == windowID }
+      return true
+    }
+    return remove(tiled: windowID)
+  }
+
+  private mutating func remove(tiled windowID: WindowID) -> Bool {
     guard let index = windows.firstIndex(of: windowID) else { return false }
     layoutStates.remove(windowID, from: windows)
     windows.remove(at: index)
@@ -76,13 +91,59 @@ package struct Workspace: Equatable, Sendable {
     return true
   }
 
-  /// Makes `eligible` exactly the set of tiled windows. Windows no longer eligible are dropped,
-  /// the others keep their order, and new ones are inserted as a block after the focused window
-  /// in the order given. Returns whether anything changed.
+  /// The window stays a member but takes no slot, and leaves the layout as a removed window does.
   @discardableResult
-  package mutating func sync(eligible: [WindowID]) -> Bool {
+  package mutating func hide(_ windowID: WindowID) -> Bool {
+    guard contains(windowID) else { return false }
+    hidden.insert(windowID)
+    return remove(tiled: windowID)
+  }
+
+  /// A hidden window takes a slot again, before the tiled window that follows it.
+  @discardableResult
+  package mutating func show(_ windowID: WindowID) -> Bool {
+    guard hidden.remove(windowID) != nil, let place = members.firstIndex(of: windowID) else {
+      return false
+    }
+    let follower = members[place...].first(where: contains)
+    insert(windowID, before: follower)
+    return true
+  }
+
+  /// Rebuilds `members` from the tiled order, each hidden member before the one it was before.
+  private mutating func placeHiddenMembers() {
+    guard !hidden.isEmpty else {
+      members = windows
+      return
+    }
+    var rebuilt = windows
+    var follower: WindowID?
+    for member in members.reversed() {
+      if hidden.contains(member) {
+        rebuilt.insert(member, at: follower.flatMap(rebuilt.firstIndex) ?? rebuilt.count)
+        follower = member
+      } else if rebuilt.contains(member) {
+        follower = member
+      }
+    }
+    members = rebuilt
+  }
+
+  /// Makes `eligible` exactly the set of tiled windows and `hiding` the set of hidden members.
+  /// Windows in neither are dropped, the others keep their order, and new ones are inserted as a
+  /// block after the focused window in the order given. Returns whether anything changed.
+  @discardableResult
+  package mutating func sync(eligible: [WindowID], hiding: Set<WindowID> = []) -> Bool {
     let wanted = Set(eligible)
     var changed = false
+    for windowID in hidden where !hiding.contains(windowID) {
+      changed = true
+      if !wanted.contains(windowID) || !show(windowID) { remove(windowID) }
+    }
+    for windowID in windows where hiding.contains(windowID) {
+      hide(windowID)
+      changed = true
+    }
     for windowID in windows where !wanted.contains(windowID) {
       remove(windowID)
       changed = true

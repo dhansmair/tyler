@@ -67,7 +67,7 @@ package struct WorkspaceRow: Equatable, Sendable {
 
   /// Every window on any workspace.
   package var allWindows: Set<WindowID> {
-    Set(workspaces.flatMap(\.windows))
+    Set(workspaces.flatMap(\.members))
   }
 
   /// Resolves a target to an index: `prev` and `next` wrap around, and a number is `nil` when
@@ -125,7 +125,7 @@ package struct WorkspaceRow: Equatable, Sendable {
     let currentNumber = numbers[currentIndex]
     let byNumber = Dictionary(uniqueKeysWithValues: zip(numbers, workspaces))
     let removed = numbers.filter { !newNumbers.contains($0) }.flatMap {
-      byNumber[$0]?.windows ?? []
+      byNumber[$0]?.members ?? []
     }
     workspaces = newNumbers.map { byNumber[$0] ?? Workspace(layout: newLayout) }
     numbers = newNumbers

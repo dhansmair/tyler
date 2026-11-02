@@ -124,13 +124,14 @@ package struct WorkspaceRow: Equatable, Sendable {
     let newNumbers = Self.normalized(newNumbers)
     let currentNumber = numbers[currentIndex]
     let byNumber = Dictionary(uniqueKeysWithValues: zip(numbers, workspaces))
-    let removed = numbers.filter { !newNumbers.contains($0) }.flatMap {
-      byNumber[$0]?.members ?? []
-    }
+    let gone = numbers.filter { !newNumbers.contains($0) }.compactMap { byNumber[$0] }
     workspaces = newNumbers.map { byNumber[$0] ?? Workspace(layout: newLayout) }
     numbers = newNumbers
-    for windowID in removed {
-      workspaces[workspaces.count - 1].append(windowID)
+    for workspace in gone {
+      for windowID in workspace.members {
+        workspaces[workspaces.count - 1].append(windowID)
+        if workspace.hidden.contains(windowID) { workspaces[workspaces.count - 1].hide(windowID) }
+      }
     }
     currentIndex = numbers.firstIndex(of: currentNumber) ?? numbers.count - 1
   }

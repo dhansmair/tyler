@@ -53,6 +53,14 @@ struct TrackedWindows {
     return info
   }
 
+  /// Every last read with its app hidden or shown, kept as the last reads.
+  mutating func noteHidden(_ isHidden: Bool) -> [WindowInfo] {
+    ids.compactMap { windowID in
+      entries[windowID]?.lastRead?.isHidden = isHidden
+      return entries[windowID]?.lastRead
+    }
+  }
+
   /// The last read with a new frame (and full screen state), kept as the last read.
   mutating func note(
     _ frame: CGRect, isFullscreen: Bool? = nil, of windowID: WindowID

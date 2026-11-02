@@ -139,6 +139,17 @@ struct HiddenAppScenarios {
     #expect(scenario.list(1) == [1, 2])
   }
 
+  @Test func tilingOffBringsBackAHiddenWindowLeftParked() async {
+    let scenario = await Scenario(openAtStart: spread([1, 2, 3]))
+    await scenario.focus(3)
+    await scenario.command("window move-to-workspace 2")
+    #expect(scenario.isParked(3))
+    await setHidden(true, [3], in: scenario)
+    await scenario.command("workspace focus 2")
+    await scenario.command("tiling off")
+    #expect(!scenario.isParked(3))
+  }
+
   @Test func tilingOffAndOnKeepsAHiddenWindowsPlace() async {
     let scenario = await Scenario(workspaces: [1: [1, 2, 3]])
     await setHidden(true, [2], in: scenario)

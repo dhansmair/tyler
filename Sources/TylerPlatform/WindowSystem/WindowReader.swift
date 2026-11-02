@@ -8,13 +8,14 @@ struct WindowReader {
   let bridge: AXBridge
   let workspace: any WorkspaceClient
 
-  /// In one round trip; `nil` if the frame can't be read. A window's app never changes, so an
-  /// earlier read (`known`) gives its name; whether it is hidden is read each time.
+  /// In one round trip; `nil` if the frame can't be read. A window's app never changes, so with an
+  /// earlier read (`known`) the app isn't looked up again; whether it is hidden comes from there
+  /// too, as the app's connection keeps it up to date.
   func read(
     _ element: AXUIElement, id: WindowID, processID: pid_t, known: WindowInfo?
   ) -> WindowInfo? {
     guard let attributes = bridge.windowAttributes(of: element) else { return nil }
-    let app = workspace.runningApp(processID)
+    let app = known == nil ? workspace.runningApp(processID) : nil
     return WindowInfo(
       id: id,
       processID: processID,
@@ -27,7 +28,7 @@ struct WindowReader {
         isResizable: attributes.isResizable),
       isMinimized: attributes.isMinimized ?? false,
       isFullscreen: attributes.isFullscreen ?? false,
-      isHidden: app?.isHidden ?? known?.isHidden ?? false,
+      isHidden: known?.isHidden ?? app?.isHidden ?? false,
       isFocused: false
     )
   }

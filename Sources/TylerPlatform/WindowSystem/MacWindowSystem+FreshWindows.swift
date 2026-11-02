@@ -10,7 +10,12 @@ extension MacWindowSystem {
   }
 
   package func freshWindows() -> FreshWindows {
-    let tracked = snapshot()
+    // What the app says now, as a read only repeats what tylerd heard of a hide.
+    let tracked = snapshot().map { window in
+      var window = window
+      window.isHidden = workspace.runningApp(window.processID)?.isHidden ?? window.isHidden
+      return window
+    }
     let untracked = attachedApps.flatMap { $0.untrackedWindows() }
     let ownID = workspace.ownProcessID
     let attached = Set(attachedApps.map(\.processID))

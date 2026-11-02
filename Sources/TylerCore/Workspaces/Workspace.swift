@@ -77,12 +77,13 @@ package struct Workspace: Equatable, Sendable {
       members.removeAll { $0 == windowID }
       return true
     }
-    return remove(tiled: windowID)
+    guard contains(windowID) else { return false }
+    layoutStates.remove(windowID, from: windows)
+    return leave(windowID)
   }
 
-  private mutating func remove(tiled windowID: WindowID) -> Bool {
+  private mutating func leave(_ windowID: WindowID) -> Bool {
     guard let index = windows.firstIndex(of: windowID) else { return false }
-    layoutStates.remove(windowID, from: windows)
     windows.remove(at: index)
     let successor = windows.isEmpty ? nil : windows[min(index, windows.count - 1)]
     if focused == windowID { focused = successor }
@@ -96,7 +97,8 @@ package struct Workspace: Equatable, Sendable {
   package mutating func hide(_ windowID: WindowID) -> Bool {
     guard contains(windowID) else { return false }
     hidden.insert(windowID)
-    return remove(tiled: windowID)
+    layoutStates.hide(windowID, from: windows)
+    return leave(windowID)
   }
 
   /// A hidden window takes a slot again, before the tiled window that follows it.

@@ -136,6 +136,24 @@ struct WorkspaceHiddenTests {
         == without.arrangement(in: area, gaps: LayoutGaps()))
   }
 
+  @Test func aHiddenWindowComesBackToTheMainSection() {
+    var workspace = makeWorkspace(1, 2, 3, 4, focus: 2)
+    workspace.promote()
+    let mains = workspace.layoutStates.tall.mainCount(for: 4)
+    workspace.hide(WindowID(1))
+    workspace.show(WindowID(1))
+    #expect(workspace.windows.first == WindowID(1))
+    #expect(workspace.layoutStates.tall.mainCount(for: 4) == mains)
+  }
+
+  @Test func aRemovedWorkspacesHiddenMembersStayHidden() {
+    var row = WorkspaceRow(count: 2)
+    row[1] = hiding(2, in: makeWorkspace(1, 2))
+    row.setNumbers([1])
+    #expect(row[0].windows == ids(1))
+    #expect(row[0].hidden == [WindowID(2)])
+  }
+
   @Test func aRowsWindowsIncludeHiddenMembers() {
     var row = WorkspaceRow(count: 2)
     row[0] = hiding(2, in: makeWorkspace(1, 2))

@@ -67,6 +67,14 @@ struct MacWindowSystemNotificationsTests {
     #expect(shown.first?.map(\.isHidden) == [false, false])
   }
 
+  @Test func anAppThatDoesNotAnswerIsStillReportedHidden() async {
+    let harness = await started()
+    harness.accessibility.answer(.cannotComplete, from: 1)
+    harness.workspace.setHidden(true, 100)
+    let hidden = await harness.takeEvents().updatedTogether
+    #expect(hidden.first?.map(\.isHidden) == [true, true])
+  }
+
   @Test func anAppAlreadyHiddenIsReadAsHidden() async {
     harness.addApp(100, windows: [1])
     harness.workspace.markHidden(true, 100)

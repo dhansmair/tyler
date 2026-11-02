@@ -188,8 +188,12 @@ package final class MacWindowSystem: WindowSystem {
   }
 
   private func appHiddenChanged(processID: pid_t) {
-    Self.log.info("app hidden changed - pid \(processID)")
-    connections[processID]?.reportWindows()
+    guard let isHidden = workspace.runningApp(processID)?.isHidden else {
+      Self.log.info("app hidden change dropped - pid \(processID) - it isn't running")
+      return
+    }
+    Self.log.info("app \(isHidden ? "hidden" : "shown") - pid \(processID)")
+    connections[processID]?.noteHidden(isHidden)
   }
 
   // MARK: - Windows

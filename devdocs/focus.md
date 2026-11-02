@@ -58,6 +58,8 @@ check have only run on fakes.
 
 ## What isn't covered
 
+- **Hiding one app and going to another at once** (option-click in the Dock): the hide counts as
+  macOS choosing, so a window on a parked workspace isn't followed, though the user asked for it.
 - **Cmd-M:** macOS may pick a parked window the same way, but nothing closed, so tyler follows.
   Not measured.
 - **cmd-` just after tyler focused that app:** it is taken for the app ending on its remembered

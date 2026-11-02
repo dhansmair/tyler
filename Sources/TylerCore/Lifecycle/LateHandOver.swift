@@ -79,7 +79,8 @@ package struct LateHandOver: Equatable, Sendable {
         outcome.note(window.id, originalFrame: expected.originalFrame)
         continue
       }
-      guard window.isTileable else { continue }
+      // A hidden window takes its place at once: the next sync takes it out of the layout again.
+      guard window.isTileable || window.isHidden else { continue }
       self.expected[window.id] = nil
       if Self.put(window.id, back: place, into: &rows) {
         outcome.note(window.id, originalFrame: expected.originalFrame)

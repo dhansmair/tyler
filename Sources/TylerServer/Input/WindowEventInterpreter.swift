@@ -72,16 +72,18 @@ struct WindowEventInterpreter {
   private mutating func noteLastFocused(from event: WindowEvent) {
     switch event {
     case .created(let window), .updated(let window):
-      guard window.id == lastFocused?.id else { return }
-      lastFocused?.kind = window.kind
-      lastFocused?.frame = window.frame
+      noteLastFocused(window)
     case .updatedTogether(let windows):
-      guard let focused = windows.first(where: { $0.id == lastFocused?.id }) else { return }
-      lastFocused?.kind = focused.kind
-      lastFocused?.frame = focused.frame
+      for window in windows { noteLastFocused(window) }
     case .destroyed, .focused:
       break
     }
+  }
+
+  private mutating func noteLastFocused(_ window: WindowInfo) {
+    guard window.id == lastFocused?.id else { return }
+    lastFocused?.kind = window.kind
+    lastFocused?.frame = window.frame
   }
 
   /// The window became tileable or stopped being so, or moved onto another display.

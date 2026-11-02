@@ -20,6 +20,16 @@ struct LateHandOverTests {
       originalFrames: [WindowID(2): frame])
   }()
 
+  @Test func aHiddenWindowTakesItsPlaceAtOnce() {
+    var (rows, late) = takenOver([1, 3, 4])
+    var floated: Set<WindowID> = []
+    var hidden = window(2)
+    hidden.isHidden = true
+    let outcome = late.restore([hidden], into: &rows, floated: &floated)
+    #expect(outcome.originalFrames == [WindowID(2): frame])
+    #expect(windows(rows, 0) == [1, 2, 3])
+  }
+
   private func window(_ id: UInt32, isMinimized: Bool = false, processID: Int32 = 1) -> WindowInfo {
     WindowInfo(
       id: WindowID(id), processID: processID, appName: "App", title: "",

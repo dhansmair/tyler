@@ -88,17 +88,10 @@ final class AppConnection {
     windows.read(windowID, by: reader)
   }
 
-  /// Reports every window afresh, in one report: hiding or showing the app changes all of them,
-  /// and none of them says so itself.
-  func reportWindows() {
-    let infos = windows.ids.compactMap { windowID in
-      let info = read(windowID)
-      if info == nil {
-        Self.log.warning("window update dropped - \(named(windowID)) - the read failed")
-      }
-      return info
-    }
-    report(.updatedTogether(infos))
+  /// Reports all its windows in one report, without asking the app, which needn't be answering:
+  /// hiding or showing it changes all of them, and none of them says so itself.
+  func noteHidden(_ isHidden: Bool) {
+    report(.updatedTogether(windows.noteHidden(isHidden)))
   }
 
   /// The last read with a new frame.

@@ -20,7 +20,9 @@ func kinds(_ given: [String]) throws(UsageError) {
   let rows = windows.map { windowID, window in
     KindRow(windowID: windowID, window: window, tylerKind: tyler[Int(windowID)]?.kind)
   }
-  let header = ["id", "app", "role", "subrole", "buttons", "resizable", "size", "tyler"]
+  let header = [
+    "id", "app", "role", "subrole", "buttons", "resizable", "size", "app hidden", "tyler",
+  ]
   printColumns(
     [header] + rows.sorted { ($0.app, $0.windowID) < ($1.app, $1.windowID) }.map(\.cells))
 }
@@ -33,9 +35,10 @@ private struct KindRow {
   init(windowID: CGWindowID, window: AXUIElement, tylerKind: String?) {
     self.windowID = windowID
     var pid = pid_t(0)
-    app =
+    let running =
       AXUIElementGetPid(window, &pid) == .success
-      ? NSRunningApplication(processIdentifier: pid)?.localizedName ?? "pid \(pid)" : "?"
+      ? NSRunningApplication(processIdentifier: pid) : nil
+    app = running?.localizedName ?? (pid == 0 ? "?" : "pid \(pid)")
     let buttons = [
       (kAXCloseButtonAttribute, "close"), (kAXMinimizeButtonAttribute, "minimize"),
       (kAXFullScreenButtonAttribute, "full-screen"),
@@ -51,7 +54,7 @@ private struct KindRow {
       Accessibility.value(kAXRoleAttribute, of: window) as? String ?? "-",
       Accessibility.value(kAXSubroleAttribute, of: window) as? String ?? "-",
       buttons.isEmpty ? "-" : buttons.joined(separator: ","),
-      resizable, size ?? "?", tylerKind ?? "-",
+      resizable, size ?? "?", running.map { $0.isHidden ? "yes" : "no" } ?? "?", tylerKind ?? "-",
     ]
   }
 }

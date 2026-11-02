@@ -161,9 +161,11 @@ subrole, title-bar buttons and whether its size can be set:
     `AXApplicationShown` and `didUnhideApplicationNotification` 18 to 29 ms later, with `isHidden`
     `false`. The app sends no `AXFocusedWindowChanged`: its focus has to be read at the activation.
   - macOS activates the app used before the hidden one, and focuses that app's window even if it
-    is parked. Once (the hide by process id) the parked window's app was activated, and tylerd
-    declined it as after a close: the check behind `WindowStacking.containsWindow` must have
-    said the hidden window is gone, since nothing else had told tylerd about the hide.
+    is parked (once, in the hide by process id).
+  - `CGWindowListCopyWindowInfo` with `.optionIncludingWindow` and the id of a hidden window
+    returns an empty list, though `.optionAll` still has the window (#116). So
+    `WindowStacking.containsWindow` says a hidden window is gone, before tylerd hears of the hide,
+    and the parked window macOS focused was declined as after a close.
 - **Revoking Accessibility with an active tap alive can stop all input** (reported on Apple's
   developer forums, threads 844416 and 735204, FB24619068, macOS 15 to 27; seen once here on
   macOS 26.7, not reproduced on purpose): with a `.defaultTap` session tap in place, even one

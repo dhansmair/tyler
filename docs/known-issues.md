@@ -23,6 +23,8 @@ has its own list in [Layouts](layouts.md#strip--experimental).
   app that wasn't answering when `tylerd` started. ([#99](https://github.com/dhansmair/tyler/issues/99))
 - **A window opened in the background** (`open -g`) of an app with a workspace in the config
   brings that workspace into view, although the app you were using stays in front. ([#72](https://github.com/dhansmair/tyler/issues/72))
+- **A hidden app's windows keep their place in the layout,** which show as empty slots: Cmd-H, or an
+  app that hides itself (Cisco Secure Client). Minimize instead, or quit the app, to free the slot. ([#116](https://github.com/dhansmair/tyler/issues/116))
 
 ## Limits
 

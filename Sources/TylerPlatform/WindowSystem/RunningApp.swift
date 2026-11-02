@@ -6,4 +6,5 @@ struct RunningApp: Equatable, Sendable {
   let activationPolicy: NSApplication.ActivationPolicy
   let name: String?
   let bundleID: String?
+  var isHidden = false
 }

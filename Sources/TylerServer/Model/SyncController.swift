@@ -35,14 +35,7 @@ struct SyncController {
     guard
       let syncs = WorkspaceSync.plan(
         for: model.rows, windows: context.registry.windows, displays: connected,
-        marks: WorkspaceSync.Marks(
-          floated: model.bookkeeping.floated, seen: model.bookkeeping.seen,
-          // Windows out of view in a scrolling layout are parked like other workspaces' windows.
-          sliding: context.movingWindows.union(tiling.offViewWindows),
-          held: held.union(context.draggedWindow.map { [$0] } ?? [])
-            .union(context.crossingWindows.subtracting(arrived)),
-          foundAtStart: model.bookkeeping.foundAtStart,
-          focusedDisplay: model.rows.focusedKey, mouseLocation: context.mouseLocation),
+        marks: marks(of: model, tiling: tiling, held: held, arrived: arrived),
         assignedWorkspace: {
           context.config.assignedWorkspace(bundleID: $0.bundleID, appName: $0.appName)
         })
@@ -51,7 +44,8 @@ struct SyncController {
     for (position, sync) in syncs.enumerated() {
       let key = model.rows.entries[position].key
       for index in model.rows[position].indices {
-        let changed = model.rows[position][index].sync(eligible: sync.eligible[index])
+        let changed = model.rows[position][index].sync(
+          eligible: sync.eligible[index], hiding: sync.hiding[index])
         guard changed && index == model.rows[position].currentIndex else { continue }
         if key == model.rows.focusedKey {
           outcome.changedCurrent = true
@@ -75,6 +69,19 @@ struct SyncController {
       wasUnlisted: isFocusUnlisted == true, arrivals: Set(syncs.flatMap(\.arrivals)),
       model: &model)
     return outcome
+  }
+
+  private func marks(
+    of model: Model, tiling: TilingSnapshot, held: Set<WindowID>, arrived: Set<WindowID>
+  ) -> WorkspaceSync.Marks {
+    WorkspaceSync.Marks(
+      floated: model.bookkeeping.floated, seen: model.bookkeeping.seen,
+      // Windows out of view in a scrolling layout are parked like other workspaces' windows.
+      sliding: context.movingWindows.union(tiling.offViewWindows),
+      held: held.union(context.draggedWindow.map { [$0] } ?? [])
+        .union(context.crossingWindows.subtracting(arrived)),
+      foundAtStart: model.bookkeeping.foundAtStart,
+      focusedDisplay: model.rows.focusedKey, mouseLocation: context.mouseLocation)
   }
 
   /// Puts windows a previous tylerd handed over that appeared only now back where they were.

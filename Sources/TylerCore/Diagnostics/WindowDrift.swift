@@ -8,6 +8,7 @@ package struct WindowDrift: Codable, Equatable, Sendable {
   package enum Field: String, Codable, CaseIterable, Sendable {
     case minimized
     case fullscreen
+    case hidden
     case frame
     case title
     case kind
@@ -111,6 +112,7 @@ package struct WindowDrift: Codable, Equatable, Sendable {
       Reading(
         field: .fullscreen, believed: yesNo(believed.isFullscreen),
         actual: yesNo(actual.isFullscreen)),
+      Reading(field: .hidden, believed: yesNo(believed.isHidden), actual: yesNo(actual.isHidden)),
       Reading(field: .frame, believed: frameText(believed.frame), actual: frameText(actual.frame)),
       Reading(field: .title, believed: believed.title, actual: actual.title),
       Reading(field: .kind, believed: believed.kind.rawValue, actual: actual.kind.rawValue),

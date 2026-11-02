@@ -41,9 +41,10 @@ package struct LateHandOver: Equatable, Sendable {
     let processIDs = Dictionary(
       (saved.apps ?? []).map { ($0.id, $0.processID) }, uniquingKeysWith: { first, _ in first })
     for (number, workspace) in saved.numberedWorkspaces {
-      for (index, windowID) in workspace.windows.enumerated() where !taken.contains(windowID) {
+      let all = workspace.allWindows
+      for (index, windowID) in all.enumerated() where !taken.contains(windowID) {
         let place = Place(
-          number: number, followers: Array(workspace.windows[(index + 1)...]),
+          number: number, followers: Array(all[(index + 1)...]),
           wasFocused: workspace.focused == windowID)
         expected[windowID] = Expected(
           processID: processIDs[windowID], place: place, originalFrame: frames[windowID])

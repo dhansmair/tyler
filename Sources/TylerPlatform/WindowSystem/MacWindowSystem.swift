@@ -54,6 +54,7 @@ package final class MacWindowSystem: WindowSystem {
     workspace.start(
       launched: { [weak self] in self?.attach(processID: $0, attempt: 1) },
       activated: { [weak self] in self?.appActivated(processID: $0) },
+      hiddenChanged: { [weak self] in self?.appHiddenChanged(processID: $0) },
       quit: { [weak self] in self?.detachQuitApps() })
     for app in workspace.runningApps {
       attach(processID: app.processID, attempt: 1)
@@ -184,6 +185,11 @@ package final class MacWindowSystem: WindowSystem {
     } else {
       Self.log.debug("app activated - pid \(processID) - not observed yet, a retry is waiting")
     }
+  }
+
+  private func appHiddenChanged(processID: pid_t) {
+    Self.log.info("app hidden changed - pid \(processID)")
+    connections[processID]?.reportWindows()
   }
 
   // MARK: - Windows

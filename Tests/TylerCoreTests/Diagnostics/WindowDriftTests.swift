@@ -35,6 +35,7 @@ struct WindowDriftTests {
   @Test(arguments: [
     Case(field: .minimized, change: { $0.isMinimized = true }, believed: "no", actual: "yes"),
     Case(field: .fullscreen, change: { $0.isFullscreen = true }, believed: "no", actual: "yes"),
+    Case(field: .hidden, change: { $0.isHidden = true }, believed: "no", actual: "yes"),
     Case(
       field: .frame, change: { $0.frame.origin.x = 40 }, believed: "10,20 300x200",
       actual: "40,20 300x200"),

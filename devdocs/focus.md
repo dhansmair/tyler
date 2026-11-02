@@ -53,12 +53,13 @@ check have only run on fakes.
 | tyler focuses a window | Reports that focus back | tyler | Ignores it | `theEchoOfTylerdsOwnFocusDoesNotSwitchBack` | Yes |
 | A background window closes, then a focus on a parked window | Focuses it | The user | Follows | `aBackgroundWindowClosingTakesNothingAway` | No |
 | A dialog closes and its app focuses a parked window | Focuses it | The app, on purpose | Follows | `aDialogClosingAndFocusingAParkedWindowSwitches` | No |
+| Cmd-H hides the focused window's app | Focuses the previous app's window, even a parked one | macOS | Stays, and focuses the current workspace: the window server already reports the hidden window gone | `theParkedWindowMacOSFocusesAfterAHideIsNotFollowed` | Yes |
 | The app ignores tyler's second request | Stays on the parked window, or says nothing | The app | Follows, so keys don't stay hidden | `aSecondAskThatChangesNothingIsFollowed` | No |
 
 ## What isn't covered
 
-- **Cmd-H and cmd-M:** macOS may pick a parked window the same way, but nothing closed, so tyler
-  follows. Not measured.
+- **Cmd-M:** macOS may pick a parked window the same way, but nothing closed, so tyler follows.
+  Not measured.
 - **cmd-` just after tyler focused that app:** it is taken for the app ending on its remembered
   window and asked back once. The next press goes through.
 - **Windows an app restores when it launches** count as new, so they all join the display the user

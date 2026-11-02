@@ -8,6 +8,7 @@ package func makeWindow(
   kind: WindowKind = .standard,
   isMinimized: Bool = false,
   isFullscreen: Bool = false,
+  isHidden: Bool = false,
   isFocused: Bool = false
 ) -> WindowInfo {
   WindowInfo(
@@ -19,6 +20,7 @@ package func makeWindow(
     kind: kind,
     isMinimized: isMinimized,
     isFullscreen: isFullscreen,
+    isHidden: isHidden,
     isFocused: isFocused
   )
 }

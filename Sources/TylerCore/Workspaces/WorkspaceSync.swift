@@ -3,7 +3,8 @@ import CoreGraphics
 /// Works out which windows each workspace should hold, given the windows that exist. Pure: the
 /// server applies the result to its workspaces and parks the arrivals.
 ///
-/// A window stays on its workspace while it is tileable and not floated; parked and sliding
+/// A window stays on its workspace while it is tileable and not floated, or while its app is
+/// hidden: it then keeps its place there without a slot, and comes back to it. Parked and sliding
 /// windows keep their place whatever their frame says. A window on a display's current workspace
 /// that moves to another display goes last in that display's current workspace, or leaves the
 /// workspaces if that display has no row. Tileable windows that belong to no workspace join the
@@ -14,7 +15,9 @@ import CoreGraphics
 package struct WorkspaceSync: Equatable, Sendable {
   /// Per workspace, the windows it should hold, as `Workspace.sync(eligible:)` takes them.
   package var eligible: [[WindowID]]
-  /// Windows newly assigned to a workspace that isn't on screen.
+  /// Per workspace, the members to keep there without a slot, as their app is hidden.
+  package var hiding: [Set<WindowID>]
+  /// Windows newly assigned to a workspace that isn't on screen, or back on one from being hidden.
   package var arrivals: [WindowID]
 
   /// What the manager knows about windows beyond their `WindowInfo`.
@@ -96,6 +99,14 @@ extension WorkspaceSync {
     let index: Int
   }
 
+  /// Per display and workspace, the windows that stay and the hidden ones; and the windows that
+  /// moved to another display with a row, by the current workspace they go to.
+  private struct Kept {
+    var eligible: [[[WindowID]]]
+    var hiding: [[Set<WindowID>]]
+    var moved: [Place: [WindowInfo]]
+  }
+
   /// Works out one `WorkspaceSync` per display.
   private struct Planner {
     let rows: DisplayRows
@@ -106,17 +117,21 @@ extension WorkspaceSync {
     let assignments: [WindowID: Int]
 
     func plan() -> [WorkspaceSync] {
-      var (eligible, joining) = keptAndMoved()
+      let kept = keptAndMoved()
+      let eligible = kept.eligible
+      var joining = kept.moved
       let assigned = rows.allWindows
       for window in windows where !assigned.contains(window.id) && isCandidate(window) {
         guard let place = destination(of: window) else { continue }
         joining[place, default: []].append(window)
       }
       return rows.entries.indices.map { position in
-        var sync = WorkspaceSync(eligible: eligible[position], arrivals: [])
+        var sync = WorkspaceSync(
+          eligible: eligible[position], hiding: kept.hiding[position], arrivals: [])
         for index in rows[position].indices {
           var arriving = joining[Place(position: position, index: index)] ?? []
           if index != rows[position].currentIndex {
+            sync.arrivals += eligible[position][index].filter(rows[position][index].hidden.contains)
             sync.arrivals += arriving.map(\.id)
           } else if rows[position][index].count == 0 {
             // First fill: left to right, then top to bottom, so the layout matches the screen.
@@ -128,18 +143,26 @@ extension WorkspaceSync {
       }
     }
 
-    /// Per display and workspace, the windows that stay; and the windows that moved to another
-    /// display with a row, by the current workspace they go to.
-    private func keptAndMoved() -> (eligible: [[[WindowID]]], moved: [Place: [WindowInfo]]) {
+    private func keptAndMoved() -> Kept {
       let byID = Dictionary(windows.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
       var eligible = rows.entries.map { entry in entry.row.workspaces.map { _ in [WindowID]() } }
+      var hiding = rows.entries.map { entry in entry.row.workspaces.map { _ in Set<WindowID>() } }
       var moved: [Place: [WindowInfo]] = [:]
       for (position, entry) in rows.entries.enumerated() {
         for index in entry.row.indices {
-          for windowID in entry.row[index].windows {
-            guard let window = byID[windowID], isCandidate(window) else { continue }
+          for windowID in entry.row[index].members {
+            guard let window = byID[windowID] else { continue }
+            if window.isHidden && !marks.floated.contains(windowID) {
+              hiding[position][index].insert(windowID)
+              continue
+            }
+            guard isCandidate(window) else { continue }
             let onPosition = self.position(of: window)
-            if index != entry.row.currentIndex || isPinned(windowID) || onPosition == position {
+            // A window back from being hidden hasn't moved with its workspace.
+            let isReturning = entry.row[index].hidden.contains(windowID)
+            if index != entry.row.currentIndex || isPinned(windowID) || onPosition == position
+              || isReturning
+            {
               eligible[position][index].append(windowID)
             } else if let onPosition {
               moved[current(at: onPosition), default: []].append(window)
@@ -147,7 +170,7 @@ extension WorkspaceSync {
           }
         }
       }
-      return (eligible, moved)
+      return Kept(eligible: eligible, hiding: hiding, moved: moved)
     }
 
     private func isCandidate(_ window: WindowInfo) -> Bool {

@@ -119,6 +119,14 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
 
 ## Tiling
 
+- **A hidden app's windows stay on their workspace, without a slot.** `Workspace.members` holds them
+  in order among the tiled windows, and `windows` stays the tiled ones, so nothing that lays out or
+  walks the list changes. Hiding takes all of an app's windows at once, across workspaces, so Cmd-H
+  has to be reversible, which a place remembered beside the list wouldn't be as surely: this one
+  moves with its workspace and can't drift. Each window stays before the one that followed it. Unlike
+  a minimized window, it returns to its own workspace. tylerd hears of a hide from `NSWorkspace`, not
+  Accessibility: an app need not answer, and a refused AX registration would refuse the whole app.
+  Floated windows are meant to join `members` with a mark of their own.
 - **New windows tile.** Dialogs and sheets float; `window float` switches any window. A new window
   joins the workspace the user is on, unless its app is assigned to one: macOS or the app picks
   where it appears, often on another display, and tyler can't choose before that, so it moves the

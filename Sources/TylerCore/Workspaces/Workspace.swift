@@ -110,6 +110,12 @@ package struct Workspace: Equatable, Sendable {
     return true
   }
 
+  /// A window handed over as hidden, before `follower`: it already left the layout states.
+  package mutating func restoreHidden(_ windowID: WindowID, before follower: WindowID?) {
+    hidden.insert(windowID)
+    members.insert(windowID, at: follower.flatMap(members.firstIndex) ?? members.count)
+  }
+
   /// Rebuilds `members` from the tiled order, each hidden member before the one it was before.
   private mutating func placeHiddenMembers() {
     guard !hidden.isEmpty else {

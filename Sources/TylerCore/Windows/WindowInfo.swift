@@ -13,6 +13,8 @@ package struct WindowInfo: Codable, Equatable, Sendable, Identifiable {
   package var kind: WindowKind
   package var isMinimized: Bool
   package var isFullscreen: Bool
+  /// Its app is hidden: the window keeps its frame and reports nothing else.
+  package var isHidden: Bool
   package var isFocused: Bool
   /// Filled in by the server when answering a request; `nil` when no display is known.
   package var displayID: UInt32?
@@ -36,6 +38,7 @@ package struct WindowInfo: Codable, Equatable, Sendable, Identifiable {
     kind: WindowKind = .standard,
     isMinimized: Bool = false,
     isFullscreen: Bool = false,
+    isHidden: Bool = false,
     isFocused: Bool = false,
     displayID: UInt32? = nil,
     slot: Int? = nil,
@@ -51,6 +54,7 @@ package struct WindowInfo: Codable, Equatable, Sendable, Identifiable {
     self.kind = kind
     self.isMinimized = isMinimized
     self.isFullscreen = isFullscreen
+    self.isHidden = isHidden
     self.isFocused = isFocused
     self.displayID = displayID
     self.slot = slot
@@ -60,7 +64,7 @@ package struct WindowInfo: Codable, Equatable, Sendable, Identifiable {
 
   /// Whether a layout may later place this window: a normal window that is on screen.
   package var isTileable: Bool {
-    kind == .standard && !isMinimized && !isFullscreen
+    kind == .standard && !isMinimized && !isFullscreen && !isHidden
   }
 }
 

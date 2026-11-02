@@ -87,6 +87,18 @@ final class AppConnection {
     windows.read(windowID, by: reader)
   }
 
+  /// Reports every window afresh: hiding or showing the app changes all of them, and none of them
+  /// says so itself.
+  func reportWindows() {
+    for windowID in windows.ids {
+      guard let info = read(windowID) else {
+        Self.log.warning("window update dropped - \(named(windowID)) - the read failed")
+        continue
+      }
+      report(.updated(info))
+    }
+  }
+
   /// The last read with a new frame.
   private func note(_ frame: CGRect, isFullscreen: Bool? = nil, of id: WindowID) -> WindowInfo? {
     windows.note(frame, isFullscreen: isFullscreen, of: id)

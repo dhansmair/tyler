@@ -26,11 +26,13 @@ package final class FakeStacking: WindowStacking {
   package init() {}
 
   package var appWindowsOnScreen: Set<WindowID> {
-    listedWindows ?? Set((windowSystem?.windows ?? []).filter { !$0.isMinimized }.map(\.id))
+    listedWindows
+      ?? Set((windowSystem?.windows ?? []).filter { !$0.isMinimized && !$0.isHidden }.map(\.id))
   }
 
   package func containsWindow(_ windowID: WindowID) -> Bool {
     !goneWindows.contains(windowID)
+      && windowSystem?.windows.first { $0.id == windowID }?.isHidden != true
   }
 
   package func isOverlaid(at point: CGPoint) -> Bool {

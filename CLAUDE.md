@@ -97,7 +97,7 @@ devtools/tyler-use [brew|local|main|<folder>]   # which install `tyler` is, and 
 - **SwiftLint needs `TOOLCHAIN_DIR`.** Without full Xcode, plain `swiftlint` crashes looking for sourcekitd; `make lint` and the pre-commit hook set `TOOLCHAIN_DIR=/Library/Developer/CommandLineTools`.
 - **swift-format owns layout.** Where SwiftLint rejects what the formatter produces, turn that check off in `.swiftlint.yml`; don't write the code around it. SwiftLint keeps what a formatter can't check. Its complexity limit (10) and 5-parameter limit apply: group parameters into a struct rather than splitting logic arbitrarily.
 - **Pre-commit** (`.pre-commit-config.yaml`) is installed in `.git/hooks`. Every commit is checked for conflict markers. One that touches Swift files also formats them, then runs format lint, SwiftLint and the tests, and is blocked at the first that fails. A commit blocked by formatting leaves the formatted files in the working tree: stage them and commit again. Don't bypass it with `--no-verify`.
-- **CI** (`.github/workflows/check.yml`) runs `make check` in a fresh checkout for every PR that isn't a draft and every push to `main`, with SwiftLint pinned to the local version: update the pin when SwiftLint changes.
+- **CI** (`.github/workflows/check.yml`) runs `make check` in a fresh checkout for every PR that isn't a draft and every push to `main`, except a PR that changes only Markdown files (its `check` is skipped, which counts as passed), with SwiftLint pinned to the local version: update the pin when SwiftLint changes.
 
 ## Design principles
 

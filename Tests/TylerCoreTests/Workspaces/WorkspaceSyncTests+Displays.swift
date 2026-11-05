@@ -32,6 +32,37 @@ struct WorkspaceSyncDisplaysTests {
     return rows
   }
 
+  private func plan(_ rows: DisplayRows, windows: [WindowInfo]) -> [WorkspaceSync]? {
+    WorkspaceSync.plan(
+      for: rows, windows: windows, displays: [primary, secondary],
+      marks: WorkspaceSync.Marks(floated: [], seen: [], sliding: []),
+      assignedWorkspace: { _ in nil })
+  }
+
+  @Test func aHiddenWindowStaysOnItsWorkspaceWithoutASlot() throws {
+    var hidden = window(1)
+    hidden.isHidden = true
+    let syncs = try #require(plan(rows(), windows: [hidden, window(2, left: 2000), window(3)]))
+    #expect(syncs[0].eligible[0].isEmpty)
+    #expect(syncs[0].hiding[0] == [WindowID(1)])
+  }
+
+  @Test func aWindowBackFromHiddenKeepsItsWorkspaceWhereverItsFrameIs() throws {
+    var rows = rows()
+    rows[0][0].hide(WindowID(1))
+    let syncs = try #require(
+      plan(rows, windows: [window(1, left: 2000), window(2, left: 2000), window(3)]))
+    #expect(syncs[0].eligible[0] == [WindowID(1)])
+    #expect(syncs[1].eligible[0] == [WindowID(2)])
+  }
+
+  @Test func aWindowBackOnAParkedWorkspaceArrives() throws {
+    var rows = rows()
+    rows[1][1].hide(WindowID(3))
+    let syncs = try #require(plan(rows, windows: [window(1), window(2, left: 2000), window(3)]))
+    #expect(syncs[1].arrivals == [WindowID(3)])
+  }
+
   private func planOpening(
     _ window: WindowInfo, seen: Set<WindowID> = [], foundAtStart: Set<WindowID> = [],
     focusedDisplay: DisplayKey? = nil

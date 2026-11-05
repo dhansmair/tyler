@@ -42,7 +42,7 @@ tyler sorts every window into one of three kinds:
 - **Floated** windows are ones you took out of tiling with `tyler window float`. tyler leaves them where you put them, after moving a floated window a little out of its slot so it is plain to see that it floats.
 - **Never-tiled** windows are dialogs, sheets, panels and other special windows, and windows that can't be resized and have no full screen button (a reminder popup, Calculator). tyler leaves them alone, and `window float off` can't tile them.
 
-Floated and never-tiled windows belong to no workspace, so they stay visible whichever workspace is on screen. Minimized windows and windows in native fullscreen leave the tiling list. When they come back, they are tiled on the current workspace.
+Floated and never-tiled windows belong to no workspace, so they stay visible whichever workspace is on screen. Minimized windows and windows in native fullscreen leave the tiling list. When they come back, they are tiled on the current workspace. The windows of a hidden app (Cmd-H) give up their slots but keep their place: when the app is shown again, each goes back to its workspace and its place in the list, and if one of them takes the focus, its workspace comes into view.
 
 New windows are tiled on the current workspace of the focused display, wherever they first appear, right after the focused window (in `tall`, never in the master section: a window opened while a master has the focus goes to the top of the stack), unless the [config file](#configuration) assigns their app to another workspace ([`apps.<app>.workspace`](features.md#app-assignments)).
 
@@ -321,7 +321,7 @@ Shows every window `tylerd` knows about, one per row:
 | `TITLE` | The window title |
 | `FRAME` | Position and size, as `x,y widthxheight` in points from the top-left of the main display |
 | `DISPLAY` | The physical display the window is on |
-| `FLAGS` | Any of `focused`, `min` (minimized), `full` (native fullscreen), `floated` (floated with `window float`), `dialog`, `float` (a floating panel), `other` (a window that is never tiled) |
+| `FLAGS` | Any of `focused`, `min` (minimized), `full` (native fullscreen), `hidden` (its app is hidden; it shows its workspace but no slot), `floated` (floated with `window float`), `dialog`, `float` (a floating panel), `other` (a window that is never tiled) |
 
 `--json` prints the same information as a JSON array, for scripts.
 
@@ -383,7 +383,7 @@ tyler window size next     # cycle: half, full, quarter, half, ...
 
 Sets the focused window's size in the `strip` layout and prints it. Like the strip layout, this command is experimental and may change. `quarter` stacks two windows in one column: the focused window on top and the next window below it. If the next window already shares a column (or there is none), the previous window goes on top instead. Setting either window of a stacked pair to `half` or `full` puts the other back to `half`, and so does closing, floating or moving one of them away.
 
-Other layouts ignore the size but keep it for when the workspace switches to `strip`. A window forgets its size when it leaves tiling (floated, minimized, closed), and keeps it when it moves to another workspace (a `quarter` arrives as `half`).
+Other layouts ignore the size but keep it for when the workspace switches to `strip`. A window forgets its size when it leaves tiling (floated, minimized, closed), and keeps it while its app is hidden and when it moves to another workspace (a `quarter` arrives as `half`).
 
 ### window move-to-workspace
 
@@ -543,7 +543,7 @@ tyler debug windows
 tyler debug windows --json
 ```
 
-Reads every window `tylerd` tracks again and shows where that differs from what `tylerd` believes: whether a window is minimized or fullscreen, its frame, its title and its kind. `tylerd` reads a window again only when its app reports a change, so a change it missed (a window that stays in the layout after being minimized, for example) shows here:
+Reads every window `tylerd` tracks again and shows where that differs from what `tylerd` believes: whether a window is minimized, fullscreen or hidden, its frame, its title and its kind. `tylerd` reads a window again only when its app reports a change, so a change it missed (a window that stays in the layout after being minimized, for example) shows here:
 
 ```
 13595  Ghostty  minimized  tylerd: no  macOS: yes

@@ -20,6 +20,48 @@ struct LateHandOverTests {
       originalFrames: [WindowID(2): frame])
   }()
 
+  @Test func aHiddenWindowTakesItsPlaceAtOnce() {
+    var (rows, late) = takenOver([1, 3, 4])
+    var floated: Set<WindowID> = []
+    var hidden = window(2)
+    hidden.isHidden = true
+    let outcome = late.restore([hidden], into: &rows, floated: &floated)
+    #expect(outcome.originalFrames == [WindowID(2): frame])
+    #expect(windows(rows, 0) == [1, 3])
+    #expect(rows[0][0].members == [WindowID(1), WindowID(2), WindowID(3)])
+    #expect(rows[0][0].hidden == [WindowID(2)])
+  }
+
+  @Test func aHiddenWindowThatCantBeTiledWaitsWithoutASlot() {
+    var (rows, late) = takenOver([1, 3, 4])
+    var floated: Set<WindowID> = []
+    var hidden = window(2, isMinimized: true)
+    hidden.isHidden = true
+    late.restore([hidden], into: &rows, floated: &floated)
+    #expect(windows(rows, 0) == [1, 3])
+    #expect(rows[0][0].members == [WindowID(1), WindowID(2), WindowID(3)])
+  }
+
+  @Test func aHiddenWindowThatIsNowADialogWaits() {
+    var (rows, late) = takenOver([1, 3, 4])
+    var floated: Set<WindowID> = []
+    var hidden = window(2)
+    hidden.isHidden = true
+    hidden.kind = .dialog
+    late.restore([hidden], into: &rows, floated: &floated)
+    #expect(rows[0][0].members == [WindowID(1), WindowID(3)])
+  }
+
+  @Test func aHiddenWindowAlreadyOnAWorkspaceIsNotPutBackTwice() {
+    var (rows, late) = takenOver([1, 3, 4])
+    rows[0][1].insertHidden(WindowID(2), before: nil)
+    var floated: Set<WindowID> = []
+    var hidden = window(2)
+    hidden.isHidden = true
+    #expect(late.restore([hidden], into: &rows, floated: &floated).restored.isEmpty)
+    #expect(rows[0][0].members == [WindowID(1), WindowID(3)])
+  }
+
   private func window(_ id: UInt32, isMinimized: Bool = false, processID: Int32 = 1) -> WindowInfo {
     WindowInfo(
       id: WindowID(id), processID: processID, appName: "App", title: "",

@@ -119,6 +119,29 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
 
 ## Tiling
 
+- **A workspace is one list of windows, each with its flags.** `Workspace.members` is every window
+  of the workspace in order; a flag (`MemberFlags`) keeps a member out of the layout without taking
+  it off the list. `windows` is the members without a flag, kept in step inside `Workspace`, so the
+  layouts and each frame of a slide read a plain array. A workspace *holds* a window (`holds`,
+  `DisplayRows.location(holding:)`: the window list, parking, a restart) or *tiles* it (`tiles`,
+  `location(of:)`: slots, focus, the commands). Two lists kept beside each other, as first built,
+  left each reader to pick one, and several picked the wrong one. A flagged window keeps its place
+  and its layout state, so clearing the flag restores the layout exactly; a swap or a drop around it
+  leaves it where it is. It parks and comes back with its workspace like the others. Only `hidden`
+  exists so far; floating (`plans/`) and later minimized and native fullscreen are meant to be flags
+  too, so they keep their place in the same way.
+- **A hidden app's windows are flagged `hidden`.** Hiding takes all of an app's windows at once,
+  across workspaces, so Cmd-H has to be reversible: a place in the list moves with its workspace and
+  can't drift, which a place remembered beside the list couldn't promise. Unlike a minimized window,
+  it returns to its own workspace. A hidden window is parked with its workspace, nobody seeing it
+  move (`SlidePlan.park(unseen:)`), so it doesn't show over another workspace when it comes back.
+  Focus treats a hidden window as on no list: an app's focus comes before macOS says it is shown
+  (`macos-behaviour.md`), and the window is better left to arrive parked and slide in with its
+  workspace. tylerd hears of a hide from `NSWorkspace`, not Accessibility: an app need not answer,
+  and a refused AX registration would refuse the whole app. The app's tracked windows own the
+  state (`TrackedWindows.isHidden`), and all of them change in one event (`updatedTogether`): one by
+  one, each reconcile would compare against frames from before the last one's moves, whose reports
+  are still queued, and leave a window at the wrong size (#121).
 - **New windows tile.** Dialogs and sheets float; `window float` switches any window. A new window
   joins the workspace the user is on, unless its app is assigned to one: macOS or the app picks
   where it appears, often on another display, and tyler can't choose before that, so it moves the

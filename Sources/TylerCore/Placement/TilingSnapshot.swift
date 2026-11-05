@@ -83,7 +83,8 @@ package struct TilingSnapshot: Sendable {
   /// height where this display is. `nil` if it isn't on a workspace or its display isn't
   /// connected.
   package func parkingPlacement(of windowID: WindowID, size: CGSize) -> Placement? {
-    guard let location = rows.location(of: windowID), let display = display(at: location.position)
+    guard let location = rows.location(holding: windowID),
+      let display = display(at: location.position)
     else { return nil }
     let workspace = rows[location.position][location.index]
     let slot =

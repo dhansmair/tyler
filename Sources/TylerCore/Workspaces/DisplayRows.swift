@@ -109,10 +109,21 @@ package struct DisplayRows: Equatable, Sendable {
     return nil
   }
 
-  /// Where the window is: its display's position and its workspace's index in that row.
+  /// Where the window takes a slot: its display's position and its workspace's index in that
+  /// row. A flagged member takes none: `location(holding:)` finds it.
   package func location(of windowID: WindowID) -> (position: Int, index: Int)? {
     for (position, entry) in entries.enumerated() {
       if let index = entry.row.index(containing: windowID) { return (position, index) }
+    }
+    return nil
+  }
+
+  /// The workspace the window is on, flagged or not.
+  package func location(holding windowID: WindowID) -> (position: Int, index: Int)? {
+    for (position, entry) in entries.enumerated() {
+      if let index = entry.row.indices.first(where: { entry.row[$0].holds(windowID) }) {
+        return (position, index)
+      }
     }
     return nil
   }
@@ -122,10 +133,11 @@ package struct DisplayRows: Equatable, Sendable {
     entries.reduce(into: []) { $0.formUnion($1.row.allWindows) }
   }
 
-  /// The windows of every workspace not in view on its display, which wait parked.
+  /// The windows of every workspace not in view on its display, which wait parked: hidden ones
+  /// too, so they don't show over another workspace when they come back.
   package var windowsOnParkedWorkspaces: [WindowID] {
     entries.flatMap { entry in
-      entry.row.indices.filter { $0 != entry.row.currentIndex }.flatMap { entry.row[$0].windows }
+      entry.row.indices.filter { $0 != entry.row.currentIndex }.flatMap { entry.row[$0].members }
     }
   }
 

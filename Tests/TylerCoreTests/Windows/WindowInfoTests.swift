@@ -9,7 +9,8 @@ struct WindowInfoTests {
   private func makeWindow(
     kind: WindowKind = .standard,
     isMinimized: Bool = false,
-    isFullscreen: Bool = false
+    isFullscreen: Bool = false,
+    isHidden: Bool = false
   ) -> WindowInfo {
     WindowInfo(
       id: WindowID(42),
@@ -18,8 +19,19 @@ struct WindowInfoTests {
       frame: CGRect(x: 10, y: 20, width: 300, height: 200),
       kind: kind,
       isMinimized: isMinimized,
-      isFullscreen: isFullscreen
+      isFullscreen: isFullscreen,
+      isHidden: isHidden
     )
+  }
+
+  /// As an older tylerd sends it, before windows could be hidden.
+  @Test func aWindowWithoutTheHiddenFlagIsShown() throws {
+    var object = try #require(
+      JSONSerialization.jsonObject(with: JSONEncoder().encode(makeWindow(isHidden: true)))
+        as? [String: Any])
+    object["isHidden"] = nil
+    let data = try JSONSerialization.data(withJSONObject: object)
+    #expect(try JSONDecoder().decode(WindowInfo.self, from: data) == makeWindow())
   }
 
   @Test func roundTripsThroughJSON() throws {
@@ -48,5 +60,6 @@ struct WindowInfoTests {
     #expect(!makeWindow(kind: .other).isTileable)
     #expect(!makeWindow(isMinimized: true).isTileable)
     #expect(!makeWindow(isFullscreen: true).isTileable)
+    #expect(!makeWindow(isHidden: true).isTileable)
   }
 }

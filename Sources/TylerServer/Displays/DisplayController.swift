@@ -48,7 +48,7 @@ struct DisplayController {
       throw noSuchDisplay(target, in: model.rows)
     }
     let number = model.rows.focused.number(at: model.rows.focused.currentIndex)
-    let hidden = model.rows[position].current.windows
+    let pushedOut = model.rows[position].current.members
     do {
       try model.rows.moveWorkspace(number: number, to: model.rows.entries[position].key)
     } catch {
@@ -56,7 +56,7 @@ struct DisplayController {
     }
     return Decision(
       "moved workspace \(number) to display \(position + 1)",
-      effects: [context.parking(hidden, in: model.rows), .reconcile(), .focusCurrentWorkspace])
+      effects: [context.parking(pushedOut, in: model.rows), .reconcile(), .focusCurrentWorkspace])
   }
 
   /// Once the displays have settled, each workspace goes to the display it now belongs on (see
@@ -93,7 +93,7 @@ struct DisplayController {
       copy.displayNumber = display.flatMap { display in
         context.displays.firstIndex { $0.id == display.id }.map { $0 + 1 }
       }
-      if let location = model.rows.location(of: window.id) {
+      if let location = model.rows.location(holding: window.id) {
         let row = model.rows[location.position]
         copy.workspace = row.number(at: location.index)
         copy.slot = row[location.index].slot(of: window.id)

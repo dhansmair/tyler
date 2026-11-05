@@ -54,6 +54,7 @@ package final class MacWindowSystem: WindowSystem {
     workspace.start(
       launched: { [weak self] in self?.attach(processID: $0, attempt: 1) },
       activated: { [weak self] in self?.appActivated(processID: $0) },
+      hiddenChanged: { [weak self] in self?.appHiddenChanged(processID: $0) },
       quit: { [weak self] in self?.detachQuitApps() })
     for app in workspace.runningApps {
       attach(processID: app.processID, attempt: 1)
@@ -186,6 +187,21 @@ package final class MacWindowSystem: WindowSystem {
     }
   }
 
+  private func appHiddenChanged(processID: pid_t) {
+    guard let app = workspace.runningApp(processID) else {
+      Self.log.info("app hidden change dropped - pid \(processID) - it isn't running")
+      return
+    }
+    let name = "\(app.name ?? "?") (pid \(processID))"
+    guard let connection = connections[processID] else {
+      Self.log.info(
+        "app \(app.isHidden ? "hidden" : "shown") - \(name) - not observed yet, read when it is")
+      return
+    }
+    Self.log.info("app \(app.isHidden ? "hidden" : "shown") - \(name)")
+    connection.noteHidden(app.isHidden)
+  }
+
   // MARK: - Windows
 
   private func receive(_ report: AppConnection.Report, from processID: pid_t) {
@@ -196,6 +212,8 @@ package final class MacWindowSystem: WindowSystem {
       readFocusOfFirstWindow(of: processID)
     case .updated(let info):
       continuation.yield(.updated(focusing(info)))
+    case .updatedTogether(let infos):
+      continuation.yield(.updatedTogether(infos.map(focusing)))
     case .destroyed(let windowID):
       owners[windowID] = nil
       if focusedID == windowID { focusedID = nil }

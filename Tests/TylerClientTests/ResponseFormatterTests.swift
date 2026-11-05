@@ -88,6 +88,9 @@ struct ResponseFormatterTests {
     #expect(ResponseFormatter.flags(of: window(id: 1, isFocused: true)) == "focused")
     #expect(ResponseFormatter.flags(of: window(id: 1, isMinimized: true)) == "min")
     #expect(ResponseFormatter.flags(of: window(id: 1, isFullscreen: true)) == "full")
+    var hidden = window(id: 1)
+    hidden.isHidden = true
+    #expect(ResponseFormatter.flags(of: hidden) == "hidden")
     #expect(ResponseFormatter.flags(of: window(id: 1, kind: .dialog)) == "dialog")
     #expect(ResponseFormatter.flags(of: window(id: 1, kind: .floating)) == "float")
     #expect(ResponseFormatter.flags(of: window(id: 1, kind: .other)) == "other")

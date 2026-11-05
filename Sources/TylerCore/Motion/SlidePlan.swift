@@ -55,6 +55,16 @@ package struct SlidePlan: Equatable, Sendable {
     }
   }
 
+  /// Windows of the current workspace that nobody sees (`frame`s as they are now), as their app
+  /// is hidden: they don't slide, but park with their workspace once the target is in view, so
+  /// they don't come back over it.
+  package mutating func park(unseen windows: [Placement], on display: DisplayInfo) {
+    for window in windows {
+      finals.append(Placement(id: window.id, frame: Parking.frame(for: window.frame, on: display)))
+      returns.append(window)
+    }
+  }
+
   /// The windows taking part, sliding or jumping.
   package var windows: Set<WindowID> {
     Set(finals.map(\.id))

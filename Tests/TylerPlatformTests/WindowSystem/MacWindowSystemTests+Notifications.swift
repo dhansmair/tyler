@@ -55,6 +55,50 @@ struct MacWindowSystemNotificationsTests {
     #expect(updated.first?.isMinimized == true)
   }
 
+  @Test func hidingAnAppReportsAllItsWindowsAtOnce() async {
+    let harness = await started()
+    harness.workspace.setHidden(true, 100)
+    let hidden = await harness.takeEvents().updatedTogether
+    #expect(hidden.map { $0.map(\.id.rawValue) } == [[1, 2]])
+    #expect(hidden.first?.map(\.isHidden) == [true, true])
+
+    harness.workspace.setHidden(false, 100)
+    let shown = await harness.takeEvents().updatedTogether
+    #expect(shown.first?.map(\.isHidden) == [false, false])
+  }
+
+  @Test func aHideThatChangesNoWindowIsNotReported() async {
+    let harness = await started()
+    harness.workspace.launch(300, name: "Windowless")
+    harness.workspace.setHidden(true, 300)
+    harness.workspace.setHidden(true, 100)
+    harness.workspace.setHidden(true, 100)
+    #expect(await harness.takeEvents().updatedTogether.count == 1)
+  }
+
+  @Test func aWindowReadWhileItsAppIsHiddenIsHidden() async {
+    let harness = await started()
+    harness.workspace.setHidden(true, 100)
+    _ = await harness.takeEvents()
+    harness.accessibility.post(kAXMovedNotification, for: 1, in: 100)
+    #expect(await harness.takeEvents().updated.map(\.isHidden) == [true])
+  }
+
+  @Test func anAppThatDoesNotAnswerIsStillReportedHidden() async {
+    let harness = await started()
+    harness.accessibility.answer(.cannotComplete, from: 1)
+    harness.workspace.setHidden(true, 100)
+    let hidden = await harness.takeEvents().updatedTogether
+    #expect(hidden.first?.map(\.isHidden) == [true, true])
+  }
+
+  @Test func anAppAlreadyHiddenIsReadAsHidden() async {
+    harness.addApp(100, windows: [1])
+    harness.workspace.markHidden(true, 100)
+    await harness.start()
+    #expect(harness.windowSystem.snapshot().map(\.isHidden) == [true])
+  }
+
   @Test func aWindowThatCanNotBeReadIsNotUpdated() async {
     let harness = await started()
     harness.accessibility.answer(.cannotComplete, from: 1)

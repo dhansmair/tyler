@@ -294,6 +294,8 @@ package final class WindowManager {
     if case .updated(let window) = event {
       known = registry.window(withID: window.id)
       mover.windowUpdated()
+    } else if case .updatedTogether(let windows) = event {
+      for _ in windows { mover.windowUpdated() }
     } else if case .focused(let windowID?) = event {
       known = registry.window(withID: windowID)
     }

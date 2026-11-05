@@ -148,6 +148,29 @@ subrole, title-bar buttons and whether its size can be set:
   restored from the Dock, three times): `AXMinimized` already reads `true` when
   `kAXWindowMiniaturizedNotification` arrives, and `false` when `kAXWindowDeminiaturizedNotification`
   does, and stays so 100 and 500 ms later. Reading the attribute at the notification is reliable.
+- **Hiding an app** (measured 2026-11-02, macOS 26.7.2, TextEdit hidden with Cmd-H twice and
+  brought back from the Dock and with Cmd-Tab, then a hide by process id with System Events):
+  - A hide changes nothing a window reports and sends no notification per window: no move, no
+    resize, no minimize, no destroy.
+  - The app notifications come in this order: `AXApplicationHidden`, the next app's
+    `didActivateApplicationNotification`, then `didHideApplicationNotification`, 2 to 10 ms apart.
+    `NSRunningApplication.isHidden` could still read `false` at `AXApplicationHidden` (twice of
+    three), and read `true` at every `didHideApplicationNotification`.
+  - An unhide, the same from the Dock and with Cmd-Tab: the app's
+    `didActivateApplicationNotification` first, with `isHidden` still `true`, then
+    `AXApplicationShown` and `didUnhideApplicationNotification` 18 to 29 ms later, with `isHidden`
+    `false`. The app sends no `AXFocusedWindowChanged`: its focus has to be read at the activation.
+  - macOS activates the app used before the hidden one, and focuses that app's window even if it
+    is parked (once, in the hide by process id).
+  - `CGWindowListCopyWindowInfo` with `.optionIncludingWindow` and the id of a hidden window
+    returns an empty list, though `.optionAll` still has the window (#116). So
+    `WindowStacking.containsWindow` says a hidden window is gone, before tylerd hears of the hide,
+    and the parked window macOS focused was declined as after a close.
+  - An app launched by an AppleScript `make new document` (TextEdit, not running before) starts
+    hidden: `didHideApplicationNotification` comes about 250 ms before its first window is
+    reported (2026-11-05). So an app can be hidden from its first window on, without Cmd-H.
+  - A window taking frame writes while hidden: `tyler stop` with TextEdit hidden wrote both its
+    windows back to their original frames, and both showed there on the unhide (2026-11-05).
 - **Revoking Accessibility with an active tap alive can stop all input** (reported on Apple's
   developer forums, threads 844416 and 735204, FB24619068, macOS 15 to 27; seen once here on
   macOS 26.7, not reproduced on purpose): with a `.defaultTap` session tap in place, even one

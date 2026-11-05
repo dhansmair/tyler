@@ -83,6 +83,7 @@ package enum ResponseFormatter {
     if window.isFocused { result.append("focused") }
     if window.isMinimized { result.append("min") }
     if window.isFullscreen { result.append("full") }
+    if window.isHidden { result.append("hidden") }
     if window.isFloated { result.append("floated") }
     switch window.kind {
     case .standard: break

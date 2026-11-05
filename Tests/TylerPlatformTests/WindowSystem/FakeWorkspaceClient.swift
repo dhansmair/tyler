@@ -10,6 +10,7 @@ final class FakeWorkspaceClient: WorkspaceClient {
   let ownProcessID: pid_t = 1
   private var onLaunch: (@MainActor (pid_t) -> Void)?
   private var onActivate: (@MainActor (pid_t) -> Void)?
+  private var onHiddenChange: (@MainActor (pid_t) -> Void)?
   private var onQuit: (@MainActor () -> Void)?
 
   /// Running before the window system starts: no launch is reported.
@@ -29,6 +30,17 @@ final class FakeWorkspaceClient: WorkspaceClient {
     onActivate?(processID)
   }
 
+  func setHidden(_ isHidden: Bool, _ processID: pid_t) {
+    markHidden(isHidden, processID)
+    onHiddenChange?(processID)
+  }
+
+  /// Hidden without the notification: an app already hidden, or one the report of is on its way.
+  func markHidden(_ isHidden: Bool, _ processID: pid_t) {
+    guard let index = runningApps.firstIndex(where: { $0.processID == processID }) else { return }
+    runningApps[index].isHidden = isHidden
+  }
+
   func quit(_ processID: pid_t) {
     runningApps.removeAll { $0.processID == processID }
     onQuit?()
@@ -41,10 +53,12 @@ final class FakeWorkspaceClient: WorkspaceClient {
   func start(
     launched: @escaping @MainActor @Sendable (pid_t) -> Void,
     activated: @escaping @MainActor @Sendable (pid_t) -> Void,
+    hiddenChanged: @escaping @MainActor @Sendable (pid_t) -> Void,
     quit: @escaping @MainActor @Sendable () -> Void
   ) {
     onLaunch = launched
     onActivate = activated
+    onHiddenChange = hiddenChanged
     onQuit = quit
   }
 

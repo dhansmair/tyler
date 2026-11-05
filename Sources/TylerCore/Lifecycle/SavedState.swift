@@ -14,6 +14,10 @@ package struct SavedState: Codable, Equatable, Sendable {
 
   package struct SavedWorkspace: Codable, Equatable, Sendable {
     package var windows: [WindowID]
+    /// `Workspace.members`, when some are hidden: `windows` are the tiled ones, which the layout
+    /// states go by. An older tylerd ignores it, and the hidden windows join the current
+    /// workspace when they come back.
+    package var members: [WindowID]?
     package var focused: WindowID?
     package var layout: LayoutKind
     /// `Workspace.firstVisible`; missing in files from before the strip.
@@ -48,11 +52,15 @@ package struct SavedState: Codable, Equatable, Sendable {
 
     init(_ workspace: Workspace) {
       windows = workspace.windows
+      members = workspace.hidden.isEmpty ? nil : workspace.members
       focused = workspace.focused
       layout = workspace.layout
       firstVisible = workspace.firstVisible
       layoutStates = workspace.layoutStates
     }
+
+    /// Every window of the workspace, hidden ones included.
+    var allWindows: [WindowID] { members ?? windows }
 
     var states: LayoutStates {
       if let layoutStates { return layoutStates }
@@ -280,12 +288,12 @@ package struct SavedState: Codable, Equatable, Sendable {
 
 extension SavedState.SavedWorkspace {
   /// The workspace as saved, with only the windows that still exist (`exists`). A window that
-  /// is gone leaves its layout states as a closed window does.
+  /// is gone leaves its layout states as a closed window does, a hidden one from its place.
   func workspace(keeping exists: (WindowID) -> Bool) -> Workspace {
     var states = self.states
     var remaining = windows
-    for windowID in windows where !exists(windowID) {
-      states.remove(windowID, from: remaining)
+    for windowID in allWindows where !exists(windowID) {
+      states.remove(windowID, from: allWindows.filter { remaining.contains($0) || $0 == windowID })
       remaining.removeAll { $0 == windowID }
     }
     var workspace = Workspace(layout: layout, layoutStates: states)
@@ -294,6 +302,12 @@ extension SavedState.SavedWorkspace {
     }
     if let focused { workspace.setFocus(focused) }
     if let firstVisible { workspace.scroll(toFirstVisible: firstVisible) }
+    let all = allWindows
+    for (index, windowID) in all.enumerated().reversed()
+    where !windows.contains(windowID) && exists(windowID) {
+      workspace.insertHidden(
+        windowID, before: all[(index + 1)...].first(where: workspace.holds))
+    }
     return workspace
   }
 }

@@ -11,6 +11,8 @@ struct TrackedWindows {
   }
 
   private var entries: [WindowID: Entry] = [:]
+  /// Whether their app is hidden, which no window says of itself: every read takes it from here.
+  private(set) var isHidden = false
 
   var ids: [WindowID] { entries.keys.sorted() }
 
@@ -46,11 +48,22 @@ struct TrackedWindows {
   @MainActor
   mutating func read(_ id: WindowID, by reader: WindowReader) -> WindowInfo? {
     guard let entry = entries[id],
-      let info = reader.read(
+      var info = reader.read(
         entry.element, id: id, processID: entry.processID, known: entry.lastRead)
     else { return nil }
+    info.isHidden = isHidden
     entries[id]?.lastRead = info
     return info
+  }
+
+  /// The app hidden or shown: the last reads that change with it, kept as the last reads.
+  mutating func setHidden(_ isHidden: Bool) -> [WindowInfo] {
+    guard isHidden != self.isHidden else { return [] }
+    self.isHidden = isHidden
+    return ids.compactMap { windowID in
+      entries[windowID]?.lastRead?.isHidden = isHidden
+      return entries[windowID]?.lastRead
+    }
   }
 
   /// The last read with a new frame (and full screen state), kept as the last read.

@@ -21,12 +21,15 @@ final class MacWorkspaceClient: WorkspaceClient {
   func start(
     launched: @escaping @MainActor @Sendable (pid_t) -> Void,
     activated: @escaping @MainActor @Sendable (pid_t) -> Void,
+    hiddenChanged: @escaping @MainActor @Sendable (pid_t) -> Void,
     quit: @escaping @MainActor @Sendable () -> Void
   ) {
     let center = NSWorkspace.shared.notificationCenter
     let names: [(Notification.Name, @MainActor @Sendable (pid_t) -> Void)] = [
       (NSWorkspace.didLaunchApplicationNotification, launched),
       (NSWorkspace.didActivateApplicationNotification, activated),
+      (NSWorkspace.didHideApplicationNotification, hiddenChanged),
+      (NSWorkspace.didUnhideApplicationNotification, hiddenChanged),
     ]
     for (name, action) in names {
       let token = center.addObserver(forName: name, object: nil, queue: .main) { note in
@@ -56,6 +59,6 @@ final class MacWorkspaceClient: WorkspaceClient {
   private static func describe(_ app: NSRunningApplication) -> RunningApp {
     RunningApp(
       processID: app.processIdentifier, activationPolicy: app.activationPolicy,
-      name: app.localizedName, bundleID: app.bundleIdentifier)
+      name: app.localizedName, bundleID: app.bundleIdentifier, isHidden: app.isHidden)
   }
 }

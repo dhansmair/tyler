@@ -41,6 +41,20 @@ struct SavedStateTests {
     #expect(restored[2].windows == [WindowID(4)])
   }
 
+  @Test func aHiddenWindowThatClosedLeavesTheLayoutAsAShownOneWould() {
+    var row = WorkspaceRow(count: 1)
+    row[0].sync(eligible: [WindowID(1), WindowID(2), WindowID(3)])
+    row[0].update(\.strip) { state, _ in
+      state.setSize(.quarter, of: WindowID(2))
+      state.setSize(.quarter, of: WindowID(3))
+    }
+    var hidden = row
+    hidden[0].hide(WindowID(2))
+    let restored = saved(hidden).row(count: 1) { $0 != WindowID(2) }
+    let restoredShown = saved(row).row(count: 1) { $0 != WindowID(2) }
+    #expect(restored[0].layoutStates == restoredShown[0].layoutStates)
+  }
+
   @Test func fewerWorkspacesMergeTheRestIntoTheLast() {
     let restored = saved(arrangement()).row(count: 2) { _ in true }
     #expect(restored.count == 2)

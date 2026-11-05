@@ -10,10 +10,11 @@ protocol WorkspaceClient: AnyObject {
   var ownProcessID: pid_t { get }
   func runningApp(_ processID: pid_t) -> RunningApp?
 
-  /// Tells the handlers when an app launches, comes to the front, or quits.
+  /// Tells the handlers when an app launches, comes to the front, is hidden or shown, or quits.
   func start(
     launched: @escaping @MainActor @Sendable (pid_t) -> Void,
     activated: @escaping @MainActor @Sendable (pid_t) -> Void,
+    hiddenChanged: @escaping @MainActor @Sendable (pid_t) -> Void,
     quit: @escaping @MainActor @Sendable () -> Void)
   func stop()
 }

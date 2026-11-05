@@ -193,8 +193,9 @@ struct TilingController {
     var restored: [WindowID] = []
     for position in model.rows.entries.indices {
       restored += model.rows[position].current.windows.filter(offView.contains)
+      restored += model.rows[position].current.hidden
       for index in model.rows[position].indices where index != model.rows[position].currentIndex {
-        restored += model.rows[position][index].windows
+        restored += model.rows[position][index].members
         model.rows[position][index].sync(eligible: [])
       }
     }

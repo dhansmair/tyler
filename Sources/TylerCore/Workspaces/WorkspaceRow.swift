@@ -62,12 +62,12 @@ package struct WorkspaceRow: Equatable, Sendable {
 
   /// The index of the workspace holding `windowID`, if any.
   package func index(containing windowID: WindowID) -> Int? {
-    workspaces.firstIndex { $0.contains(windowID) }
+    workspaces.firstIndex { $0.tiles(windowID) }
   }
 
   /// Every window on any workspace.
   package var allWindows: Set<WindowID> {
-    Set(workspaces.flatMap(\.windows))
+    Set(workspaces.flatMap(\.members))
   }
 
   /// Resolves a target to an index: `prev` and `next` wrap around, and a number is `nil` when
@@ -124,13 +124,17 @@ package struct WorkspaceRow: Equatable, Sendable {
     let newNumbers = Self.normalized(newNumbers)
     let currentNumber = numbers[currentIndex]
     let byNumber = Dictionary(uniqueKeysWithValues: zip(numbers, workspaces))
-    let removed = numbers.filter { !newNumbers.contains($0) }.flatMap {
-      byNumber[$0]?.windows ?? []
-    }
+    let gone = numbers.filter { !newNumbers.contains($0) }.compactMap { byNumber[$0] }
     workspaces = newNumbers.map { byNumber[$0] ?? Workspace(layout: newLayout) }
     numbers = newNumbers
-    for windowID in removed {
-      workspaces[workspaces.count - 1].append(windowID)
+    for workspace in gone {
+      for windowID in workspace.members {
+        if workspace.flags(of: windowID).contains(.hidden) {
+          workspaces[workspaces.count - 1].insertHidden(windowID, before: nil)
+        } else {
+          workspaces[workspaces.count - 1].append(windowID)
+        }
+      }
     }
     currentIndex = numbers.firstIndex(of: currentNumber) ?? numbers.count - 1
   }

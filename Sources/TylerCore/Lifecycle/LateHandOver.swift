@@ -41,9 +41,10 @@ package struct LateHandOver: Equatable, Sendable {
     let processIDs = Dictionary(
       (saved.apps ?? []).map { ($0.id, $0.processID) }, uniquingKeysWith: { first, _ in first })
     for (number, workspace) in saved.numberedWorkspaces {
-      for (index, windowID) in workspace.windows.enumerated() where !taken.contains(windowID) {
+      let all = workspace.allWindows
+      for (index, windowID) in all.enumerated() where !taken.contains(windowID) {
         let place = Place(
-          number: number, followers: Array(workspace.windows[(index + 1)...]),
+          number: number, followers: Array(all[(index + 1)...]),
           wasFocused: workspace.focused == windowID)
         expected[windowID] = Expected(
           processID: processIDs[windowID], place: place, originalFrame: frames[windowID])
@@ -78,9 +79,10 @@ package struct LateHandOver: Equatable, Sendable {
         outcome.note(window.id, originalFrame: expected.originalFrame)
         continue
       }
-      guard window.isTileable else { continue }
+      // A hidden window takes its place at once, without a slot: the sync decides when it shows.
+      guard window.isTileable || (window.isHidden && window.kind == .standard) else { continue }
       self.expected[window.id] = nil
-      if Self.put(window.id, back: place, into: &rows) {
+      if Self.put(window, back: place, into: &rows) {
         outcome.note(window.id, originalFrame: expected.originalFrame)
       }
     }
@@ -88,14 +90,18 @@ package struct LateHandOver: Equatable, Sendable {
   }
 
   private static func put(
-    _ windowID: WindowID, back place: Place, into rows: inout DisplayRows
+    _ window: WindowInfo, back place: Place, into rows: inout DisplayRows
   ) -> Bool {
-    guard rows.location(of: windowID) == nil,
+    guard rows.location(holding: window.id) == nil,
       let location = rows.location(ofNumber: place.number)
     else { return false }
     var workspace = rows[location.position][location.index]
-    workspace.insert(windowID, before: place.followers.first(where: workspace.contains))
-    if place.wasFocused { workspace.setFocus(windowID) }
+    if window.isHidden {
+      workspace.insertHidden(window.id, before: place.followers.first(where: workspace.holds))
+    } else {
+      workspace.insert(window.id, before: place.followers.first(where: workspace.tiles))
+      if place.wasFocused { workspace.setFocus(window.id) }
+    }
     rows[location.position][location.index] = workspace
     return true
   }

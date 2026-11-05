@@ -23,6 +23,19 @@ struct SlidePlanTests {
     #expect(plan().returns.first == current)
   }
 
+  @Test func unseenWindowsDontSlideButParkAtTheEnd() {
+    let unseen = Placement(id: WindowID(3), frame: CGRect(x: 900, y: 38, width: 800, height: 600))
+    var plan = plan()
+    let tracks = plan.tracks
+    plan.park(unseen: [unseen], on: display)
+    #expect(plan.tracks == tracks)
+    #expect(!plan.start.contains { $0.id == unseen.id })
+    #expect(
+      plan.finals.last
+        == Placement(id: WindowID(3), frame: Parking.frame(for: unseen.frame, on: display)))
+    #expect(plan.returns.last == unseen)
+  }
+
   @Test func enteringWindowsWaitParkedAtTheirSlotSizeAndEndInTheirSlot() {
     let start = plan().start.first
     #expect(start?.frame.size == slot.frame.size)

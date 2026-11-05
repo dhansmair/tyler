@@ -67,6 +67,7 @@ final class AppConnection {
     try bridge.observe(application, processID: processID) { [weak self] notification, element in
       self?.handle(notification, element: element)
     }
+    _ = windows.setHidden(reader.workspace.runningApp(processID)?.isHidden ?? false)
     for window in bridge.windows(of: application) {
       register(window: window)
     }
@@ -91,7 +92,12 @@ final class AppConnection {
   /// Reports all its windows in one report, without asking the app, which needn't be answering:
   /// hiding or showing it changes all of them, and none of them says so itself.
   func noteHidden(_ isHidden: Bool) {
-    report(.updatedTogether(windows.noteHidden(isHidden)))
+    let changed = windows.setHidden(isHidden)
+    guard !changed.isEmpty else {
+      Self.log.debug("app hidden change skipped - pid \(processID) - no window changed")
+      return
+    }
+    report(.updatedTogether(changed))
   }
 
   /// The last read with a new frame.
@@ -128,8 +134,11 @@ final class AppConnection {
   /// The app's windows that aren't tracked, read again.
   func untrackedWindows() -> [WindowInfo] {
     listedWindows().compactMap { window in
-      guard !windows.contains(window.id) else { return nil }
-      return reader.read(window.element, id: window.id, processID: processID, known: nil)
+      guard !windows.contains(window.id),
+        var info = reader.read(window.element, id: window.id, processID: processID, known: nil)
+      else { return nil }
+      info.isHidden = windows.isHidden
+      return info
     }
   }
 

@@ -9,8 +9,8 @@ struct WindowReader {
   let workspace: any WorkspaceClient
 
   /// In one round trip; `nil` if the frame can't be read. A window's app never changes, so with an
-  /// earlier read (`known`) the app isn't looked up again; whether it is hidden comes from there
-  /// too, as the app's connection keeps it up to date.
+  /// earlier read (`known`) the app isn't looked up again. Whether the app is hidden is for its
+  /// connection to say.
   func read(
     _ element: AXUIElement, id: WindowID, processID: pid_t, known: WindowInfo?
   ) -> WindowInfo? {
@@ -28,7 +28,6 @@ struct WindowReader {
         isResizable: attributes.isResizable),
       isMinimized: attributes.isMinimized ?? false,
       isFullscreen: attributes.isFullscreen ?? false,
-      isHidden: known?.isHidden ?? app?.isHidden ?? false,
       isFocused: false
     )
   }

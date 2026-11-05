@@ -66,6 +66,32 @@ package struct WindowInfo: Codable, Equatable, Sendable, Identifiable {
   package var isTileable: Bool {
     kind == .standard && !isMinimized && !isFullscreen && !isHidden
   }
+
+  private enum CodingKeys: String, CodingKey {
+    case id, processID, appName, bundleID, title, frame, kind, isMinimized, isFullscreen
+    case isHidden, isFocused, displayID, displayNumber, slot, workspace, isFloated
+  }
+
+  /// `isHidden` may be missing: a newer `tyler` reads the list of an older `tylerd`.
+  package init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    id = try container.decode(WindowID.self, forKey: .id)
+    processID = try container.decode(Int32.self, forKey: .processID)
+    appName = try container.decode(String.self, forKey: .appName)
+    bundleID = try container.decodeIfPresent(String.self, forKey: .bundleID)
+    title = try container.decode(String.self, forKey: .title)
+    frame = try container.decode(CGRect.self, forKey: .frame)
+    kind = try container.decode(WindowKind.self, forKey: .kind)
+    isMinimized = try container.decode(Bool.self, forKey: .isMinimized)
+    isFullscreen = try container.decode(Bool.self, forKey: .isFullscreen)
+    isHidden = try container.decodeIfPresent(Bool.self, forKey: .isHidden) ?? false
+    isFocused = try container.decode(Bool.self, forKey: .isFocused)
+    displayID = try container.decodeIfPresent(UInt32.self, forKey: .displayID)
+    displayNumber = try container.decodeIfPresent(Int.self, forKey: .displayNumber)
+    slot = try container.decodeIfPresent(Int.self, forKey: .slot)
+    workspace = try container.decodeIfPresent(Int.self, forKey: .workspace)
+    isFloated = try container.decode(Bool.self, forKey: .isFloated)
+  }
 }
 
 extension WindowInfo {

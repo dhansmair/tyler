@@ -67,6 +67,23 @@ struct MacWindowSystemNotificationsTests {
     #expect(shown.first?.map(\.isHidden) == [false, false])
   }
 
+  @Test func aHideThatChangesNoWindowIsNotReported() async {
+    let harness = await started()
+    harness.workspace.launch(300, name: "Windowless")
+    harness.workspace.setHidden(true, 300)
+    harness.workspace.setHidden(true, 100)
+    harness.workspace.setHidden(true, 100)
+    #expect(await harness.takeEvents().updatedTogether.count == 1)
+  }
+
+  @Test func aWindowReadWhileItsAppIsHiddenIsHidden() async {
+    let harness = await started()
+    harness.workspace.setHidden(true, 100)
+    _ = await harness.takeEvents()
+    harness.accessibility.post(kAXMovedNotification, for: 1, in: 100)
+    #expect(await harness.takeEvents().updated.map(\.isHidden) == [true])
+  }
+
   @Test func anAppThatDoesNotAnswerIsStillReportedHidden() async {
     let harness = await started()
     harness.accessibility.answer(.cannotComplete, from: 1)

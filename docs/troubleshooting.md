@@ -144,4 +144,5 @@ lines when you report it.
 ## Reporting a bug
 
 See [CONTRIBUTING.md](../CONTRIBUTING.md#reporting-a-bug) for what to include. The
-[known issues](known-issues.md) may already describe it.
+[open issues](https://github.com/dhansmair/tyler/issues) and the manual's [limits](manual.md#limits)
+may already describe it.

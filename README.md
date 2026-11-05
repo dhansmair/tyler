@@ -148,7 +148,8 @@ workspace = 2
 - [Manual](docs/manual.md): concepts, running tylerd, the config file, every command
 - [Layouts](docs/layouts.md) and [Features](docs/features.md)
 - [Keybindings](docs/keybindings.md) and [Troubleshooting](docs/troubleshooting.md)
-- [Known issues](docs/known-issues.md) and the [changelog](CHANGELOG.md)
+- [Limits](docs/manual.md#limits), the [open issues](https://github.com/dhansmair/tyler/issues)
+  and the [changelog](CHANGELOG.md)
 - [Contributing](CONTRIBUTING.md), and how tyler is built: [`CLAUDE.md`](CLAUDE.md),
   [`devdocs/design.md`](devdocs/design.md)
 

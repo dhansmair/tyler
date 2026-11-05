@@ -80,7 +80,7 @@ package struct LateHandOver: Equatable, Sendable {
         continue
       }
       // A hidden window takes its place at once, without a slot: the sync decides when it shows.
-      guard window.isTileable || window.isHidden else { continue }
+      guard window.isTileable || (window.isHidden && window.kind == .standard) else { continue }
       self.expected[window.id] = nil
       if Self.put(window, back: place, into: &rows) {
         outcome.note(window.id, originalFrame: expected.originalFrame)

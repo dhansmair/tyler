@@ -42,6 +42,16 @@ struct LateHandOverTests {
     #expect(rows[0][0].members == [WindowID(1), WindowID(2), WindowID(3)])
   }
 
+  @Test func aHiddenWindowThatIsNowADialogWaits() {
+    var (rows, late) = takenOver([1, 3, 4])
+    var floated: Set<WindowID> = []
+    var hidden = window(2)
+    hidden.isHidden = true
+    hidden.kind = .dialog
+    late.restore([hidden], into: &rows, floated: &floated)
+    #expect(rows[0][0].members == [WindowID(1), WindowID(3)])
+  }
+
   @Test func aHiddenWindowAlreadyOnAWorkspaceIsNotPutBackTwice() {
     var (rows, late) = takenOver([1, 3, 4])
     rows[0][1].insertHidden(WindowID(2), before: nil)

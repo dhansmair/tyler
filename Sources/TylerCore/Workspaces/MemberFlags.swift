@@ -6,6 +6,5 @@ package struct MemberFlags: OptionSet, Hashable, Sendable {
     self.rawValue = rawValue
   }
 
-  /// Its app is hidden.
   package static let hidden = MemberFlags(rawValue: 1 << 0)
 }

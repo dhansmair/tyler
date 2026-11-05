@@ -31,7 +31,6 @@ package struct Workspace: Equatable, Sendable {
     members.contains(windowID)
   }
 
-  /// Whether the window takes a slot here.
   package func tiles(_ windowID: WindowID) -> Bool {
     windows.contains(windowID)
   }

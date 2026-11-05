@@ -288,12 +288,12 @@ package struct SavedState: Codable, Equatable, Sendable {
 
 extension SavedState.SavedWorkspace {
   /// The workspace as saved, with only the windows that still exist (`exists`). A window that
-  /// is gone leaves its layout states as a closed window does.
+  /// is gone leaves its layout states as a closed window does, a hidden one from its place.
   func workspace(keeping exists: (WindowID) -> Bool) -> Workspace {
     var states = self.states
     var remaining = windows
-    for windowID in windows where !exists(windowID) {
-      states.remove(windowID, from: remaining)
+    for windowID in allWindows where !exists(windowID) {
+      states.remove(windowID, from: allWindows.filter { remaining.contains($0) || $0 == windowID })
       remaining.removeAll { $0 == windowID }
     }
     var workspace = Workspace(layout: layout, layoutStates: states)

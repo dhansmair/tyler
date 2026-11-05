@@ -82,6 +82,15 @@ struct HiddenAppScenarios {
     #expect(scenario.isParked(2))
   }
 
+  @Test func aHiddenWindowParksWithAWorkspacePushedOutOfViewByAnother() async {
+    let scenario = await Scenario(
+      displays: [FakeDisplays.main, FakeDisplays.secondary], workspaces: [1: [1, 2], 5: [5, 6]])
+    await setHidden(true, [6], in: scenario)
+    await scenario.command("workspace move-to-display 2")
+    #expect(scenario.isParked(5))
+    #expect(scenario.isParked(6))
+  }
+
   @Test func theWindowListNamesAHiddenWindowsWorkspace() async {
     let scenario = await Scenario(workspaces: [1: [1, 2], 2: [3]])
     await setHidden(true, [2], in: scenario)

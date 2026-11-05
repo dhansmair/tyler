@@ -166,6 +166,11 @@ subrole, title-bar buttons and whether its size can be set:
     returns an empty list, though `.optionAll` still has the window (#116). So
     `WindowStacking.containsWindow` says a hidden window is gone, before tylerd hears of the hide,
     and the parked window macOS focused was declined as after a close.
+  - An app launched by an AppleScript `make new document` (TextEdit, not running before) starts
+    hidden: `didHideApplicationNotification` comes about 250 ms before its first window is
+    reported (2026-11-05). So an app can be hidden from its first window on, without Cmd-H.
+  - A window taking frame writes while hidden: `tyler stop` with TextEdit hidden wrote both its
+    windows back to their original frames, and both showed there on the unhide (2026-11-05).
 - **Revoking Accessibility with an active tap alive can stop all input** (reported on Apple's
   developer forums, threads 844416 and 735204, FB24619068, macOS 15 to 27; seen once here on
   macOS 26.7, not reproduced on purpose): with a `.defaultTap` session tap in place, even one

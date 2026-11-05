@@ -159,7 +159,7 @@ extension WorkspaceSync {
             guard isCandidate(window) else { continue }
             let onPosition = self.position(of: window)
             // A window back from being hidden hasn't moved with its workspace.
-            let isReturning = entry.row[index].hidden.contains(windowID)
+            let isReturning = entry.row[index].flags(of: windowID).contains(.hidden)
             if index != entry.row.currentIndex || isPinned(windowID) || onPosition == position
               || isReturning
             {

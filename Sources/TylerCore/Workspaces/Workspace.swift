@@ -3,14 +3,12 @@ import CoreGraphics
 /// An ordered list of tiled windows, xmonad style: the first window is the master, every window
 /// has a clear next and previous (wrapping around), and the layout turns list order into frames.
 package struct Workspace: Equatable, Sendable {
-  package private(set) var windows: [WindowID] = [] {
-    didSet { placeHiddenMembers() }
-  }
-  /// Every window of the workspace in order: the tiled ones and, between them, the hidden ones.
+  /// Every window of the workspace, in order. A flagged one takes no slot and keeps its place.
   package private(set) var members: [WindowID] = []
-  /// Members that take no slot, as their app is hidden. Each keeps its place before the member
-  /// that followed it, so it comes back there.
-  package private(set) var hidden: Set<WindowID> = []
+  private var flags: [WindowID: MemberFlags] = [:]
+  /// The members without a flag, in order: what the layout places. Stored, so the layouts and
+  /// each frame of a slide read it without work; `refreshWindows()` keeps it in step.
+  package private(set) var windows: [WindowID] = []
   /// The tiled window that `focus` and `swap` are relative to.
   package internal(set) var focused: WindowID?
   package var layout: LayoutKind {
@@ -32,6 +30,15 @@ package struct Workspace: Equatable, Sendable {
     windows.contains(windowID)
   }
 
+  package func flags(of windowID: WindowID) -> MemberFlags {
+    flags[windowID] ?? []
+  }
+
+  /// The members whose app is hidden.
+  package var hidden: Set<WindowID> {
+    Set(flags.lazy.filter { $0.value.contains(.hidden) }.map(\.key))
+  }
+
   /// The 1-based position in the list; 1 is the master.
   package func slot(of windowID: WindowID) -> Int? {
     windows.firstIndex(of: windowID).map { $0 + 1 }
@@ -43,7 +50,7 @@ package struct Workspace: Equatable, Sendable {
   @discardableResult
   package mutating func insert(_ windowID: WindowID) -> Bool {
     guard !contains(windowID) else { return false }
-    windows.insert(windowID, at: insertionIndex)
+    place(windowID, atSlotIndex: insertionIndex)
     refitView()
     return true
   }
@@ -52,7 +59,7 @@ package struct Workspace: Equatable, Sendable {
   @discardableResult
   package mutating func append(_ windowID: WindowID) -> Bool {
     guard !contains(windowID) else { return false }
-    windows.append(windowID)
+    place(windowID, atSlotIndex: windows.count)
     refitView()
     return true
   }
@@ -63,7 +70,7 @@ package struct Workspace: Equatable, Sendable {
   package mutating func insert(_ windowID: WindowID, before other: WindowID?) -> Bool {
     guard !contains(windowID) else { return false }
     let index = other.flatMap { windows.firstIndex(of: $0) } ?? windows.count
-    windows.insert(windowID, at: index)
+    place(windowID, atSlotIndex: index)
     refitView()
     return true
   }
@@ -73,68 +80,67 @@ package struct Workspace: Equatable, Sendable {
   /// window's column mate goes back to `half`.
   @discardableResult
   package mutating func remove(_ windowID: WindowID) -> Bool {
-    if hidden.remove(windowID) != nil {
+    if flags[windowID] != nil {
+      flags[windowID] = nil
       members.removeAll { $0 == windowID }
+      refreshWindows()
       return true
     }
-    guard contains(windowID) else { return false }
-    layoutStates.remove(windowID, from: windows)
-    return leave(windowID)
-  }
-
-  private mutating func leave(_ windowID: WindowID) -> Bool {
     guard let index = windows.firstIndex(of: windowID) else { return false }
-    windows.remove(at: index)
-    let successor = windows.isEmpty ? nil : windows[min(index, windows.count - 1)]
-    if focused == windowID { focused = successor }
-    if firstVisible == windowID { firstVisible = successor }
-    refitView()
+    layoutStates.remove(windowID, from: windows)
+    members.removeAll { $0 == windowID }
+    refreshWindows()
+    vacate(windowID, slotIndex: index)
     return true
   }
 
   /// The window stays a member but takes no slot, and leaves the layout as a removed window does.
   @discardableResult
   package mutating func hide(_ windowID: WindowID) -> Bool {
-    guard contains(windowID) else { return false }
-    hidden.insert(windowID)
+    guard let index = windows.firstIndex(of: windowID) else { return false }
     layoutStates.hide(windowID, from: windows)
-    return leave(windowID)
+    flags[windowID, default: []].insert(.hidden)
+    refreshWindows()
+    vacate(windowID, slotIndex: index)
+    return true
   }
 
-  /// A hidden window takes a slot again, before the tiled window that follows it.
+  /// A hidden window takes a slot again, in its place in the list.
   @discardableResult
   package mutating func show(_ windowID: WindowID) -> Bool {
-    guard hidden.remove(windowID) != nil, let place = members.firstIndex(of: windowID) else {
-      return false
-    }
-    let follower = members[place...].first(where: contains)
-    insert(windowID, before: follower)
+    guard flags[windowID]?.contains(.hidden) == true else { return false }
+    flags[windowID]?.remove(.hidden)
+    if flags[windowID]?.isEmpty == true { flags[windowID] = nil }
+    refreshWindows()
+    refitView()
     return true
   }
 
   /// A window handed over as hidden, before `follower`: it already left the layout states.
   package mutating func restoreHidden(_ windowID: WindowID, before follower: WindowID?) {
-    hidden.insert(windowID)
+    flags[windowID, default: []].insert(.hidden)
     members.insert(windowID, at: follower.flatMap(members.firstIndex) ?? members.count)
   }
 
-  /// Rebuilds `members` from the tiled order, each hidden member before the one it was before.
-  private mutating func placeHiddenMembers() {
-    guard !hidden.isEmpty else {
-      members = windows
-      return
-    }
-    var rebuilt = windows
-    var follower: WindowID?
-    for member in members.reversed() {
-      if hidden.contains(member) {
-        rebuilt.insert(member, at: follower.flatMap(rebuilt.firstIndex) ?? rebuilt.count)
-        follower = member
-      } else if rebuilt.contains(member) {
-        follower = member
-      }
-    }
-    members = rebuilt
+  /// Puts a new member where it takes the slot at `index`: right after the tiled window before
+  /// it, so a flagged member stays before the window it came before.
+  private mutating func place(_ windowID: WindowID, atSlotIndex index: Int) {
+    let position = index == 0 ? 0 : (members.firstIndex(of: windows[index - 1]) ?? -1) + 1
+    members.insert(windowID, at: position)
+    refreshWindows()
+  }
+
+  private mutating func refreshWindows() {
+    windows = flags.isEmpty ? members : members.filter { flags[$0] == nil }
+  }
+
+  /// The window that held the slot at `index` is gone from it: focus and the view move on to the
+  /// window that took the slot, or to the new last window.
+  private mutating func vacate(_ windowID: WindowID, slotIndex index: Int) {
+    let successor = windows.isEmpty ? nil : windows[min(index, windows.count - 1)]
+    if focused == windowID { focused = successor }
+    if firstVisible == windowID { firstVisible = successor }
+    refitView()
   }
 
   /// Makes `eligible` exactly the set of tiled windows and `hiding` the set of hidden members.
@@ -158,7 +164,7 @@ package struct Workspace: Equatable, Sendable {
     }
     var insertionPoint = insertionIndex
     for windowID in eligible where !contains(windowID) {
-      windows.insert(windowID, at: insertionPoint)
+      place(windowID, atSlotIndex: insertionPoint)
       insertionPoint += 1
       changed = true
     }
@@ -210,8 +216,7 @@ package struct Workspace: Equatable, Sendable {
     case .prev: other = (current - 1 + windows.count) % windows.count
     case .main: other = current == 0 ? 1 : 0
     }
-    windows.swapAt(current, other)
-    refitView()
+    swapSlots(current, other)
     return true
   }
 
@@ -222,9 +227,19 @@ package struct Workspace: Equatable, Sendable {
     guard first != second, let firstIndex = windows.firstIndex(of: first),
       let secondIndex = windows.firstIndex(of: second)
     else { return false }
-    windows.swapAt(firstIndex, secondIndex)
-    refitView()
+    swapSlots(firstIndex, secondIndex)
     return true
+  }
+
+  /// The two windows trade places in the list; flagged members stay where they are.
+  private mutating func swapSlots(_ first: Int, _ second: Int) {
+    if let firstPosition = members.firstIndex(of: windows[first]),
+      let secondPosition = members.firstIndex(of: windows[second])
+    {
+      members.swapAt(firstPosition, secondPosition)
+    }
+    refreshWindows()
+    refitView()
   }
 
   // MARK: - Layout
@@ -298,7 +313,10 @@ package struct Workspace: Equatable, Sendable {
 
   /// Moves the window at `index` to `destination`, the others closing up behind it.
   mutating func moveWindow(at index: Int, to destination: Int) {
-    windows.insert(windows.remove(at: index), at: destination)
+    let windowID = windows[index]
+    members.removeAll { $0 == windowID }
+    refreshWindows()
+    place(windowID, atSlotIndex: destination)
     refitView()
   }
 

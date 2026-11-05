@@ -67,13 +67,20 @@ struct WorkspaceHiddenTests {
     #expect(workspace.windows == ids(1, 2, 3, 4))
   }
 
-  @Test func aHiddenWindowStaysBeforeTheWindowThatFollowedIt() {
+  @Test func aHiddenWindowKeepsItsPlaceWhenTheOthersSwap() {
     var workspace = hiding(2, in: makeWorkspace(1, 2, 3, focus: 3))
     workspace.swap(.prev)
     #expect(workspace.windows == ids(3, 1))
-    #expect(workspace.members == ids(2, 3, 1))
+    #expect(workspace.members == ids(3, 2, 1))
     workspace.show(WindowID(2))
-    #expect(workspace.windows == ids(2, 3, 1))
+    #expect(workspace.windows == ids(3, 2, 1))
+  }
+
+  @Test func aWindowDroppedPastAHiddenOneLeavesItInPlace() {
+    var workspace = hiding(2, in: makeWorkspace(1, 2, 3, 4))
+    workspace.moveWindow(at: 0, to: 2)
+    #expect(workspace.windows == ids(3, 4, 1))
+    #expect(workspace.members == ids(2, 3, 4, 1))
   }
 
   @Test func aWindowClosingBesideAHiddenOneLeavesItsPlace() {

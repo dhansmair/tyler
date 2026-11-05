@@ -5,9 +5,10 @@
 > cases aren't handled, and some behaviour hasn't been checked against real windows. Expect it to
 > change. The other layouts don't depend on it.
 
-This file describes the strip as it is now, with its known issues and open questions; its checks
-against real windows are the `STRIP-` rows of `testing-catalogue.md`. Keep this file current when
-the strip changes.
+This file describes the strip as it is now; its checks against real windows are the `STRIP-` rows
+of `testing-catalogue.md`. Its bugs, the edge cases it doesn't handle and its open design questions
+are GitHub issues labelled `strip` (`gh issue list --label strip`). Keep this file current when the
+strip changes.
 
 ## What it is
 
@@ -112,27 +113,3 @@ Each window has a size (`WindowSize`), set with `tyler window size half|full|qua
 | How a swipe begins and settles; the swipe in progress and its pacing | `Sources/TylerServer/Swipe/SwipeController.swift`, `Swipe.swift`, `WindowManager+Swipe.swift` |
 | Scrolling when a command or a focus change moves the view | `Sources/TylerServer/Tiling/TilingController.swift`, `Workspaces/WorkspaceController.swift` |
 | Tests | `Layouts/Strip/` (`StripColumnsTests`, `StripLayoutTests`, `WindowSizeTests`), `WorkspaceTests+View`, `ScrollPlanTests`, `ViewScrollTests`, `SwipeSessionTests` (TylerCore); `StripScenarios`, `StripSwipeScenarios` (TylerScenarioTests) |
-
-## Known issues and edge cases
-
-Each is a GitHub issue labelled `strip`, which holds the details.
-
-- [#29](https://github.com/dhansmair/tyler/issues/29) Strip: quarters pair by list order, so swaps and new windows split a pair
-- [#30](https://github.com/dhansmair/tyler/issues/30) Strip: resizing with the mouse isn't built
-- [#31](https://github.com/dhansmair/tyler/issues/31) Strip: swap by drag only works between windows in view
-- [#32](https://github.com/dhansmair/tyler/issues/32) Strip: no rubber band at the ends
-- [#33](https://github.com/dhansmair/tyler/issues/33) Strip: half columns differ by a point between the two halves of the view
-- [#34](https://github.com/dhansmair/tyler/issues/34) Strip: windows leaving on the left show briefly beside a left Dock
-- [#35](https://github.com/dhansmair/tyler/issues/35) Strip: scrolls with several displays (parking on the left, sliding over a neighbour)
-- [#36](https://github.com/dhansmair/tyler/issues/36) Strip: focus follows mouse can scroll the strip
-- [#37](https://github.com/dhansmair/tyler/issues/37) Strip: older tylerd builds can't read a state file naming the strip
-
-## Not yet checked against real windows
-
-- [#41](https://github.com/dhansmair/tyler/issues/41) Strip: checks against real windows still to do
-
-## Open design questions
-
-- [#38](https://github.com/dhansmair/tyler/issues/38) Strip: explicit columns or a stack command instead of list-order quarters
-- [#39](https://github.com/dhansmair/tyler/issues/39) Strip: column widths of ⅓ and ⅔
-- [#40](https://github.com/dhansmair/tyler/issues/40) Strip: spill a swipe over to the next workspace at the strip's end

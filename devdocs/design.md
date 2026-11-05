@@ -521,8 +521,11 @@ Choosing a layout shows its name in the middle of the focused display for 0.75 s
 - **`CLAUDE.md`, `.claude/` and `devtools/` are published**: they are the honest record of how
   tyler is built.
 - **Open issues are GitHub issues**, labelled `bug`, `limitation`, `enhancement`, `question`,
-  `unchecked` (seen or suspected, not confirmed) and `strip`. The issue holds the details;
-  `known-issues.md`, `strip-layout.md` and `docs/known-issues.md` link to it.
+  `unchecked` (seen or suspected, not confirmed) and `strip`. The issue holds the details, and
+  the issues are the only list of them: no page in the repository lists them again. Two such
+  pages, one for developers and one for users, drifted from the issues in both directions (closed
+  issues still listed, open ones missing), so they were dropped. Limits that come from the design
+  and will stay are facts users need, so they are in the manual (Limits), without issue numbers.
 - **Before every release**, the whole of `testing-catalogue.md` runs on real windows, and the run is
   written to `test-runs/<version>.md`: every row passes, is skipped for want of its setup, or links
   the known issue it fails with. A tick that something once worked says nothing about the build

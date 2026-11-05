@@ -13,7 +13,8 @@ This manual explains the concepts, running `tylerd`, the config file and every c
 - [Features](features.md): swiping, the mouse, the menu bar, several displays, app assignments
 - [Keybindings](keybindings.md): binding keys to `tyler` commands
 - [Troubleshooting](troubleshooting.md): when windows go missing or nothing happens
-- [Known issues](known-issues.md)
+
+What tyler can't do by its design is under [Limits](#limits) at the end of this manual; bugs and what isn't built yet are the [open issues](https://github.com/dhansmair/tyler/issues).
 
 ## Concepts
 
@@ -573,3 +574,18 @@ If some windows couldn't be moved (an app refused, or a window closed meanwhile)
 | --- | --- |
 | `TYLER_CONFIG` | Path of the config file. Default: `~/.config/tyler/tyler.toml`. |
 | `TYLER_SOCKET` | Path of the socket `tyler` and `tylerd` talk over. Default: `~/.tyler/tyler.sock`. Set the same value for both to run a separate instance. `tyler start` writes the log next to it, with `.log` instead of `.sock`. |
+
+## Limits
+
+These come from how tyler works and from what macOS allows, and are not expected to change. Bugs, and what isn't built yet, are the [open issues](https://github.com/dhansmair/tyler/issues).
+
+- **Parked windows show as a thin column at the edge of the display**, as macOS keeps every window at least one point on screen. With the Dock on the left, windows parked at the left edge show a 56-point strip beside the Dock.
+- **On a display with another display beside it, switching workspaces is instant** rather than a slide, so no window passes over the other display. The middle display of three has no free edge, and its parked windows lie on a neighbour.
+- **Displays are numbered by position**, so a different display in the same place gets the same workspaces.
+- **A crash or `kill -9` leaves windows parked** until the next `tyler start`, which tiles them again.
+- **Native fullscreen windows, windows on other macOS Spaces and menu bar apps** are left alone.
+- **An app that doesn't answer slows `tylerd` down** for a second, the first time `tylerd` moves one of its windows. Its windows then stay where they are, and aren't focused, for 5 seconds (a command says so); the first switch or command after that tries again.
+- **Option-drag in apps** (Finder's copy, block selection in terminals) is tyler's while `mouse.modifier` is Option.
+- **Terminals and windows with a minimum size** don't fill their slot exactly.
+- **Switching off or removing the Accessibility permission while `tylerd` runs can freeze input** until a forced restart, a macOS bug that hits any app that takes over mouse presses. Run `tyler stop` first ([Troubleshooting](troubleshooting.md#nothing-is-tiled-or-commands-say-there-is-no-permission)).
+- **Tried on macOS 26 on Apple silicon, with one and two displays.** Older macOS versions, Intel Macs, three displays and long sleeps where an external display drops off haven't been tried.

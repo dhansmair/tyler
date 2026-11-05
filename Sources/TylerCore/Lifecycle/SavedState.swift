@@ -305,8 +305,8 @@ extension SavedState.SavedWorkspace {
     let all = allWindows
     for (index, windowID) in all.enumerated().reversed()
     where !windows.contains(windowID) && exists(windowID) {
-      workspace.restoreHidden(
-        windowID, before: all[(index + 1)...].first(where: workspace.members.contains))
+      workspace.insertHidden(
+        windowID, before: all[(index + 1)...].first(where: workspace.holds))
     }
     return workspace
   }

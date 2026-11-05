@@ -44,7 +44,7 @@ extension Workspace {
 
   @discardableResult
   mutating func setSize(_ size: WindowSize, of windowID: WindowID) -> Bool {
-    guard contains(windowID) else { return false }
+    guard tiles(windowID) else { return false }
     return update(\.strip) { strip, _ in strip.setSize(size, of: windowID) }
   }
 

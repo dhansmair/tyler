@@ -26,7 +26,13 @@ package struct Workspace: Equatable, Sendable {
 
   package var count: Int { windows.count }
 
-  package func contains(_ windowID: WindowID) -> Bool {
+  /// Whether the window is on this workspace, flagged or not.
+  package func holds(_ windowID: WindowID) -> Bool {
+    members.contains(windowID)
+  }
+
+  /// Whether the window takes a slot here.
+  package func tiles(_ windowID: WindowID) -> Bool {
     windows.contains(windowID)
   }
 
@@ -34,9 +40,9 @@ package struct Workspace: Equatable, Sendable {
     flags[windowID] ?? []
   }
 
-  /// The members whose app is hidden.
-  package var hidden: Set<WindowID> {
-    Set(flags.lazy.filter { $0.value.contains(.hidden) }.map(\.key))
+  /// The members whose app is hidden, in order.
+  package var hidden: [WindowID] {
+    flags.isEmpty ? [] : members.filter { flags[$0]?.contains(.hidden) == true }
   }
 
   /// The 1-based position in the list; 1 is the master.
@@ -49,7 +55,7 @@ package struct Workspace: Equatable, Sendable {
   /// Adds a window right after the focused one, or at the end if nothing is focused.
   @discardableResult
   package mutating func insert(_ windowID: WindowID) -> Bool {
-    guard !contains(windowID) else { return false }
+    guard !holds(windowID) else { return false }
     place(windowID, atSlotIndex: insertionIndex)
     refitView()
     return true
@@ -58,7 +64,7 @@ package struct Workspace: Equatable, Sendable {
   /// Adds a window at the end of the list, whatever has focus.
   @discardableResult
   package mutating func append(_ windowID: WindowID) -> Bool {
-    guard !contains(windowID) else { return false }
+    guard !holds(windowID) else { return false }
     place(windowID, atSlotIndex: windows.count)
     refitView()
     return true
@@ -68,7 +74,7 @@ package struct Workspace: Equatable, Sendable {
   /// or at the end if `other` is `nil` or not in the list.
   @discardableResult
   package mutating func insert(_ windowID: WindowID, before other: WindowID?) -> Bool {
-    guard !contains(windowID) else { return false }
+    guard !holds(windowID) else { return false }
     let index = other.flatMap { windows.firstIndex(of: $0) } ?? windows.count
     place(windowID, atSlotIndex: index)
     refitView()
@@ -81,6 +87,8 @@ package struct Workspace: Equatable, Sendable {
   @discardableResult
   package mutating func remove(_ windowID: WindowID) -> Bool {
     if flags[windowID] != nil {
+      // It leaves the layout states from the place it would take, as it kept its state there.
+      layoutStates.remove(windowID, from: members.filter { flags[$0] == nil || $0 == windowID })
       flags[windowID] = nil
       members.removeAll { $0 == windowID }
       refreshWindows()
@@ -94,11 +102,11 @@ package struct Workspace: Equatable, Sendable {
     return true
   }
 
-  /// The window stays a member but takes no slot, and leaves the layout as a removed window does.
+  /// The window stays a member but takes no slot. It keeps its layout state (a strip size, its
+  /// place in tall's main section), so it comes back as it was.
   @discardableResult
   package mutating func hide(_ windowID: WindowID) -> Bool {
     guard let index = windows.firstIndex(of: windowID) else { return false }
-    layoutStates.hide(windowID, from: windows)
     flags[windowID, default: []].insert(.hidden)
     refreshWindows()
     vacate(windowID, slotIndex: index)
@@ -116,8 +124,9 @@ package struct Workspace: Equatable, Sendable {
     return true
   }
 
-  /// A window handed over as hidden, before `follower`: it already left the layout states.
-  package mutating func restoreHidden(_ windowID: WindowID, before follower: WindowID?) {
+  /// Adds a hidden window before the member `follower`, or at the end.
+  package mutating func insertHidden(_ windowID: WindowID, before follower: WindowID?) {
+    guard !holds(windowID) else { return }
     flags[windowID, default: []].insert(.hidden)
     members.insert(windowID, at: follower.flatMap(members.firstIndex) ?? members.count)
   }
@@ -163,7 +172,7 @@ package struct Workspace: Equatable, Sendable {
       changed = true
     }
     var insertionPoint = insertionIndex
-    for windowID in eligible where !contains(windowID) {
+    for windowID in eligible where !holds(windowID) {
       place(windowID, atSlotIndex: insertionPoint)
       insertionPoint += 1
       changed = true
@@ -178,7 +187,7 @@ package struct Workspace: Equatable, Sendable {
   /// ignored, so `focus next` stays relative to the last tiled window you used.
   @discardableResult
   package mutating func setFocus(_ windowID: WindowID) -> Bool {
-    guard contains(windowID), focused != windowID else { return false }
+    guard tiles(windowID), focused != windowID else { return false }
     focused = windowID
     refitView()
     return true
@@ -258,7 +267,7 @@ package struct Workspace: Equatable, Sendable {
 
   /// `windowID`, now in this workspace, brings its per-window layout state from `other`.
   mutating func adopt(_ windowID: WindowID, from other: LayoutStates) {
-    guard contains(windowID) else { return }
+    guard tiles(windowID) else { return }
     layoutStates.adopt(windowID, from: other)
     refitView()
   }

@@ -93,7 +93,7 @@ struct DisplayController {
       copy.displayNumber = display.flatMap { display in
         context.displays.firstIndex { $0.id == display.id }.map { $0 + 1 }
       }
-      if let location = model.rows.location(of: window.id) {
+      if let location = model.rows.location(holding: window.id) {
         let row = model.rows[location.position]
         copy.workspace = row.number(at: location.index)
         copy.slot = row[location.index].slot(of: window.id)

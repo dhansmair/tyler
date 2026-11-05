@@ -40,7 +40,7 @@ struct LayoutController {
   /// Other layouts keep the size for when the workspace turns to the strip.
   func setSize(_ choice: SizeChoice, model: inout Model) throws(Refusal) -> Decision {
     guard let windowID = context.registry.focusedID,
-      model.rows.focused.current.contains(windowID)
+      model.rows.focused.current.tiles(windowID)
     else { throw .error("the focused window is not tiled") }
     let size =
       switch choice {

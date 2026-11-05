@@ -17,7 +17,7 @@ struct WorkspaceHiddenTests {
     #expect(workspace.windows == ids(1, 3))
     #expect(workspace.members == ids(1, 2, 3))
     #expect(workspace.hidden == [WindowID(2)])
-    #expect(!workspace.contains(WindowID(2)))
+    #expect(!workspace.tiles(WindowID(2)))
   }
 
   @Test func withNothingHiddenTheMembersAreTheTiledWindows() {
@@ -151,6 +151,52 @@ struct WorkspaceHiddenTests {
     workspace.show(WindowID(1))
     #expect(workspace.windows.first == WindowID(1))
     #expect(workspace.layoutStates.tall.mainCount(for: 4) == mains)
+  }
+
+  @Test func aHiddenMainWindowThatClosesTakesItsPlaceInTheMainSection() {
+    var hidden = makeWorkspace(1, 2, 3, 4, focus: 2)
+    hidden.promote()
+    var shown = hidden
+    hidden.hide(WindowID(1))
+    hidden.remove(WindowID(1))
+    shown.remove(WindowID(1))
+    #expect(hidden.layoutStates.tall == shown.layoutStates.tall)
+  }
+
+  @Test func hidingAndShowingKeepsStripSizes() {
+    var workspace = makeWorkspace(1, 2, 3)
+    workspace.update(\.strip) { state, _ in
+      state.setSize(.full, of: WindowID(1))
+      state.setSize(.quarter, of: WindowID(2))
+      state.setSize(.quarter, of: WindowID(3))
+    }
+    let before = workspace.layoutStates
+    workspace.hide(WindowID(2))
+    workspace.show(WindowID(2))
+    #expect(workspace.layoutStates == before)
+  }
+
+  @Test func aWindowItHoldsIsNotHandedOverAgain() {
+    var workspace = hiding(2, in: makeWorkspace(1, 2, 3))
+    workspace.insertHidden(WindowID(2), before: nil)
+    workspace.insertHidden(WindowID(3), before: nil)
+    #expect(workspace.members == ids(1, 2, 3))
+    #expect(workspace.windows == ids(1, 3))
+  }
+
+  @Test func itHoldsItsHiddenMembersButTilesOnlyTheOthers() {
+    let workspace = hiding(2, in: makeWorkspace(1, 2))
+    #expect(workspace.holds(WindowID(2)))
+    #expect(!workspace.tiles(WindowID(2)))
+    #expect(workspace.tiles(WindowID(1)))
+  }
+
+  @Test func aRowFindsTheWorkspaceHoldingAHiddenWindow() {
+    var rows = DisplayRows(keys: [DisplayKey("display")], configured: [[1, 2]])
+    rows[0][1] = hiding(2, in: makeWorkspace(1, 2))
+    #expect(rows.location(holding: WindowID(2))?.index == 1)
+    #expect(rows.location(of: WindowID(2)) == nil)
+    #expect(rows.windowsOnParkedWorkspaces.contains(WindowID(2)))
   }
 
   @Test func aRemovedWorkspacesHiddenMembersStayHidden() {

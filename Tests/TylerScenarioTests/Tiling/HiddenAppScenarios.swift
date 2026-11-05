@@ -60,11 +60,34 @@ struct HiddenAppScenarios {
     let scenario = await Scenario(workspaces: [1: [1, 2], 2: [3]])
     await setHidden(true, [2], in: scenario)
     await scenario.command("workspace focus 2")
-    #expect(!scenario.isParked(2), "a hidden window isn't moved")
     await setHidden(false, [2], in: scenario)
     #expect(scenario.list(1) == [1, 2])
     #expect(scenario.shown == [2])
     #expect(scenario.isParked(2))
+  }
+
+  /// Parked while hidden, so it doesn't show over the other workspace when it comes back.
+  @Test func aHiddenWindowParksWithItsWorkspace() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2], 2: [3]])
+    await setHidden(true, [2], in: scenario)
+    await scenario.command("workspace focus 2")
+    #expect(scenario.isParked(2))
+  }
+
+  @Test func aHiddenWindowParksWithItsWorkspaceOnASwipe() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2], 2: [3]])
+    await setHidden(true, [2], in: scenario)
+    await scenario.swipe(.left)
+    #expect(scenario.shown == [2])
+    #expect(scenario.isParked(2))
+  }
+
+  @Test func theWindowListNamesAHiddenWindowsWorkspace() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2], 2: [3]])
+    await setHidden(true, [2], in: scenario)
+    let listed = scenario.windowList.first { $0.id == WindowID(2) }
+    #expect(listed?.workspace == 1)
+    #expect(listed?.slot == nil)
   }
 
   /// An app comes to the front before macOS says it is shown (`macos-behaviour.md`).

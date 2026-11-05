@@ -34,14 +34,6 @@ package struct LayoutStates: Codable, Equatable, Sendable {
     strip.remove(windowID, from: windows)
   }
 
-  /// A hidden window leaves the layout for a while: the master section keeps its place, so it
-  /// comes back to it, and the windows behind it fill in meanwhile.
-  mutating func hide(_ windowID: WindowID, from windows: [WindowID]) {
-    grid.remove(windowID, from: windows)
-    full.remove(windowID, from: windows)
-    strip.remove(windowID, from: windows)
-  }
-
   mutating func adopt(_ windowID: WindowID, from other: LayoutStates) {
     tall.adopt(windowID, from: other.tall)
     grid.adopt(windowID, from: other.grid)

@@ -62,7 +62,7 @@ package struct WorkspaceRow: Equatable, Sendable {
 
   /// The index of the workspace holding `windowID`, if any.
   package func index(containing windowID: WindowID) -> Int? {
-    workspaces.firstIndex { $0.contains(windowID) }
+    workspaces.firstIndex { $0.tiles(windowID) }
   }
 
   /// Every window on any workspace.
@@ -129,8 +129,11 @@ package struct WorkspaceRow: Equatable, Sendable {
     numbers = newNumbers
     for workspace in gone {
       for windowID in workspace.members {
-        workspaces[workspaces.count - 1].append(windowID)
-        if workspace.hidden.contains(windowID) { workspaces[workspaces.count - 1].hide(windowID) }
+        if workspace.flags(of: windowID).contains(.hidden) {
+          workspaces[workspaces.count - 1].insertHidden(windowID, before: nil)
+        } else {
+          workspaces[workspaces.count - 1].append(windowID)
+        }
       }
     }
     currentIndex = numbers.firstIndex(of: currentNumber) ?? numbers.count - 1

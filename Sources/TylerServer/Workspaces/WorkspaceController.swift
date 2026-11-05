@@ -271,9 +271,14 @@ struct WorkspaceController {
         Placement(id: placement.id, frame: $0.frame)
       }
     }
-    return SlidePlan(
+    var plan = SlidePlan(
       to: index, direction: direction, leaving: leaving,
       entering: row[index].placements(on: display, gaps: context.gaps), on: display)
+    let unseen = row.current.hidden.compactMap { windowID in
+      context.registry.window(withID: windowID).map { Placement(id: windowID, frame: $0.frame) }
+    }
+    plan.park(unseen: unseen, on: display)
+    return plan
   }
 
   /// Slides one visible window off the display towards the workspace it was sent to, and parks

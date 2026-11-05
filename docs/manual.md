@@ -321,7 +321,7 @@ Shows every window `tylerd` knows about, one per row:
 | `TITLE` | The window title |
 | `FRAME` | Position and size, as `x,y widthxheight` in points from the top-left of the main display |
 | `DISPLAY` | The physical display the window is on |
-| `FLAGS` | Any of `focused`, `min` (minimized), `full` (native fullscreen), `hidden` (its app is hidden; it shows no workspace or slot), `floated` (floated with `window float`), `dialog`, `float` (a floating panel), `other` (a window that is never tiled) |
+| `FLAGS` | Any of `focused`, `min` (minimized), `full` (native fullscreen), `hidden` (its app is hidden; it shows its workspace but no slot), `floated` (floated with `window float`), `dialog`, `float` (a floating panel), `other` (a window that is never tiled) |
 
 `--json` prints the same information as a JSON array, for scripts.
 
@@ -383,7 +383,7 @@ tyler window size next     # cycle: half, full, quarter, half, ...
 
 Sets the focused window's size in the `strip` layout and prints it. Like the strip layout, this command is experimental and may change. `quarter` stacks two windows in one column: the focused window on top and the next window below it. If the next window already shares a column (or there is none), the previous window goes on top instead. Setting either window of a stacked pair to `half` or `full` puts the other back to `half`, and so does closing, floating or moving one of them away.
 
-Other layouts ignore the size but keep it for when the workspace switches to `strip`. A window forgets its size when it leaves tiling (floated, minimized, hidden, closed), and keeps it when it moves to another workspace (a `quarter` arrives as `half`).
+Other layouts ignore the size but keep it for when the workspace switches to `strip`. A window forgets its size when it leaves tiling (floated, minimized, closed), and keeps it while its app is hidden and when it moves to another workspace (a `quarter` arrives as `half`).
 
 ### window move-to-workspace
 

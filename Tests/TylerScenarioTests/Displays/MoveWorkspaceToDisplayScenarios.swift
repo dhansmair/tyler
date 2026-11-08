@@ -37,6 +37,17 @@ struct MoveWorkspaceToDisplayScenarios {
     #expect(scenario.windowSystem.focusCalls.last == WindowID(1))
   }
 
+  @Test func aFloatedWindowGoesWithItsWorkspace() async {
+    let scenario = await scenario()
+    await scenario.focus(2)
+    await scenario.command("window float on")
+    await scenario.command("workspace move-to-display 2")
+    let frame = scenario.frame(of: 2) ?? .zero
+    #expect(scenario.rect(.full, display: 2).contains(frame))
+    #expect(scenario.workspaces[2] == 1, "it stays on its workspace")
+    #expect(scenario.list(1) == [1], "still floating")
+  }
+
   @Test func theDisplayItLeftShowsItsNextWorkspace() async {
     let scenario = await scenario()
     await scenario.command("workspace move-to-display next")

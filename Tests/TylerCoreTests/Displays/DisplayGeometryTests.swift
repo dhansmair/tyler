@@ -70,6 +70,21 @@ struct DisplayGeometryTests {
     #expect(DisplayGeometry.display(containing: .zero, in: []) == nil)
   }
 
+  @Test func aFrameCarriedToAnotherDisplayKeepsItsOffset() {
+    let source = DisplayInfo(
+      id: 1, frame: CGRect(x: 0, y: 0, width: 1000, height: 600),
+      visibleFrame: CGRect(x: 0, y: 25, width: 1000, height: 575))
+    let target = DisplayInfo(
+      id: 2, frame: CGRect(x: 1000, y: -400, width: 800, height: 400),
+      visibleFrame: CGRect(x: 1000, y: -400, width: 800, height: 400))
+    let carried = DisplayGeometry.frame(
+      CGRect(x: 100, y: 125, width: 300, height: 200), carriedFrom: source, to: target)
+    #expect(carried == CGRect(x: 1100, y: -300, width: 300, height: 200))
+    let tooLarge = DisplayGeometry.frame(
+      CGRect(x: 600, y: 25, width: 400, height: 575), carriedFrom: source, to: target)
+    #expect(tooLarge == CGRect(x: 1400, y: -400, width: 400, height: 400))
+  }
+
   @Test func appKitRectUndoesAxRect() {
     let rect = CGRect(x: 10, y: 20, width: 300, height: 200)
     let flipped = DisplayGeometry.axRect(fromAppKit: rect, primaryScreenHeight: 1000)

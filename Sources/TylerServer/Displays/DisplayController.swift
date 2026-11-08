@@ -48,15 +48,35 @@ struct DisplayController {
       throw noSuchDisplay(target, in: model.rows)
     }
     let number = model.rows.focused.number(at: model.rows.focused.currentIndex)
+    let source = context.display(for: model.rows.focusedKey)
+    let floating = model.rows.focused.current.shownFloating
     let pushedOut = model.rows[position].current.members
     do {
       try model.rows.moveWorkspace(number: number, to: model.rows.entries[position].key)
     } catch {
       throw .error(Self.message(error, number: number, display: position + 1))
     }
+    let carried = carry(floating, from: source, to: context.display(for: model.rows.focusedKey))
     return Decision(
       "moved workspace \(number) to display \(position + 1)",
-      effects: [context.parking(pushedOut, in: model.rows), .reconcile(), .focusCurrentWorkspace])
+      effects: [
+        context.parking(pushedOut, in: model.rows), .place(carried), .reconcile(),
+        .focusCurrentWorkspace,
+      ])
+  }
+
+  /// The floating windows of a workspace that moved display go with it, to the same place there.
+  private func carry(
+    _ windowIDs: [WindowID], from source: DisplayInfo?, to target: DisplayInfo?
+  ) -> [Placement] {
+    guard let source, let target else { return [] }
+    return windowIDs.compactMap { windowID in
+      context.registry.window(withID: windowID).map {
+        Placement(
+          id: windowID,
+          frame: DisplayGeometry.frame($0.frame, carriedFrom: source, to: target))
+      }
+    }
   }
 
   /// Once the displays have settled, each workspace goes to the display it now belongs on (see

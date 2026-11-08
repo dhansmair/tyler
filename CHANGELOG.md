@@ -3,6 +3,29 @@
 tyler follows [semantic versioning](https://semver.org). Before 1.0, a minor version (0.x) may
 change commands, the config file and the socket protocol; the entry says how.
 
+## 0.4.0 (unreleased)
+
+Floated windows and the windows of a hidden app keep their workspace and their place in it.
+Commands, the config file and the socket protocol stay compatible, but floated windows behave
+differently: they no longer show on every workspace.
+
+- A floated window belongs to its workspace. Switching away or swiping parks it with the tiled
+  windows, and it comes back where you left it. It no longer keeps the focus when its workspace
+  leaves the screen.
+- `window float off` puts a window back where it was in the list, instead of last.
+- A workspace that comes back gives the focus to the window that had it last, floated ones
+  included, so a floated window is no longer buried behind a tiled one.
+- Focusing a parked floated window, for example with Cmd-Tab, brings its workspace into view.
+- A floated window dragged onto another display joins that display's current workspace, still
+  floating, and `workspace move-to-display` takes a workspace's floated windows along.
+- `window swap`, `window promote` and `window demote` change nothing while a floated window has
+  the focus.
+- A floated window keeps its strip size.
+- The windows of a hidden app (Cmd-H) give up their slots but keep their workspace and their place
+  in the list, and go back there when the app is shown again.
+- Going back to 0.3.0 with `tyler restart` can leave a floated window parked off screen: run
+  `tyler stop` from 0.4.0 first.
+
 ## 0.3.0 (2026-11-01)
 
 Focus and new windows that stay on the display in use. Commands, the config file and the socket

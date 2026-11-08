@@ -1,5 +1,6 @@
 import CoreGraphics
 import Testing
+import TylerConfig
 import TylerCore
 import TylerTestSupport
 
@@ -72,6 +73,21 @@ struct FloatedWindowSwitchScenarios {
     scenario.windowSystem.clearRecordedCalls()
     await scenario.command("workspace focus prev")
     #expect(scenario.windowSystem.focusCalls.last == WindowID(1))
+  }
+
+  /// Found in the VM: a switch right after `float on` ended the float's slide, and the floated
+  /// window came back to its slot instead of where it floats.
+  @Test func aSwitchDuringTheFloatsSlideBringsItBackWhereItFloats() async {
+    var config = Config()
+    config.animations.retile = 250
+    let scenario = await Scenario(
+      workspaces: [1: [1, 2], 2: [3]], config: config, animates: true)
+    await scenario.focus(2)
+    let floated = FloatedFrame.frame(leaving: scenario.rect(.rightHalf), in: scenario.rect(.full))
+    await scenario.start("window float on")
+    await scenario.command("workspace focus next")
+    await scenario.command("workspace focus prev")
+    #expect(scenario.frame(of: 2) == floated)
   }
 
   @Test func switchingToAnEmptyWorkspaceTakesTheFocusFromIt() async {

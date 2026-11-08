@@ -29,13 +29,20 @@ final class WindowMover {
     self.clock = clock
   }
 
-  /// Moves and resizes windows, returning how many could not be placed. One failing window never
-  /// stops the others.
+  /// What `place` did: how many windows could not be placed, and where the others landed, as read
+  /// back after the write (the app may have rounded or refused the size).
+  struct Placed {
+    var failures = 0
+    var landed: [Placement] = []
+  }
+
+  /// Moves and resizes windows. One failing window never stops the others. A move in passing
+  /// isn't read back, so it lands nowhere known.
   @discardableResult
   func place(
     _ placements: [Placement], inPassing: Bool = false, known registry: WindowRegistry
-  ) -> Int {
-    var failures = 0
+  ) -> Placed {
+    var placed = Placed()
     for placement in placements {
       rememberOriginalFrame(of: placement.id, known: registry)
       let isCrossing = noteCrossing(placement, known: registry)
@@ -45,20 +52,21 @@ final class WindowMover {
             try windowSystem.setFrameInPassing(placement.frame, of: placement.id)
             return
           }
-          let landed = try windowSystem.setFrame(placement.frame, of: placement.id)
+          var landed = try windowSystem.setFrame(placement.frame, of: placement.id)
           // A crossing window can lose its position, or stop at the old display's edge
           // (`macos-behaviour.md`), and a second write lands. Nothing else would put it right.
           if isCrossing, landed?.isClose(to: placement.frame) == false {
-            try windowSystem.setFrame(placement.frame, of: placement.id)
+            landed = try windowSystem.setFrame(placement.frame, of: placement.id)
           }
+          if let landed { placed.landed.append(Placement(id: placement.id, frame: landed)) }
         }
       } catch {
-        failures += 1
+        placed.failures += 1
         log.error(
           "window placing failed - \(Self.named(placement.id, registry)) - \(error.description)")
       }
     }
-    return failures
+    return placed
   }
 
   /// One step of an animation, without waiting for the app: a move in a single call, or with
@@ -109,7 +117,7 @@ final class WindowMover {
 
   /// Moves windows back to their original frames. Windows tylerd never moved are skipped.
   @discardableResult
-  func restoreOriginalFrames(of windowIDs: [WindowID], known registry: WindowRegistry) -> Int {
+  func restoreOriginalFrames(of windowIDs: [WindowID], known registry: WindowRegistry) -> Placed {
     place(
       windowIDs.compactMap { windowID in
         originalFrames[windowID].map { Placement(id: windowID, frame: $0) }

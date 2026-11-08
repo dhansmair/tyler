@@ -129,11 +129,7 @@ package struct WorkspaceRow: Equatable, Sendable {
     numbers = newNumbers
     for workspace in gone {
       for windowID in workspace.members {
-        if workspace.flags(of: windowID).contains(.hidden) {
-          workspaces[workspaces.count - 1].insertHidden(windowID, before: nil)
-        } else {
-          workspaces[workspaces.count - 1].append(windowID)
-        }
+        workspaces[workspaces.count - 1].append(member: windowID, of: workspace)
       }
     }
     currentIndex = numbers.firstIndex(of: currentNumber) ?? numbers.count - 1

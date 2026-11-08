@@ -61,7 +61,7 @@ extension WindowManager {
     let inView = rows.windowsOnParkedWorkspaces.compactMap { registry.window(withID: $0) }
       .filter { window in !displays.contains { Parking.isParked(window.frame, on: $0) } }
     place(
-      inView.compactMap { tiling.parkingPlacement(of: $0.id, size: $0.frame.size) })
+      inView.compactMap { tiling.parkingPlacement(of: $0.id, from: $0.frame) })
   }
 
   /// Takes over the workspaces a previous tylerd handed over; windows not there yet get their

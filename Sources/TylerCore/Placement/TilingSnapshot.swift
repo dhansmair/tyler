@@ -77,19 +77,22 @@ package struct TilingSnapshot: Sendable {
       }.map(\.id))
   }
 
-  /// Where a window of a parked workspace waits: the parking spot of its slot, on that
-  /// workspace's display. A window without a slot there (it is out of view) waits as if at the
-  /// top left of the visible frame with `size`, so one arriving from another display waits at a
-  /// height where this display is. `nil` if it isn't on a workspace or its display isn't
-  /// connected.
-  package func parkingPlacement(of windowID: WindowID, size: CGSize) -> Placement? {
+  /// Where a window of a parked workspace waits, now at `frame`: the parking spot of its slot,
+  /// on that workspace's display. A floating window waits beside where it floats: where it was
+  /// when its workspace left the screen, or `frame` if it hasn't left yet. Another window without
+  /// a slot there (it is out of view) waits as if at the top left of the visible frame, so one
+  /// arriving from another display waits at a height where this display is. `nil` if it isn't on
+  /// a workspace or its display isn't connected.
+  package func parkingPlacement(of windowID: WindowID, from frame: CGRect) -> Placement? {
     guard let location = rows.location(holding: windowID),
       let display = display(at: location.position)
     else { return nil }
     let workspace = rows[location.position][location.index]
-    let slot =
+    let resting =
       workspace.placements(on: display, gaps: gaps).first { $0.id == windowID }?.frame
-      ?? CGRect(origin: display.visibleFrame.origin, size: size)
-    return Placement(id: windowID, frame: Parking.frame(for: slot, on: display))
+      ?? (workspace.flags(of: windowID).contains(.floating)
+        ? workspace.floatingFrame(of: windowID) ?? frame
+        : CGRect(origin: display.visibleFrame.origin, size: frame.size))
+    return Placement(id: windowID, frame: Parking.frame(for: resting, on: display))
   }
 }

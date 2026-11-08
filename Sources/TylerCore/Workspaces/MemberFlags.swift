@@ -7,4 +7,6 @@ package struct MemberFlags: OptionSet, Hashable, Sendable {
   }
 
   package static let hidden = MemberFlags(rawValue: 1 << 0)
+  /// The user took it out of tiling: it stays where they put it, and parks with its workspace.
+  package static let floating = MemberFlags(rawValue: 1 << 1)
 }

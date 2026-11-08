@@ -97,7 +97,8 @@ package struct LateHandOver: Equatable, Sendable {
     else { return false }
     var workspace = rows[location.position][location.index]
     if window.isHidden {
-      workspace.insertHidden(window.id, before: place.followers.first(where: workspace.holds))
+      workspace.insert(
+        window.id, flagged: .hidden, before: place.followers.first(where: workspace.holds))
     } else {
       workspace.insert(window.id, before: place.followers.first(where: workspace.tiles))
       if place.wasFocused { workspace.setFocus(window.id) }

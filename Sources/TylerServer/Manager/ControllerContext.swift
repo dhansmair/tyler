@@ -64,7 +64,7 @@ struct ControllerContext {
     return .place(
       windowIDs.compactMap { windowID in
         registry.window(withID: windowID).flatMap {
-          tiling.parkingPlacement(of: windowID, size: $0.frame.size)
+          tiling.parkingPlacement(of: windowID, from: $0.frame)
         }
       })
   }

@@ -11,4 +11,18 @@ extension Workspace {
         : Placement(id: placement.id, frame: Parking.frame(for: placement.frame, on: display))
     }
   }
+
+  /// Where the floating windows that can be seen go when the workspace comes onto `display`:
+  /// where each was when it left the screen, or, for one it doesn't know that of, the frame
+  /// `current` gives, pulled onto the display.
+  package func floatingPlacements(
+    on display: DisplayInfo, current: (WindowID) -> CGRect?
+  ) -> [Placement] {
+    shownFloating.compactMap { windowID in
+      let frame =
+        floatingFrame(of: windowID)
+        ?? current(windowID).map { Parking.pulledIn($0, on: display) }
+      return frame.map { Placement(id: windowID, frame: $0) }
+    }
+  }
 }

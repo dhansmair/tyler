@@ -111,7 +111,7 @@ extension WindowManager {
   func focusCurrentWorkspace() -> String? {
     let workspace = workspaces.current
     let candidates =
-      [workspace.focused].compactMap { $0 } + workspace.windows
+      [workspace.lastFocused, workspace.focused].compactMap { $0 } + workspace.windows
       + workspace.shownFloating
     guard let target = candidates.first(where: isStillThere) else {
       return unfocusParkedWindow()

@@ -416,7 +416,7 @@ tyler workspace focus prev  # the previous workspace (before the first comes the
 tyler workspace focus 3     # workspace 3 (workspaces are numbered from 1)
 ```
 
-Switches to another workspace. The current windows slide out and are parked, the target workspace's windows slide in, and focus goes to the window that last had focus there. On an empty workspace no window has focus (tylerd itself becomes the active app), so what you type doesn't reach a parked window. Floated windows slide out and in with their workspace; on a workspace with only floated windows, focus goes to one of them.
+Switches to another workspace. The current windows slide out and are parked, the target workspace's windows slide in, and focus goes to the window that last had focus there, floated or tiled. On an empty workspace no window has focus (tylerd itself becomes the active app), so what you type doesn't reach a parked window. Floated windows slide out and in with their workspace; on a workspace with only floated windows, focus goes to one of them.
 
 Focusing a parked window yourself, for example with Cmd-Tab, also switches to its workspace, a floated one too.
 

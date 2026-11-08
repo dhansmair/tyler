@@ -13,6 +13,8 @@ package struct Workspace: Equatable, Sendable {
   package private(set) var windows: [WindowID] = []
   /// The tiled window that `focus` and `swap` are relative to.
   package internal(set) var focused: WindowID?
+  /// The floating window the focus was on, if it was on one after the tiled `focused`.
+  package private(set) var focusedFloating: WindowID?
   package var layout: LayoutKind {
     didSet { if layout != oldValue { refitView() } }
   }
@@ -57,6 +59,10 @@ package struct Workspace: Equatable, Sendable {
   package var shownFloating: [WindowID] {
     flags.isEmpty ? [] : members.filter { flags[$0] == .floating }
   }
+
+  /// The window that had the focus last, floating or tiled: the one to focus again when the
+  /// workspace comes back on screen.
+  package var lastFocused: WindowID? { focusedFloating ?? focused }
 
   package func floatingFrame(of windowID: WindowID) -> CGRect? {
     floatingFrames[windowID]
@@ -123,6 +129,7 @@ package struct Workspace: Equatable, Sendable {
       layoutStates.remove(windowID, from: members.filter { flags[$0] == nil || $0 == windowID })
       flags[windowID] = nil
       floatingFrames[windowID] = nil
+      if focusedFloating == windowID { focusedFloating = nil }
       members.removeAll { $0 == windowID }
       refreshWindows()
       return true
@@ -143,6 +150,7 @@ package struct Workspace: Equatable, Sendable {
     if windows.contains(windowID) { return takeSlot(of: windowID, flag: .hidden) }
     guard flags[windowID] == .floating else { return false }
     flags[windowID]?.insert(.hidden)
+    if focusedFloating == windowID { focusedFloating = nil }
     return true
   }
 
@@ -164,6 +172,7 @@ package struct Workspace: Equatable, Sendable {
   package mutating func tile(_ windowID: WindowID) -> Bool {
     guard clear(.floating, of: windowID) else { return false }
     floatingFrames[windowID] = nil
+    if focusedFloating == windowID { focusedFloating = nil }
     return true
   }
 
@@ -261,11 +270,20 @@ package struct Workspace: Equatable, Sendable {
 
   // MARK: - Focus and order
 
-  /// Records that the operating system focused `windowID`. Windows that aren't tiled are
-  /// ignored, so `focus next` stays relative to the last tiled window you used.
+  /// Records that the operating system focused `windowID`. A floating window becomes
+  /// `lastFocused` only, so `focus next` stays relative to the last tiled window you used.
+  /// Returns whether anything changed.
   @discardableResult
   package mutating func setFocus(_ windowID: WindowID) -> Bool {
-    guard tiles(windowID), focused != windowID else { return false }
+    if shows(windowID) && !tiles(windowID) {
+      guard focusedFloating != windowID else { return false }
+      focusedFloating = windowID
+      return true
+    }
+    guard tiles(windowID) else { return false }
+    let leftFloating = focusedFloating != nil
+    focusedFloating = nil
+    guard focused != windowID else { return leftFloating }
     focused = windowID
     refitView()
     return true

@@ -47,6 +47,33 @@ struct FloatedWindowSwitchScenarios {
     #expect(scenario.frame(of: 2) == floated)
   }
 
+  /// Focusing a tiled window raises it over a floated one that overlaps it, and macOS raises a
+  /// window above another app's only by focusing it.
+  @Test func aFloatedWindowThatHadTheFocusGetsItBackWhenItsWorkspaceReturns() async {
+    let scenario = await scenario()
+    await scenario.command("workspace focus next")
+    scenario.windowSystem.clearRecordedCalls()
+    await scenario.command("workspace focus prev")
+    #expect(scenario.windowSystem.focusCalls.last == WindowID(2))
+  }
+
+  @Test func aSwipeBackGivesTheFloatedWindowTheFocusBack() async {
+    let scenario = await scenario()
+    await scenario.swipe(.left)
+    scenario.windowSystem.clearRecordedCalls()
+    await scenario.swipe(.right)
+    #expect(scenario.windowSystem.focusCalls.last == WindowID(2))
+  }
+
+  @Test func aTiledWindowFocusedAfterTheFloatedOneGetsTheFocusBack() async {
+    let scenario = await scenario()
+    await scenario.focus(1)
+    await scenario.command("workspace focus next")
+    scenario.windowSystem.clearRecordedCalls()
+    await scenario.command("workspace focus prev")
+    #expect(scenario.windowSystem.focusCalls.last == WindowID(1))
+  }
+
   @Test func switchingToAnEmptyWorkspaceTakesTheFocusFromIt() async {
     let scenario = await Scenario(workspaces: [1: [1, 2]])
     await scenario.focus(2)

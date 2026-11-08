@@ -44,7 +44,7 @@ extension Model {
   }
 
   mutating func recordFocus(_ windowID: WindowID) {
-    guard let location = rows.location(of: windowID) else { return }
+    guard let location = rows.location(showing: windowID) else { return }
     rows[location.position].setFocus(windowID)
   }
 }

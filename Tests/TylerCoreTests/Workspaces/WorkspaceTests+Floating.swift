@@ -59,6 +59,27 @@ struct WorkspaceFloatingTests {
     #expect(workspace.members == ids(3, 2, 1))
   }
 
+  @Test func aFocusedFloatingWindowIsTheLastFocusedButNotTheOneFocusGoesBy() {
+    var workspace = floating(2, in: makeWorkspace(1, 2, 3, focus: 1))
+    workspace.setFocus(WindowID(2))
+    #expect(workspace.lastFocused == WindowID(2))
+    #expect(workspace.focused == WindowID(1))
+    workspace.setFocus(WindowID(3))
+    #expect(workspace.lastFocused == WindowID(3))
+  }
+
+  @Test(arguments: ["tile", "hide", "remove"])
+  func aFocusedFloatingWindowThatStopsFloatingIsNotTheLastFocused(change: String) {
+    var workspace = floating(2, in: makeWorkspace(1, 2, 3, focus: 1))
+    workspace.setFocus(WindowID(2))
+    switch change {
+    case "tile": workspace.tile(WindowID(2))
+    case "hide": workspace.hide(WindowID(2))
+    default: workspace.remove(WindowID(2))
+    }
+    #expect(workspace.lastFocused == WindowID(1))
+  }
+
   @Test func aFloatingWindowWhoseAppHidesFloatsAgainWhenShown() {
     var workspace = floating(2, in: makeWorkspace(1, 2, 3))
     let hid = workspace.hide(WindowID(2))

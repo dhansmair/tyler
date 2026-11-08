@@ -163,10 +163,10 @@ package struct WorkspaceRow: Equatable, Sendable {
     return workspace
   }
 
-  /// Records that `windowID` got focus, on whichever workspace holds it.
+  /// Records that `windowID` got focus, on whichever workspace shows it.
   @discardableResult
   package mutating func setFocus(_ windowID: WindowID) -> Bool {
-    guard let index = index(containing: windowID) else { return false }
+    guard let index = index(showing: windowID) else { return false }
     return workspaces[index].setFocus(windowID)
   }
 }

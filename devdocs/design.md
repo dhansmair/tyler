@@ -264,7 +264,10 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   the screen: `Workspace` remembers that frame then, and only then. While it is on screen, where
   it is is where it should be, so `reconcile` leaves it alone; tracking every move to enforce it
   would fight the user over a late echo. Focusing a parked one brings its workspace into view, as
-  for a tiled window; `focus next|prev` and `swap` skip it, and while it has the focus, `swap`,
+  for a tiled window. A workspace that comes back focuses the window that had the focus last,
+  floated ones included (`Workspace.lastFocused`): focusing a tiled one would raise it over a
+  floated one that overlaps it, and macOS raises a window above another app's only by focusing it
+  (`macos-behaviour.md`, "Raising without focusing"). `focus next|prev` and `swap` skip it, and while it has the focus, `swap`,
   `promote` and `demote` change nothing: they say "the focused window", and moving tiled windows
   the user isn't looking at surprised. One that leaves every workspace
   (minimized, a display without a row, `tiling off`) stays in `bookkeeping.floated` and joins a

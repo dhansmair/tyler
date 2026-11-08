@@ -16,9 +16,18 @@ extension WindowManager {
     TilingSnapshot(rows: rows, displays: connectedDisplays, gaps: gaps)
   }
 
+  /// Places windows and returns how many could not be placed. The registry takes where they
+  /// landed at once: the apps report it only after the current event or command is done, and a
+  /// decision made before that (a command right after a slide it ended) would read the frames
+  /// from before.
   @discardableResult
   func place(_ placements: [Placement]) -> Int {
-    mover.place(placements, known: registry)
+    recordLanded(mover.place(placements, known: registry))
+  }
+
+  func recordLanded(_ placed: WindowMover.Placed) -> Int {
+    registry.record(placed.landed)
+    return placed.failures
   }
 
   /// How the log names `windowID`: its number, app and title, from the registry.

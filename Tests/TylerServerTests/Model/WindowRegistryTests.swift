@@ -1,3 +1,4 @@
+import CoreGraphics
 import Testing
 import TylerCore
 import TylerTestSupport
@@ -8,6 +9,17 @@ import TylerTestSupport
 struct WindowRegistryTests {
   private func ids(_ registry: WindowRegistry) -> [UInt32] {
     registry.windows.map(\.id.rawValue)
+  }
+
+  @Test func itTakesWhereTylerdsPlacementsLandedAndSkipsWindowsItDoesntKnow() {
+    var registry = WindowRegistry()
+    registry.replaceAll([makeWindow(id: 1)])
+    let landed = CGRect(x: 10, y: 20, width: 300, height: 200)
+    registry.record([
+      Placement(id: WindowID(1), frame: landed), Placement(id: WindowID(9), frame: landed),
+    ])
+    #expect(registry.window(withID: WindowID(1))?.frame == landed)
+    #expect(registry.window(withID: WindowID(9)) == nil)
   }
 
   @Test func startsEmpty() {

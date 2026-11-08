@@ -14,15 +14,26 @@ extension Workspace {
 
   /// Where the floating windows that can be seen go when the workspace comes onto `display`:
   /// where each was when it left the screen, or, for one it doesn't know that of, the frame
-  /// `current` gives, pulled onto the display.
+  /// `current` gives. A frame parked at the display's edge is pulled onto it, and one on another
+  /// of `displays` (the workspace moved display) is carried over to the same place.
   package func floatingPlacements(
-    on display: DisplayInfo, current: (WindowID) -> CGRect?
+    on display: DisplayInfo, among displays: [DisplayInfo], current: (WindowID) -> CGRect?
   ) -> [Placement] {
     shownFloating.compactMap { windowID in
-      let frame =
-        floatingFrame(of: windowID)
-        ?? current(windowID).map { Parking.pulledIn($0, on: display) }
-      return frame.map { Placement(id: windowID, frame: $0) }
+      (floatingFrame(of: windowID) ?? current(windowID)).map { frame in
+        Placement(id: windowID, frame: Self.frame(frame, broughtOnto: display, from: displays))
+      }
     }
+  }
+
+  private static func frame(
+    _ frame: CGRect, broughtOnto display: DisplayInfo, from displays: [DisplayInfo]
+  ) -> CGRect {
+    if Parking.isParked(frame, on: display) { return Parking.pulledIn(frame, on: display) }
+    guard let source = DisplayGeometry.display(containing: frame, in: displays),
+      source.key != display.key
+    else { return frame }
+    let shown = Parking.isParked(frame, on: source) ? Parking.pulledIn(frame, on: source) : frame
+    return DisplayGeometry.frame(shown, carriedFrom: source, to: display)
   }
 }

@@ -92,10 +92,11 @@ struct TilingController {
       return
     }
     model.rows[location.position][location.index].float(windowID)
+    model.recordFocus(windowID)
   }
 
-  /// The window keeps the focus macOS gave it, so no focus event follows: commands go by it from
-  /// here on.
+  /// The window keeps the focus macOS gave it, so no focus event follows, as when it floats:
+  /// commands go by it from here on.
   private func tile(_ windowID: WindowID, model: inout Model) {
     model.bookkeeping.floated.remove(windowID)
     if let location = model.rows.location(holding: windowID) {
@@ -219,12 +220,17 @@ struct TilingController {
     var floating: [Placement] = []
     for position in model.rows.entries.indices {
       restored += model.rows[position].current.windows.filter(offView.contains)
-      restored += model.rows[position].current.hidden
+      let current = model.rows[position].current
+      // A floating window whose app is hidden is where it floated.
+      restored += current.hidden.filter { !current.flags(of: $0).contains(.floating) }
       let display = context.display(for: model.rows.entries[position].key)
       for index in model.rows[position].indices where index != model.rows[position].currentIndex {
         let workspace = model.rows[position][index]
         let unparked =
-          display.map { workspace.floatingPlacements(on: $0, current: currentFrame(of:)) } ?? []
+          display.map {
+            workspace.floatingPlacements(
+              on: $0, among: context.displays, current: context.frame(of:))
+          } ?? []
         floating += unparked
         restored += workspace.members.filter { id in !unparked.contains { $0.id == id } }
         model.bookkeeping.floated.formUnion(workspace.floating)
@@ -232,10 +238,6 @@ struct TilingController {
       }
     }
     return [.restoreOriginalFrames(restored), .place(floating)]
-  }
-
-  private func currentFrame(of windowID: WindowID) -> CGRect? {
-    context.registry.window(withID: windowID)?.frame
   }
 
   private var swapDuration: Duration { .milliseconds(context.config.animations.swap) }

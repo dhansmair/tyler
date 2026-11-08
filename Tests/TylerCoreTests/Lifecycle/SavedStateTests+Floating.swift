@@ -17,6 +17,7 @@ struct SavedStateFloatingTests {
     rows[0][0].sync(eligible: ids(1, 2, 3))
     rows[0][0].float(WindowID(2))
     rows[0][0].rememberFloatingFrames([Placement(id: WindowID(2), frame: floatedAt)])
+    rows[0][0].setFocus(WindowID(2))
     return rows
   }
 
@@ -33,6 +34,7 @@ struct SavedStateFloatingTests {
     #expect(restored.members == ids(1, 2, 3))
     #expect(restored.floating == [WindowID(2)])
     #expect(restored.floatingFrame(of: WindowID(2)) == floatedAt)
+    #expect(restored.lastFocused == WindowID(2), "it had the focus")
   }
 
   @Test func anOlderTylerdSeesEveryFloatedWindowAsFloated() {

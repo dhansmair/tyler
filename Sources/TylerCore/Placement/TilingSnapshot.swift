@@ -78,18 +78,43 @@ package struct TilingSnapshot: Sendable {
   }
 
   /// Where the floating windows of each display's current workspace (of the displays `keys` only
-  /// if given) go that wait parked, `frame` giving where each is: their workspace came on screen
-  /// without a slide (a display change, a workspace moved to another display).
+  /// if given) go that aren't on that display, `frame` giving where each is: parked, or on
+  /// another display, as their workspace came on screen without a slide (a display change, a
+  /// workspace moved to another display).
   package func unparkingFloatingPlacements(
     on keys: Set<DisplayKey>? = nil, frame: (WindowID) -> CGRect?
   ) -> [Placement] {
     rows.entries.indices.flatMap { position -> [Placement] in
       guard keys?.contains(rows.entries[position].key) ?? true, let display = display(at: position)
       else { return [] }
-      return rows[position].current.floatingPlacements(on: display, current: frame).filter {
-        frame($0.id).map { Parking.isParked($0, on: display) } == true
-      }
+      return rows[position].current.floatingPlacements(on: display, among: displays, current: frame)
+        .filter { placement in
+          frame(placement.id).map { isAway($0, from: display) } ?? false
+        }
     }
+  }
+
+  private func isAway(_ frame: CGRect, from display: DisplayInfo) -> Bool {
+    Parking.isParked(frame, on: display)
+      || DisplayGeometry.display(containing: frame, in: displays)?.key != display.key
+  }
+
+  /// The rows, with each display's current workspace remembering where its floating windows
+  /// are (`frame` gives where each is), as it may be about to leave the screen. Only current
+  /// workspaces: a parked one remembered its frames when it left, and macOS can since have pulled
+  /// its windows on screen (a display change).
+  package func rememberingFloatingFrames(frame: (WindowID) -> CGRect?) -> DisplayRows {
+    var rows = rows
+    for position in rows.entries.indices {
+      let onScreen = rows[position].current.floating.compactMap { windowID in
+        frame(windowID).flatMap { frame in
+          displays.contains { Parking.isParked(frame, on: $0) }
+            ? nil : Placement(id: windowID, frame: frame)
+        }
+      }
+      rows[position].current.rememberFloatingFrames(onScreen)
+    }
+    return rows
   }
 
   /// The floating windows that can be seen on each display's current workspace.

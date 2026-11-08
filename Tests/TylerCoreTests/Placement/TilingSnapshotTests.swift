@@ -120,6 +120,45 @@ struct TilingSnapshotTests {
     #expect(snapshot.unparkingFloatingPlacements { _ in floated }.isEmpty, "already on screen")
   }
 
+  @Test func aFloatingWindowOnAnotherDisplayComesToItsWorkspacesDisplay() throws {
+    var rows = rows
+    rows[0][0].sync(eligible: ids(1, 2, 8))
+    rows[0][0].float(WindowID(8))
+    let snapshot = TilingSnapshot(
+      rows: rows, displays: DisplayArrangement.sided([laptop, external]), gaps: gaps)
+    let onExternal = CGRect(x: 1200, y: 100, width: 300, height: 200)
+    let placement = try #require(snapshot.unparkingFloatingPlacements { _ in onExternal }.first)
+    #expect(placement.frame == CGRect(x: 200, y: 100, width: 300, height: 200))
+  }
+
+  @Test func onlyCurrentWorkspacesRememberWhereTheirFloatingWindowsAre() {
+    var rows = rows
+    rows[0][0].sync(eligible: ids(1, 2, 8))
+    rows[0][0].float(WindowID(8))
+    rows[0][1].sync(eligible: ids(3, 9))
+    rows[0][1].float(WindowID(9))
+    let left = CGRect(x: 50, y: 50, width: 300, height: 200)
+    rows[0][1].rememberFloatingFrames([Placement(id: WindowID(9), frame: left)])
+    let snapshot = TilingSnapshot(
+      rows: rows, displays: DisplayArrangement.sided([laptop, external]), gaps: gaps)
+    let now = CGRect(x: 400, y: 100, width: 300, height: 200)
+    let remembered = snapshot.rememberingFloatingFrames { _ in now }
+    #expect(remembered[0][0].floatingFrame(of: WindowID(8)) == now)
+    #expect(remembered[0][1].floatingFrame(of: WindowID(9)) == left, "macOS may have moved it")
+  }
+
+  @Test func aParkedFloatingWindowIsNotRemembered() {
+    var rows = rows
+    rows[0][0].sync(eligible: ids(1, 2, 8))
+    rows[0][0].float(WindowID(8))
+    let snapshot = TilingSnapshot(
+      rows: rows, displays: DisplayArrangement.sided([laptop, external]), gaps: gaps)
+    let parked = Parking.frame(for: CGRect(x: 400, y: 100, width: 300, height: 200), on: laptop)
+    #expect(
+      snapshot.rememberingFloatingFrames { _ in parked }[0][0].floatingFrame(of: WindowID(8))
+        == nil)
+  }
+
   @Test func aDisconnectedDisplaysRowAnswersNothing() {
     let snapshot = snapshot(connected: [laptop])
     #expect(snapshot.display(at: 1) == nil)

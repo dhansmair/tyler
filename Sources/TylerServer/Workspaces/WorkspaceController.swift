@@ -249,7 +249,7 @@ struct WorkspaceController {
     // Sync before switching, never after: the target's windows are parked, and a parked frame
     // can overlap a neighbouring display more than this one, which would drop them.
     effects += SyncController(context: context).sync(model: &model).effects
-    rememberFloatingFrames(model: &model)
+    model.rows = context.rememberingFloatingFrames(model.rows)
     guard let display = context.display(for: model.rows.focusedKey) else {
       model.rows.focused.select(index)
       return effects
@@ -258,13 +258,6 @@ struct WorkspaceController {
     model.rows.focused.select(index)
     effects.append(.animate(plan.transition))
     return effects
-  }
-
-  /// The focused display's current workspace is about to leave the screen: its floating windows
-  /// will come back to where they are now.
-  func rememberFloatingFrames(model: inout Model) {
-    let floating = context.currentPlacements(of: model.rows.focused.current.shownFloating)
-    model.rows.focused.current.rememberFloatingFrames(floating)
   }
 
   /// How the windows move when the workspace at `index` comes into view from `direction`: the
@@ -279,13 +272,11 @@ struct WorkspaceController {
     let leaving = context.currentPlacements(of: inView + row.current.shownFloating)
     let entering =
       row[index].placements(on: display, gaps: context.gaps)
-      + row[index].floatingPlacements(on: display) { context.registry.window(withID: $0)?.frame }
+      + row[index].floatingPlacements(
+        on: display, among: context.displays, current: context.frame(of:))
     var plan = SlidePlan(
       to: index, direction: direction, leaving: leaving, entering: entering, on: display)
-    let unseen = row.current.hidden.compactMap { windowID in
-      context.registry.window(withID: windowID).map { Placement(id: windowID, frame: $0.frame) }
-    }
-    plan.park(unseen: unseen, on: display)
+    plan.park(unseen: context.currentPlacements(of: row.current.hidden), on: display)
     return plan
   }
 

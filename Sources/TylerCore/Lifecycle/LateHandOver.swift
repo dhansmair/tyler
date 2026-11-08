@@ -50,7 +50,8 @@ package struct LateHandOver: Equatable, Sendable {
       for (index, windowID) in all.enumerated() where !taken.contains(windowID) {
         let place = Place(
           number: number, followers: Array(all[(index + 1)...]),
-          wasFocused: workspace.focused == windowID, isFloating: floating.keys.contains(windowID),
+          wasFocused: workspace.focused == windowID || workspace.focusedFloating == windowID,
+          isFloating: floating.keys.contains(windowID),
           floatingFrame: floating[windowID] ?? nil)
         expected[windowID] = Expected(
           processID: processIDs[windowID], place: place, originalFrame: frames[windowID])
@@ -110,6 +111,7 @@ package struct LateHandOver: Equatable, Sendable {
       if let frame = place.floatingFrame {
         workspace.rememberFloatingFrames([Placement(id: window.id, frame: frame)])
       }
+      if place.wasFocused { workspace.setFocus(window.id) }
     } else {
       workspace.insert(window.id, before: place.followers.first(where: workspace.tiles))
       if place.wasFocused { workspace.setFocus(window.id) }

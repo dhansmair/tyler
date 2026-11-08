@@ -15,8 +15,7 @@ extension Workspace {
       index =
         focusedIndex.map { $0.stepped(by: -1, wrappingAt: windows.count) } ?? windows.count - 1
     }
-    focused = windows[index]
-    refitView()
+    setFocus(windows[index])
     return focused
   }
 

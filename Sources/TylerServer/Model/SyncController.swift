@@ -28,7 +28,9 @@ struct SyncController {
       to: connected.map(\.key),
       configured: context.config.workspaceNumbers(displayCount: max(1, connected.count)))
     var outcome = Outcome(effects: restoreLateWindows(model: &model))
-    let isFocusUnlisted = context.registry.focusedID.map { model.rows.location(of: $0) == nil }
+    let isFocusUnlisted = context.registry.focusedID.map {
+      model.rows.location(showing: $0) == nil
+    }
     let arrived = arrivedCrossings(in: model.rows)
     if !arrived.isEmpty { outcome.effects.append(.releaseCrossings(arrived)) }
     let tiling = TilingSnapshot(rows: model.rows, displays: connected, gaps: context.gaps)
@@ -112,12 +114,12 @@ struct SyncController {
     guard let focusedID = context.registry.focusedID else { return nil }
     if wasUnlisted {
       model.recordFocus(focusedID)
-      if model.rows.location(of: focusedID) != nil {
+      if model.rows.location(showing: focusedID) != nil {
         model.focusDisplay(of: focusedID, in: context)
       }
     }
     guard arrivals.contains(focusedID) else { return nil }
-    return model.rows.location(of: focusedID).map { location in
+    return model.rows.location(showing: focusedID).map { location in
       (model.rows.entries[location.position].key, location.index)
     }
   }
@@ -127,7 +129,7 @@ struct SyncController {
   private func arrivedCrossings(in rows: DisplayRows) -> Set<WindowID> {
     context.crossingWindows.filter { windowID in
       guard let location = rows.location(holding: windowID),
-        let frame = context.registry.window(withID: windowID)?.frame
+        let frame = context.frame(of: windowID)
       else { return true }
       return DisplayGeometry.display(containing: frame, in: context.displays)?.key
         == rows.entries[location.position].key

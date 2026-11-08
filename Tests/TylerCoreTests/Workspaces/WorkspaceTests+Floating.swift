@@ -68,6 +68,13 @@ struct WorkspaceFloatingTests {
     #expect(workspace.lastFocused == WindowID(3))
   }
 
+  @Test func movingTheFocusAlongTheListLeavesTheFloatingWindow() {
+    var workspace = floating(2, in: makeWorkspace(1, 2, 3, focus: 1))
+    workspace.setFocus(WindowID(2))
+    workspace.focus(.next)
+    #expect(workspace.lastFocused == WindowID(3))
+  }
+
   @Test(arguments: ["tile", "hide", "remove"])
   func aFocusedFloatingWindowThatStopsFloatingIsNotTheLastFocused(change: String) {
     var workspace = floating(2, in: makeWorkspace(1, 2, 3, focus: 1))
@@ -169,21 +176,33 @@ struct WorkspaceFloatingTests {
     var workspace = floating(2, in: makeWorkspace(1, 2, 3))
     let frame = CGRect(x: 100, y: 100, width: 300, height: 200)
     workspace.rememberFloatingFrames([Placement(id: WindowID(2), frame: frame)])
-    let placements = workspace.floatingPlacements(on: display) { _ in nil }
+    let placements = workspace.floatingPlacements(on: display, among: [display]) { _ in nil }
     #expect(placements == [Placement(id: WindowID(2), frame: frame)])
   }
 
   @Test func aFloatingWindowWithoutAFrameComesBackPulledOntoTheDisplay() {
     let workspace = floating(2, in: makeWorkspace(1, 2, 3))
     let parked = CGRect(x: 999, y: 100, width: 300, height: 200)
-    let placements = workspace.floatingPlacements(on: display) { _ in parked }
+    let placements = workspace.floatingPlacements(on: display, among: [display]) { _ in parked }
     #expect(placements.map(\.frame) == [CGRect(x: 700, y: 100, width: 300, height: 200)])
+  }
+
+  @Test func aFloatingWindowOnAnotherDisplayIsCarriedOver() {
+    let other = DisplayInfo(
+      id: 2, key: DisplayKey("other"), frame: CGRect(x: 1000, y: 0, width: 1000, height: 600),
+      visibleFrame: CGRect(x: 1000, y: 0, width: 1000, height: 600))
+    let workspace = floating(2, in: makeWorkspace(1, 2, 3))
+    let there = CGRect(x: 1100, y: 100, width: 300, height: 200)
+    let placements = workspace.floatingPlacements(on: display, among: [display, other]) { _ in
+      there
+    }
+    #expect(placements.map(\.frame) == [CGRect(x: 100, y: 100, width: 300, height: 200)])
   }
 
   @Test func aHiddenFloatingWindowDoesNotComeBack() {
     var workspace = floating(2, in: makeWorkspace(1, 2, 3))
     workspace.hide(WindowID(2))
-    #expect(workspace.floatingPlacements(on: display) { _ in .zero }.isEmpty)
+    #expect(workspace.floatingPlacements(on: display, among: [display]) { _ in .zero }.isEmpty)
   }
 
   @Test func aRemovedWorkspaceHandsOverItsFloatingMembersAndWhereTheyWere() {

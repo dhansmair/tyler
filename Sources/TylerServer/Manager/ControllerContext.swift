@@ -69,11 +69,21 @@ struct ControllerContext {
       })
   }
 
-  /// Where each of `windowIDs` is now.
+  func frame(of windowID: WindowID) -> CGRect? {
+    registry.window(withID: windowID)?.frame
+  }
+
   func currentPlacements(of windowIDs: [WindowID]) -> [Placement] {
     windowIDs.compactMap { windowID in
-      registry.window(withID: windowID).map { Placement(id: windowID, frame: $0.frame) }
+      frame(of: windowID).map { Placement(id: windowID, frame: $0) }
     }
+  }
+
+  /// `rows`, remembering where their floating windows on screen are, before any of their
+  /// workspaces leaves the screen.
+  func rememberingFloatingFrames(_ rows: DisplayRows) -> DisplayRows {
+    TilingSnapshot(rows: rows, displays: displays, gaps: gaps)
+      .rememberingFloatingFrames(frame: frame(of:))
   }
 
   /// The slots of the focused display's current workspace.

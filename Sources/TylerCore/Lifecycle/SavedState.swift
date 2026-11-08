@@ -23,6 +23,9 @@ package struct SavedState: Codable, Equatable, Sendable {
     /// in files from before floating windows belonged to a workspace.
     package var floating: [FloatingMember]?
     package var focused: WindowID?
+    /// `Workspace.focusedFloating`; missing in files from before floating windows belonged to a
+    /// workspace.
+    package var focusedFloating: WindowID?
     package var layout: LayoutKind
     /// `Workspace.firstVisible`; missing in files from before the strip.
     package var firstVisible: WindowID?
@@ -62,6 +65,7 @@ package struct SavedState: Codable, Equatable, Sendable {
         ? nil
         : workspace.floating.map { FloatingMember(id: $0, frame: workspace.floatingFrame(of: $0)) }
       focused = workspace.focused
+      focusedFloating = workspace.focusedFloating
       layout = workspace.layout
       firstVisible = workspace.firstVisible
       layoutStates = workspace.layoutStates
@@ -336,6 +340,7 @@ extension SavedState.SavedWorkspace {
       floatingFrames.compactMap { windowID, frame in
         frame.map { Placement(id: windowID, frame: $0) }
       })
+    if let focusedFloating { workspace.setFocus(focusedFloating) }
     return workspace
   }
 }

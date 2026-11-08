@@ -39,6 +39,17 @@ struct FloatPlaceScenarios {
     #expect(scenario.list(1) == [2, 3])
   }
 
+  @Test func aWindowTiledAgainIsTheOneSwapAndFocusAreRelativeTo() async {
+    let scenario = await scenario()
+    await scenario.focus(2)
+    await scenario.command("window float on")
+    await scenario.command("window float off")
+
+    await scenario.command("window swap next")
+
+    #expect(scenario.list(1) == [1, 3, 2])
+  }
+
   @Test func itKeepsItsPlaceAcrossARestart() async {
     let scenario = await scenario()
     await scenario.focus(1)

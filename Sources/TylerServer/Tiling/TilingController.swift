@@ -93,10 +93,13 @@ struct TilingController {
     model.rows[location.position][location.index].float(windowID)
   }
 
+  /// The window keeps the focus macOS gave it, so no focus event follows: commands go by it from
+  /// here on.
   private func tile(_ windowID: WindowID, model: inout Model) {
     model.bookkeeping.floated.remove(windowID)
     if let location = model.rows.location(holding: windowID) {
       model.rows[location.position][location.index].tile(windowID)
+      model.recordFocus(windowID)
     }
   }
 

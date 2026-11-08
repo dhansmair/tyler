@@ -343,7 +343,7 @@ tyler window swap prev
 tyler window swap master
 ```
 
-Swaps the focused window with its neighbour in the list (wrapping around) or with the master, then re-tiles. The two windows slide into each other's slots, changing size on the way, taking `animations.swap` milliseconds (0 swaps them at once). The focused window moves and keeps the focus. If the focused window already is the master, `window swap master` swaps it with the second window.
+Swaps the focused window with its neighbour in the list (wrapping around) or with the master, then re-tiles. The two windows slide into each other's slots, changing size on the way, taking `animations.swap` milliseconds (0 swaps them at once). The focused window moves and keeps the focus. If the focused window already is the master, `window swap master` swaps it with the second window. While the focused window floats, nothing changes and `tyler` says so.
 
 ### window promote, window demote
 
@@ -352,7 +352,7 @@ tyler window promote
 tyler window demote
 ```
 
-Move the focused window between the master section and the stack of the `tall` layout. `window promote` moves a window from the stack to the bottom of the master section, which then holds one more window, stacked in the left column; promoting the last window of the stack leaves one column. `window demote` moves a window from the master section to the top of the stack. Demoting the only master gives its place to the window after it. The windows slide to their new slots as in [`window swap`](#window-swap), taking `animations.swap` milliseconds. A window that already is in that section stays where it is and `tyler` says so; in another layout `tyler` says that only `tall` has a master section. Each workspace keeps its own master section; when a master closes, the section shrinks with it.
+Move the focused window between the master section and the stack of the `tall` layout. `window promote` moves a window from the stack to the bottom of the master section, which then holds one more window, stacked in the left column; promoting the last window of the stack leaves one column. `window demote` moves a window from the master section to the top of the stack. Demoting the only master gives its place to the window after it. The windows slide to their new slots as in [`window swap`](#window-swap), taking `animations.swap` milliseconds. A window that already is in that section stays where it is and `tyler` says so; in another layout `tyler` says that only `tall` has a master section. Each workspace keeps its own master section; when a master closes, the section shrinks with it. While the focused window floats, neither command changes anything.
 
 ### window float
 

@@ -22,6 +22,7 @@ struct TilingController {
   }
 
   func swap(_ target: ListTarget, model: inout Model) throws(Refusal) -> Decision {
+    try refuseWhileFocusedFloats(model)
     guard model.rows.focused.current.count >= 2 else {
       throw .error("need at least two tiled windows to swap")
     }
@@ -39,7 +40,7 @@ struct TilingController {
   /// The focused window leaves the stack of `tall` for its master section. The windows move as
   /// in a swap.
   func promote(model: inout Model) throws(Refusal) -> Decision {
-    let slots = try slotsBeforeSectionChange(model.rows)
+    let slots = try slotsBeforeSectionChange(model)
     guard model.rows.focused.current.promote() else {
       throw .message("already in the master section")
     }
@@ -48,7 +49,7 @@ struct TilingController {
 
   /// The focused window leaves the master section of `tall` for the top of its stack.
   func demote(model: inout Model) throws(Refusal) -> Decision {
-    let slots = try slotsBeforeSectionChange(model.rows)
+    let slots = try slotsBeforeSectionChange(model)
     guard model.rows.focused.current.count >= 2 else {
       throw .message("no other window to take the master's place")
     }
@@ -254,7 +255,16 @@ struct TilingController {
   }
 
   /// The slots before a window changes section, once it is clear the focused workspace has one.
-  private func slotsBeforeSectionChange(_ rows: DisplayRows) throws(Refusal) -> [Placement] {
+  /// The commands on the focused window's place in the list would otherwise move tiled windows
+  /// the user isn't looking at.
+  private func refuseWhileFocusedFloats(_ model: Model) throws(Refusal) {
+    guard let windowID = context.registry.focusedID, model.isFloated(windowID) else { return }
+    throw .message("the focused window floats")
+  }
+
+  private func slotsBeforeSectionChange(_ model: Model) throws(Refusal) -> [Placement] {
+    try refuseWhileFocusedFloats(model)
+    let rows = model.rows
     let workspace = rows.focused.current
     guard workspace.layout == .tall else {
       throw .error("only the tall layout has a master section")

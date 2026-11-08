@@ -50,6 +50,18 @@ struct FloatPlaceScenarios {
     #expect(scenario.list(1) == [1, 3, 2])
   }
 
+  @Test(arguments: ["window swap next", "window swap master", "window promote", "window demote"])
+  func aCommandOnTheFocusedWindowsPlaceDoesNothingWhileItFloats(command: String) async {
+    let scenario = await scenario()
+    await scenario.focus(2)
+    await scenario.command("window float on")
+
+    let response = await scenario.command(command)
+
+    #expect(response == .message("the focused window floats"))
+    #expect(scenario.list(1) == [1, 3])
+  }
+
   @Test func itKeepsItsPlaceAcrossARestart() async {
     let scenario = await scenario()
     await scenario.focus(1)

@@ -33,6 +33,24 @@ struct FloatKeptScenarios {
     #expect(scenario.list(2) == [3])
   }
 
+  @Test func tilingOffPutsAParkedFloatedWindowWhereItFloated() async {
+    let scenario = await scenario()
+    let floated = scenario.frame(of: 2)
+    await scenario.command("workspace focus next")
+    await scenario.command("tiling off")
+    #expect(scenario.frame(of: 2) == floated)
+  }
+
+  @Test func aRestartSavesWhereAFloatedWindowOnScreenIsNow() async throws {
+    let scenario = await scenario()
+    let moved = CGRect(x: 300, y: 200, width: 400, height: 300)
+    await scenario.moveByHand(2, to: moved)
+    let saved = try #require(scenario.harness.manager.handOver())
+    let floating = saved.displays?.first?.workspaces.first?.floating
+    #expect(floating?.map(\.id) == [WindowID(2)])
+    #expect(floating?.first?.frame == moved)
+  }
+
   @Test func aFloatedWindowOnAParkedWorkspaceStaysFloatedThroughTilingOffAndOn() async {
     let scenario = await scenario()
     await scenario.command("workspace focus next")

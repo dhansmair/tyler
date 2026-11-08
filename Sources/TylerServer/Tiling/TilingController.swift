@@ -206,21 +206,32 @@ struct TilingController {
   }
 
   /// The current workspace keeps its list (so `tiling on` restores its order), and its windows
-  /// in view stay where they are.
+  /// in view stay where they are. The floating windows of the other workspaces go to where they
+  /// floated, and keep floating.
   private func unparkAll(model: inout Model) -> [Effect] {
     let offView = TilingSnapshot(rows: model.rows, displays: context.displays, gaps: context.gaps)
       .offViewWindows
     var restored: [WindowID] = []
+    var floating: [Placement] = []
     for position in model.rows.entries.indices {
       restored += model.rows[position].current.windows.filter(offView.contains)
       restored += model.rows[position].current.hidden
+      let display = context.display(for: model.rows.entries[position].key)
       for index in model.rows[position].indices where index != model.rows[position].currentIndex {
-        restored += model.rows[position][index].members
-        model.bookkeeping.floated.formUnion(model.rows[position][index].floating)
+        let workspace = model.rows[position][index]
+        let unparked =
+          display.map { workspace.floatingPlacements(on: $0, current: currentFrame(of:)) } ?? []
+        floating += unparked
+        restored += workspace.members.filter { id in !unparked.contains { $0.id == id } }
+        model.bookkeeping.floated.formUnion(workspace.floating)
         model.rows[position][index].sync(eligible: [])
       }
     }
-    return [.restoreOriginalFrames(restored)]
+    return [.restoreOriginalFrames(restored), .place(floating)]
+  }
+
+  private func currentFrame(of windowID: WindowID) -> CGRect? {
+    context.registry.window(withID: windowID)?.frame
   }
 
   private var swapDuration: Duration { .milliseconds(context.config.animations.swap) }

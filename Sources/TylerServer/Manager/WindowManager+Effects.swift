@@ -158,7 +158,10 @@ extension WindowManager {
 
   @discardableResult
   func reconcileWindows(force: Bool = false, on keys: Set<DisplayKey>? = nil) -> Int {
-    let desired = tiling.restingPlacements(on: keys)
+    let frame = { (windowID: WindowID) in self.registry.window(withID: windowID)?.frame }
+    let desired =
+      tiling.restingPlacements(on: keys)
+      + tiling.unparkingFloatingPlacements(on: keys, frame: frame)
     let moves = Reconciler.moves(toward: desired) { registry.window(withID: $0)?.frame }
     return place(force ? desired : moves)
   }

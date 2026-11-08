@@ -105,6 +105,21 @@ struct TilingSnapshotTests {
     #expect(placement.frame == parked)
   }
 
+  @Test func aParkedFloatingWindowOfACurrentWorkspaceComesBackWhereItFloated() {
+    var rows = rows
+    rows[0][0].sync(eligible: ids(1, 2, 8))
+    rows[0][0].float(WindowID(8))
+    let floated = CGRect(x: 200, y: 150, width: 300, height: 200)
+    rows[0][0].rememberFloatingFrames([Placement(id: WindowID(8), frame: floated)])
+    let snapshot = TilingSnapshot(
+      rows: rows, displays: DisplayArrangement.sided([laptop, external]), gaps: gaps)
+    let parked = Parking.frame(for: floated, on: snapshot.display(at: 0)!)
+    #expect(
+      snapshot.unparkingFloatingPlacements { _ in parked }
+        == [Placement(id: WindowID(8), frame: floated)])
+    #expect(snapshot.unparkingFloatingPlacements { _ in floated }.isEmpty, "already on screen")
+  }
+
   @Test func aDisconnectedDisplaysRowAnswersNothing() {
     let snapshot = snapshot(connected: [laptop])
     #expect(snapshot.display(at: 1) == nil)

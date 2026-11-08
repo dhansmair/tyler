@@ -106,7 +106,6 @@ package struct DisplayRows: Equatable, Sendable {
     entries.reduce(into: []) { $0.formUnion($1.row.allWindows) }
   }
 
-  /// The floating members of every workspace, shown or parked.
   package var floatingWindows: Set<WindowID> {
     entries.reduce(into: []) { result, entry in
       for workspace in entry.row.workspaces { result.formUnion(workspace.floating) }

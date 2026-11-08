@@ -212,7 +212,6 @@ package struct SavedState: Codable, Equatable, Sendable {
     return Set(saved.flatMap(\.windows) + floated)
   }
 
-  /// The floated windows on no workspace.
   package var floatedOnNoWorkspace: Set<WindowID> {
     Set(floated).subtracting(numberedWorkspaces.flatMap(\.workspace.allWindows))
   }

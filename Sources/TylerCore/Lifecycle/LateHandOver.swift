@@ -29,6 +29,7 @@ package struct LateHandOver: Equatable, Sendable {
     let followers: [WindowID]
     let wasFocused: Bool
     let isFloating: Bool
+    let floatingFrame: CGRect?
   }
 
   private var expected: [WindowID: Expected] = [:]
@@ -43,11 +44,14 @@ package struct LateHandOver: Equatable, Sendable {
       (saved.apps ?? []).map { ($0.id, $0.processID) }, uniquingKeysWith: { first, _ in first })
     for (number, workspace) in saved.numberedWorkspaces {
       let all = workspace.allWindows
-      let floating = Set((workspace.floating ?? []).map(\.id))
+      let floating = Dictionary(
+        (workspace.floating ?? []).map { ($0.id, $0.frame) },
+        uniquingKeysWith: { first, _ in first })
       for (index, windowID) in all.enumerated() where !taken.contains(windowID) {
         let place = Place(
           number: number, followers: Array(all[(index + 1)...]),
-          wasFocused: workspace.focused == windowID, isFloating: floating.contains(windowID))
+          wasFocused: workspace.focused == windowID, isFloating: floating.keys.contains(windowID),
+          floatingFrame: floating[windowID] ?? nil)
         expected[windowID] = Expected(
           processID: processIDs[windowID], place: place, originalFrame: frames[windowID])
       }
@@ -103,6 +107,9 @@ package struct LateHandOver: Equatable, Sendable {
       workspace.insert(
         window.id, flagged: place.isFloating ? .floating : .hidden,
         before: place.followers.first(where: workspace.holds))
+      if let frame = place.floatingFrame {
+        workspace.rememberFloatingFrames([Placement(id: window.id, frame: frame)])
+      }
     } else {
       workspace.insert(window.id, before: place.followers.first(where: workspace.tiles))
       if place.wasFocused { workspace.setFocus(window.id) }

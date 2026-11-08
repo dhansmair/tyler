@@ -263,7 +263,7 @@ struct WorkspaceController {
   /// The focused display's current workspace is about to leave the screen: its floating windows
   /// will come back to where they are now.
   func rememberFloatingFrames(model: inout Model) {
-    let floating = model.rows.focused.current.shownFloating.compactMap(currentPlacement(of:))
+    let floating = context.currentPlacements(of: model.rows.focused.current.shownFloating)
     model.rows.focused.current.rememberFloatingFrames(floating)
   }
 
@@ -276,7 +276,7 @@ struct WorkspaceController {
     let row = rows.focused
     // Only windows in view leave: windows out of view in a scrolling layout are parked already.
     let inView = row.current.placements(on: display, gaps: context.gaps).map(\.id)
-    let leaving = (inView + row.current.shownFloating).compactMap(currentPlacement(of:))
+    let leaving = context.currentPlacements(of: inView + row.current.shownFloating)
     let entering =
       row[index].placements(on: display, gaps: context.gaps)
       + row[index].floatingPlacements(on: display) { context.registry.window(withID: $0)?.frame }
@@ -287,10 +287,6 @@ struct WorkspaceController {
     }
     plan.park(unseen: unseen, on: display)
     return plan
-  }
-
-  private func currentPlacement(of windowID: WindowID) -> Placement? {
-    context.registry.window(withID: windowID).map { Placement(id: windowID, frame: $0.frame) }
   }
 
   /// Slides one visible window off the display towards the workspace it was sent to, and parks

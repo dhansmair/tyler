@@ -62,6 +62,7 @@ struct SavedStateFloatingTests {
     late.restore([window], into: &rows, floated: &floated)
     #expect(rows[0][0].members == ids(1, 2, 3))
     #expect(rows[0][0].floating == [WindowID(2)])
+    #expect(rows[0][0].floatingFrame(of: WindowID(2)) == floatedAt)
     #expect(floated.isEmpty)
   }
 }

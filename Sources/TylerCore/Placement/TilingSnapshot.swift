@@ -77,6 +77,21 @@ package struct TilingSnapshot: Sendable {
       }.map(\.id))
   }
 
+  /// Where the floating windows of each display's current workspace (of the displays `keys` only
+  /// if given) go that wait parked, `frame` giving where each is: their workspace came on screen
+  /// without a slide (a display change, a workspace moved to another display).
+  package func unparkingFloatingPlacements(
+    on keys: Set<DisplayKey>? = nil, frame: (WindowID) -> CGRect?
+  ) -> [Placement] {
+    rows.entries.indices.flatMap { position -> [Placement] in
+      guard keys?.contains(rows.entries[position].key) ?? true, let display = display(at: position)
+      else { return [] }
+      return rows[position].current.floatingPlacements(on: display, current: frame).filter {
+        frame($0.id).map { Parking.isParked($0, on: display) } == true
+      }
+    }
+  }
+
   /// The floating windows that can be seen on each display's current workspace.
   package var floatingWindowsOnScreen: Set<WindowID> {
     Set(

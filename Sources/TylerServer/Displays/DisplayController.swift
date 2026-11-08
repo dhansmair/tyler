@@ -51,6 +51,8 @@ struct DisplayController {
     let source = context.display(for: model.rows.focusedKey)
     let floating = model.rows.focused.current.shownFloating
     let pushedOut = model.rows[position].current.members
+    model.rows[position].current.rememberFloatingFrames(
+      context.currentPlacements(of: model.rows[position].current.shownFloating))
     do {
       try model.rows.moveWorkspace(number: number, to: model.rows.entries[position].key)
     } catch {
@@ -70,12 +72,8 @@ struct DisplayController {
     _ windowIDs: [WindowID], from source: DisplayInfo?, to target: DisplayInfo?
   ) -> [Placement] {
     guard let source, let target else { return [] }
-    return windowIDs.compactMap { windowID in
-      context.registry.window(withID: windowID).map {
-        Placement(
-          id: windowID,
-          frame: DisplayGeometry.frame($0.frame, carriedFrom: source, to: target))
-      }
+    return context.currentPlacements(of: windowIDs).map {
+      Placement(id: $0.id, frame: DisplayGeometry.frame($0.frame, carriedFrom: source, to: target))
     }
   }
 

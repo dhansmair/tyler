@@ -69,6 +69,13 @@ struct ControllerContext {
       })
   }
 
+  /// Where each of `windowIDs` is now.
+  func currentPlacements(of windowIDs: [WindowID]) -> [Placement] {
+    windowIDs.compactMap { windowID in
+      registry.window(withID: windowID).map { Placement(id: windowID, frame: $0.frame) }
+    }
+  }
+
   /// The slots of the focused display's current workspace.
   func focusedSlots(in rows: DisplayRows) -> [Placement] {
     guard let position = rows.position(of: rows.focusedKey) else { return [] }

@@ -126,7 +126,7 @@ struct SyncController {
   /// display, or that are on no workspace any more.
   private func arrivedCrossings(in rows: DisplayRows) -> Set<WindowID> {
     context.crossingWindows.filter { windowID in
-      guard let location = rows.location(of: windowID),
+      guard let location = rows.location(holding: windowID),
         let frame = context.registry.window(withID: windowID)?.frame
       else { return true }
       return DisplayGeometry.display(containing: frame, in: context.displays)?.key

@@ -18,6 +18,10 @@ extension WindowManager {
       return unused
     }
     endSlideOrSwipe()
+    for position in rows.entries.indices {
+      rows[position].current.rememberFloatingFrames(
+        context.currentPlacements(of: rows[position].current.shownFloating))
+    }
     let saved = SavedState(
       rows: rows, floated: bookkeeping.floated, tilingEnabled: tilingEnabled,
       originalFrames: mover.originalFrames, seen: bookkeeping.seen,

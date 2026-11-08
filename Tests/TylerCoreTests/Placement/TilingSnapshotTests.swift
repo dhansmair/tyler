@@ -68,23 +68,102 @@ struct TilingSnapshotTests {
   @Test func aWindowOfAParkedWorkspaceWaitsAtItsSlotsParkingSpot() throws {
     let snapshot = snapshot()
     let placement = try #require(
-      snapshot.parkingPlacement(of: WindowID(3), size: CGSize(width: 10, height: 10)))
+      snapshot.parkingPlacement(of: WindowID(3), from: CGRect(x: 0, y: 0, width: 10, height: 10)))
     #expect(Parking.isParked(placement.frame, on: snapshot.display(at: 0)!))
     #expect(
       placement.frame.height == laptop.visibleFrame.height, "the slot's size, not the window's")
   }
 
   @Test func aWindowWithoutASlotWaitsWithItsOwnSize() throws {
-    let size = CGSize(width: 300, height: 200)
-    let placement = try #require(snapshot().parkingPlacement(of: WindowID(7), size: size))
-    #expect(placement.frame.size == size)
+    let frame = CGRect(x: 1500, y: 100, width: 300, height: 200)
+    let placement = try #require(snapshot().parkingPlacement(of: WindowID(7), from: frame))
+    #expect(placement.frame.size == frame.size)
+    #expect(placement.frame.minY == external.visibleFrame.minY)
+  }
+
+  @Test func aFloatingWindowWaitsAtItsOwnHeightBesideWhereItFloats() throws {
+    var rows = rows
+    rows[0][1].sync(eligible: ids(3, 8))
+    rows[0][1].float(WindowID(8))
+    let frame = CGRect(x: 200, y: 150, width: 300, height: 200)
+    let snapshot = TilingSnapshot(
+      rows: rows, displays: DisplayArrangement.sided([laptop, external]), gaps: gaps)
+    let placement = try #require(snapshot.parkingPlacement(of: WindowID(8), from: frame))
+    #expect(placement.frame == Parking.frame(for: frame, on: snapshot.display(at: 0)!))
+  }
+
+  @Test func aFloatingWindowWaitsBesideWhereItWasWhenItsWorkspaceLeft() throws {
+    var rows = rows
+    rows[0][1].sync(eligible: ids(3, 8))
+    rows[0][1].float(WindowID(8))
+    let floated = CGRect(x: 200, y: 150, width: 300, height: 200)
+    rows[0][1].rememberFloatingFrames([Placement(id: WindowID(8), frame: floated)])
+    let snapshot = TilingSnapshot(
+      rows: rows, displays: DisplayArrangement.sided([laptop, external]), gaps: gaps)
+    let parked = Parking.frame(for: floated, on: snapshot.display(at: 0)!)
+    let placement = try #require(snapshot.parkingPlacement(of: WindowID(8), from: parked))
+    #expect(placement.frame == parked)
+  }
+
+  @Test func aParkedFloatingWindowOfACurrentWorkspaceComesBackWhereItFloated() {
+    var rows = rows
+    rows[0][0].sync(eligible: ids(1, 2, 8))
+    rows[0][0].float(WindowID(8))
+    let floated = CGRect(x: 200, y: 150, width: 300, height: 200)
+    rows[0][0].rememberFloatingFrames([Placement(id: WindowID(8), frame: floated)])
+    let snapshot = TilingSnapshot(
+      rows: rows, displays: DisplayArrangement.sided([laptop, external]), gaps: gaps)
+    let parked = Parking.frame(for: floated, on: snapshot.display(at: 0)!)
+    #expect(
+      snapshot.floatingPlacementsToBringBack { _ in parked }
+        == [Placement(id: WindowID(8), frame: floated)])
+    #expect(snapshot.floatingPlacementsToBringBack { _ in floated }.isEmpty, "already on screen")
+  }
+
+  @Test func aFloatingWindowOnAnotherDisplayComesToItsWorkspacesDisplay() throws {
+    var rows = rows
+    rows[0][0].sync(eligible: ids(1, 2, 8))
+    rows[0][0].float(WindowID(8))
+    let snapshot = TilingSnapshot(
+      rows: rows, displays: DisplayArrangement.sided([laptop, external]), gaps: gaps)
+    let onExternal = CGRect(x: 1200, y: 100, width: 300, height: 200)
+    let placement = try #require(snapshot.floatingPlacementsToBringBack { _ in onExternal }.first)
+    #expect(placement.frame == CGRect(x: 200, y: 100, width: 300, height: 200))
+  }
+
+  @Test func onlyCurrentWorkspacesRememberWhereTheirFloatingWindowsAre() {
+    var rows = rows
+    rows[0][0].sync(eligible: ids(1, 2, 8))
+    rows[0][0].float(WindowID(8))
+    rows[0][1].sync(eligible: ids(3, 9))
+    rows[0][1].float(WindowID(9))
+    let left = CGRect(x: 50, y: 50, width: 300, height: 200)
+    rows[0][1].rememberFloatingFrames([Placement(id: WindowID(9), frame: left)])
+    let snapshot = TilingSnapshot(
+      rows: rows, displays: DisplayArrangement.sided([laptop, external]), gaps: gaps)
+    let now = CGRect(x: 400, y: 100, width: 300, height: 200)
+    let remembered = snapshot.rowsRememberingFloatingFrames { _ in now }
+    #expect(remembered[0][0].floatingFrame(of: WindowID(8)) == now)
+    #expect(remembered[0][1].floatingFrame(of: WindowID(9)) == left, "macOS may have moved it")
+  }
+
+  @Test func aParkedFloatingWindowIsNotRemembered() {
+    var rows = rows
+    rows[0][0].sync(eligible: ids(1, 2, 8))
+    rows[0][0].float(WindowID(8))
+    let snapshot = TilingSnapshot(
+      rows: rows, displays: DisplayArrangement.sided([laptop, external]), gaps: gaps)
+    let parked = Parking.frame(for: CGRect(x: 400, y: 100, width: 300, height: 200), on: laptop)
+    #expect(
+      snapshot.rowsRememberingFloatingFrames { _ in parked }[0][0].floatingFrame(of: WindowID(8))
+        == nil)
   }
 
   @Test func aDisconnectedDisplaysRowAnswersNothing() {
     let snapshot = snapshot(connected: [laptop])
     #expect(snapshot.display(at: 1) == nil)
     #expect(snapshot.slot(of: WindowID(4)) == nil)
-    #expect(snapshot.parkingPlacement(of: WindowID(4), size: .zero) == nil)
+    #expect(snapshot.parkingPlacement(of: WindowID(4), from: .zero) == nil)
     #expect(snapshot.offViewWindows.isEmpty)
     #expect(snapshot.tiledWindowsInView == Set(ids(1, 2)))
     #expect(snapshot.restingPlacements().map(\.id) == ids(1, 2))

@@ -22,6 +22,7 @@ struct TilingController {
   }
 
   func swap(_ target: ListTarget, model: inout Model) throws(Refusal) -> Decision {
+    try refuseWhileFocusedFloats(model)
     guard model.rows.focused.current.count >= 2 else {
       throw .error("need at least two tiled windows to swap")
     }
@@ -39,7 +40,7 @@ struct TilingController {
   /// The focused window leaves the stack of `tall` for its master section. The windows move as
   /// in a swap.
   func promote(model: inout Model) throws(Refusal) -> Decision {
-    let slots = try slotsBeforeSectionChange(model.rows)
+    let slots = try slotsBeforeSectionChange(model)
     guard model.rows.focused.current.promote() else {
       throw .message("already in the master section")
     }
@@ -48,7 +49,7 @@ struct TilingController {
 
   /// The focused window leaves the master section of `tall` for the top of its stack.
   func demote(model: inout Model) throws(Refusal) -> Decision {
-    let slots = try slotsBeforeSectionChange(model.rows)
+    let slots = try slotsBeforeSectionChange(model)
     guard model.rows.focused.current.count >= 2 else {
       throw .message("no other window to take the master's place")
     }
@@ -56,15 +57,16 @@ struct TilingController {
     return retiled(from: slots, model.rows, over: swapDuration)
   }
 
-  /// A floated window leaves the list and moves a little toward the middle of its display (see
-  /// `FloatedFrame`); a window tiled again goes from where it floats into its slot. Both move
-  /// with the windows that make room, over `animations.retile`. Asking for the state the window
-  /// is already in changes nothing and says so.
+  /// A floated window keeps its place in its workspace's list without a slot, and moves a little
+  /// toward the middle of its display (see `FloatedFrame`); a window tiled again goes from where
+  /// it floats into its slot, in its place. Both move with the windows that make room, over
+  /// `animations.retile`. A window on no workspace (on a display without a row) floats on none.
+  /// Asking for the state the window is already in changes nothing and says so.
   func setFloat(_ mode: FloatMode, model: inout Model) throws(Refusal) -> Decision {
     guard let windowID = context.registry.focusedID,
       let window = context.registry.window(withID: windowID)
     else { throw .error("no focused window") }
-    let isFloated = model.bookkeeping.floated.contains(windowID)
+    let isFloated = model.isFloated(windowID)
     // A floated window that stopped being tileable (minimized, say) can still be let go.
     guard isFloated || window.isTileable else {
       throw .error("this window is never tiled, so it can't be floated")
@@ -73,14 +75,34 @@ struct TilingController {
     guard floats != isFloated else {
       throw .message(isFloated ? "already floating" : "already tiled")
     }
+    let before = model.rows
     if floats {
-      model.bookkeeping.floated.insert(windowID)
+      float(windowID, model: &model)
     } else {
-      model.bookkeeping.floated.remove(windowID)
+      tile(windowID, model: &model)
     }
     let change: FloatChange =
       floats ? .floats(windowID, from: window.frame) : .tiles(windowID, from: window.frame)
-    return Decision(effects: reconcile(model: &model, change))
+    return Decision(effects: reconcile(model: &model, change, since: before))
+  }
+
+  private func float(_ windowID: WindowID, model: inout Model) {
+    guard let location = model.rows.location(of: windowID) else {
+      model.bookkeeping.floated.insert(windowID)
+      return
+    }
+    model.rows[location.position][location.index].float(windowID)
+    model.recordFocus(windowID)
+  }
+
+  /// The window keeps the focus macOS gave it, so no focus event follows, as when it floats:
+  /// commands go by it from here on.
+  private func tile(_ windowID: WindowID, model: inout Model) {
+    model.bookkeeping.floated.remove(windowID)
+    if let location = model.rows.location(holding: windowID) {
+      model.rows[location.position][location.index].tile(windowID)
+      model.recordFocus(windowID)
+    }
   }
 
   /// The window goes when the app reports it gone; an app may first ask to save it.
@@ -139,12 +161,14 @@ struct TilingController {
     }
   }
 
-  /// `change` moves along with the windows that slide into their new slots.
+  /// `change` moves along with the windows that slide into their new slots; `before` are the rows
+  /// before it.
   private func reconcile(
-    model: inout Model, _ change: FloatChange?, holding held: Set<WindowID> = []
+    model: inout Model, _ change: FloatChange?, since before: DisplayRows? = nil,
+    holding held: Set<WindowID> = []
   ) -> [Effect] {
     guard context.isTiling(model) else { return [] }
-    let before = model.rows
+    let before = before ?? model.rows
     let sync = SyncController(context: context).sync(model: &model, holding: held)
     if let (key, index) = sync.focusedArrival {
       model.rows.focus(key)
@@ -152,7 +176,8 @@ struct TilingController {
       return sync.effects
         + WorkspaceController(context: context).show(index, direction: direction, model: &model)
     }
-    guard sync.changedCurrent else { return sync.effects }
+    // The float command changed the list itself, before the sync.
+    guard sync.changedCurrent || change != nil else { return sync.effects }
     // In a scrolling layout the view moves, so the windows jump there.
     guard model.rows.focusedWorkspaceOnlyLostWindows(since: before, apartFrom: change?.joining),
       !model.rows.focused.current.scrolls
@@ -186,20 +211,33 @@ struct TilingController {
   }
 
   /// The current workspace keeps its list (so `tiling on` restores its order), and its windows
-  /// in view stay where they are.
+  /// in view stay where they are. The floating windows of the other workspaces go to where they
+  /// floated, and keep floating.
   private func unparkAll(model: inout Model) -> [Effect] {
     let offView = TilingSnapshot(rows: model.rows, displays: context.displays, gaps: context.gaps)
       .offViewWindows
     var restored: [WindowID] = []
+    var floating: [Placement] = []
     for position in model.rows.entries.indices {
       restored += model.rows[position].current.windows.filter(offView.contains)
-      restored += model.rows[position].current.hidden
+      let current = model.rows[position].current
+      // A floating window whose app is hidden is where it floated.
+      restored += current.hidden.filter { !current.flags(of: $0).contains(.floating) }
+      let display = context.display(for: model.rows.entries[position].key)
       for index in model.rows[position].indices where index != model.rows[position].currentIndex {
-        restored += model.rows[position][index].members
+        let workspace = model.rows[position][index]
+        let unparked =
+          display.map {
+            workspace.floatingPlacements(
+              on: $0, among: context.displays, current: context.frame(of:))
+          } ?? []
+        floating += unparked
+        restored += workspace.members.filter { id in !unparked.contains { $0.id == id } }
+        model.bookkeeping.floated.formUnion(workspace.floating)
         model.rows[position][index].sync(eligible: [])
       }
     }
-    return [.restoreOriginalFrames(restored)]
+    return [.restoreOriginalFrames(restored), .place(floating)]
   }
 
   private var swapDuration: Duration { .milliseconds(context.config.animations.swap) }
@@ -219,7 +257,16 @@ struct TilingController {
   }
 
   /// The slots before a window changes section, once it is clear the focused workspace has one.
-  private func slotsBeforeSectionChange(_ rows: DisplayRows) throws(Refusal) -> [Placement] {
+  /// The commands on the focused window's place in the list would otherwise move tiled windows
+  /// the user isn't looking at.
+  private func refuseWhileFocusedFloats(_ model: Model) throws(Refusal) {
+    guard let windowID = context.registry.focusedID, model.isFloated(windowID) else { return }
+    throw .message("the focused window floats")
+  }
+
+  private func slotsBeforeSectionChange(_ model: Model) throws(Refusal) -> [Placement] {
+    try refuseWhileFocusedFloats(model)
+    let rows = model.rows
     let workspace = rows.focused.current
     guard workspace.layout == .tall else {
       throw .error("only the tall layout has a master section")

@@ -110,6 +110,28 @@ struct HiddenAppScenarios {
     #expect(scenario.shown == [1])
   }
 
+  @Test func aFloatedWindowThatComesBackWithTheFocusBringsItsWorkspace() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2], 2: [3]])
+    await scenario.focus(2)
+    await scenario.command("window float on")
+    await setHidden(true, [2], in: scenario)
+    await scenario.command("workspace focus 2")
+    await scenario.focus(2)
+    await setHidden(false, [2], in: scenario)
+    #expect(scenario.shown == [1])
+    #expect(scenario.list(1) == [1], "still floating")
+  }
+
+  @Test func tilingOffLeavesAFloatedWindowOfAHiddenAppWhereItFloated() async {
+    let scenario = await Scenario(workspaces: [1: [1, 2]])
+    await scenario.focus(2)
+    await scenario.command("window float on")
+    let floated = scenario.frame(of: 2)
+    await setHidden(true, [2], in: scenario)
+    await scenario.command("tiling off")
+    #expect(scenario.frame(of: 2) == floated)
+  }
+
   @Test func windowsComingBackTogetherEachFillTheirSlot() async {
     let scenario = await Scenario(workspaces: [1: [1, 2, 3, 4]])
     let windows: [UInt32] = [1, 2, 3, 4]

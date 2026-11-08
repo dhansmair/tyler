@@ -176,16 +176,4 @@ struct WorkspaceSwitchScenarios {
     await scenario.change(makeWindow(id: 1))
     #expect(scenario.workspaces == [1: 2, 2: 1])
   }
-
-  @Test func floatedWindowsBelongToNoWorkspaceAndAreNeverParked() async {
-    let scenario = await Scenario(workspaces: [1: [1, 2]])
-    await scenario.focus(2)
-    await scenario.command("window float toggle")
-    let floatedFrame = scenario.frame(of: 2)
-    scenario.windowSystem.clearRecordedCalls()
-    await scenario.command("workspace focus next")
-    #expect(scenario.workspaces == [1: 1])
-    #expect(scenario.frame(of: 2) == floatedFrame)
-    #expect(scenario.windowSystem.unfocusCount == 0, "a floated window stays on screen, with focus")
-  }
 }

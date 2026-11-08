@@ -134,7 +134,7 @@ struct WorkspaceController {
 
   /// Whether a focus on `windowID` would bring a parked workspace into view.
   func isParked(_ windowID: WindowID, in model: Model) -> Bool {
-    guard context.isTiling(model), let location = model.rows.location(of: windowID) else {
+    guard context.isTiling(model), let location = model.rows.location(showing: windowID) else {
       return false
     }
     return location.index != model.rows[location.position].currentIndex
@@ -220,7 +220,7 @@ struct WorkspaceController {
   /// into view. If it is out of view in a scrolling layout on the current workspace, the view
   /// scrolls to it.
   func focusChanged(to windowID: WindowID, isEcho: Bool, model: inout Model) -> [Effect] {
-    let isListed = model.rows.location(of: windowID) != nil
+    let isListed = model.rows.location(showing: windowID) != nil
     if isListed || !model.bookkeeping.takeFirstFocusOfNewWindow(windowID) {
       model.focusDisplay(of: windowID, in: context)
     }
@@ -228,7 +228,7 @@ struct WorkspaceController {
     let before = isTiling ? context.viewSnapshot(of: model.rows) : nil
     model.recordFocus(windowID)
     let row = model.rows.focused
-    let index = row.index(containing: windowID)
+    let index = row.index(showing: windowID)
     if index == row.currentIndex, let scroll = before?.scroll(to: row.current) {
       return [.animate(scroll)]
     }
@@ -249,6 +249,7 @@ struct WorkspaceController {
     // Sync before switching, never after: the target's windows are parked, and a parked frame
     // can overlap a neighbouring display more than this one, which would drop them.
     effects += SyncController(context: context).sync(model: &model).effects
+    model.rows = context.rowsRememberingFloatingFrames(model.rows)
     guard let display = context.display(for: model.rows.focusedKey) else {
       model.rows.focused.select(index)
       return effects
@@ -260,24 +261,22 @@ struct WorkspaceController {
   }
 
   /// How the windows move when the workspace at `index` comes into view from `direction`: the
-  /// current workspace's windows leave from where they are, the target's come in.
+  /// current workspace's windows leave from where they are, the target's come in, its floating
+  /// ones to where they were.
   func slidePlan(
     to index: Int, direction: ScrollDirection, on display: DisplayInfo, rows: DisplayRows
   ) -> SlidePlan {
     let row = rows.focused
     // Only windows in view leave: windows out of view in a scrolling layout are parked already.
-    let leaving = row.current.placements(on: display, gaps: context.gaps).compactMap { placement in
-      context.registry.window(withID: placement.id).map {
-        Placement(id: placement.id, frame: $0.frame)
-      }
-    }
+    let inView = row.current.placements(on: display, gaps: context.gaps).map(\.id)
+    let leaving = context.currentPlacements(of: inView + row.current.shownFloating)
+    let entering =
+      row[index].placements(on: display, gaps: context.gaps)
+      + row[index].floatingPlacements(
+        on: display, among: context.displays, current: context.frame(of:))
     var plan = SlidePlan(
-      to: index, direction: direction, leaving: leaving,
-      entering: row[index].placements(on: display, gaps: context.gaps), on: display)
-    let unseen = row.current.hidden.compactMap { windowID in
-      context.registry.window(withID: windowID).map { Placement(id: windowID, frame: $0.frame) }
-    }
-    plan.park(unseen: unseen, on: display)
+      to: index, direction: direction, leaving: leaving, entering: entering, on: display)
+    plan.park(unseen: context.currentPlacements(of: row.current.hidden), on: display)
     return plan
   }
 

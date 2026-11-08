@@ -14,11 +14,18 @@ package struct SavedState: Codable, Equatable, Sendable {
 
   package struct SavedWorkspace: Codable, Equatable, Sendable {
     package var windows: [WindowID]
-    /// `Workspace.members`, when some are hidden: `windows` are the tiled ones, which the layout
-    /// states go by. An older tylerd ignores it, and the hidden windows join the current
-    /// workspace when they come back.
+    /// `Workspace.members`, when some are hidden or floating: `windows` are the tiled ones, which
+    /// the layout states go by. An older tylerd ignores it: the hidden windows join the current
+    /// workspace when they come back, and the floating ones, which are in `floated` too, float
+    /// on no workspace.
     package var members: [WindowID]?
+    /// The floating members, with where each was when the workspace last left the screen; missing
+    /// in files from before floating windows belonged to a workspace.
+    package var floating: [FloatingMember]?
     package var focused: WindowID?
+    /// `Workspace.focusedFloating`; missing in files from before floating windows belonged to a
+    /// workspace.
+    package var focusedFloating: WindowID?
     package var layout: LayoutKind
     /// `Workspace.firstVisible`; missing in files from before the strip.
     package var firstVisible: WindowID?
@@ -52,14 +59,19 @@ package struct SavedState: Codable, Equatable, Sendable {
 
     init(_ workspace: Workspace) {
       windows = workspace.windows
-      members = workspace.hidden.isEmpty ? nil : workspace.members
+      members = workspace.members == workspace.windows ? nil : workspace.members
+      floating =
+        workspace.floating.isEmpty
+        ? nil
+        : workspace.floating.map { FloatingMember(id: $0, frame: workspace.floatingFrame(of: $0)) }
       focused = workspace.focused
+      focusedFloating = workspace.focusedFloating
       layout = workspace.layout
       firstVisible = workspace.firstVisible
       layoutStates = workspace.layoutStates
     }
 
-    /// Every window of the workspace, hidden ones included.
+    /// Every window of the workspace, hidden and floating ones included.
     var allWindows: [WindowID] { members ?? windows }
 
     var states: LayoutStates {
@@ -110,6 +122,12 @@ package struct SavedState: Codable, Equatable, Sendable {
     package var processID: Int32
   }
 
+  /// A floating member of a workspace, and where it comes back to.
+  package struct FloatingMember: Codable, Equatable, Sendable {
+    package var id: WindowID
+    package var frame: CGRect?
+  }
+
   /// Where a window was before tylerd first moved it.
   package struct OriginalFrame: Codable, Equatable, Sendable {
     package var id: WindowID
@@ -132,6 +150,7 @@ package struct SavedState: Codable, Equatable, Sendable {
   package var workspaces: [SavedWorkspace]?
   /// 0-based, like `WorkspaceRow.currentIndex` (version 1).
   package var currentIndex: Int?
+  /// Every floated window, on a workspace or not, so an older tylerd keeps them all floated.
   package var floated: [WindowID]
   package var tilingEnabled: Bool
   package var originalFrames: [OriginalFrame]
@@ -161,7 +180,7 @@ package struct SavedState: Codable, Equatable, Sendable {
       rows.homes[number].map { SavedHome(number: number, home: $0) }
     }
     focusedDisplay = rows.focusedKey
-    self.floated = floated.sorted()
+    self.floated = floated.union(rows.floatingWindows).sorted()
     self.tilingEnabled = tilingEnabled
     self.originalFrames = originalFrames.keys.sorted().compactMap { windowID in
       originalFrames[windowID].map { OriginalFrame(id: windowID, frame: $0) }
@@ -195,6 +214,10 @@ package struct SavedState: Codable, Equatable, Sendable {
     if let seen { return Set(seen) }
     let saved = (workspaces ?? []) + (displays ?? []).flatMap(\.workspaces)
     return Set(saved.flatMap(\.windows) + floated)
+  }
+
+  package var floatedOnNoWorkspace: Set<WindowID> {
+    Set(floated).subtracting(numberedWorkspaces.flatMap(\.workspace.allWindows))
   }
 
   /// Every saved workspace with its number. A version 1 file numbers its row from 1.
@@ -303,11 +326,21 @@ extension SavedState.SavedWorkspace {
     if let focused { workspace.setFocus(focused) }
     if let firstVisible { workspace.scroll(toFirstVisible: firstVisible) }
     let all = allWindows
+    let floatingFrames = Dictionary(
+      (floating ?? []).map { ($0.id, $0.frame) }, uniquingKeysWith: { first, _ in first })
     for (index, windowID) in all.enumerated().reversed()
     where !windows.contains(windowID) && exists(windowID) {
-      workspace.insertHidden(
-        windowID, before: all[(index + 1)...].first(where: workspace.holds))
+      // A floating window whose app is hidden is flagged hidden by the next sync.
+      let isFloating = floatingFrames.keys.contains(windowID)
+      workspace.insert(
+        windowID, flagged: isFloating ? .floating : .hidden,
+        before: all[(index + 1)...].first(where: workspace.holds))
     }
+    workspace.rememberFloatingFrames(
+      floatingFrames.compactMap { windowID, frame in
+        frame.map { Placement(id: windowID, frame: $0) }
+      })
+    if let focusedFloating { workspace.setFocus(focusedFloating) }
     return workspace
   }
 }

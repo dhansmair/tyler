@@ -178,8 +178,8 @@ struct WorkspaceHiddenTests {
 
   @Test func aWindowItHoldsIsNotHandedOverAgain() {
     var workspace = hiding(2, in: makeWorkspace(1, 2, 3))
-    workspace.insertHidden(WindowID(2), before: nil)
-    workspace.insertHidden(WindowID(3), before: nil)
+    workspace.insert(WindowID(2), flagged: .hidden, before: nil)
+    workspace.insert(WindowID(3), flagged: .hidden, before: nil)
     #expect(workspace.members == ids(1, 2, 3))
     #expect(workspace.windows == ids(1, 3))
   }

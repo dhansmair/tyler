@@ -17,7 +17,7 @@ package struct LateHandOver: Equatable, Sendable {
   private struct Expected: Equatable, Sendable {
     /// `nil` in files from before the state named each window's app.
     let processID: Int32?
-    /// Where it was tiled; `nil` for a floated window.
+    /// Its workspace; `nil` for a window floated on none.
     let place: Place?
     let originalFrame: CGRect?
   }
@@ -28,6 +28,8 @@ package struct LateHandOver: Equatable, Sendable {
     /// that is there, so a workspace that comes back one window at a time keeps its order.
     let followers: [WindowID]
     let wasFocused: Bool
+    let isFloating: Bool
+    let floatingFrame: CGRect?
   }
 
   private var expected: [WindowID: Expected] = [:]
@@ -42,15 +44,20 @@ package struct LateHandOver: Equatable, Sendable {
       (saved.apps ?? []).map { ($0.id, $0.processID) }, uniquingKeysWith: { first, _ in first })
     for (number, workspace) in saved.numberedWorkspaces {
       let all = workspace.allWindows
+      let floating = Dictionary(
+        (workspace.floating ?? []).map { ($0.id, $0.frame) },
+        uniquingKeysWith: { first, _ in first })
       for (index, windowID) in all.enumerated() where !taken.contains(windowID) {
         let place = Place(
           number: number, followers: Array(all[(index + 1)...]),
-          wasFocused: workspace.focused == windowID)
+          wasFocused: workspace.focused == windowID || workspace.focusedFloating == windowID,
+          isFloating: floating.keys.contains(windowID),
+          floatingFrame: floating[windowID] ?? nil)
         expected[windowID] = Expected(
           processID: processIDs[windowID], place: place, originalFrame: frames[windowID])
       }
     }
-    for windowID in saved.floated where !taken.contains(windowID) {
+    for windowID in saved.floatedOnNoWorkspace where !taken.contains(windowID) {
       expected[windowID] = Expected(
         processID: processIDs[windowID], place: nil, originalFrame: frames[windowID])
     }
@@ -58,9 +65,9 @@ package struct LateHandOver: Equatable, Sendable {
 
   package var isEmpty: Bool { expected.isEmpty }
 
-  /// Puts the windows of `windows` that it waits for back: a floated one into `floatedWindows`,
-  /// a tiled one onto its workspace in `rows`. A tiled one that can't be tiled yet (it appears
-  /// before it can) waits.
+  /// Puts the windows of `windows` that it waits for back: one floated on no workspace into
+  /// `floatedWindows`, the others onto their workspace in `rows`. One that can't be tiled yet (it
+  /// appears before it can) waits.
   @discardableResult
   package mutating func restore(
     _ windows: [WindowInfo], into rows: inout DisplayRows,
@@ -96,8 +103,15 @@ package struct LateHandOver: Equatable, Sendable {
       let location = rows.location(ofNumber: place.number)
     else { return false }
     var workspace = rows[location.position][location.index]
-    if window.isHidden {
-      workspace.insertHidden(window.id, before: place.followers.first(where: workspace.holds))
+    if place.isFloating || window.isHidden {
+      // A floating window whose app is hidden is flagged hidden by the next sync.
+      workspace.insert(
+        window.id, flagged: place.isFloating ? .floating : .hidden,
+        before: place.followers.first(where: workspace.holds))
+      if let frame = place.floatingFrame {
+        workspace.rememberFloatingFrames([Placement(id: window.id, frame: frame)])
+      }
+      if place.wasFocused { workspace.setFocus(window.id) }
     } else {
       workspace.insert(window.id, before: place.followers.first(where: workspace.tiles))
       if place.wasFocused { workspace.setFocus(window.id) }

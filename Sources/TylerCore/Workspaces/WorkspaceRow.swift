@@ -65,6 +65,11 @@ package struct WorkspaceRow: Equatable, Sendable {
     workspaces.firstIndex { $0.tiles(windowID) }
   }
 
+  /// The workspace the window is seen with, tiled or floating.
+  package func index(showing windowID: WindowID) -> Int? {
+    workspaces.firstIndex { $0.shows(windowID) }
+  }
+
   /// Every window on any workspace.
   package var allWindows: Set<WindowID> {
     Set(workspaces.flatMap(\.members))
@@ -129,11 +134,7 @@ package struct WorkspaceRow: Equatable, Sendable {
     numbers = newNumbers
     for workspace in gone {
       for windowID in workspace.members {
-        if workspace.flags(of: windowID).contains(.hidden) {
-          workspaces[workspaces.count - 1].insertHidden(windowID, before: nil)
-        } else {
-          workspaces[workspaces.count - 1].append(windowID)
-        }
+        workspaces[workspaces.count - 1].append(member: windowID, of: workspace)
       }
     }
     currentIndex = numbers.firstIndex(of: currentNumber) ?? numbers.count - 1
@@ -162,10 +163,10 @@ package struct WorkspaceRow: Equatable, Sendable {
     return workspace
   }
 
-  /// Records that `windowID` got focus, on whichever workspace holds it.
+  /// Records that `windowID` got focus, on whichever workspace shows it.
   @discardableResult
   package mutating func setFocus(_ windowID: WindowID) -> Bool {
-    guard let index = index(containing: windowID) else { return false }
+    guard let index = index(showing: windowID) else { return false }
     return workspaces[index].setFocus(windowID)
   }
 }

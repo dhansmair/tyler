@@ -28,7 +28,9 @@ struct SyncController {
       to: connected.map(\.key),
       configured: context.config.workspaceNumbers(displayCount: max(1, connected.count)))
     var outcome = Outcome(effects: restoreLateWindows(model: &model))
-    let isFocusUnlisted = context.registry.focusedID.map { model.rows.location(of: $0) == nil }
+    let isFocusUnlisted = context.registry.focusedID.map {
+      model.rows.location(showing: $0) == nil
+    }
     let arrived = arrivedCrossings(in: model.rows)
     if !arrived.isEmpty { outcome.effects.append(.releaseCrossings(arrived)) }
     let tiling = TilingSnapshot(rows: model.rows, displays: connected, gaps: context.gaps)
@@ -41,11 +43,13 @@ struct SyncController {
         })
     else { return outcome }
     var changedElsewhere: Set<DisplayKey> = []
+    let floatingBefore = model.rows.floatingWindows
     for (position, sync) in syncs.enumerated() {
       let key = model.rows.entries[position].key
       for index in model.rows[position].indices {
         let changed = model.rows[position][index].sync(
-          eligible: sync.eligible[index], hiding: sync.hiding[index])
+          eligible: sync.eligible[index], hiding: sync.hiding[index],
+          floating: sync.floating[index])
         guard changed && index == model.rows[position].currentIndex else { continue }
         if key == model.rows.focusedKey {
           outcome.changedCurrent = true
@@ -65,6 +69,7 @@ struct SyncController {
       outcome.effects.append(.place(context.moves(toward: placements)))
     }
     model.bookkeeping.seen.formUnion(model.rows.allWindows)
+    keepFloating(leaving: floatingBefore, model: &model)
     outcome.focusedArrival = followFocus(
       wasUnlisted: isFocusUnlisted == true, arrivals: Set(syncs.flatMap(\.arrivals)),
       model: &model)
@@ -84,6 +89,14 @@ struct SyncController {
       focusedDisplay: model.rows.focusedKey, mouseLocation: context.mouseLocation)
   }
 
+  /// A floating window that left every workspace (minimized, say) stays floated on none, until
+  /// the next sync finds it a workspace again.
+  private func keepFloating(leaving floatingBefore: Set<WindowID>, model: inout Model) {
+    let open = Set(context.registry.windows.map(\.id))
+    model.bookkeeping.floated.formUnion(floatingBefore.intersection(open))
+    model.bookkeeping.floated.subtract(model.rows.allWindows)
+  }
+
   /// Puts windows a previous tylerd handed over that appeared only now back where they were.
   private func restoreLateWindows(model: inout Model) -> [Effect] {
     let late = model.lateHandOver.restore(
@@ -101,12 +114,12 @@ struct SyncController {
     guard let focusedID = context.registry.focusedID else { return nil }
     if wasUnlisted {
       model.recordFocus(focusedID)
-      if model.rows.location(of: focusedID) != nil {
+      if model.rows.location(showing: focusedID) != nil {
         model.focusDisplay(of: focusedID, in: context)
       }
     }
     guard arrivals.contains(focusedID) else { return nil }
-    return model.rows.location(of: focusedID).map { location in
+    return model.rows.location(showing: focusedID).map { location in
       (model.rows.entries[location.position].key, location.index)
     }
   }
@@ -115,8 +128,8 @@ struct SyncController {
   /// display, or that are on no workspace any more.
   private func arrivedCrossings(in rows: DisplayRows) -> Set<WindowID> {
     context.crossingWindows.filter { windowID in
-      guard let location = rows.location(of: windowID),
-        let frame = context.registry.window(withID: windowID)?.frame
+      guard let location = rows.location(holding: windowID),
+        let frame = context.frame(of: windowID)
       else { return true }
       return DisplayGeometry.display(containing: frame, in: context.displays)?.key
         == rows.entries[location.position].key

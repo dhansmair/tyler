@@ -77,19 +77,70 @@ package struct TilingSnapshot: Sendable {
       }.map(\.id))
   }
 
-  /// Where a window of a parked workspace waits: the parking spot of its slot, on that
-  /// workspace's display. A window without a slot there (it is out of view) waits as if at the
-  /// top left of the visible frame with `size`, so one arriving from another display waits at a
-  /// height where this display is. `nil` if it isn't on a workspace or its display isn't
-  /// connected.
-  package func parkingPlacement(of windowID: WindowID, size: CGSize) -> Placement? {
+  /// Where the floating windows of each display's current workspace (of the displays `keys` only
+  /// if given) go that aren't on that display, `frame` giving where each is: parked, or on
+  /// another display, as their workspace came on screen without a slide (a display change, a
+  /// workspace moved to another display).
+  package func floatingPlacementsToBringBack(
+    on keys: Set<DisplayKey>? = nil, frame: (WindowID) -> CGRect?
+  ) -> [Placement] {
+    rows.entries.indices.flatMap { position -> [Placement] in
+      guard keys?.contains(rows.entries[position].key) ?? true, let display = display(at: position)
+      else { return [] }
+      return rows[position].current.floatingPlacements(on: display, among: displays, current: frame)
+        .filter { placement in
+          frame(placement.id).map { isNotShown($0, on: display) } ?? false
+        }
+    }
+  }
+
+  private func isNotShown(_ frame: CGRect, on display: DisplayInfo) -> Bool {
+    Parking.isParked(frame, on: display)
+      || DisplayGeometry.display(containing: frame, in: displays)?.key != display.key
+  }
+
+  /// The rows, with each display's current workspace remembering where its floating windows
+  /// are (`frame` gives where each is), as it may be about to leave the screen. Only current
+  /// workspaces: a parked one remembered its frames when it left, and macOS can since have pulled
+  /// its windows on screen (a display change).
+  package func rowsRememberingFloatingFrames(frame: (WindowID) -> CGRect?) -> DisplayRows {
+    var rows = rows
+    for position in rows.entries.indices {
+      let onScreen = rows[position].current.floating.compactMap { windowID in
+        frame(windowID).flatMap { frame in
+          displays.contains { Parking.isParked(frame, on: $0) }
+            ? nil : Placement(id: windowID, frame: frame)
+        }
+      }
+      rows[position].current.rememberFloatingFrames(onScreen)
+    }
+    return rows
+  }
+
+  /// The floating windows that can be seen on each display's current workspace.
+  package var floatingWindowsOnScreen: Set<WindowID> {
+    Set(
+      rows.entries.indices.flatMap { position in
+        display(at: position) == nil ? [] : rows[position].current.shownFloating
+      })
+  }
+
+  /// Where a window of a parked workspace waits, now at `frame`: the parking spot of its slot,
+  /// on that workspace's display. A floating window waits beside where it floats: where it was
+  /// when its workspace left the screen, or `frame` if it hasn't left yet. Another window without
+  /// a slot there (it is out of view) waits as if at the top left of the visible frame, so one
+  /// arriving from another display waits at a height where this display is. `nil` if it isn't on
+  /// a workspace or its display isn't connected.
+  package func parkingPlacement(of windowID: WindowID, from frame: CGRect) -> Placement? {
     guard let location = rows.location(holding: windowID),
       let display = display(at: location.position)
     else { return nil }
     let workspace = rows[location.position][location.index]
-    let slot =
+    let resting =
       workspace.placements(on: display, gaps: gaps).first { $0.id == windowID }?.frame
-      ?? CGRect(origin: display.visibleFrame.origin, size: size)
-    return Placement(id: windowID, frame: Parking.frame(for: slot, on: display))
+      ?? (workspace.flags(of: windowID).contains(.floating)
+        ? workspace.floatingFrame(of: windowID) ?? frame
+        : CGRect(origin: display.visibleFrame.origin, size: frame.size))
+    return Placement(id: windowID, frame: Parking.frame(for: resting, on: display))
   }
 }

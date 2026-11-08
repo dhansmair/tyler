@@ -54,7 +54,7 @@ struct LateHandOverTests {
 
   @Test func aHiddenWindowAlreadyOnAWorkspaceIsNotPutBackTwice() {
     var (rows, late) = takenOver([1, 3, 4])
-    rows[0][1].insertHidden(WindowID(2), before: nil)
+    rows[0][1].insert(WindowID(2), flagged: .hidden, before: nil)
     var floated: Set<WindowID> = []
     var hidden = window(2)
     hidden.isHidden = true

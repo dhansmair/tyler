@@ -39,10 +39,10 @@ The windows of the workspaces that aren't on screen are *parked*: moved just pas
 tyler sorts every window into one of three kinds:
 
 - **Tiled** windows belong to a workspace and are placed by its layout. Normal app windows are tiled.
-- **Floated** windows are ones you took out of tiling with `tyler window float`. tyler leaves them where you put them, after moving a floated window a little out of its slot so it is plain to see that it floats.
+- **Floated** windows are ones you took out of tiling with `tyler window float`. They stay on their workspace, without a slot: tyler leaves them where you put them, after moving a floated window a little out of its slot so it is plain to see that it floats.
 - **Never-tiled** windows are dialogs, sheets, panels and other special windows, and windows that can't be resized and have no full screen button (a reminder popup, Calculator). tyler leaves them alone, and `window float off` can't tile them.
 
-Floated and never-tiled windows belong to no workspace, so they stay visible whichever workspace is on screen. Minimized windows and windows in native fullscreen leave the tiling list. When they come back, they are tiled on the current workspace. The windows of a hidden app (Cmd-H) give up their slots but keep their place: when the app is shown again, each goes back to its workspace and its place in the list, and if one of them takes the focus, its workspace comes into view.
+A floated window keeps its place in its workspace's list, so tiling it again puts it back where it was. It is parked with its workspace and comes back with it, to where it was when the workspace left the screen; dragged onto another display, it joins that display's current workspace, still floating. Never-tiled windows belong to no workspace, so they stay visible whichever workspace is on screen. Minimized windows and windows in native fullscreen leave the tiling list. A floated one floats again when it comes back, on the current workspace. When they come back, they are tiled on the current workspace. The windows of a hidden app (Cmd-H) give up their slots but keep their place: when the app is shown again, each goes back to its workspace and its place in the list, and if one of them takes the focus, its workspace comes into view.
 
 New windows are tiled on the current workspace of the focused display, wherever they first appear, right after the focused window (in `tall`, never in the master section: a window opened while a master has the focus goes to the top of the stack), unless the [config file](#configuration) assigns their app to another workspace ([`apps.<app>.workspace`](features.md#app-assignments)).
 
@@ -343,7 +343,7 @@ tyler window swap prev
 tyler window swap master
 ```
 
-Swaps the focused window with its neighbour in the list (wrapping around) or with the master, then re-tiles. The two windows slide into each other's slots, changing size on the way, taking `animations.swap` milliseconds (0 swaps them at once). The focused window moves and keeps the focus. If the focused window already is the master, `window swap master` swaps it with the second window.
+Swaps the focused window with its neighbour in the list (wrapping around) or with the master, then re-tiles. The two windows slide into each other's slots, changing size on the way, taking `animations.swap` milliseconds (0 swaps them at once). The focused window moves and keeps the focus. If the focused window already is the master, `window swap master` swaps it with the second window. While the focused window floats, nothing changes and `tyler` says so.
 
 ### window promote, window demote
 
@@ -352,7 +352,7 @@ tyler window promote
 tyler window demote
 ```
 
-Move the focused window between the master section and the stack of the `tall` layout. `window promote` moves a window from the stack to the bottom of the master section, which then holds one more window, stacked in the left column; promoting the last window of the stack leaves one column. `window demote` moves a window from the master section to the top of the stack. Demoting the only master gives its place to the window after it. The windows slide to their new slots as in [`window swap`](#window-swap), taking `animations.swap` milliseconds. A window that already is in that section stays where it is and `tyler` says so; in another layout `tyler` says that only `tall` has a master section. Each workspace keeps its own master section; when a master closes, the section shrinks with it.
+Move the focused window between the master section and the stack of the `tall` layout. `window promote` moves a window from the stack to the bottom of the master section, which then holds one more window, stacked in the left column; promoting the last window of the stack leaves one column. `window demote` moves a window from the master section to the top of the stack. Demoting the only master gives its place to the window after it. The windows slide to their new slots as in [`window swap`](#window-swap), taking `animations.swap` milliseconds. A window that already is in that section stays where it is and `tyler` says so; in another layout `tyler` says that only `tall` has a master section. Each workspace keeps its own master section; when a master closes, the section shrinks with it. While the focused window floats, neither command changes anything.
 
 ### window float
 
@@ -362,7 +362,7 @@ tyler window float off     # tile it again
 tyler window float toggle  # float it if it is tiled, tile it if it floats
 ```
 
-`on` takes the focused window out of the tiling list and moves it 30 points toward the middle of its display, so none of its edges lines up with the tiled windows behind it. Along a side where the window reached from edge to edge it can't move, so it shrinks instead, leaving 60 points free on both ends: the only window on a workspace shrinks on every side, the right one of two side by side moves left and gets shorter; `off` puts a floated window back into the list and into its slot. The window and the windows that make room for it or take its place slide over `animations.retile` milliseconds (in the `strip` layout a floated window stays where it is, and the others jump). If the window already is in that state, nothing changes and `tyler` says so (`already floating`, `already tiled`). Windows that are never tiled (dialogs, panels) can't be floated.
+`on` takes the focused window out of tiling, leaving it in its place in the workspace's list without a slot, and moves it 30 points toward the middle of its display, so none of its edges lines up with the tiled windows behind it. Along a side where the window reached from edge to edge it can't move, so it shrinks instead, leaving 60 points free on both ends: the only window on a workspace shrinks on every side, the right one of two side by side moves left and gets shorter; `off` puts a floated window back into its slot, in the place in the list it had. The window and the windows that make room for it or take its place slide over `animations.retile` milliseconds (in the `strip` layout a floated window stays where it is, and the others jump). If the window already is in that state, nothing changes and `tyler` says so (`already floating`, `already tiled`). Windows that are never tiled (dialogs, panels) can't be floated.
 
 ### window close
 
@@ -383,7 +383,7 @@ tyler window size next     # cycle: half, full, quarter, half, ...
 
 Sets the focused window's size in the `strip` layout and prints it. Like the strip layout, this command is experimental and may change. `quarter` stacks two windows in one column: the focused window on top and the next window below it. If the next window already shares a column (or there is none), the previous window goes on top instead. Setting either window of a stacked pair to `half` or `full` puts the other back to `half`, and so does closing, floating or moving one of them away.
 
-Other layouts ignore the size but keep it for when the workspace switches to `strip`. A window forgets its size when it leaves tiling (floated, minimized, closed), and keeps it while its app is hidden and when it moves to another workspace (a `quarter` arrives as `half`).
+Other layouts ignore the size but keep it for when the workspace switches to `strip`. A window forgets its size when it leaves tiling (minimized, closed), and keeps it while it floats, while its app is hidden and when it moves to another workspace (a `quarter` arrives as `half`).
 
 ### window move-to-workspace
 
@@ -416,9 +416,9 @@ tyler workspace focus prev  # the previous workspace (before the first comes the
 tyler workspace focus 3     # workspace 3 (workspaces are numbered from 1)
 ```
 
-Switches to another workspace. The current windows slide out and are parked, the target workspace's windows slide in, and focus goes to the window that last had focus there. On an empty workspace no window has focus (tylerd itself becomes the active app), so what you type doesn't reach a parked window. A floated window stays on screen and keeps the focus.
+Switches to another workspace. The current windows slide out and are parked, the target workspace's windows slide in, and focus goes to the window that last had focus there, floated or tiled. On an empty workspace no window has focus (tylerd itself becomes the active app), so what you type doesn't reach a parked window. Floated windows slide out and in with their workspace; on a workspace with only floated windows, focus goes to one of them.
 
-Focusing a parked window yourself, for example with Cmd-Tab, also switches to its workspace.
+Focusing a parked window yourself, for example with Cmd-Tab, also switches to its workspace, a floated one too.
 
 ### workspace move-to-display
 

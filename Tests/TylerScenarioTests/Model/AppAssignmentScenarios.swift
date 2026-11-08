@@ -86,7 +86,7 @@ struct AppAssignmentScenarios {
     await scenario.command("window move-to-workspace 1 --follow")
     #expect(scenario.workspaces[9] == 1)
     await scenario.command("window float toggle")
-    #expect(scenario.workspaces[9] == nil)
+    #expect(scenario.workspaces[9] == 1, "floating on the workspace it was moved to")
     return scenario
   }
 

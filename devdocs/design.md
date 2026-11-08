@@ -127,9 +127,9 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   `location(of:)`: slots, focus, the commands). Two lists kept beside each other, as first built,
   left each reader to pick one, and several picked the wrong one. A flagged window keeps its place
   and its layout state, so clearing the flag restores the layout exactly; a swap or a drop around it
-  leaves it where it is. It parks and comes back with its workspace like the others. Only `hidden`
-  exists so far; floating (`plans/`) and later minimized and native fullscreen are meant to be flags
-  too, so they keep their place in the same way.
+  leaves it where it is. It parks and comes back with its workspace like the others. The flags are
+  `hidden` and `floating`; minimized and native fullscreen are meant to be flags too, so they keep
+  their place in the same way.
 - **A hidden app's windows are flagged `hidden`.** Hiding takes all of an app's windows at once,
   across workspaces, so Cmd-H has to be reversible: a place in the list moves with its workspace and
   can't drift, which a place remembered beside the list couldn't promise. Unlike a minimized window,
@@ -255,8 +255,27 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   within about 140 ms of tylerd's own focus on that app is asked back. The next one goes through.
   tylerd ignores the focus events its own focus calls cause, so a quick `next`, `prev` doesn't
   switch back late. On an empty workspace tylerd makes itself frontmost, so keys never go to a
-  parked window. A floated window keeps the focus.
-- **Floated windows and dialogs** belong to no workspace and stay visible everywhere.
+  parked window.
+- **A floated window belongs to its workspace**, flagged `floating`. Out of every workspace it
+  showed on all of them, and tiling it again needed its place remembered on the side; a slot
+  number drifts (float slot 3, close slot 1, and it comes back a place too late), so #49's
+  remembered slot was dropped for the flag. A floating window parks with its workspace (a switch
+  and a swipe slide it with the tiled ones) and comes back to where it was when the workspace left
+  the screen: `Workspace` remembers that frame then, and only then. While it is on screen, where
+  it is is where it should be, so `reconcile` leaves it alone; tracking every move to enforce it
+  would fight the user over a late echo. Focusing a parked one brings its workspace into view, as
+  for a tiled window. A workspace that comes back focuses the window that had the focus last,
+  floated ones included (`Workspace.lastFocused`): focusing a tiled one would raise it over a
+  floated one that overlaps it, and macOS raises a window above another app's only by focusing it
+  (`macos-behaviour.md`, "Raising without focusing"). `focus next|prev` and `swap` skip it, and while it has the focus, `swap`,
+  `promote` and `demote` change nothing: they say "the focused window", and moving tiled windows
+  the user isn't looking at surprised. One that leaves every workspace
+  (minimized, a display without a row, `tiling off`) stays in `bookkeeping.floated` and joins a
+  workspace again floating once it can. The saved state lists each workspace's floating members
+  with their frames, and its `floated` list still names every floated window, so an older tylerd
+  reads them as floated on no workspace.
+- **Dialogs** belong to no workspace and stay visible everywhere: they belong to their app's
+  window, and parking one could hide a question the user must answer.
 - **A floated window moves out of its slot** (`FloatedFrame`), sliding there with the windows
   that take its place (`animations.retile`). Left in its slot it sat flush with the tiled windows
   and didn't look floated. On each axis the slot doesn't span, it moves 30 points toward the
@@ -264,7 +283,8 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   leaving the area, so it shrinks by 60 points at both ends instead. A window shrinks only where it
   has to: shrinking on every side looked wrong for a window beside another. Tiling it again
   slides it back the same way. In the strip it stays where it is, as the strip's windows jump when
-  the list changes.
+  the list changes; floating the window at the left of the strip's view moves the view on, so the
+  view doesn't come back when it is tiled again, as for a hidden window.
 - `prev` and `next` wrap; numbers are 1-based and range-checked.
 
 ## Several displays

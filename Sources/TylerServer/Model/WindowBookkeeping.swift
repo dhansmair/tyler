@@ -5,7 +5,9 @@ import TylerCore
 /// window in both at once, since window ids can be reused and a new window must not inherit an
 /// old one's state.
 struct WindowBookkeeping: Equatable {
-  /// Windows the user took out of tiling; they stay where they are.
+  /// Windows the user took out of tiling that are on no workspace (minimized, say, or on a
+  /// display without a row); a floating window on a workspace is flagged there instead. Each
+  /// joins a workspace again, floating, once it can.
   var floated: Set<WindowID> = []
   /// Windows that have been on a workspace. App assignments only place windows not in here, so a
   /// window you moved, floated or minimized doesn't jump back to its app's workspace.
@@ -20,7 +22,7 @@ struct WindowBookkeeping: Equatable {
 
   /// Takes over what a previous tylerd handed over, for the windows in `known` only.
   init(restoring saved: SavedState, known: Set<WindowID>) {
-    floated = Set(saved.floated).intersection(known)
+    floated = saved.floatedOnNoWorkspace.intersection(known)
     seen = saved.seenWindows.intersection(known)
   }
 

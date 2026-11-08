@@ -157,7 +157,7 @@ struct RestartScenarios {
     await scenario.command("window float toggle")
     let next = await scenario.restart(closing: [2])
     await next.open(window(2, of: scenario))
-    #expect(next.workspaces == [1: 1])
+    #expect(next.workspaces == [1: 1, 2: 1])
     #expect(isFloated(2, in: next))
   }
 }

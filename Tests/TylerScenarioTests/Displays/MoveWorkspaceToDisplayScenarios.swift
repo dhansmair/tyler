@@ -37,6 +37,46 @@ struct MoveWorkspaceToDisplayScenarios {
     #expect(scenario.windowSystem.focusCalls.last == WindowID(1))
   }
 
+  @Test func aFloatedWindowGoesWithItsWorkspace() async {
+    let scenario = await scenario()
+    await scenario.focus(2)
+    await scenario.command("window float on")
+    await scenario.command("workspace move-to-display 2")
+    let frame = scenario.frame(of: 2) ?? .zero
+    #expect(scenario.rect(.full, display: 2).contains(frame))
+    #expect(scenario.workspaces[2] == 1, "it stays on its workspace")
+    #expect(scenario.list(1) == [1], "still floating")
+  }
+
+  @Test func theDisplayItLeftBringsBackItsNextWorkspacesFloatedWindow() async {
+    let scenario = await scenario()
+    await scenario.command("workspace focus next")
+    await scenario.focus(9)
+    await scenario.command("window float on")
+    let floated = scenario.frame(of: 9)
+    await scenario.command("workspace focus prev")
+    #expect(scenario.isParked(9))
+    await scenario.command("workspace move-to-display 2")
+    #expect(scenario.frame(of: 9) == floated)
+  }
+
+  @Test func aWorkspacePushedOutRemembersWhereItsFloatedWindowWas() async {
+    let scenario = await Scenario(
+      displays: displays, workspaces: [1: [1], 5: [3, 4], 6: [5]])
+    await scenario.focus(4)
+    await scenario.command("window float on")
+    let moved = CGRect(
+      origin: scenario.rect(.full, display: 2).origin.applying(.init(translationX: 50, y: 60)),
+      size: CGSize(width: 400, height: 300))
+    await scenario.moveByHand(4, to: moved)
+    await scenario.focus(1)
+    await scenario.command("workspace move-to-display 2")
+    #expect(scenario.isParked(4))
+    await scenario.focus(3)
+    await scenario.command("workspace focus 5")
+    #expect(scenario.frame(of: 4) == moved)
+  }
+
   @Test func theDisplayItLeftShowsItsNextWorkspace() async {
     let scenario = await scenario()
     await scenario.command("workspace move-to-display next")

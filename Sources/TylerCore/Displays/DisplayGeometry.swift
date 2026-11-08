@@ -36,6 +36,21 @@ package enum DisplayGeometry {
     }
   }
 
+  /// `frame` on `source` moved to `target`, at the same offset from the top left of the visible
+  /// frame, then shrunk and moved as little as it takes to lie within the target's visible frame.
+  package static func frame(
+    _ frame: CGRect, carriedFrom source: DisplayInfo, to target: DisplayInfo
+  ) -> CGRect {
+    let area = target.visibleFrame
+    let size = CGSize(width: min(frame.width, area.width), height: min(frame.height, area.height))
+    let left = area.minX + frame.minX - source.visibleFrame.minX
+    let top = area.minY + frame.minY - source.visibleFrame.minY
+    return CGRect(
+      x: left.clamped(to: area.minX...area.maxX - size.width),
+      y: top.clamped(to: area.minY...area.maxY - size.height), width: size.width,
+      height: size.height)
+  }
+
   private static func distance(from first: CGRect, to second: CGRect) -> CGFloat {
     let deltaX = first.midX - second.midX
     let deltaY = first.midY - second.midY

@@ -65,9 +65,10 @@ extension WindowManager {
     return rows[position].current.count == 0
   }
 
-  /// The windows a user can see: those in their slots on each display's current workspace, and
-  /// the floated ones. Not parked windows, including the strip's windows out of view.
+  /// The windows a user can see: those in their slots or floating on each display's current
+  /// workspace, and those floated on none. Not parked windows, including the strip's windows out
+  /// of view.
   var windowsInView: Set<WindowID> {
-    tiling.tiledWindowsInView.union(bookkeeping.floated)
+    tiling.tiledWindowsInView.union(tiling.floatingWindowsOnScreen).union(bookkeeping.floated)
   }
 }

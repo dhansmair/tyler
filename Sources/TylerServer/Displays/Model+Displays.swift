@@ -15,10 +15,10 @@ extension Model {
     return focusDisplay(at: position)
   }
 
-  /// The position of the display of the window's workspace, or, for a window on no workspace
-  /// (floated, a dialog), of the display it is on.
+  /// The position of the display of the workspace the window is seen with, or, for a window on
+  /// none (a dialog), of the display it is on.
   func displayPosition(of windowID: WindowID, in context: ControllerContext) -> Int? {
-    if let location = rows.location(of: windowID) { return location.position }
+    if let location = rows.location(showing: windowID) { return location.position }
     guard let frame = context.registry.window(withID: windowID)?.frame,
       let key = DisplayGeometry.display(containing: frame, in: context.displays)?.key
     else { return nil }
@@ -44,7 +44,7 @@ extension Model {
   }
 
   mutating func recordFocus(_ windowID: WindowID) {
-    guard let location = rows.location(of: windowID) else { return }
+    guard let location = rows.location(showing: windowID) else { return }
     rows[location.position].setFocus(windowID)
   }
 }

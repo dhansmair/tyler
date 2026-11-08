@@ -61,8 +61,8 @@ package struct LateHandOver: Equatable, Sendable {
   package var isEmpty: Bool { expected.isEmpty }
 
   /// Puts the windows of `windows` that it waits for back: one floated on no workspace into
-  /// `floatedWindows`, the others onto their workspace in `rows`. A tiled one that can't be tiled yet (it appears
-  /// before it can) waits.
+  /// `floatedWindows`, the others onto their workspace in `rows`. One that can't be tiled yet (it
+  /// appears before it can) waits.
   @discardableResult
   package mutating func restore(
     _ windows: [WindowInfo], into rows: inout DisplayRows,

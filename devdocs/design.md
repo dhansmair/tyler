@@ -139,9 +139,9 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   (`macos-behaviour.md`), and the window is better left to arrive parked and slide in with its
   workspace. tylerd hears of a hide from `NSWorkspace`, not Accessibility: an app need not answer,
   and a refused AX registration would refuse the whole app. The app's tracked windows own the
-  state (`TrackedWindows.isHidden`), and all of them change in one event (`updatedTogether`): one by
-  one, each reconcile would compare against frames from before the last one's moves, whose reports
-  are still queued, and leave a window at the wrong size (#121).
+  state (`TrackedWindows.isHidden`), and all of them change in one event (`updatedTogether`), as
+  macOS reports it: one reconcile goes straight to the new layout, where one per window would move
+  the windows through each layout in between.
 - **New windows tile.** Dialogs and sheets float; `window float` switches any window. A new window
   joins the workspace the user is on, unless its app is assigned to one: macOS or the app picks
   where it appears, often on another display, and tyler can't choose before that, so it moves the
@@ -262,12 +262,15 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   frame, but only after the current event or command is done, and a decision made before that saw
   the frames from before: every command first ends a running slide, so a switch right after
   `window float on` recorded the floated window's old slot as where it floats (found in the VM).
-  One frame per window, so every reader agrees; a move by the user or the app arrives as a report
+  Reconcile had the same gap (#121): in a burst of window events, a window the last reconcile
+  moved and this one puts back looked already in place, and the app's late report, a plain move,
+  triggers no reconcile, so it stayed where the last one left it (two windows of a hidden app
+  shown one event at a time overlapped). One frame per window, so every reader agrees; a move by the user or the app arrives as a report
   and overwrites it, as before. A slide's steps and a move in passing aren't read back, so they
   record nothing: their final placement does. A check that reads a frame that is too new for it
   would need the report itself; none does so far. (A first fix kept the landed frames in
   `WindowMover` beside the registry, with a timeout; two sources for one frame disagreed, and a
-  user's move right after a placement lost to tylerd's.) Part of #121.
+  user's move right after a placement lost to tylerd's.)
 - **A floated window belongs to its workspace**, flagged `floating`. Out of every workspace it
   showed on all of them, and tiling it again needed its place remembered on the side; a slot
   number drifts (float slot 3, close slot 1, and it comes back a place too late), so #49's

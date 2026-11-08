@@ -3,7 +3,7 @@
 tyler follows [semantic versioning](https://semver.org). Before 1.0, a minor version (0.x) may
 change commands, the config file and the socket protocol; the entry says how.
 
-## 0.4.0 (unreleased)
+## 0.4.0 (2026-11-08)
 
 Floated windows and the windows of a hidden app keep their workspace and their place in it.
 Commands, the config file and the socket protocol stay compatible, but floated windows behave
@@ -25,6 +25,8 @@ differently: they no longer show on every workspace.
   in the list, and go back there when the app is shown again.
 - Going back to 0.3.0 with `tyler restart` can leave a floated window parked off screen: run
   `tyler stop` from 0.4.0 first.
+- Known issue: `tyler restart` into another install (another build of `Tyler.app`) can move a
+  window to the other display's workspace (#127).
 
 ## 0.3.0 (2026-11-01)
 

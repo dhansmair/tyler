@@ -51,7 +51,7 @@ struct DisplayController {
     let source = context.display(for: model.rows.focusedKey)
     let floating = model.rows.focused.current.floating
     let pushedOut = model.rows[position].current.members
-    model.rows = context.rememberingFloatingFrames(model.rows)
+    model.rows = context.rowsRememberingFloatingFrames(model.rows)
     do {
       try model.rows.moveWorkspace(number: number, to: model.rows.entries[position].key)
     } catch {
@@ -95,7 +95,7 @@ struct DisplayController {
     // The windows macOS moved stay on their workspaces: only windows that came or went
     // meanwhile change the lists.
     // Before the sync gives the workspaces their new displays, which may park some.
-    model.rows = context.rememberingFloatingFrames(model.rows)
+    model.rows = context.rowsRememberingFloatingFrames(model.rows)
     let sync = SyncController(context: context).sync(model: &model, holding: model.rows.allWindows)
     return ending + sync.effects + [
       .reconcile(force: true),

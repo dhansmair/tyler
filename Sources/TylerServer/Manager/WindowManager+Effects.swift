@@ -161,7 +161,7 @@ extension WindowManager {
     let frame = { (windowID: WindowID) in self.registry.window(withID: windowID)?.frame }
     let desired =
       tiling.restingPlacements(on: keys)
-      + tiling.unparkingFloatingPlacements(on: keys, frame: frame)
+      + tiling.floatingPlacementsToBringBack(on: keys, frame: frame)
     let moves = Reconciler.moves(toward: desired) { registry.window(withID: $0)?.frame }
     return place(force ? desired : moves)
   }

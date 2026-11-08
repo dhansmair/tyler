@@ -81,7 +81,7 @@ package struct TilingSnapshot: Sendable {
   /// if given) go that aren't on that display, `frame` giving where each is: parked, or on
   /// another display, as their workspace came on screen without a slide (a display change, a
   /// workspace moved to another display).
-  package func unparkingFloatingPlacements(
+  package func floatingPlacementsToBringBack(
     on keys: Set<DisplayKey>? = nil, frame: (WindowID) -> CGRect?
   ) -> [Placement] {
     rows.entries.indices.flatMap { position -> [Placement] in
@@ -89,12 +89,12 @@ package struct TilingSnapshot: Sendable {
       else { return [] }
       return rows[position].current.floatingPlacements(on: display, among: displays, current: frame)
         .filter { placement in
-          frame(placement.id).map { isAway($0, from: display) } ?? false
+          frame(placement.id).map { isNotShown($0, on: display) } ?? false
         }
     }
   }
 
-  private func isAway(_ frame: CGRect, from display: DisplayInfo) -> Bool {
+  private func isNotShown(_ frame: CGRect, on display: DisplayInfo) -> Bool {
     Parking.isParked(frame, on: display)
       || DisplayGeometry.display(containing: frame, in: displays)?.key != display.key
   }
@@ -103,7 +103,7 @@ package struct TilingSnapshot: Sendable {
   /// are (`frame` gives where each is), as it may be about to leave the screen. Only current
   /// workspaces: a parked one remembered its frames when it left, and macOS can since have pulled
   /// its windows on screen (a display change).
-  package func rememberingFloatingFrames(frame: (WindowID) -> CGRect?) -> DisplayRows {
+  package func rowsRememberingFloatingFrames(frame: (WindowID) -> CGRect?) -> DisplayRows {
     var rows = rows
     for position in rows.entries.indices {
       let onScreen = rows[position].current.floating.compactMap { windowID in

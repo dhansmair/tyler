@@ -21,13 +21,13 @@ extension Workspace {
   ) -> [Placement] {
     shownFloating.compactMap { windowID in
       (floatingFrame(of: windowID) ?? current(windowID)).map { frame in
-        Placement(id: windowID, frame: Self.frame(frame, broughtOnto: display, from: displays))
+        Placement(id: windowID, frame: Self.frameBrought(frame, onto: display, from: displays))
       }
     }
   }
 
-  private static func frame(
-    _ frame: CGRect, broughtOnto display: DisplayInfo, from displays: [DisplayInfo]
+  private static func frameBrought(
+    _ frame: CGRect, onto display: DisplayInfo, from displays: [DisplayInfo]
   ) -> CGRect {
     if Parking.isParked(frame, on: display) { return Parking.pulledIn(frame, on: display) }
     guard let source = DisplayGeometry.display(containing: frame, in: displays),

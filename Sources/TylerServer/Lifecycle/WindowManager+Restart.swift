@@ -18,7 +18,7 @@ extension WindowManager {
       return unused
     }
     endSlideOrSwipe()
-    rows = context.rememberingFloatingFrames(rows)
+    rows = context.rowsRememberingFloatingFrames(rows)
     let saved = SavedState(
       rows: rows, floated: bookkeeping.floated, tilingEnabled: tilingEnabled,
       originalFrames: mover.originalFrames, seen: bookkeeping.seen,

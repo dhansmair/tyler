@@ -81,9 +81,9 @@ struct ControllerContext {
 
   /// `rows`, remembering where their floating windows on screen are, before any of their
   /// workspaces leaves the screen.
-  func rememberingFloatingFrames(_ rows: DisplayRows) -> DisplayRows {
+  func rowsRememberingFloatingFrames(_ rows: DisplayRows) -> DisplayRows {
     TilingSnapshot(rows: rows, displays: displays, gaps: gaps)
-      .rememberingFloatingFrames(frame: frame(of:))
+      .rowsRememberingFloatingFrames(frame: frame(of:))
   }
 
   /// The slots of the focused display's current workspace.

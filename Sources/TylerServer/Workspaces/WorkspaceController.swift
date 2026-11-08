@@ -249,7 +249,7 @@ struct WorkspaceController {
     // Sync before switching, never after: the target's windows are parked, and a parked frame
     // can overlap a neighbouring display more than this one, which would drop them.
     effects += SyncController(context: context).sync(model: &model).effects
-    model.rows = context.rememberingFloatingFrames(model.rows)
+    model.rows = context.rowsRememberingFloatingFrames(model.rows)
     guard let display = context.display(for: model.rows.focusedKey) else {
       model.rows.focused.select(index)
       return effects

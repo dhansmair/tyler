@@ -115,9 +115,9 @@ struct TilingSnapshotTests {
       rows: rows, displays: DisplayArrangement.sided([laptop, external]), gaps: gaps)
     let parked = Parking.frame(for: floated, on: snapshot.display(at: 0)!)
     #expect(
-      snapshot.unparkingFloatingPlacements { _ in parked }
+      snapshot.floatingPlacementsToBringBack { _ in parked }
         == [Placement(id: WindowID(8), frame: floated)])
-    #expect(snapshot.unparkingFloatingPlacements { _ in floated }.isEmpty, "already on screen")
+    #expect(snapshot.floatingPlacementsToBringBack { _ in floated }.isEmpty, "already on screen")
   }
 
   @Test func aFloatingWindowOnAnotherDisplayComesToItsWorkspacesDisplay() throws {
@@ -127,7 +127,7 @@ struct TilingSnapshotTests {
     let snapshot = TilingSnapshot(
       rows: rows, displays: DisplayArrangement.sided([laptop, external]), gaps: gaps)
     let onExternal = CGRect(x: 1200, y: 100, width: 300, height: 200)
-    let placement = try #require(snapshot.unparkingFloatingPlacements { _ in onExternal }.first)
+    let placement = try #require(snapshot.floatingPlacementsToBringBack { _ in onExternal }.first)
     #expect(placement.frame == CGRect(x: 200, y: 100, width: 300, height: 200))
   }
 
@@ -142,7 +142,7 @@ struct TilingSnapshotTests {
     let snapshot = TilingSnapshot(
       rows: rows, displays: DisplayArrangement.sided([laptop, external]), gaps: gaps)
     let now = CGRect(x: 400, y: 100, width: 300, height: 200)
-    let remembered = snapshot.rememberingFloatingFrames { _ in now }
+    let remembered = snapshot.rowsRememberingFloatingFrames { _ in now }
     #expect(remembered[0][0].floatingFrame(of: WindowID(8)) == now)
     #expect(remembered[0][1].floatingFrame(of: WindowID(9)) == left, "macOS may have moved it")
   }
@@ -155,7 +155,7 @@ struct TilingSnapshotTests {
       rows: rows, displays: DisplayArrangement.sided([laptop, external]), gaps: gaps)
     let parked = Parking.frame(for: CGRect(x: 400, y: 100, width: 300, height: 200), on: laptop)
     #expect(
-      snapshot.rememberingFloatingFrames { _ in parked }[0][0].floatingFrame(of: WindowID(8))
+      snapshot.rowsRememberingFloatingFrames { _ in parked }[0][0].floatingFrame(of: WindowID(8))
         == nil)
   }
 

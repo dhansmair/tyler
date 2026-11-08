@@ -129,7 +129,8 @@ struct SyncController {
   private func arrivedCrossings(in rows: DisplayRows) -> Set<WindowID> {
     context.crossingWindows.filter { windowID in
       guard let location = rows.location(holding: windowID),
-        let frame = context.frame(of: windowID)
+        // The registry's frame: a crossing is let go once the app has reported the move.
+        let frame = context.registry.window(withID: windowID)?.frame
       else { return true }
       return DisplayGeometry.display(containing: frame, in: context.displays)?.key
         == rows.entries[location.position].key

@@ -84,6 +84,10 @@ is open. The Dock and Notification Centre count as overlays when they cover a wh
 A window crossing displays is written a second time, once, if it didn't land within a point of where
 it was asked to. Nothing else is: a window on its own display keeps the size its app chose.
 
+| What | Value | Why |
+|---|---|---|
+| A placement counts as where the window is, until its app reports it there, for at most | 1 s | A decision right after tylerd's own move (a command ending a slide, then switching) would otherwise read the frame from before it. An estimate, not measured: a single Accessibility call may block as long. Past it the registry wins, as the app or the user may have put the window elsewhere |
+
 ## Displays and the lock screen
 
 | What | Value | Why |

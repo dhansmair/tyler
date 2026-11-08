@@ -256,6 +256,15 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   tylerd ignores the focus events its own focus calls cause, so a quick `next`, `prev` doesn't
   switch back late. On an empty workspace tylerd makes itself frontmost, so keys never go to a
   parked window.
+- **Decisions read the frame tylerd last placed a window at, until its app reports it**
+  (`WindowMover.unreportedFrames`, read through `ControllerContext.frame(of:)`). An app reports a
+  move some time after tylerd makes it, and the registry keeps the old frame until then: a command
+  ends a running slide first, so a switch right after `window float on` recorded the floated
+  window's slot as where it floats (found in the VM). The placement's frame is the one read back
+  after the write, so it already holds what the app rounded or refused. Only `place` counts: a
+  slide's steps and a drag's moves are settled by a placement or by the user. Checks that wait for
+  the report itself (a window crossing displays) still read the registry. Reconcile does too, for
+  now (#121).
 - **A floated window belongs to its workspace**, flagged `floating`. Out of every workspace it
   showed on all of them, and tiling it again needed its place remembered on the side; a slot
   number drifts (float slot 3, close slot 1, and it comes back a place too late), so #49's

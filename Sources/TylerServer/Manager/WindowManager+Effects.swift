@@ -7,6 +7,7 @@ extension WindowManager {
     ControllerContext(
       registry: registry, displays: connectedDisplays, config: config, log: log,
       isRunning: state == .running, movingWindows: animatingWindows,
+      unreportedFrames: mover.unreportedFrames,
       dragSession: drag?.session, crossingWindows: mover.crossing,
       isSettling: displaySettling.isPending, slideDuration: animator.duration,
       isPrimaryButtonDown: pointer?.isPrimaryButtonDown ?? false,

@@ -24,6 +24,9 @@ struct ControllerContext {
   var isRunning = true
   /// Sliding now, or that a swipe may move.
   var movingWindows: Set<WindowID> = []
+  /// Where tylerd just placed windows whose apps haven't reported it yet
+  /// (`WindowMover.unreportedFrames`).
+  var unreportedFrames: [WindowID: CGRect] = [:]
   var dragSession: DragSession?
   /// Sent to another display, their move not reported back yet (see `WindowMover.crossing`).
   var crossingWindows: Set<WindowID> = []
@@ -69,8 +72,9 @@ struct ControllerContext {
       })
   }
 
+  /// Where the window is, counting tylerd's last placement of it that its app hasn't reported.
   func frame(of windowID: WindowID) -> CGRect? {
-    registry.window(withID: windowID)?.frame
+    unreportedFrames[windowID] ?? registry.window(withID: windowID)?.frame
   }
 
   func currentPlacements(of windowIDs: [WindowID]) -> [Placement] {

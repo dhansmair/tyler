@@ -28,7 +28,7 @@ struct WindowMoverMeasuringTests {
       known: registry)
     mover.carry(WindowID(1), to: CGPoint(x: 30, y: 10), known: registry)
     mover.carry(WindowID(2), toFrame: CGRect(x: 0, y: 0, width: 80, height: 80), known: registry)
-    mover.windowUpdated()
+    mover.windowUpdated(windowSystem.windows[0])
     let cost = mover.stopMeasuring()
     #expect(cost?.writes == 4)
     #expect(cost?.updates == 1)
@@ -48,7 +48,7 @@ struct WindowMoverMeasuringTests {
 
   @Test func nothingIsKeptOutsideAMeasurement() {
     mover.frameStarted()
-    mover.windowUpdated()
+    mover.windowUpdated(windowSystem.windows[0])
     #expect(mover.stopMeasuring() == nil)
     mover.startMeasuring()
     #expect(mover.stopMeasuring() == MotionCost())

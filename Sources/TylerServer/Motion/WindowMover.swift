@@ -16,6 +16,10 @@ final class WindowMover {
   /// left: when several windows change display at once (a workspace moved, a display plugged
   /// back in), a sync on the first report would read the others as moved back by the user.
   private(set) var crossing: Set<WindowID> = []
+  /// Where tylerd's last placement left each window, until the app reports the window there:
+  /// until then the registry still has the frame from before. A decision made right after a
+  /// placement (a command ending a slide, then switching) reads this instead.
+  private var unreported: [WindowID: Unreported] = [:]
   private let clock: any Clock<Duration>
   private var meter: Meter?
 
@@ -45,12 +49,13 @@ final class WindowMover {
             try windowSystem.setFrameInPassing(placement.frame, of: placement.id)
             return
           }
-          let landed = try windowSystem.setFrame(placement.frame, of: placement.id)
+          var landed = try windowSystem.setFrame(placement.frame, of: placement.id)
           // A crossing window can lose its position, or stop at the old display's edge
           // (`macos-behaviour.md`), and a second write lands. Nothing else would put it right.
           if isCrossing, landed?.isClose(to: placement.frame) == false {
-            try windowSystem.setFrame(placement.frame, of: placement.id)
+            landed = try windowSystem.setFrame(placement.frame, of: placement.id)
           }
+          noteUnreported(placement.id, at: landed ?? placement.frame)
         }
       } catch {
         failures += 1
@@ -158,12 +163,14 @@ final class WindowMover {
   func forget(_ windowID: WindowID) {
     originalFrames[windowID] = nil
     crossing.remove(windowID)
+    unreported[windowID] = nil
   }
 
   /// Forgets every window.
   func reset() {
     originalFrames = [:]
     crossing = []
+    unreported = [:]
   }
 
   /// Starts adding up what the writes cost, dropping a measurement still running.
@@ -187,8 +194,28 @@ final class WindowMover {
     meter?.cost.frameStarted(at: elapsed())
   }
 
-  func windowUpdated() {
+  /// The app reported `window`'s frame: once it is where tylerd's last placement left it, the
+  /// registry is up to date again.
+  func windowUpdated(_ window: WindowInfo) {
     meter?.cost.windowUpdated()
+    if unreported[window.id]?.frame.isClose(to: window.frame) == true {
+      unreported[window.id] = nil
+    }
+  }
+
+  /// The frames of `unreported` still waited for: past `reportWait`, the registry wins again,
+  /// as the app may have put the window elsewhere (the user moved it, the app refused the size).
+  var unreportedFrames: [WindowID: CGRect] {
+    unreported.compactMapValues { $0.elapsed() < Self.reportWait ? $0.frame : nil }
+  }
+
+  /// How long a placement waits for the app's report. An estimate, not measured: a single
+  /// Accessibility call may block as long (`delays-and-heuristics.md`).
+  static let reportWait: Duration = .seconds(1)
+
+  private func noteUnreported(_ windowID: WindowID, at frame: CGRect) {
+    let clock = clock  // Swift opens the existential from a local, not from the stored property.
+    unreported[windowID] = Unreported(frame: frame, elapsed: Self.stopwatch(on: clock))
   }
 
   private func timed(
@@ -227,6 +254,11 @@ final class WindowMover {
       return
     }
     originalFrames[windowID] = Parking.pulledIn(frame, on: display)
+  }
+
+  private struct Unreported {
+    let frame: CGRect
+    let elapsed: () -> Duration
   }
 
   private struct Meter {

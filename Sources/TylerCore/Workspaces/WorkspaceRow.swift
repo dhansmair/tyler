@@ -65,6 +65,11 @@ package struct WorkspaceRow: Equatable, Sendable {
     workspaces.firstIndex { $0.tiles(windowID) }
   }
 
+  /// The workspace the window is seen with, tiled or floating.
+  package func index(showing windowID: WindowID) -> Int? {
+    workspaces.firstIndex { $0.shows(windowID) }
+  }
+
   /// Every window on any workspace.
   package var allWindows: Set<WindowID> {
     Set(workspaces.flatMap(\.members))

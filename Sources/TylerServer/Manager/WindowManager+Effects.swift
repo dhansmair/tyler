@@ -110,7 +110,9 @@ extension WindowManager {
   @discardableResult
   func focusCurrentWorkspace() -> String? {
     let workspace = workspaces.current
-    let candidates = [workspace.focused].compactMap { $0 } + workspace.windows
+    let candidates =
+      [workspace.focused].compactMap { $0 } + workspace.windows
+      + workspace.shownFloating
     guard let target = candidates.first(where: isStillThere) else {
       return unfocusParkedWindow()
     }
@@ -125,10 +127,10 @@ extension WindowManager {
   }
 
   /// An empty workspace has nothing to focus, but the window that had focus (parked now, or on
-  /// another display) would still get every key typed. A floated window stays on screen, so it
-  /// keeps focus.
+  /// another display) would still get every key typed. A window floated on no workspace stays on
+  /// screen, so it keeps focus.
   private func unfocusParkedWindow() -> String? {
-    guard let focusedID = registry.focusedID, rows.location(of: focusedID) != nil else {
+    guard let focusedID = registry.focusedID, rows.location(showing: focusedID) != nil else {
       return nil
     }
     do {

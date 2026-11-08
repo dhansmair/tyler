@@ -149,7 +149,7 @@ struct DragController {
   ) -> (session: DragSession, effects: [Effect])? {
     guard let frame = context.registry.window(withID: windowID)?.frame else { return nil }
     let tiling = tiling(model.rows)
-    let isFloated = model.bookkeeping.floated.contains(windowID)
+    let isFloated = model.isFloated(windowID)
     var session = DragSession(windowID: windowID)
     session.isResize = kind == .resize
     // A tiled window is resized through the layout, which measures from its slot. A window that

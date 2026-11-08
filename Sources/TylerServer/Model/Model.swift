@@ -6,4 +6,12 @@ struct Model: Equatable {
   var bookkeeping = WindowBookkeeping()
   var lateHandOver = LateHandOver()
   var tilingEnabled = true
+
+  /// Floating on its workspace, or floated on none.
+  func isFloated(_ windowID: WindowID) -> Bool {
+    bookkeeping.floated.contains(windowID)
+      || rows.location(holding: windowID).map { location in
+        rows[location.position][location.index].flags(of: windowID).contains(.floating)
+      } == true
+  }
 }

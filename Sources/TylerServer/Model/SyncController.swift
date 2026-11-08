@@ -41,11 +41,13 @@ struct SyncController {
         })
     else { return outcome }
     var changedElsewhere: Set<DisplayKey> = []
+    let floatingBefore = model.rows.floatingWindows
     for (position, sync) in syncs.enumerated() {
       let key = model.rows.entries[position].key
       for index in model.rows[position].indices {
         let changed = model.rows[position][index].sync(
-          eligible: sync.eligible[index], hiding: sync.hiding[index])
+          eligible: sync.eligible[index], hiding: sync.hiding[index],
+          floating: sync.floating[index])
         guard changed && index == model.rows[position].currentIndex else { continue }
         if key == model.rows.focusedKey {
           outcome.changedCurrent = true
@@ -65,6 +67,7 @@ struct SyncController {
       outcome.effects.append(.place(context.moves(toward: placements)))
     }
     model.bookkeeping.seen.formUnion(model.rows.allWindows)
+    keepFloating(leaving: floatingBefore, model: &model)
     outcome.focusedArrival = followFocus(
       wasUnlisted: isFocusUnlisted == true, arrivals: Set(syncs.flatMap(\.arrivals)),
       model: &model)
@@ -82,6 +85,14 @@ struct SyncController {
         .union(context.crossingWindows.subtracting(arrived)),
       foundAtStart: model.bookkeeping.foundAtStart,
       focusedDisplay: model.rows.focusedKey, mouseLocation: context.mouseLocation)
+  }
+
+  /// A floating window that left every workspace (minimized, say) stays floated on none, until
+  /// the next sync finds it a workspace again.
+  private func keepFloating(leaving floatingBefore: Set<WindowID>, model: inout Model) {
+    let open = Set(context.registry.windows.map(\.id))
+    model.bookkeeping.floated.formUnion(floatingBefore.intersection(open))
+    model.bookkeeping.floated.subtract(model.rows.allWindows)
   }
 
   /// Puts windows a previous tylerd handed over that appeared only now back where they were.

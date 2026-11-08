@@ -43,10 +43,8 @@ struct WorkspaceSyncTests {
     #expect(sync?.eligible.first == [WindowID(2), WindowID(1)])
   }
 
-  @Test func floatedAndUntileableWindowsLeave() {
-    let sync = plan(
-      row([[1, 2, 3]]), [window(1), window(2, kind: .dialog), window(3)],
-      floated: [WindowID(3)])
+  @Test func untileableWindowsLeave() {
+    let sync = plan(row([[1, 2]]), [window(1), window(2, kind: .dialog)])
     #expect(sync?.eligible.first == [WindowID(1)])
   }
 

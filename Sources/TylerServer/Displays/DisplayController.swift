@@ -98,7 +98,7 @@ struct DisplayController {
         copy.workspace = row.number(at: location.index)
         copy.slot = row[location.index].slot(of: window.id)
       }
-      copy.isFloated = model.bookkeeping.floated.contains(window.id)
+      copy.isFloated = model.isFloated(window.id)
       return copy
     }
   }

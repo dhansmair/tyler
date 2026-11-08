@@ -56,15 +56,16 @@ struct TilingController {
     return retiled(from: slots, model.rows, over: swapDuration)
   }
 
-  /// A floated window leaves the list and moves a little toward the middle of its display (see
-  /// `FloatedFrame`); a window tiled again goes from where it floats into its slot. Both move
-  /// with the windows that make room, over `animations.retile`. Asking for the state the window
-  /// is already in changes nothing and says so.
+  /// A floated window keeps its place in its workspace's list without a slot, and moves a little
+  /// toward the middle of its display (see `FloatedFrame`); a window tiled again goes from where
+  /// it floats into its slot, in its place. Both move with the windows that make room, over
+  /// `animations.retile`. A window on no workspace (on a display without a row) floats on none.
+  /// Asking for the state the window is already in changes nothing and says so.
   func setFloat(_ mode: FloatMode, model: inout Model) throws(Refusal) -> Decision {
     guard let windowID = context.registry.focusedID,
       let window = context.registry.window(withID: windowID)
     else { throw .error("no focused window") }
-    let isFloated = model.bookkeeping.floated.contains(windowID)
+    let isFloated = model.isFloated(windowID)
     // A floated window that stopped being tileable (minimized, say) can still be let go.
     guard isFloated || window.isTileable else {
       throw .error("this window is never tiled, so it can't be floated")
@@ -73,14 +74,30 @@ struct TilingController {
     guard floats != isFloated else {
       throw .message(isFloated ? "already floating" : "already tiled")
     }
+    let before = model.rows
     if floats {
-      model.bookkeeping.floated.insert(windowID)
+      float(windowID, model: &model)
     } else {
-      model.bookkeeping.floated.remove(windowID)
+      tile(windowID, model: &model)
     }
     let change: FloatChange =
       floats ? .floats(windowID, from: window.frame) : .tiles(windowID, from: window.frame)
-    return Decision(effects: reconcile(model: &model, change))
+    return Decision(effects: reconcile(model: &model, change, since: before))
+  }
+
+  private func float(_ windowID: WindowID, model: inout Model) {
+    guard let location = model.rows.location(of: windowID) else {
+      model.bookkeeping.floated.insert(windowID)
+      return
+    }
+    model.rows[location.position][location.index].float(windowID)
+  }
+
+  private func tile(_ windowID: WindowID, model: inout Model) {
+    model.bookkeeping.floated.remove(windowID)
+    if let location = model.rows.location(holding: windowID) {
+      model.rows[location.position][location.index].tile(windowID)
+    }
   }
 
   /// The window goes when the app reports it gone; an app may first ask to save it.
@@ -139,12 +156,14 @@ struct TilingController {
     }
   }
 
-  /// `change` moves along with the windows that slide into their new slots.
+  /// `change` moves along with the windows that slide into their new slots; `before` are the rows
+  /// before it.
   private func reconcile(
-    model: inout Model, _ change: FloatChange?, holding held: Set<WindowID> = []
+    model: inout Model, _ change: FloatChange?, since before: DisplayRows? = nil,
+    holding held: Set<WindowID> = []
   ) -> [Effect] {
     guard context.isTiling(model) else { return [] }
-    let before = model.rows
+    let before = before ?? model.rows
     let sync = SyncController(context: context).sync(model: &model, holding: held)
     if let (key, index) = sync.focusedArrival {
       model.rows.focus(key)
@@ -152,7 +171,8 @@ struct TilingController {
       return sync.effects
         + WorkspaceController(context: context).show(index, direction: direction, model: &model)
     }
-    guard sync.changedCurrent else { return sync.effects }
+    // The float command changed the list itself, before the sync.
+    guard sync.changedCurrent || change != nil else { return sync.effects }
     // In a scrolling layout the view moves, so the windows jump there.
     guard model.rows.focusedWorkspaceOnlyLostWindows(since: before, apartFrom: change?.joining),
       !model.rows.focused.current.scrolls
@@ -196,6 +216,7 @@ struct TilingController {
       restored += model.rows[position].current.hidden
       for index in model.rows[position].indices where index != model.rows[position].currentIndex {
         restored += model.rows[position][index].members
+        model.bookkeeping.floated.formUnion(model.rows[position][index].floating)
         model.rows[position][index].sync(eligible: [])
       }
     }

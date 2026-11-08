@@ -16,6 +16,14 @@ extension DisplayRows {
     return nil
   }
 
+  /// The workspace the window is seen with, tiled or floating.
+  package func location(showing windowID: WindowID) -> (position: Int, index: Int)? {
+    for (position, entry) in entries.enumerated() {
+      if let index = entry.row.index(showing: windowID) { return (position, index) }
+    }
+    return nil
+  }
+
   /// The workspace the window is on, flagged or not.
   package func location(holding windowID: WindowID) -> (position: Int, index: Int)? {
     for (position, entry) in entries.enumerated() {

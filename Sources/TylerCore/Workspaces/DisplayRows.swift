@@ -106,6 +106,13 @@ package struct DisplayRows: Equatable, Sendable {
     entries.reduce(into: []) { $0.formUnion($1.row.allWindows) }
   }
 
+  /// The floating members of every workspace, shown or parked.
+  package var floatingWindows: Set<WindowID> {
+    entries.reduce(into: []) { result, entry in
+      for workspace in entry.row.workspaces { result.formUnion(workspace.floating) }
+    }
+  }
+
   /// The windows of every workspace not in view on its display, which wait parked: hidden ones
   /// too, so they don't show over another workspace when they come back.
   package var windowsOnParkedWorkspaces: [WindowID] {

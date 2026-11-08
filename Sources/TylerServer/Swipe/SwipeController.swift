@@ -29,6 +29,7 @@ struct SwipeController {
     else { return (nil, []) }
     let sync = SyncController(context: context).sync(model: &model)
     let workspaces = WorkspaceController(context: context)
+    workspaces.rememberFloatingFrames(model: &model)
     let target = SwipeTarget.workspaceRow(
       prev: workspaces.slidePlan(to: prev, direction: .prev, on: display, rows: model.rows),
       next: workspaces.slidePlan(to: next, direction: .next, on: display, rows: model.rows))

@@ -77,6 +77,14 @@ package struct TilingSnapshot: Sendable {
       }.map(\.id))
   }
 
+  /// The floating windows that can be seen on each display's current workspace.
+  package var floatingWindowsOnScreen: Set<WindowID> {
+    Set(
+      rows.entries.indices.flatMap { position in
+        display(at: position) == nil ? [] : rows[position].current.shownFloating
+      })
+  }
+
   /// Where a window of a parked workspace waits, now at `frame`: the parking spot of its slot,
   /// on that workspace's display. A floating window waits beside where it floats: where it was
   /// when its workspace left the screen, or `frame` if it hasn't left yet. Another window without

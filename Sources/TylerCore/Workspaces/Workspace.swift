@@ -37,6 +37,12 @@ package struct Workspace: Equatable, Sendable {
     windows.contains(windowID)
   }
 
+  /// Whether the window is seen with this workspace: tiled, or floating while its app isn't
+  /// hidden.
+  package func shows(_ windowID: WindowID) -> Bool {
+    tiles(windowID) || flags[windowID] == .floating
+  }
+
   package func flags(of windowID: WindowID) -> MemberFlags {
     flags[windowID] ?? []
   }

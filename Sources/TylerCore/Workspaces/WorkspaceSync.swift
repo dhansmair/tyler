@@ -3,12 +3,13 @@ import CoreGraphics
 /// Works out which windows each workspace should hold, given the windows that exist. Pure: the
 /// server applies the result to its workspaces and parks the arrivals.
 ///
-/// A window stays on its workspace while it is tileable and not floated, or while its app is
+/// A window stays on its workspace while it is tileable, floating or not, or while its app is
 /// hidden: it then keeps its place there without a slot, and comes back to it. Parked and sliding
 /// windows keep their place whatever their frame says. A window on a display's current workspace
-/// that moves to another display goes last in that display's current workspace, or leaves the
-/// workspaces if that display has no row. Tileable windows that belong to no workspace join the
-/// current workspace of the display they are on. If they have never been tiled and their app is
+/// that moves to another display goes last in that display's current workspace, still floating
+/// if it floated, or leaves the workspaces if that display has no row. Tileable windows that
+/// belong to no workspace join the current workspace of the display they are on, floating if
+/// they were floated. If they have never been tiled and their app is
 /// assigned to a workspace, they go there instead, and arrive (to be parked) if it isn't on
 /// screen; a window that opened since tylerd started joins the display the user is on, since
 /// macOS or the app picks where it appears. Windows on a display without a row are left alone.
@@ -17,12 +18,14 @@ package struct WorkspaceSync: Equatable, Sendable {
   package var eligible: [[WindowID]]
   /// Per workspace, the members to keep there without a slot, as their app is hidden.
   package var hiding: [Set<WindowID>]
+  /// Per workspace, the windows joining it that float, as `Workspace.sync(floating:)` takes them.
+  package var floating: [Set<WindowID>]
   /// Windows newly assigned to a workspace that isn't on screen, or back on one from being hidden.
   package var arrivals: [WindowID]
 
   /// What the manager knows about windows beyond their `WindowInfo`.
   package struct Marks: Sendable {
-    /// Windows the user took out of tiling.
+    /// Windows the user took out of tiling that are on no workspace.
     package var floated: Set<WindowID>
     /// Windows that have been on a workspace; app assignments leave them alone.
     package var seen: Set<WindowID>
@@ -100,11 +103,13 @@ extension WorkspaceSync {
   }
 
   /// Per display and workspace, the windows that stay and the hidden ones; and the windows that
-  /// moved to another display with a row, by the current workspace they go to.
+  /// moved to another display with a row, by the current workspace they go to, and which of
+  /// them float.
   private struct Kept {
     var eligible: [[[WindowID]]]
     var hiding: [[Set<WindowID>]]
     var moved: [Place: [WindowInfo]]
+    var floating: Set<WindowID>
   }
 
   /// Works out one `WorkspaceSync` per display.
@@ -121,15 +126,18 @@ extension WorkspaceSync {
       let eligible = kept.eligible
       var joining = kept.moved
       let assigned = rows.allWindows
-      for window in windows where !assigned.contains(window.id) && isCandidate(window) {
+      for window in windows where !assigned.contains(window.id) && window.isTileable {
         guard let place = destination(of: window) else { continue }
         joining[place, default: []].append(window)
       }
       return rows.entries.indices.map { position in
         var sync = WorkspaceSync(
-          eligible: eligible[position], hiding: kept.hiding[position], arrivals: [])
+          eligible: eligible[position], hiding: kept.hiding[position],
+          floating: rows[position].workspaces.map { _ in [] }, arrivals: [])
         for index in rows[position].indices {
           var arriving = joining[Place(position: position, index: index)] ?? []
+          sync.floating[index] = Set(
+            arriving.map(\.id).filter { kept.floating.contains($0) || marks.floated.contains($0) })
           if index != rows[position].currentIndex {
             sync.arrivals += eligible[position][index].filter(rows[position][index].hidden.contains)
             sync.arrivals += arriving.map(\.id)
@@ -148,15 +156,16 @@ extension WorkspaceSync {
       var eligible = rows.entries.map { entry in entry.row.workspaces.map { _ in [WindowID]() } }
       var hiding = rows.entries.map { entry in entry.row.workspaces.map { _ in Set<WindowID>() } }
       var moved: [Place: [WindowInfo]] = [:]
+      var floating: Set<WindowID> = []
       for (position, entry) in rows.entries.enumerated() {
         for index in entry.row.indices {
           for windowID in entry.row[index].members {
             guard let window = byID[windowID] else { continue }
-            if window.isHidden && !marks.floated.contains(windowID) {
+            if window.isHidden {
               hiding[position][index].insert(windowID)
               continue
             }
-            guard isCandidate(window) else { continue }
+            guard window.isTileable else { continue }
             let onPosition = self.position(of: window)
             // A window back from being hidden hasn't moved with its workspace.
             let isReturning = entry.row[index].flags(of: windowID).contains(.hidden)
@@ -166,15 +175,14 @@ extension WorkspaceSync {
               eligible[position][index].append(windowID)
             } else if let onPosition {
               moved[current(at: onPosition), default: []].append(window)
+              if entry.row[index].flags(of: windowID).contains(.floating) {
+                floating.insert(windowID)
+              }
             }
           }
         }
       }
-      return Kept(eligible: eligible, hiding: hiding, moved: moved)
-    }
-
-    private func isCandidate(_ window: WindowInfo) -> Bool {
-      window.isTileable && !marks.floated.contains(window.id)
+      return Kept(eligible: eligible, hiding: hiding, moved: moved, floating: floating)
     }
 
     /// Whether the window keeps its place whatever its frame says: it is sliding or held.

@@ -44,6 +44,27 @@ struct WindowMoverTests {
     #expect(mover.originalFrames.isEmpty)
   }
 
+  @Test func aPlacementSaysWhereEachWindowLandedAndWhichFailed() {
+    windowSystem.fixedSizes[WindowID(1)] = CGSize(width: 500, height: 400)
+    let placed = mover.place(
+      [
+        Placement(id: WindowID(1), frame: CGRect(x: 10, y: 20, width: 300, height: 200)),
+        Placement(id: WindowID(9), frame: .zero),
+      ], known: registry)
+    #expect(
+      placed.landed == [
+        Placement(id: WindowID(1), frame: .init(x: 10, y: 20, width: 500, height: 400))
+      ])
+    #expect(placed.failures == 1)
+  }
+
+  @Test func aMoveInPassingLandsNowhereKnown() {
+    let placed = mover.place(
+      [Placement(id: WindowID(1), frame: .init(x: 10, y: 20, width: 300, height: 200))],
+      inPassing: true, known: registry)
+    #expect(placed.landed.isEmpty)
+  }
+
   @Test func aWindowSentToAnotherDisplayIsCrossingUntilLetGo() {
     mover.place([Placement(id: WindowID(1), frame: onTheRightDisplay)], known: registry)
     mover.place([Placement(id: WindowID(2), frame: originalFrame(1))], known: registry)

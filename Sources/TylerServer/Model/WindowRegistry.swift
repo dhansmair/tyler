@@ -50,6 +50,14 @@ struct WindowRegistry: Sendable {
     }
   }
 
+  /// Where tylerd's placements landed, read back from the apps: the frames they report a moment
+  /// later. Windows it doesn't know are left out.
+  mutating func record(_ landed: [Placement]) {
+    for placement in landed {
+      storage[placement.id]?.frame = placement.frame
+    }
+  }
+
   private mutating func upsert(_ window: WindowInfo) {
     if storage.updateValue(window, forKey: window.id) == nil {
       order.append(window.id)

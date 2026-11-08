@@ -87,11 +87,15 @@ struct DragAcrossDisplaysScenarios {
     #expect(scenario.frame(of: 2) == laptopHalves[1])
   }
 
-  @Test func aCommandMidDragPutsBothDisplaysBack() async {
+  /// The command ends the drag: the windows the preview moved go back, and the dragged window
+  /// stays where the user holds it, so it now belongs to the external display's workspace and
+  /// window 1 has the laptop to itself.
+  @Test func aCommandMidDragLeavesTheDraggedWindowOnTheDisplayUnderIt() async {
     let scenario = await scenario()
     await drag(in: scenario, to: upperRight)
     await scenario.command("workspace focus 6")
-    #expect(scenario.frame(of: 1) == laptopHalves[0])
+    #expect(scenario.workspaces[2] == 5)
+    #expect(scenario.frame(of: 1) == scenario.rect(.full))
   }
 
   @Test func droppedOverTheUpperRightItGoesInBeforeWindow4() async {

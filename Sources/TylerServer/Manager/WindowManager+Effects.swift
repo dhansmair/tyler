@@ -46,7 +46,8 @@ extension WindowManager {
     switch effect {
     case .reconcile(let force, let keys): reconcileWindows(force: force, on: keys)
     case .place(let placements): place(placements)
-    case .placeInPassing(let placements): mover.place(placements, inPassing: true, known: registry)
+    case .placeInPassing(let placements):
+      mover.place(placements, inPassing: true, known: registry).failures
     case .nudge(let nudges): nudge(nudges)
     case .carry(let nudge): carry(nudge)
     case .carryFrame(let placement): carry(placement)
@@ -168,6 +169,6 @@ extension WindowManager {
 
   @discardableResult
   func restoreOriginalFrames(of windowIDs: [WindowID]) -> Int {
-    mover.restoreOriginalFrames(of: windowIDs, known: registry)
+    recordLanded(mover.restoreOriginalFrames(of: windowIDs, known: registry))
   }
 }

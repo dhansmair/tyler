@@ -63,12 +63,13 @@ struct FocusAfterCloseScenarios {
     #expect(scenario.shown == [1, 5])
   }
 
+  /// tylerd focuses 2 at the close (#126), so its focus is tylerd's own and ends the wait.
   @Test func aNewerFocusInViewEndsTheWait() async {
     let scenario = await twoDisplays()
-    let focusCalls = scenario.windowSystem.focusCalls.count
+    let focusCalls = scenario.windowSystem.focusCalls
     await scenario.closeThenFocus(1, next: 3, 2)
     #expect(scenario.shown == [1, 5])
-    #expect(scenario.windowSystem.focusCalls.count == focusCalls)
+    #expect(scenario.windowSystem.focusCalls == focusCalls + [WindowID(2)])
   }
 
   @Test func whileDisplaysSettleTheClosedWindowIsSkipped() async {
@@ -125,10 +126,10 @@ struct FocusAfterCloseScenarios {
       displays: [FakeDisplays.main, FakeDisplays.secondary], workspaces: [1: [1, 2], 5: []])
     await scenario.focus(1)
     await scenario.command("display focus 2")
-    let focusCalls = scenario.windowSystem.focusCalls.count
+    let focusCalls = scenario.windowSystem.focusCalls
     await scenario.closeThenFocus(1, next: 2)
     #expect(scenario.focusedDisplay == 1)
-    #expect(scenario.windowSystem.focusCalls.count == focusCalls)
+    #expect(scenario.windowSystem.focusCalls == focusCalls + [WindowID(2)])
   }
 
   @Test func aFocusOnTheOtherDisplayWithTheOldWindowThereFollows() async {
@@ -137,12 +138,13 @@ struct FocusAfterCloseScenarios {
     #expect(scenario.focusedDisplay == 2)
   }
 
-  @Test func aSiblingOnTheSameDisplayNeedsNoFocusCall() async {
+  /// tylerd focuses 2 at the close (#126); macOS's own focus of it is then its echo.
+  @Test func aSiblingOnTheSameDisplayIsFocusedOnce() async {
     let scenario = await twoDisplays()
-    let focusCalls = scenario.windowSystem.focusCalls.count
+    let focusCalls = scenario.windowSystem.focusCalls
     await scenario.closeThenFocus(1, next: 2)
     #expect(scenario.focusedDisplay == 1)
-    #expect(scenario.windowSystem.focusCalls.count == focusCalls)
+    #expect(scenario.windowSystem.focusCalls == focusCalls + [WindowID(2)])
   }
 
   @Test func aDialogClosingAndFocusingTheOtherDisplayFollows() async {

@@ -127,6 +127,11 @@ struct WorkspaceController {
   /// focused the next window within 1 to 22 ms of a close in every measured case.
   static let closedFocusMemory: Duration = .milliseconds(60)
 
+  /// How long the window a focus nobody asked for left still counts as the focused one, should it
+  /// close: on macOS 27 the app's pick came 4 to 16 ms before the close, and the next app's focus
+  /// 18 to 22 ms before a quit.
+  static let focusHandoverMemory: Duration = .milliseconds(60)
+
   /// How long a focus on another window of the same app counts as the app's answer to a request.
   /// The wait ended 88 to 120 ms after the request in the four cases measured. A real move to a
   /// parked window (cmd-`) arriving in this time is asked back, so it stays short.
@@ -176,22 +181,30 @@ struct WorkspaceController {
     WindowInfo.logName(windowID, context.registry.window(withID: windowID))
   }
 
-  /// A focus on `windowID`, which needs no wait: it isn't parked, or it is tylerd's own. macOS picks
-  /// the next window across displays, so after a close it can land in view on another display.
-  /// The user is still on theirs, and what they type or open next belongs there, so the focus
-  /// comes back, even to an empty workspace.
+  /// A focus on `windowID`, which needs no wait: it isn't parked, or it is tylerd's own. After a
+  /// close, the app or macOS picks the next window, and tylerd has handed the focus to the window
+  /// that took the closed one's place. A pick that comes after that goes back to it, on the
+  /// closed window's display, even to an empty workspace: macOS picks across displays, and what
+  /// the user types or opens next belongs on theirs.
   func focusInView(
-    on windowID: WindowID, isEcho: Bool, from previous: FocusedWindow?,
-    isGone: (WindowID) -> Bool, model: inout Model
+    on windowID: WindowID, isEcho: Bool, from origin: FocusOrigin?, isGone: (WindowID) -> Bool,
+    model: inout Model
   ) -> [Effect] {
-    guard !isEcho, context.isTiling(model), let previous,
-      let closedOn = position(of: previous, in: model),
-      closedOn != model.displayPosition(of: windowID, in: context),
-      previous.leftTheChoiceToMacOS(isGone: isGone(previous.id))
+    guard !isEcho, context.isTiling(model), let origin,
+      let closedOn = position(of: origin.window, in: model)
     else { return focusChanged(to: windowID, isEcho: isEcho, model: &model) }
+    let verdict = FocusAfterCloseVerdict(
+      focused: windowID, closed: origin.window, closedIsGone: isGone(origin.window.id),
+      situation: .init(
+        isAfterClose: origin.isAfterClose,
+        isOnClosedDisplay: closedOn == model.displayPosition(of: windowID, in: context),
+        handedTo: model.rows[closedOn].current.lastFocused,
+        isListed: model.rows.location(showing: windowID) != nil))
+    guard verdict == .takeBack else {
+      return focusChanged(to: windowID, isEcho: isEcho, model: &model)
+    }
     context.log.info(
-      "window focus not followed - \(name(of: windowID)) - "
-        + "the focused window went away on another display")
+      "window focus not followed - \(name(of: windowID)) - the focused window went away")
     model.focusDisplay(at: closedOn)
     return [.focusCurrentWorkspace]
   }

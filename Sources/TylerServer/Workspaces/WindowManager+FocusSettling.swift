@@ -11,7 +11,9 @@ extension WindowManager {
       parkedFocus.cancel()
       run(
         workspaceController.focusInView(
-          on: windowID, isEcho: isEcho, from: origin, isGone: { !isStillThere($0) }, model: &model))
+          on: windowID, isEcho: isEcho,
+          from: origin.map { FocusOrigin(window: $0, isAfterClose: $0 == interpreter.closedFocus) },
+          isGone: { !isStillThere($0) }, model: &model))
       return
     }
     waitForFocus(on: windowID, from: previous)
@@ -41,14 +43,24 @@ extension WindowManager {
     waitForFocus(on: windowID, from: origin)
   }
 
-  /// macOS focuses the next window soon after a close (`macos-behaviour.md`, "An app's focus across
-  /// displays"). If it focuses none, as when an app's last window closes, the closed window
-  /// must not count against a focus long after, which is the user's.
-  func focusedWindowClosed(_ windowID: WindowID) {
-    guard interpreter.lastFocused?.id == windowID else { return }
-    closedFocus.restart(after: WorkspaceController.closedFocusMemory) { [weak self] in
-      self?.interpreter.forgetFocus(of: windowID)
+  /// The app's pick can come just before the close of the window it replaces. Long after, a close
+  /// of that window is no longer the focused window's. Counted from when the focus left it: a
+  /// repeated focus of the same window leaves it as it was.
+  func noteFocusLeft(since before: FocusedWindow?) {
+    guard let left = interpreter.previousFocused, left != before else { return }
+    closeFocusMemory.focusLeft { [weak self] in
+      self?.interpreter.forgetPreviousFocus()
     }
+  }
+
+  /// macOS focuses the next window soon after a close (`macos-behaviour.md`, "The focus after a
+  /// close"). If it focuses none, as when an app's last window closes, the closed window must not
+  /// count against a focus long after, which is the user's.
+  func focusedWindowClosed(_ closed: FocusedWindow) {
+    closeFocusMemory.focusedWindowClosed { [weak self] in
+      self?.interpreter.forgetClosedFocus()
+    }
+    run(workspaceController.focusedWindowClosed(closed, model: &model))
   }
 
   func isStillThere(_ windowID: WindowID) -> Bool {

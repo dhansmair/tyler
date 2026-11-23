@@ -13,7 +13,8 @@ that can only be measured.
 | What | Value | Why | Based on |
 |---|---|---|---|
 | A focus on a parked window must last before tylerd follows it (`parkedFocusSettling`) | 60 ms | Apps pass through the remembered window | Measured: passes within 21 ms |
-| A closed window still counts as where the focus came from (`closedFocusMemory`) | 60 ms | Tells macOS's pick after a close from a later cmd-tab | Measured: 1 to 22 ms. The value is a judgment |
+| The window a focus nobody asked for left still counts as the focused one, should it close (`focusHandoverMemory`) | 60 ms | On macOS 27 the app's pick arrives before the close it answers | Measured on 27.2.1: the pick 4 to 16 ms before the close, a quit 18 to 22 ms after the next app's focus |
+| A closed window still counts as where the focus came from (`closedFocusMemory`) | 60 ms | A pick after the close is taken back to the successor; a cmd-tab later is the user's | Measured: 1 to 22 ms on macOS 26.7.2, about 50 ms in #126's log on 26.7, near the edge. The value is a judgment |
 | tylerd's request stays remembered (`focusRequestMemory`) | 200 ms | An app ending on its remembered window counts as an answer to that request | Measured: slowest 120 ms. Small sample |
 | Second request | Once, then a 60 ms wait, then follow | Keys never stay on a parked window | 8 of 8 held |
 
@@ -23,8 +24,9 @@ Rules with no timer:
   the expectation can go stale (#11).
 - **Who chose the window:** if the standard window that held the focus is gone, macOS picked the
   next one. Gone means missing from the registry or from the window server.
-- **The display stays:** a focus in view on another display after such a close is refused at once,
-  with no wait, as nothing slides.
+- **The successor:** a focus in view on another listed window after such a close is taken back to
+  the window that took the closed one's place, on the closed window's display, at once, with no
+  wait, as nothing slides. A window on no workspace is followed.
 - **Only standard windows count:** a dialog closing and focusing a parked window is taken as
   intended.
 - **Chains:** in a chain of focuses, the first window counts.
@@ -118,7 +120,7 @@ The notice holds for 0.5 s and fades over 0.25 s (`MacLayoutNotice`): picked by 
 
 ## The ones to watch
 
-`closedFocusMemory` and `focusRequestMemory` are the newest and have the least data behind them, and
+`focusHandoverMemory`, `closedFocusMemory` and `focusRequestMemory` are the newest and have the least data behind them, and
 a slow app could miss either. The result is then the old jump, not lost focus. #11 is the other weak
 spot, because it has no timer at all. `parkedFocusSettling` adds 60 ms to every real switch to a
 parked window, such as cmd-tab, which is the price of all of this.

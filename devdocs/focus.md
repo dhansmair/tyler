@@ -26,9 +26,15 @@ says who did it. So every rule answers one question, **who chose this window?**,
 - **Did the focus last?** Apps pass through a remembered window for a few milliseconds.
 - **Did the window that held the focus go away?** Then macOS picked the next one.
 - **Had tyler just asked that app for another window?** Then the app went to the window it remembers.
+- **Did the window the focus just left close?** Then the app picked this one, and tyler hands the
+  focus to the window that takes the closed one's place in the list. On macOS 27 the pick arrives
+  before the close, so tyler keeps that window for 60 ms (`focusHandoverMemory`).
 
 When a clue is wrong, the usual result is a workspace switch nobody asked for. Keys left on a parked
-window is the worse failure, so when in doubt tyler follows the focus.
+window is the worse failure, so when in doubt tyler follows the focus. One exception: for 60 ms after
+the focused window closes (`closedFocusMemory`), a focus on another window on a workspace is taken
+back to the window that took the closed one's place, whoever chose it, so the window after a close
+is the same with every app (#126).
 
 ## The cases
 
@@ -40,8 +46,19 @@ check have only run on fakes.
 | Click, cmd-tab or cmd-` to a parked window | Focuses it | The user | Follows | `aFocusThatLastsBringsItsWorkspaceIntoView` | Yes |
 | Focus a window of an app with another window on the other display | Passes through the remembered window | The app, in passing | Ignores it | `aPassingFocusOnAParkedWindowSwitchesNothing` | Yes |
 | The same, right after that other window was swiped away | Ends on the remembered window | The app | Asks again, once | `tylerdAsksAgainInsteadOfSwitching` | Yes |
-| Close a window, the app has another one parked | Focuses the parked one | macOS | Declines, focuses the current workspace | `aCloseThenAFocusOnAParkedWindowStaysAndFocusesTheSibling` | Yes |
+| Close the focused window, a sibling in view | Focuses the app's most recent window, on macOS 27 before the close reaches tyler | The app | Focuses the window that takes the closed one's place | `theAppsPickBeforeTheCloseIsTakenBack` | No |
+| Close the focused window, the app's pick comes after tyler's focus (macOS 26.7) | Focuses the app's most recent window | The app | Takes it back | `theAppsPickAfterTylerdsFocusIsTakenBack` | No |
+| The app reports the window tyler handed the focus to again | Focuses it | The app | Leaves it | `aRepeatedFocusOfTheNextWindowNeedsNoFocusCall` | No |
+| Close the focused window, then a window on no workspace on the same display takes the focus | Focuses it | The app | Follows | `aWindowOnNoWorkspaceFocusedAfterTheCloseKeepsIt` | No |
+| Close the focused window, then macOS focuses a window on no workspace on another display | Focuses it | macOS | Takes it back to the closed window's display | `aWindowOnNoWorkspaceOnAnotherDisplayIsTakenBack` | No |
+| Close the focused window as the app opens a new one (a splash, then the main window) | Focuses the new window | The app | Follows: a window opened since the close is no answer to it | `aWindowOpenedRightAfterTheCloseKeepsItsFocus` | No |
+| Cmd-H on the focused window, the app's other window on the same display | Focuses another window in view | macOS | Follows: nothing closed, and it is the display the user is on | `aHideOnTheSameDisplayLeavesMacOSsPick` | No |
+| Close the focused window, cmd-tab to a window in view later | Focuses it | The user | Follows | `aFocusInViewLongAfterTheCloseIsFollowed` | No |
+| Close the focused window, the app picks nothing | Nothing | Nobody | Focuses the window that takes its place | `withNoFocusFollowingTheNextWindowGetsIt` | No |
+| Close the focused window, the app picks the window that takes its place | Focuses it | The app | Leaves it, with no second focus | `aPickOfTheNextWindowNeedsNoFocusCall` | No |
+| Close a window, the app has another one parked | Focuses the parked one | macOS | Declines, focuses the window that takes the closed one's place | `aCloseThenAFocusOnAParkedWindowStaysAndFocusesTheSibling` | Yes |
 | Close a window with another in view on the other display | Can focus that one | macOS | Declines, keeps the focus on the display, even on an empty workspace | `aCloseKeepsTheFocusOnItsDisplay` | Yes |
+| Quit an app with two windows on the workspace | Focuses the next app, then closes the windows one by one | macOS | Focuses the window left on the workspace | `aQuitClosingTwoWindowsInARowEndsOnTheRest` | No |
 | Quit an app with a window in view on the other display | Can focus that one | macOS | Declines | `aQuitKeepsTheFocusOnItsDisplay` | No |
 | Quit an app, another app's window is parked | Focuses it, possibly before the quit reaches tyler | macOS | Declines | `aFocusThatComesBeforeTheCloseAlsoStays` | Yes |
 | A close leaves the workspace empty | Focuses a parked window | macOS | Declines, takes the focus away | `theWorkspaceLeftEmptyStaysAndTakesTheFocusAway` | Yes |
@@ -52,6 +69,8 @@ check have only run on fakes.
 | Start an app that comes to the front before its window exists | Focuses the window, without saying so | The user | Reads the focus when the window opens, or commands hit the window behind it | `aWindowOpeningInTheFrontAppReportsItsFocus` | Yes |
 | tyler focuses a window | Reports that focus back | tyler | Ignores it | `theEchoOfTylerdsOwnFocusDoesNotSwitchBack` | Yes |
 | A background window closes, then a focus on a parked window | Focuses it | The user | Follows | `aBackgroundWindowClosingTakesNothingAway` | No |
+| Focus another window, and the one left closes later | Nothing | The user | Leaves the focus | `theWindowAFocusLeftLongAgoClosingLeavesTheFocus` | No |
+| A dialog closes | Its app focuses a window | The app, on purpose | Follows | `aDialogClosingLeavesTheFocusToItsApp` | No |
 | A dialog closes and its app focuses a parked window | Focuses it | The app, on purpose | Follows | `aDialogClosingAndFocusingAParkedWindowSwitches` | No |
 | Cmd-H hides the focused window's app | Focuses the previous app's window, even a parked one | macOS | Stays, and focuses the current workspace: the window server already reports the hidden window gone | `theParkedWindowMacOSFocusesAfterAHideIsNotFollowed` | Yes |
 | The app ignores tyler's second request | Stays on the parked window, or says nothing | The app | Follows, so keys don't stay hidden | `aSecondAskThatChangesNothingIsFollowed` | No |
@@ -77,9 +96,10 @@ check have only run on fakes.
   nothing gives it the focus.
 - **An expected focus that never comes** goes stale, and a later real focus is taken for tyler's own
   (#11).
-- **A close whose focus arrives before the close does,** with the next window in view on another
-  display: the check there has no wait, so the focus is followed. Not seen; quits are caught by the
-  window server.
+- **A cmd-tab within 60 ms of a close** is taken back like the app's pick. No person is that fast
+  after closing a window by hand; a script can be.
+- **An app that closes the window the user just left,** within 60 ms of the focus moving on, is
+  taken for the app's pick after a close: the focus goes to that window's successor.
 - **The app ending on another window than tyler asked for, in view on another display:** the focus
   is followed. The second request only covers parked windows.
 - **A floated window on another display taking the focus after a close** keeps it, while commands

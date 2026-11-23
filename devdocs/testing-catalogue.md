@@ -91,6 +91,7 @@ One display, `tall`.
 | | WIN-CLOSE | `window close` on a tiled and a floated window, with tiling off, and on an edited TextEdit document | Each closes and the rest retile; the edited document asks to save and stays listed until it closes | AX | CloseWindowScenarios |
 | | WIN-CLOSE-QUIET | Close the last window of an app that quits with it (Calculator, or Find My), then `window swap` | The closed window's slot goes at that command | AX | |
 | | WIN-CLOSE-FOCUS | Close a window whose app has another window on a parked workspace | tylerd stays on the current workspace (#12) | macOS | |
+| | WIN-CLOSE-NEXT | Close the focused master of three windows of one app, the third focused last, with `window close`, the close button and cmd-W; then quit an app whose window sits between two of another app | The window that took the closed one's place gets the focus each time, not the app's pick (#126) | macOS | FocusSuccessorScenarios |
 | | WIN-SLOW-LAUNCH | Cold-launch a slow app; bring an app that ran out of attach attempts to the front | Its windows tile; the late one attaches when it comes to the front | timing | |
 
 ## `tall`, three windows

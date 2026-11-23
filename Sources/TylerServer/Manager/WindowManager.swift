@@ -90,8 +90,8 @@ package final class WindowManager {
   let pointerRest: Debounce
   /// Waits for a focus on a parked window to last (see `followFocus(to:isEcho:from:)`).
   let parkedFocus: ParkedFocusWait
-  /// How long a closed window counts as the one that held the focus (see `focusedWindowClosed`).
-  let closedFocus: Debounce
+  /// How long the interpreter's windows for a close count (see `focusedWindowClosed`).
+  let closeFocusMemory: CloseFocusMemory
   /// The window tylerd just asked to focus (see `followFocus(to:isEcho:from:)`).
   let focusRequest: RecentFocusRequest
   /// Follows `displays.changes` while running.
@@ -143,7 +143,7 @@ package final class WindowManager {
     pointerRest = Debounce(clock: clock)
     displaySettling = Debounce(clock: clock)
     parkedFocus = ParkedFocusWait(clock: clock)
-    closedFocus = Debounce(clock: clock)
+    closeFocusMemory = CloseFocusMemory(clock: clock)
     focusRequest = RecentFocusRequest(
       remembering: WorkspaceController.focusRequestMemory, clock: clock)
     pendingRestore = saved
@@ -290,19 +290,18 @@ package final class WindowManager {
   // MARK: - Events
 
   func apply(_ event: WindowEvent) {
-    var known: WindowInfo?
-    if case .updated(let window) = event {
-      known = registry.window(withID: window.id)
+    let known = registry.window(before: event)
+    if case .updated = event {
       mover.windowUpdated()
     } else if case .updatedTogether(let windows) = event {
       for _ in windows { mover.windowUpdated() }
-    } else if case .focused(let windowID?) = event {
-      known = registry.window(withID: windowID)
     }
     registry.apply(event)
+    let focusLeftBefore = interpreter.previousFocused
     for intent in interpreter.intents(for: event, known: known, displays: displays.displays) {
       apply(intent)
     }
+    noteFocusLeft(since: focusLeftBefore)
   }
 
   private func apply(_ intent: WindowEventInterpreter.Intent) {
@@ -321,7 +320,8 @@ package final class WindowManager {
       forgetMovePreview()
       bookkeeping.forget(windowID)
       mover.forget(windowID)
-      focusedWindowClosed(windowID)
+    case .closedWithFocus(let closed):
+      focusedWindowClosed(closed)
     }
   }
 

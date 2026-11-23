@@ -23,6 +23,15 @@ struct WindowRegistry: Sendable {
     storage[windowID]
   }
 
+  /// The window `event` is about, as it was before the event. A new window isn't known yet.
+  func window(before event: WindowEvent) -> WindowInfo? {
+    switch event {
+    case .updated(let updated): storage[updated.id]
+    case .focused(let windowID?), .destroyed(let windowID): storage[windowID]
+    case .created, .updatedTogether, .focused(nil): nil
+    }
+  }
+
   /// Replaces everything with `snapshot`. Focus follows the window flagged `isFocused`.
   mutating func replaceAll(_ snapshot: [WindowInfo]) {
     storage = [:]

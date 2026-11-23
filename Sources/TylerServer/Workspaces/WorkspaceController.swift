@@ -190,11 +190,11 @@ struct WorkspaceController {
     on windowID: WindowID, isEcho: Bool, from origin: FocusOrigin?, isGone: (WindowID) -> Bool,
     model: inout Model
   ) -> [Effect] {
-    guard !isEcho, context.isTiling(model), let origin, case let previous = origin.window,
-      let closedOn = position(of: previous, in: model)
+    guard !isEcho, context.isTiling(model), let origin,
+      let closedOn = position(of: origin.window, in: model)
     else { return focusChanged(to: windowID, isEcho: isEcho, model: &model) }
     let verdict = FocusAfterCloseVerdict(
-      focused: windowID, closed: previous, closedIsGone: isGone(previous.id),
+      focused: windowID, closed: origin.window, closedIsGone: isGone(origin.window.id),
       situation: .init(
         isAfterClose: origin.isAfterClose,
         isOnClosedDisplay: closedOn == model.displayPosition(of: windowID, in: context),

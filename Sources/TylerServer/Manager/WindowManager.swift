@@ -90,8 +90,8 @@ package final class WindowManager {
   let pointerRest: Debounce
   /// Waits for a focus on a parked window to last (see `followFocus(to:isEcho:from:)`).
   let parkedFocus: ParkedFocusWait
-  /// How long a closed window counts as the one that held the focus (see `focusedWindowClosed`).
-  let closedFocus: Debounce
+  /// How long the interpreter's windows for a close count (see `focusedWindowClosed`).
+  let closeFocusMemory: CloseFocusMemory
   /// The window tylerd just asked to focus (see `followFocus(to:isEcho:from:)`).
   let focusRequest: RecentFocusRequest
   /// Follows `displays.changes` while running.
@@ -143,7 +143,7 @@ package final class WindowManager {
     pointerRest = Debounce(clock: clock)
     displaySettling = Debounce(clock: clock)
     parkedFocus = ParkedFocusWait(clock: clock)
-    closedFocus = Debounce(clock: clock)
+    closeFocusMemory = CloseFocusMemory(clock: clock)
     focusRequest = RecentFocusRequest(
       remembering: WorkspaceController.focusRequestMemory, clock: clock)
     pendingRestore = saved
@@ -315,13 +315,15 @@ package final class WindowManager {
       log.debug(
         "window focused - \(named(windowID)) - "
           + (isEcho ? "tylerd's own focus coming back" : "not tylerd's own"))
+      if !isEcho { focusLeft() }
       followFocus(to: windowID, isEcho: isEcho, from: previous)
     case .closed(let windowID):
       if drag?.windowID == windowID { endDrag() }
       forgetMovePreview()
       bookkeeping.forget(windowID)
       mover.forget(windowID)
-      focusedWindowClosed(windowID)
+    case .closedWithFocus:
+      focusedWindowClosed()
     }
   }
 

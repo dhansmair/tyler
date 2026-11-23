@@ -127,6 +127,11 @@ struct WorkspaceController {
   /// focused the next window within 1 to 22 ms of a close in every measured case.
   static let closedFocusMemory: Duration = .milliseconds(60)
 
+  /// How long the window a focus nobody asked for left still counts as the focused one, should it
+  /// close: on macOS 27 the app's pick came 4 to 16 ms before the close, and the next app's focus
+  /// 18 to 22 ms before a quit.
+  static let focusHandoverMemory: Duration = .milliseconds(60)
+
   /// How long a focus on another window of the same app counts as the app's answer to a request.
   /// The wait ended 88 to 120 ms after the request in the four cases measured. A real move to a
   /// parked window (cmd-`) arriving in this time is asked back, so it stays short.

@@ -41,13 +41,20 @@ extension WindowManager {
     waitForFocus(on: windowID, from: origin)
   }
 
-  /// macOS focuses the next window soon after a close (`macos-behaviour.md`, "An app's focus across
-  /// displays"). If it focuses none, as when an app's last window closes, the closed window
-  /// must not count against a focus long after, which is the user's.
-  func focusedWindowClosed(_ windowID: WindowID) {
-    guard interpreter.lastFocused?.id == windowID else { return }
-    closedFocus.restart(after: WorkspaceController.closedFocusMemory) { [weak self] in
-      self?.interpreter.forgetFocus(of: windowID)
+  /// The app's pick can come just before the close of the window it replaces. Long after, a close
+  /// of that window is no longer the focused window's.
+  func focusLeft() {
+    closeFocusMemory.focusLeft { [weak self] in
+      self?.interpreter.forgetPreviousFocus()
+    }
+  }
+
+  /// macOS focuses the next window soon after a close (`macos-behaviour.md`, "The focus after a
+  /// close"). If it focuses none, as when an app's last window closes, the closed window must not
+  /// count against a focus long after, which is the user's.
+  func focusedWindowClosed() {
+    closeFocusMemory.focusedWindowClosed { [weak self] in
+      self?.interpreter.forgetClosedFocus()
     }
   }
 

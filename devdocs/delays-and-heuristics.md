@@ -13,7 +13,7 @@ that can only be measured.
 | What | Value | Why | Based on |
 |---|---|---|---|
 | A focus on a parked window must last before tylerd follows it (`parkedFocusSettling`) | 60 ms | Apps pass through the remembered window | Measured: passes within 21 ms |
-| A closed window still counts as where the focus came from (`closedFocusMemory`) | 60 ms | Tells macOS's pick after a close from a later cmd-tab | Measured: 1 to 22 ms. The value is a judgment |
+| A closed window still counts as where the focus came from (`closedFocusMemory`) | 60 ms | Tells macOS's pick after a close from a later cmd-tab | Measured: 1 to 22 ms on macOS 26.7; on 27.2.1 the pick usually comes before the close (`macos-behaviour.md`, The focus after a close). The value is a judgment |
 | tylerd's request stays remembered (`focusRequestMemory`) | 200 ms | An app ending on its remembered window counts as an answer to that request | Measured: slowest 120 ms. Small sample |
 | Second request | Once, then a 60 ms wait, then follow | Keys never stay on a parked window | 8 of 8 held |
 

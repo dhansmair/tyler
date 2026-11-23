@@ -388,6 +388,30 @@ tylerd declined these focuses:
   as focused. So when a window opens in the frontmost app and tylerd knows no focus in that app, it
   reads one.
 
+## The focus after a close
+
+Measured 2026-11-23 on macOS 27.2.1, one display, with tylerd's log at `debug` (#126): AppKit
+fixture apps and a separate Ghostty instance, each on a workspace of their own. Closed with
+`tyler window close`, the close button (pressed through Accessibility) and cmd-W (posted).
+
+| Case | What gets the focus | Its focus event, against `.destroyed` |
+|---|---|---|
+| A fixture's focused window closes, two siblings in view (3 tries each way) | The sibling focused most recently, not the window that takes the closed one's place in the list | 4 to 16 ms before, 9 of 9 |
+| The same, the other sibling parked (3 tries) | The sibling in view, which was also the more recent | 5 to 12 ms before |
+| The app's last window in view closes, a sibling parked (1 try) | The parked sibling; tylerd declined it at the end of its wait | The same millisecond |
+| The last window of an app that keeps running, another app in view (2 tries) | Nothing: no focus event | — |
+| Quitting the app with the focus (2 tries) | The next app's window, through its activation | 18 to 22 ms before |
+| Ghostty, four windows closed one after another (6 closes, all three ways) | The sibling focused most recently, here also the window before it in the list | 4 to 14 ms before in 5, the same millisecond in 1 |
+| Ghostty, the instance's last window | A window of another Ghostty process, parked; tylerd declined it | 11 ms after |
+
+- **The app's pick usually arrives before the close.** On macOS 26.7 it came about 50 ms after
+  (#126); here it came first in 17 of the 18 closes of a window with a sibling. So when the close
+  reaches tylerd, the window it last saw focused is usually the app's pick already, not the window
+  that closed.
+- **The app picks by recency, not by the list:** in every case where the two differed (9 of 9), the
+  fixture focused its most recently focused other window.
+- The two-display cases of the section above weren't repeated: only one display was connected.
+
 ## Synthetic input (for live checks)
 
 - A synthetic click on a status item only arrives after a mouse move onto it.

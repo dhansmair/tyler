@@ -181,22 +181,27 @@ struct WorkspaceController {
     WindowInfo.logName(windowID, context.registry.window(withID: windowID))
   }
 
-  /// A focus on `windowID`, which needs no wait: it isn't parked, or it is tylerd's own. macOS picks
-  /// the next window across displays, so after a close it can land in view on another display.
-  /// The user is still on theirs, and what they type or open next belongs there, so the focus
-  /// comes back, even to an empty workspace.
+  /// A focus on `windowID`, which needs no wait: it isn't parked, or it is tylerd's own. After a
+  /// close, the app or macOS picks the next window, and tylerd has handed the focus to the window
+  /// that took the closed one's place. A pick that comes after that goes back to it, on the
+  /// closed window's display, even to an empty workspace: macOS picks across displays, and what
+  /// the user types or opens next belongs on theirs.
   func focusInView(
     on windowID: WindowID, isEcho: Bool, from previous: FocusedWindow?,
     isGone: (WindowID) -> Bool, model: inout Model
   ) -> [Effect] {
     guard !isEcho, context.isTiling(model), let previous,
-      let closedOn = position(of: previous, in: model),
-      closedOn != model.displayPosition(of: windowID, in: context),
-      previous.leftTheChoiceToMacOS(isGone: isGone(previous.id))
+      let closedOn = position(of: previous, in: model)
     else { return focusChanged(to: windowID, isEcho: isEcho, model: &model) }
+    let verdict = FocusAfterCloseVerdict(
+      focused: windowID, closed: previous, closedIsGone: isGone(previous.id),
+      handedTo: model.rows[closedOn].current.lastFocused,
+      isListed: model.rows.location(showing: windowID) != nil)
+    guard verdict == .takeBack else {
+      return focusChanged(to: windowID, isEcho: isEcho, model: &model)
+    }
     context.log.info(
-      "window focus not followed - \(name(of: windowID)) - "
-        + "the focused window went away on another display")
+      "window focus not followed - \(name(of: windowID)) - the focused window closed")
     model.focusDisplay(at: closedOn)
     return [.focusCurrentWorkspace]
   }

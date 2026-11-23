@@ -31,7 +31,10 @@ says who did it. So every rule answers one question, **who chose this window?**,
   before the close, so tyler keeps that window for 60 ms (`focusHandoverMemory`).
 
 When a clue is wrong, the usual result is a workspace switch nobody asked for. Keys left on a parked
-window is the worse failure, so when in doubt tyler follows the focus.
+window is the worse failure, so when in doubt tyler follows the focus. One exception: for 60 ms after
+the focused window closes (`closedFocusMemory`), a focus on another window on a workspace is taken
+back to the window that took the closed one's place, whoever chose it, so the window after a close
+is the same with every app (#126).
 
 ## The cases
 
@@ -44,6 +47,10 @@ check have only run on fakes.
 | Focus a window of an app with another window on the other display | Passes through the remembered window | The app, in passing | Ignores it | `aPassingFocusOnAParkedWindowSwitchesNothing` | Yes |
 | The same, right after that other window was swiped away | Ends on the remembered window | The app | Asks again, once | `tylerdAsksAgainInsteadOfSwitching` | Yes |
 | Close the focused window, a sibling in view | Focuses the app's most recent window, on macOS 27 before the close reaches tyler | The app | Focuses the window that takes the closed one's place | `theAppsPickBeforeTheCloseIsTakenBack` | No |
+| Close the focused window, the app's pick comes after tyler's focus (macOS 26.7) | Focuses the app's most recent window | The app | Takes it back | `theAppsPickAfterTylerdsFocusIsTakenBack` | No |
+| The app reports the window tyler handed the focus to again | Focuses it | The app | Leaves it | `aRepeatedFocusOfTheNextWindowNeedsNoFocusCall` | No |
+| Close the focused window, then a window on no workspace takes the focus | Focuses it | The app | Follows | `aWindowOnNoWorkspaceFocusedAfterTheCloseKeepsIt` | No |
+| Close the focused window, cmd-tab to a window in view later | Focuses it | The user | Follows | `aFocusInViewLongAfterTheCloseIsFollowed` | No |
 | Close the focused window, the app picks nothing | Nothing | Nobody | Focuses the window that takes its place | `withNoFocusFollowingTheNextWindowGetsIt` | No |
 | Close the focused window, the app picks the window that takes its place | Focuses it | The app | Leaves it, with no second focus | `aPickOfTheNextWindowNeedsNoFocusCall` | No |
 | Close a window, the app has another one parked | Focuses the parked one | macOS | Declines, focuses the window that takes the closed one's place | `aCloseThenAFocusOnAParkedWindowStaysAndFocusesTheSibling` | Yes |
@@ -86,8 +93,8 @@ check have only run on fakes.
   nothing gives it the focus.
 - **An expected focus that never comes** goes stale, and a later real focus is taken for tyler's own
   (#11).
-- **An app's pick that arrives after tyler's focus of the next window** (macOS 26.7, about 50 ms
-  after the close) is followed. Taking it back is the next step of #126.
+- **A cmd-tab within 60 ms of a close** is taken back like the app's pick. No person is that fast
+  after closing a window by hand; a script can be.
 - **An app that closes the window the user just left,** within 60 ms of the focus moving on, is
   taken for the app's pick after a close: the focus goes to that window's successor.
 - **The app ending on another window than tyler asked for, in view on another display:** the focus

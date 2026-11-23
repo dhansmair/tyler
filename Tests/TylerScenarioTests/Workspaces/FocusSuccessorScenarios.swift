@@ -43,6 +43,41 @@ struct FocusSuccessorScenarios {
     #expect(scenario.shown == [1])
   }
 
+  /// macOS 26.7 reports the app's pick about 50 ms after the close, after tylerd's own focus.
+  @Test func theAppsPickAfterTylerdsFocusIsTakenBack() async {
+    let scenario = await threeWindows(focusing: 3, 1)
+    await scenario.closeThenFocus(1, next: 2, 3)
+    #expect(scenario.windowSystem.focusCalls.suffix(2) == [WindowID(2), WindowID(2)])
+  }
+
+  /// The app reporting the window tylerd handed the focus to once more needs nothing.
+  @Test func aRepeatedFocusOfTheNextWindowNeedsNoFocusCall() async {
+    let scenario = await threeWindows(focusing: 1)
+    let focusCalls = scenario.windowSystem.focusCalls
+    await scenario.closeThenFocus(1, next: 2, 2)
+    #expect(scenario.windowSystem.focusCalls == focusCalls + [WindowID(2)])
+  }
+
+  @Test func aWindowOnNoWorkspaceFocusedAfterTheCloseKeepsIt() async {
+    let scenario = await threeWindows(focusing: 1)
+    let dialog = makeWindow(
+      id: 9, frame: CGRect(x: 100, y: 100, width: 200, height: 100), kind: .dialog)
+    await scenario.open(dialog)
+    await scenario.focus(1)
+    let focusCalls = scenario.windowSystem.focusCalls
+    await scenario.closeThenFocus(1, next: 2, 9)
+    #expect(scenario.windowSystem.focusCalls == focusCalls + [WindowID(2)])
+  }
+
+  /// The user's own focus, once the close is forgotten.
+  @Test func aFocusInViewLongAfterTheCloseIsFollowed() async {
+    let scenario = await threeWindows(focusing: 1)
+    await scenario.close(1)
+    let focusCalls = scenario.windowSystem.focusCalls
+    await scenario.focus(3)
+    #expect(scenario.windowSystem.focusCalls == focusCalls)
+  }
+
   @Test func aPickOfTheNextWindowNeedsNoFocusCall() async {
     let scenario = await threeWindows(focusing: 1)
     let focusCalls = scenario.windowSystem.focusCalls.count

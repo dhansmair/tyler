@@ -3,6 +3,14 @@
 tyler follows [semantic versioning](https://semver.org). Before 1.0, a minor version (0.x) may
 change commands, the config file and the socket protocol; the entry says how.
 
+## Unreleased
+
+- When the focused window closes, the window that takes its place in the list gets the focus (the
+  new last window if it was last), whichever window its app would pick, and whether it closed by
+  `window close`, its close button, cmd-W or its app quitting. A floated window hands the focus to
+  its workspace's focused window; a workspace left empty keeps none. With tiling off, macOS still
+  decides (#126).
+
 ## 0.4.0 (2026-11-08)
 
 Floated windows and the windows of a hidden app keep their workspace and their place in it.

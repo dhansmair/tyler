@@ -245,9 +245,18 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   focusing a parked window is the app's intent. A closed window counts for 60 ms: when an app's
   last window closes macOS focuses nothing, and a cmd-tab long after is the user's. A splash window
   closing as the main window opens on a parked workspace is declined, if the splash is standard.
-  The same goes for a focus in view on another display, checked at once since nothing slides: the
-  focus comes back to the display the user was on, even to an empty workspace, because what they
-  type or open next belongs there.
+  **After the focused window closes, the window that takes its place in the list gets the focus**
+  (#126), whichever window the app or macOS picks: the same with every app and every macOS, and
+  predictable from the layout, as in xmonad. Apps pick their most recently used window, and macOS
+  27 reports that pick before the close, macOS 26.7 about 50 ms after it, and some apps pick
+  nothing (`macos-behaviour.md`, "The focus after a close"). So the interpreter keeps the window a
+  focus nobody asked for just left, for 60 ms (`focusHandoverMemory`): a close of it counts as a
+  close of the focused window. tylerd then takes the successor from the list, which still holds
+  the closed window (`Workspace.successor(of:)`), and focuses it. For the 60 ms after, a focus in
+  view on another listed window is taken back to it (`FocusAfterCloseVerdict`), on the display the
+  user was on, even to an empty workspace, because what they type or open next belongs there. A
+  window on no workspace (a dialog, a new window) is followed. Rejected: focusing the successor
+  only when no focus arrives within a short wait, which keeps two behaviours depending on the app.
   A focus that lasted on a window of the app tylerd asked for another window of, up to 200 ms ago when the wait ends,
   isn't followed either: the app ended on the window it remembers, so tylerd asks for the wanted
   window again, once. If the focus stays, tylerd follows it, so keys never stay on a parked window.

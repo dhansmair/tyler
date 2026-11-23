@@ -10,7 +10,10 @@ extension WorkspaceController {
     else { return [] }
     let successor = model.rows[location.position][location.index].successor(of: closed.id)
     model.focusDisplay(at: location.position)
-    guard let successor else { return [.focusCurrentWorkspace] }
+    guard let successor else {
+      let left = model.rows[location.position].current.lastFocused
+      return left != nil && context.registry.focusedID == left ? [] : [.focusCurrentWorkspace]
+    }
     model.recordFocus(successor)
     guard context.registry.focusedID != successor else { return [] }
     context.log.info(

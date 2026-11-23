@@ -160,6 +160,16 @@ struct FocusSuccessorScenarios {
     #expect(scenario.windowSystem.focusCalls.last == WindowID(3))
   }
 
+  @Test func aFloatedWindowClosingAfterTheAppsPickNeedsNoFocusCall() async {
+    let scenario = await threeWindows(focusing: 2)
+    await scenario.command("window float on")
+    let focusCalls = scenario.windowSystem.focusCalls
+    scenario.harness.windowSystem.send(.focused(WindowID(3)))
+    await scenario.harness.settle()
+    await scenario.close(2)
+    #expect(scenario.windowSystem.focusCalls == focusCalls)
+  }
+
   @Test func aCloseOnTheDisplayACommandLeftFocusesItsNextWindow() async {
     let scenario = await Scenario(
       displays: [FakeDisplays.main, FakeDisplays.secondary], workspaces: [1: [1, 2], 5: [5]])

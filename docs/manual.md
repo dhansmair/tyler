@@ -370,7 +370,7 @@ tyler window float toggle  # float it if it is tiled, tile it if it floats
 tyler window close
 ```
 
-Closes the focused window, as its close button does: the app keeps running, and an app with unsaved changes may first ask whether to save them. The rest of the workspace re-tiles once the window is gone, the windows sliding into their new slots over `animations.retile` milliseconds, and macOS decides which window gets the focus next. It closes any focused window, tiled, floated or never tiled, and works with tiling off. A window without a close button (some panels) can't be closed this way.
+Closes the focused window, as its close button does: the app keeps running, and an app with unsaved changes may first ask whether to save them. The rest of the workspace re-tiles once the window is gone, the windows sliding into their new slots over `animations.retile` milliseconds, and the window that takes its place in the list gets the focus (the new last window if it was last), whichever window its app would pick. A floated window hands the focus to its workspace's focused window, and a workspace left empty keeps none. The same goes however the focused window closes: its close button, cmd-W or its app quitting. With tiling off, macOS decides which window gets the focus next. It closes any focused window, tiled, floated or never tiled, and works with tiling off. A window without a close button (some panels) can't be closed this way.
 
 ### window size
 

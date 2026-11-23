@@ -290,14 +290,11 @@ package final class WindowManager {
   // MARK: - Events
 
   func apply(_ event: WindowEvent) {
-    var known: WindowInfo?
-    if case .updated(let window) = event {
-      known = registry.window(withID: window.id)
+    let known = registry.window(before: event)
+    if case .updated = event {
       mover.windowUpdated()
     } else if case .updatedTogether(let windows) = event {
       for _ in windows { mover.windowUpdated() }
-    } else if case .focused(let windowID?) = event {
-      known = registry.window(withID: windowID)
     }
     registry.apply(event)
     for intent in interpreter.intents(for: event, known: known, displays: displays.displays) {
@@ -322,8 +319,8 @@ package final class WindowManager {
       forgetMovePreview()
       bookkeeping.forget(windowID)
       mover.forget(windowID)
-    case .closedWithFocus:
-      focusedWindowClosed()
+    case .closedWithFocus(let closed):
+      focusedWindowClosed(closed)
     }
   }
 

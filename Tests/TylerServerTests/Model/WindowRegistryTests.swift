@@ -22,6 +22,20 @@ struct WindowRegistryTests {
     #expect(registry.window(withID: WindowID(9)) == nil)
   }
 
+  @Test(arguments: [
+    WindowEvent.updated(makeWindow(id: 1, frame: CGRect(x: 1, y: 2, width: 3, height: 4))),
+    .focused(WindowID(1)), .destroyed(WindowID(1)),
+  ])
+  func anEventsWindowIsTheOneKnownBeforeIt(event: WindowEvent) {
+    var registry = WindowRegistry()
+    registry.replaceAll([makeWindow(id: 1)])
+    #expect(registry.window(before: event) == makeWindow(id: 1))
+  }
+
+  @Test func aNewWindowIsntKnownBeforeItsEvent() {
+    #expect(WindowRegistry().window(before: .created(makeWindow(id: 1))) == nil)
+  }
+
   @Test func startsEmpty() {
     let registry = WindowRegistry()
     #expect(registry.windows.count == 0)

@@ -52,10 +52,11 @@ extension WindowManager {
   /// macOS focuses the next window soon after a close (`macos-behaviour.md`, "The focus after a
   /// close"). If it focuses none, as when an app's last window closes, the closed window must not
   /// count against a focus long after, which is the user's.
-  func focusedWindowClosed() {
+  func focusedWindowClosed(_ closed: FocusedWindow) {
     closeFocusMemory.focusedWindowClosed { [weak self] in
       self?.interpreter.forgetClosedFocus()
     }
+    run(workspaceController.focusedWindowClosed(closed, model: &model))
   }
 
   func isStillThere(_ windowID: WindowID) -> Bool {

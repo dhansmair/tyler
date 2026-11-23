@@ -9,6 +9,15 @@ extension Scenario {
     await runUntilQuiet()
   }
 
+  /// `windows` close one after the other, faster than tylerd's focus comes back, as in a quit.
+  func closeInTurn(_ windows: UInt32...) async {
+    for window in windows {
+      harness.windowSystem.windows.removeAll { $0.id.rawValue == window }
+      harness.windowSystem.send(.destroyed(WindowID(window)))
+    }
+    await runUntilQuiet()
+  }
+
   /// An app quits: macOS focuses `next` and the focus reaches tylerd before the quit does.
   func focusThenClose(_ closed: UInt32, next: UInt32) async {
     harness.windowSystem.send(.focused(WindowID(next)))

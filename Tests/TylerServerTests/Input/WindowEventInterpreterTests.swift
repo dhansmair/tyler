@@ -162,6 +162,19 @@ struct WindowEventInterpreterTests {
       "the first window stays the origin")
   }
 
+  /// "Don't Save" closes the dialog, then the document it asked about.
+  @Test func aWindowClosingAfterADialogIsTheOneFocusesComeFrom() {
+    var interpreter = WindowEventInterpreter()
+    let dialog = makeWindow(id: 9, kind: .dialog)
+    _ = interpreter.intents(for: .focused(dialog.id), known: dialog, displays: [])
+    _ = interpreter.intents(for: .destroyed(dialog.id), known: dialog, displays: [])
+    let document = makeWindow(id: 1)
+    _ = interpreter.intents(for: .focused(document.id), known: document, displays: [])
+    _ = interpreter.intents(for: .destroyed(document.id), known: document, displays: [])
+    let pick = interpreter.intents(for: .focused(WindowID(3)), known: nil, displays: [])
+    #expect(pick.first == .focused(WindowID(3), isEcho: false, from: Self.focused(document)))
+  }
+
   @Test func aWindowAskedForClosingWithNoCloseRememberedIsJustAClose() {
     var interpreter = WindowEventInterpreter()
     _ = interpreter.intents(for: .focused(WindowID(1)), known: nil, displays: [])

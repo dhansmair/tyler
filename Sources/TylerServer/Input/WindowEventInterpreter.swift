@@ -27,7 +27,8 @@ struct WindowEventInterpreter {
   private(set) var previousFocused: FocusedWindow?
 
   /// The window that closed with the focus: every focus comes from it until it is forgotten, as
-  /// the app's pick can also arrive after tylerd's own focus of the next window.
+  /// the app's pick can also arrive after tylerd's own focus of the next window. A dialog gives way
+  /// to a window closing after it, as when "Don't Save" closes both.
   private(set) var closedFocus: FocusedWindow?
 
   /// Windows tylerd asked to focus, and windows that opened, while a close is remembered: the
@@ -77,7 +78,7 @@ struct WindowEventInterpreter {
       lastFocused = nil
     case .destroyed(let windowID):
       if let closed = closeOfTheFocus(windowID, known: known) {
-        if closedFocus == nil { closedFocus = closed }
+        if closedFocus?.leftTheChoiceToMacOS(isGone: true) != true { closedFocus = closed }
         intents.append(.closedWithFocus(closed))
       }
       intents.append(.closed(windowID))

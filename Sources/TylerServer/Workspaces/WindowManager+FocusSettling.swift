@@ -11,7 +11,9 @@ extension WindowManager {
       parkedFocus.cancel()
       run(
         workspaceController.focusInView(
-          on: windowID, isEcho: isEcho, from: origin, isGone: { !isStillThere($0) }, model: &model))
+          on: windowID, isEcho: isEcho,
+          from: origin.map { FocusOrigin(window: $0, isAfterClose: $0 == interpreter.closedFocus) },
+          isGone: { !isStillThere($0) }, model: &model))
       return
     }
     waitForFocus(on: windowID, from: previous)

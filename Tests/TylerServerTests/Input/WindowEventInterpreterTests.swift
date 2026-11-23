@@ -170,6 +170,34 @@ struct WindowEventInterpreterTests {
     #expect(intents == [.closed(WindowID(2)), .listsMayHaveChanged])
   }
 
+  /// An expectation from long ago (#11) says nothing about this close.
+  @Test func aStaleExpectedWindowClosingWhileACloseIsRememberedIsJustAClose() {
+    var interpreter = WindowEventInterpreter()
+    interpreter.expectFocus(of: WindowID(9))
+    _ = interpreter.intents(for: .focused(WindowID(1)), known: nil, displays: [])
+    _ = interpreter.intents(for: .destroyed(WindowID(1)), known: nil, displays: [])
+    let intents = interpreter.intents(for: .destroyed(WindowID(9)), known: nil, displays: [])
+    #expect(intents == [.closed(WindowID(9)), .listsMayHaveChanged])
+  }
+
+  @Test func aWindowOpenedSinceTheCloseIsNoAnswerToIt() {
+    var interpreter = WindowEventInterpreter()
+    _ = interpreter.intents(for: .focused(WindowID(1)), known: nil, displays: [])
+    _ = interpreter.intents(for: .destroyed(WindowID(1)), known: nil, displays: [])
+    let opened = makeWindow(id: 5)
+    _ = interpreter.intents(for: .created(opened), known: nil, displays: [])
+    let intents = interpreter.intents(for: .focused(opened.id), known: opened, displays: [])
+    #expect(intents.first == .focused(opened.id, isEcho: false, from: nil))
+  }
+
+  @Test func aRepeatedFocusKeepsTheWindowBeforeIt() {
+    var interpreter = WindowEventInterpreter()
+    _ = interpreter.intents(for: .focused(WindowID(1)), known: nil, displays: [])
+    _ = interpreter.intents(for: .focused(WindowID(2)), known: nil, displays: [])
+    _ = interpreter.intents(for: .focused(WindowID(2)), known: nil, displays: [])
+    #expect(interpreter.previousFocused?.id == WindowID(1))
+  }
+
   private static func focused(_ window: WindowInfo) -> FocusedWindow {
     FocusedWindow(id: window.id, kind: window.kind, frame: window.frame)
   }

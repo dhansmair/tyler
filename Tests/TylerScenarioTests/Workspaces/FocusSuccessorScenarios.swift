@@ -69,6 +69,33 @@ struct FocusSuccessorScenarios {
     #expect(scenario.windowSystem.focusCalls == focusCalls + [WindowID(2)])
   }
 
+  /// Cmd-H: the window server reports the hidden window gone at once, but nothing closed, so
+  /// macOS's pick on the same display stands.
+  @Test func aHideOnTheSameDisplayLeavesMacOSsPick() async {
+    let scenario = await threeWindows(focusing: 1)
+    scenario.stacking.goneWindows = [WindowID(1)]
+    let focusCalls = scenario.windowSystem.focusCalls
+    await scenario.focus(3)
+    #expect(scenario.windowSystem.focusCalls == focusCalls)
+  }
+
+  /// A splash window closing as the app's main window opens: the new window keeps the focus.
+  @Test func aWindowOpenedRightAfterTheCloseKeepsItsFocus() async {
+    let scenario = await threeWindows(focusing: 1)
+    let focusCalls = scenario.windowSystem.focusCalls
+    scenario.harness.windowSystem.windows.removeAll { $0.id == WindowID(1) }
+    scenario.harness.windowSystem.send(.destroyed(WindowID(1)))
+    let opened = makeWindow(id: 9, frame: CGRect(x: 100, y: 100, width: 300, height: 200))
+    scenario.harness.windowSystem.windows.append(opened)
+    scenario.harness.windowSystem.send(.created(opened))
+    scenario.harness.windowSystem.send(.focused(opened.id))
+    await scenario.runUntilQuiet()
+    #expect(scenario.list(1).contains(9))
+    #expect(
+      scenario.windowSystem.focusCalls == focusCalls + [WindowID(2)],
+      "handed on at the close, and not taken from the new window")
+  }
+
   /// The user's own focus, once the close is forgotten.
   @Test func aFocusInViewLongAfterTheCloseIsFollowed() async {
     let scenario = await threeWindows(focusing: 1)

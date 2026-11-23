@@ -187,21 +187,24 @@ struct WorkspaceController {
   /// closed window's display, even to an empty workspace: macOS picks across displays, and what
   /// the user types or opens next belongs on theirs.
   func focusInView(
-    on windowID: WindowID, isEcho: Bool, from previous: FocusedWindow?,
-    isGone: (WindowID) -> Bool, model: inout Model
+    on windowID: WindowID, isEcho: Bool, from origin: FocusOrigin?, isGone: (WindowID) -> Bool,
+    model: inout Model
   ) -> [Effect] {
-    guard !isEcho, context.isTiling(model), let previous,
+    guard !isEcho, context.isTiling(model), let origin, case let previous = origin.window,
       let closedOn = position(of: previous, in: model)
     else { return focusChanged(to: windowID, isEcho: isEcho, model: &model) }
     let verdict = FocusAfterCloseVerdict(
       focused: windowID, closed: previous, closedIsGone: isGone(previous.id),
-      handedTo: model.rows[closedOn].current.lastFocused,
-      isListed: model.rows.location(showing: windowID) != nil)
+      situation: .init(
+        isAfterClose: origin.isAfterClose,
+        isOnClosedDisplay: closedOn == model.displayPosition(of: windowID, in: context),
+        handedTo: model.rows[closedOn].current.lastFocused,
+        isListed: model.rows.location(showing: windowID) != nil))
     guard verdict == .takeBack else {
       return focusChanged(to: windowID, isEcho: isEcho, model: &model)
     }
     context.log.info(
-      "window focus not followed - \(name(of: windowID)) - the focused window closed")
+      "window focus not followed - \(name(of: windowID)) - the focused window went away")
     model.focusDisplay(at: closedOn)
     return [.focusCurrentWorkspace]
   }

@@ -255,7 +255,8 @@ Spaces). `docs/manual.md` (Concepts) defines the user-facing terms.
   the closed window (`Workspace.successor(of:)`), and focuses it. For the 60 ms after, a focus in
   view on another listed window is taken back to it (`FocusAfterCloseVerdict`), on the display the
   user was on, even to an empty workspace, because what they type or open next belongs there. A
-  window on no workspace (a dialog, a new window) is followed. Rejected: focusing the successor
+  window on no workspace (a dialog) or one opened since the close is followed, and so is a pick
+  on the same display when nothing closed (a hide, a quit the window server knows of first). Rejected: focusing the successor
   only when no focus arrives within a short wait, which keeps two behaviours depending on the app.
   A focus that lasted on a window of the app tylerd asked for another window of, up to 200 ms ago when the wait ends,
   isn't followed either: the app ended on the window it remembers, so tylerd asks for the wanted

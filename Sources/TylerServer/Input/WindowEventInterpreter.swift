@@ -30,8 +30,14 @@ struct WindowEventInterpreter {
   /// the app's pick can also arrive after tylerd's own focus of the next window.
   private(set) var closedFocus: FocusedWindow?
 
+  /// Windows tylerd asked to focus, and windows that opened, while a close is remembered: the
+  /// first are part of handing the focus on, and the second's focus is no answer to the close.
+  private var askedSinceClose: Set<WindowID> = []
+  private var openedSinceClose: Set<WindowID> = []
+
   mutating func expectFocus(of windowID: WindowID) {
     expectedFocus.insert(windowID)
+    if closedFocus != nil { askedSinceClose.insert(windowID) }
   }
 
   /// The window that held the focus when tylerd started: no event names it.
@@ -46,6 +52,8 @@ struct WindowEventInterpreter {
   /// A focus from now on is a new one, not the answer to the close.
   mutating func forgetClosedFocus() {
     closedFocus = nil
+    askedSinceClose = []
+    openedSinceClose = []
   }
 
   /// `known` is the window as it was before the event.
@@ -64,10 +72,7 @@ struct WindowEventInterpreter {
     var intents: [Intent] = []
     switch event {
     case .focused(let windowID?):
-      let isEcho = expectedFocus.remove(windowID) != nil
-      intents.append(.focused(windowID, isEcho: isEcho, from: closedFocus ?? lastFocused))
-      previousFocused = isEcho ? nil : lastFocused
-      lastFocused = FocusedWindow(id: windowID, kind: known?.kind, frame: known?.frame)
+      intents.append(focusIntent(windowID, known: known))
     case .focused(nil):
       lastFocused = nil
     case .destroyed(let windowID):
@@ -76,7 +81,9 @@ struct WindowEventInterpreter {
         intents.append(.closedWithFocus(closed))
       }
       intents.append(.closed(windowID))
-    case .created, .updated, .updatedTogether:
+    case .created(let window):
+      if closedFocus != nil { openedSinceClose.insert(window.id) }
+    case .updated, .updatedTogether:
       break
     }
     intents.append(.listsMayHaveChanged)
@@ -84,18 +91,28 @@ struct WindowEventInterpreter {
     return intents
   }
 
+  /// A window opened since the close is no answer to it, so its focus comes from the window before.
+  private mutating func focusIntent(_ windowID: WindowID, known: WindowInfo?) -> Intent {
+    let isEcho = expectedFocus.remove(windowID) != nil
+    let origin = openedSinceClose.contains(windowID) ? lastFocused : closedFocus ?? lastFocused
+    if lastFocused?.id != windowID { previousFocused = isEcho ? nil : lastFocused }
+    lastFocused = FocusedWindow(id: windowID, kind: known?.kind, frame: known?.frame)
+    return .focused(windowID, isEcho: isEcho, from: origin)
+  }
+
   /// The window closing, if it held the focus: it is the focused window, the one a focus just
-  /// left, or, while a close is remembered, the one tylerd asked to focus next.
+  /// left, or one tylerd asked to focus while handing the focus on after a close.
   private mutating func closeOfTheFocus(_ windowID: WindowID, known: WindowInfo?) -> FocusedWindow?
   {
-    let wasExpected = expectedFocus.remove(windowID) != nil
+    expectedFocus.remove(windowID)
+    let wasAskedSinceClose = askedSinceClose.remove(windowID) != nil
     defer {
       if lastFocused?.id == windowID { lastFocused = nil }
       if previousFocused?.id == windowID { previousFocused = nil }
     }
     if let lastFocused, lastFocused.id == windowID { return lastFocused }
     if let previousFocused, previousFocused.id == windowID { return previousFocused }
-    if closedFocus != nil, wasExpected {
+    if wasAskedSinceClose {
       return FocusedWindow(id: windowID, kind: known?.kind, frame: known?.frame)
     }
     return nil

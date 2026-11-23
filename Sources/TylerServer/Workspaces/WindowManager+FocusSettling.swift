@@ -44,8 +44,10 @@ extension WindowManager {
   }
 
   /// The app's pick can come just before the close of the window it replaces. Long after, a close
-  /// of that window is no longer the focused window's.
-  func focusLeft() {
+  /// of that window is no longer the focused window's. Counted from when the focus left it: a
+  /// repeated focus of the same window leaves it as it was.
+  func noteFocusLeft(since before: FocusedWindow?) {
+    guard let left = interpreter.previousFocused, left != before else { return }
     closeFocusMemory.focusLeft { [weak self] in
       self?.interpreter.forgetPreviousFocus()
     }

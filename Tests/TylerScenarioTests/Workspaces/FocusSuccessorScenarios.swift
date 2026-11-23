@@ -120,6 +120,19 @@ struct FocusSuccessorScenarios {
     #expect(scenario.windowSystem.focusCalls.count == focusCalls)
   }
 
+  /// Some apps focus their window again and again: the window the focus left still counts only
+  /// for a while after it left.
+  @Test func aRepeatedFocusKeepsNoWindowItLeftLonger() async {
+    let scenario = await threeWindows(focusing: 1)
+    for _ in 1...4 {
+      scenario.harness.windowSystem.send(.focused(WindowID(3)))
+      await scenario.wait(.milliseconds(40))
+    }
+    let focusCalls = scenario.windowSystem.focusCalls.count
+    await scenario.close(1)
+    #expect(scenario.windowSystem.focusCalls.count == focusCalls)
+  }
+
   @Test func aQuitClosingTwoWindowsInARowEndsOnTheRest() async {
     let scenario = await threeWindows(focusing: 1)
     await scenario.closeInTurn(1, 2)

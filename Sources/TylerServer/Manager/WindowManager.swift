@@ -297,9 +297,11 @@ package final class WindowManager {
       for _ in windows { mover.windowUpdated() }
     }
     registry.apply(event)
+    let focusLeftBefore = interpreter.previousFocused
     for intent in interpreter.intents(for: event, known: known, displays: displays.displays) {
       apply(intent)
     }
+    noteFocusLeft(since: focusLeftBefore)
   }
 
   private func apply(_ intent: WindowEventInterpreter.Intent) {
@@ -312,7 +314,6 @@ package final class WindowManager {
       log.debug(
         "window focused - \(named(windowID)) - "
           + (isEcho ? "tylerd's own focus coming back" : "not tylerd's own"))
-      if !isEcho { focusLeft() }
       followFocus(to: windowID, isEcho: isEcho, from: previous)
     case .closed(let windowID):
       if drag?.windowID == windowID { endDrag() }

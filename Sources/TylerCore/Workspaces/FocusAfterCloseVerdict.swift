@@ -2,9 +2,9 @@
 /// picked it. Within the close memory (`isAfterClose`), tylerd has handed the focus to the window
 /// that took the closed one's place (`handedTo`, or none on a workspace left empty), and another
 /// window on a workspace goes back to it, even one the user picked in that moment: the rule is the
-/// same with every app (#126). Otherwise only a focus on another display goes back, as macOS picks
-/// across displays and what the user types next belongs on theirs; on the same display a hide or
-/// a quit leaves the pick to macOS.
+/// same with every app (#126). A focus on another display goes back whatever window it is on, as
+/// macOS picks across displays and what the user types next belongs on theirs. On the same
+/// display, a window on no workspace, or a pick after a hide or a quit, is left to macOS.
 package enum FocusAfterCloseVerdict: Equatable, Sendable {
   case follow
   case takeBack
@@ -14,8 +14,8 @@ package enum FocusAfterCloseVerdict: Equatable, Sendable {
     focused: WindowID, closed: FocusedWindow, closedIsGone: @autoclosure () -> Bool,
     situation: Situation
   ) {
-    guard situation.isListed, focused != situation.handedTo,
-      situation.isAfterClose || !situation.isOnClosedDisplay,
+    guard focused != situation.handedTo,
+      !situation.isOnClosedDisplay || situation.isAfterClose && situation.isListed,
       closed.leftTheChoiceToMacOS(isGone: closedIsGone())
     else {
       self = .follow

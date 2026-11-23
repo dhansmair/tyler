@@ -34,6 +34,13 @@ struct FocusAfterCloseVerdictTests {
     #expect(Self.verdict(on: 3, isListed: false) == .follow)
   }
 
+  @Test(arguments: [true, false])
+  func aWindowOnNoWorkspaceOnAnotherDisplayIsTakenBack(isAfterClose: Bool) {
+    #expect(
+      Self.verdict(on: 3, isAfterClose: isAfterClose, isOnClosedDisplay: false, isListed: false)
+        == .takeBack)
+  }
+
   @Test func aWindowStillThereFollows() {
     #expect(Self.verdict(on: 3, closedIsGone: false) == .follow)
   }

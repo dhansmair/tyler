@@ -49,7 +49,8 @@ check have only run on fakes.
 | Close the focused window, a sibling in view | Focuses the app's most recent window, on macOS 27 before the close reaches tyler | The app | Focuses the window that takes the closed one's place | `theAppsPickBeforeTheCloseIsTakenBack` | No |
 | Close the focused window, the app's pick comes after tyler's focus (macOS 26.7) | Focuses the app's most recent window | The app | Takes it back | `theAppsPickAfterTylerdsFocusIsTakenBack` | No |
 | The app reports the window tyler handed the focus to again | Focuses it | The app | Leaves it | `aRepeatedFocusOfTheNextWindowNeedsNoFocusCall` | No |
-| Close the focused window, then a window on no workspace takes the focus | Focuses it | The app | Follows | `aWindowOnNoWorkspaceFocusedAfterTheCloseKeepsIt` | No |
+| Close the focused window, then a window on no workspace on the same display takes the focus | Focuses it | The app | Follows | `aWindowOnNoWorkspaceFocusedAfterTheCloseKeepsIt` | No |
+| Close the focused window, then macOS focuses a window on no workspace on another display | Focuses it | macOS | Takes it back to the closed window's display | `aWindowOnNoWorkspaceOnAnotherDisplayIsTakenBack` | No |
 | Close the focused window as the app opens a new one (a splash, then the main window) | Focuses the new window | The app | Follows: a window opened since the close is no answer to it | `aWindowOpenedRightAfterTheCloseKeepsItsFocus` | No |
 | Cmd-H on the focused window, the app's other window on the same display | Focuses another window in view | macOS | Follows: nothing closed, and it is the display the user is on | `aHideOnTheSameDisplayLeavesMacOSsPick` | No |
 | Close the focused window, cmd-tab to a window in view later | Focuses it | The user | Follows | `aFocusInViewLongAfterTheCloseIsFollowed` | No |
